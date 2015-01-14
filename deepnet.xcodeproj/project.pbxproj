@@ -1,0 +1,334 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXAggregateTarget section */
+		E19B907A1A63B141002330B4 /* Tests */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = E19B907B1A63B141002330B4 /* Build configuration list for PBXAggregateTarget "Tests" */;
+			buildPhases = (
+			);
+			dependencies = (
+			);
+			name = Tests;
+			productName = Tests;
+		};
+/* End PBXAggregateTarget section */
+
+/* Begin PBXBuildFile section */
+		E19B906F1A63945A002330B4 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E19B906E1A63945A002330B4 /* main.cpp */; settings = {COMPILER_FLAGS = "-O3 -I/Users/czhang/Desktop/moka2/lib/OpenBLAS/ -L/Users/czhang/Desktop/moka2/lib/OpenBLAS/"; }; };
+		E1A03B311A6482D000BA929F /* libopenblas_haswellp-r0.2.13.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = E1A03B301A6482D000BA929F /* libopenblas_haswellp-r0.2.13.dylib */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		E19B90691A63945A002330B4 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		E19B906B1A63945A002330B4 /* moka */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = moka; sourceTree = BUILT_PRODUCTS_DIR; };
+		E19B906E1A63945A002330B4 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		E19B90761A639507002330B4 /* Cube.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Cube.h; sourceTree = "<group>"; };
+		E19B90771A6398CC002330B4 /* Cube_impl.hxx */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Cube_impl.hxx; sourceTree = "<group>"; };
+		E19B907F1A63B702002330B4 /* Connector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Connector.h; sourceTree = "<group>"; };
+		E19B90801A63B933002330B4 /* Connector_impl_Lowering.hxx */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Connector_impl_Lowering.hxx; sourceTree = "<group>"; };
+		E19B90811A63B950002330B4 /* Connector_impl_Transfer.hxx */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Connector_impl_Transfer.hxx; sourceTree = "<group>"; };
+		E19B90821A643A01002330B4 /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
+		E19B90851A644759002330B4 /* Report.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Report.h; sourceTree = "<group>"; };
+		E19B90861A644958002330B4 /* timer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = timer.h; sourceTree = "<group>"; };
+		E19B90871A6450D4002330B4 /* Kernel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Kernel.h; sourceTree = "<group>"; };
+		E1A03B301A6482D000BA929F /* libopenblas_haswellp-r0.2.13.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libopenblas_haswellp-r0.2.13.dylib"; path = "lib/OpenBLAS/libopenblas_haswellp-r0.2.13.dylib"; sourceTree = "<group>"; };
+		E1B9419F1A64B6B200873431 /* Kernel_impl.hxx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Kernel_impl.hxx; sourceTree = "<group>"; };
+		E1B941A01A64B7C300873431 /* Bridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Bridge.h; sourceTree = "<group>"; };
+		E1B941A11A661C8A00873431 /* Bridge_impl.hxx */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Bridge_impl.hxx; sourceTree = "<group>"; };
+		E1B941A21A66364700873431 /* Layer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Layer.h; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		E19B90681A63945A002330B4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E1A03B311A6482D000BA929F /* libopenblas_haswellp-r0.2.13.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		E19B90621A63945A002330B4 = {
+			isa = PBXGroup;
+			children = (
+				E1A03B301A6482D000BA929F /* libopenblas_haswellp-r0.2.13.dylib */,
+				E19B906D1A63945A002330B4 /* moka */,
+				E19B906C1A63945A002330B4 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E19B906C1A63945A002330B4 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E19B906B1A63945A002330B4 /* moka */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E19B906D1A63945A002330B4 /* moka */ = {
+			isa = PBXGroup;
+			children = (
+				E19B90751A6394B2002330B4 /* dstruct */,
+				E19B906E1A63945A002330B4 /* main.cpp */,
+				E19B90821A643A01002330B4 /* config.h */,
+				E19B90861A644958002330B4 /* timer.h */,
+			);
+			path = moka;
+			sourceTree = "<group>";
+		};
+		E19B90751A6394B2002330B4 /* dstruct */ = {
+			isa = PBXGroup;
+			children = (
+				E19B90761A639507002330B4 /* Cube.h */,
+				E19B90771A6398CC002330B4 /* Cube_impl.hxx */,
+				E19B907F1A63B702002330B4 /* Connector.h */,
+				E19B90801A63B933002330B4 /* Connector_impl_Lowering.hxx */,
+				E19B90811A63B950002330B4 /* Connector_impl_Transfer.hxx */,
+				E19B90851A644759002330B4 /* Report.h */,
+				E19B90871A6450D4002330B4 /* Kernel.h */,
+				E1B9419F1A64B6B200873431 /* Kernel_impl.hxx */,
+				E1B941A01A64B7C300873431 /* Bridge.h */,
+				E1B941A11A661C8A00873431 /* Bridge_impl.hxx */,
+				E1B941A21A66364700873431 /* Layer.h */,
+			);
+			name = dstruct;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E19B906A1A63945A002330B4 /* moka */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E19B90721A63945A002330B4 /* Build configuration list for PBXNativeTarget "moka" */;
+			buildPhases = (
+				E19B90671A63945A002330B4 /* Sources */,
+				E19B90681A63945A002330B4 /* Frameworks */,
+				E19B90691A63945A002330B4 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = moka;
+			productName = moka;
+			productReference = E19B906B1A63945A002330B4 /* moka */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E19B90631A63945A002330B4 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0610;
+				ORGANIZATIONNAME = "Hazy Research";
+				TargetAttributes = {
+					E19B906A1A63945A002330B4 = {
+						CreatedOnToolsVersion = 6.1.1;
+					};
+					E19B907A1A63B141002330B4 = {
+						CreatedOnToolsVersion = 6.1.1;
+					};
+				};
+			};
+			buildConfigurationList = E19B90661A63945A002330B4 /* Build configuration list for PBXProject "moka" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = E19B90621A63945A002330B4;
+			productRefGroup = E19B906C1A63945A002330B4 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E19B906A1A63945A002330B4 /* moka */,
+				E19B907A1A63B141002330B4 /* Tests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		E19B90671A63945A002330B4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E19B906F1A63945A002330B4 /* main.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		E19B90701A63945A002330B4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		E19B90711A63945A002330B4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		E19B90731A63945A002330B4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/lib",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/lib/OpenBLAS",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		E19B90741A63945A002330B4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/lib",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/lib/OpenBLAS",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		E19B907C1A63B141002330B4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		E19B907D1A63B141002330B4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		E19B90661A63945A002330B4 /* Build configuration list for PBXProject "moka" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E19B90701A63945A002330B4 /* Debug */,
+				E19B90711A63945A002330B4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E19B90721A63945A002330B4 /* Build configuration list for PBXNativeTarget "moka" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E19B90731A63945A002330B4 /* Debug */,
+				E19B90741A63945A002330B4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E19B907B1A63B141002330B4 /* Build configuration list for PBXAggregateTarget "Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E19B907C1A63B141002330B4 /* Debug */,
+				E19B907D1A63B141002330B4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = E19B90631A63945A002330B4 /* Project object */;
+}
