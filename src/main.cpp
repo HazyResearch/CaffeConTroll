@@ -314,6 +314,101 @@ void TEST_CONV(){
 
 }
 
+/**
+ 
+ INPUT DATA=
+ BATCH 0 DEPTH 0
+ 1 1 1 0 0
+ 0 0 0 1 1
+ 0 1 0 0 1
+ 1 1 1 0 0
+ 1 1 1 1 0
+ BATCH 1 DEPTH 0
+ 1 1 0 0 1
+ 1 0 0 1 0
+ 1 1 1 1 1
+ 1 0 1 0 1
+ 1 0 1 0 1
+ 
+ INPUT MODEL=
+ BATCH 0 DEPTH 0
+ 1 1 0
+ 0 0 0
+ 0 0 0
+ BATCH 1 DEPTH 0
+ 1 0 0
+ 1 0 1
+ 1 1 0
+ BATCH 2 DEPTH 0
+ 0 1 0
+ 1 1 1
+ 1 0 1
+ 
+ RESULT=
+ BATCH 0 DEPTH 0
+ 0.964028 0.964028 0.761594
+ 0 0 0.761594
+ 0.761594 0.761594 0
+ BATCH 0 DEPTH 1
+ 0.964028 0.761594 0
+ 0.761594 0 0.761594
+ 0.964028 0.964028 0.964028
+ BATCH 0 DEPTH 2
+ 0.964028 0.995055 0.964028
+ 0.964028 0.995055 0.964028
+ 0.999329 0.999329 0.995055
+ BATCH 1 DEPTH 0
+ 0.999329 0.999329 0.964028
+ 0.999329 0.995055 0.995055
+ 0.999329 0.964028 0.999329
+ BATCH 1 DEPTH 1
+ 0.761594 0.995055 0.995055
+ 0.995055 0.964028 0.995055
+ 0.999988 0.999329 0.964028
+ BATCH 1 DEPTH 2
+ 0.999329 0.995055 0.995055
+ 0.999909 0.995055 0.999988
+ 0.999909 0.964028 0.999909
+ **/
+void TEST_CONV_WITH_TANH(){
+ 
+    Cube<DataType_SFFloat, Layout_CRDB> data1(5, 5, 1, 2);
+    Cube<DataType_SFFloat, Layout_CRDB> kernel1(3, 3, 1, 3);
+    Cube<DataType_SFFloat, Layout_CRDB> grad1(5, 5, 1, 2);
+    
+    Cube<DataType_SFFloat, Layout_CRDB> data2(5-3+1, 5-3+1, 3, 2);
+    Cube<DataType_SFFloat, Layout_CRDB> kernel2(0, 0, 3, 2);
+    Cube<DataType_SFFloat, Layout_CRDB> grad2(5-3+1, 5-3+1, 3, 2);
+    
+    
+    for(int i=0;i<5*5*2;i++){
+        data1.p_data[i] = rand()%2;
+    }
+    for(int i=0;i<3*3*3;i++){
+        kernel1.p_data[i] = rand()%2;
+    }
+    
+    Layer<DataType_SFFloat, Layout_CRDB> layer1(&data1, &kernel1, &grad1);
+    Layer<DataType_SFFloat, Layout_CRDB> layer2(&data2, &kernel2, &grad2);
+    
+    Bridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, Bridge_CPU_CONV_LOWERINGTYPE1, FUNC_TANH> forward(&layer1, &layer2);
+    
+    forward.forward();
+    
+    std::cout << "\nINPUT DATA=" << std::endl;
+    layer1.p_data_cube->logical_print();
+    
+    std::cout << "\nINPUT MODEL=" << std::endl;
+    layer1.p_model_cube->logical_print();
+    
+    std::cout << "\nRESULT=" << std::endl;
+    layer2.p_data_cube->logical_print();
+    
+    forward.report_forward_last_transfer.print();
+    forward.report_forward_history.print();
+    
+}
+
 
 void TEST_CONV_NOTTOY(){
     
@@ -535,7 +630,9 @@ void TEST_BACKPROP_NOTTOY(){
 
 int main(int argc, const char * argv[]) {
     
-    TEST_BACKPROP_NOTTOY();
+    TEST_CONV_WITH_TANH();
+    
+    //TEST_BACKPROP_NOTTOY();
     
     //TEST_Kernel_ELEMENTMUL_TANHGRAD();
     

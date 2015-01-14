@@ -11,17 +11,13 @@
 #include "Kernel.h"
 #include "Report.h"
 #include "Layer.h"
+#include "Scanner.h"
 
 #ifndef moka_Bridge_h
 #define moka_Bridge_h
 
 enum BridgeType{
     Bridge_CPU_CONV_LOWERINGTYPE1 = 0
-};
-
-enum NonLinearFunction{
-    FUNC_NOFUNC = 0,
-    FUNC_TANH = 1
 };
 
 /**
@@ -95,6 +91,8 @@ public:
     Report report_forward_constructor;
     Report report_forward_last_transfer;
     Report report_forward_history;
+    
+    Scanner<DataType, Layout_CRDB, FUNC> * p_forward_applyfunc_scanner;
     
     Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, Connector_Lowering_R1C1> *
     p_forward_lower_connector;

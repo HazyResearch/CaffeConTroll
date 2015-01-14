@@ -122,20 +122,20 @@ inverse_transfer(OutputCubeType * p_output_cube, InputCubeType * p_input_cube){
     
     const size_t & ksize = p_config->kernel_size;
     size_t outr = 0, outc = 0;
-    
-#pragma unroll
+
+    #pragma unroll
     for(size_t kd=0;kd<iD;kd++){
-#pragma unroll
+        #pragma unroll
         for(size_t kr=0;kr<ksize;kr++){
-#pragma unroll
+            #pragma unroll
             for(size_t kc=0;kc<ksize;kc++){
                 
                 outc = 0;
-#pragma unroll
+                #pragma unroll
                 for(size_t ib=0;ib<iB;ib++){
-#pragma unroll
+                    #pragma unroll
                     for(size_t cr=0;cr<iR-ksize+1;cr++){
-#pragma unroll
+                        #pragma unroll
                         for(size_t cc=0;cc<iC-ksize+1;cc++){
                             *p_input_cube->logical_get(cr+kr, cc+kc, kd, ib) +=
                                 *p_output_cube->logical_get(outr, outc, 0, 0);

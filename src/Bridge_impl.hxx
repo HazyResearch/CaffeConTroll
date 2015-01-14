@@ -48,6 +48,8 @@ stepsize(_DEFAULT_STEPSIZE)
     
     p_forward_gemm_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS>(&lowered_forward_model, p_forward_lowered_data, &lowered_forward_output);
     
+    p_forward_applyfunc_scanner = new Scanner<DataType, Layout_CRDB, FUNC>(p_output_layer->p_data_cube);
+    
     // second, allocate the space we need for backward
     p_backward_outputgrad = new Cube<DataType, Layout_CRDB>(oR, oC, oD, oB);
     
@@ -100,16 +102,17 @@ forward(){
     p_forward_gemm_kernel->compute(&lowered_model, p_forward_lowered_data, &lowered_output);
     
     // (3) apply non-linear functions
-    switch (FUNC) {
-        case FUNC_NOFUNC:
-            break;
-        std::cerr << "ERROR: Unsupported Non-linear Functions." << std::endl;
-        assert(false);
+    if(FUNC != FUNC_NOFUNC){
+        p_forward_applyfunc_scanner->apply(&lowered_output);
     }
     
     report_forward_last_transfer.end();
     report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_transfer);
     report_forward_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_transfer);
+    
+    if(FUNC != FUNC_NOFUNC){
+        report_forward_last_transfer.aggregate_onlystat(p_forward_applyfunc_scanner->report_last_apply);
+    }
     
     report_forward_history.aggregate(report_forward_last_transfer);
     
