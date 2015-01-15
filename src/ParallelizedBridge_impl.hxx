@@ -24,6 +24,14 @@ ParallelizedBridge<DATATYPE, LAYOUTTYPE, BRIDGETYPE, FUNC>::ParallelizedBridge(L
         report_backward_updateweight_last_transfer.reset();
         report_backward_updateweight_history.reset();
         
+
+        /****
+        *
+        *   #####UGLY#####
+        *   The following function needs to be refactored when the Physical-Logical
+        *   refactoring is done.
+        *
+        ****/
         const int n_batch_per_partition = n_batch / n_partition;
         for(int b=0;b<n_batch;b+=n_batch_per_partition){
             
