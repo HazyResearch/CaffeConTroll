@@ -98,7 +98,6 @@ compute(const Input1CubeType * const p_input1_cube, const Input2CubeType * const
         LDB = N;
     }
     
-    //openblas_set_num_threads(1);    // TODO: Change # Threads
     BLASFUNC(sgemm)(&N2, &N1, &N, &M, &K, &_alpha, p_input2_cube->p_data,
                     &LDB, p_input1_cube->p_data, &LDA, &_beta, p_output_cube->p_data, &N );
 

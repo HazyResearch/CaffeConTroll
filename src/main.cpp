@@ -14,6 +14,7 @@
 #include "Kernel.h"
 #include "Bridge.h"
 #include "Layer.h"
+#include "ParallelizedBridge.h"
 
 /**
  * Input:
@@ -55,7 +56,7 @@ void TEST_LOWERING(){
     LoweringConfig lconfig;
     lconfig.kernel_size = 2;
     
-    Connector<DataType_String, Layout_CRDB, DataType_String, Layout_CRDB, Connector_Lowering_R1C1>
+    Connector<DataType_String, Layout_CRDB, DataType_String, Layout_CRDB, Connector_Lowering_TYPE1>
         connector(&cube1, &cube2, &lconfig);
     
     size_t ct = 0;
@@ -103,7 +104,7 @@ void TEST_TIMER(){
     Cube<DataType_SFFloat, Layout_CRDB> cube2(lconfig.kernel_size*lconfig.kernel_size*96,
                         (64-lconfig.kernel_size+1)*(64-lconfig.kernel_size+1)*12, 1, 1);
     
-    Connector<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, Connector_Lowering_R1C1>
+    Connector<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, Connector_Lowering_TYPE1>
     connector(&cube1, &cube2, &lconfig);
     
     connector.transfer(&cube1, &cube2);
@@ -627,10 +628,137 @@ void TEST_BACKPROP_NOTTOY(){
 }
 
 
+void TEST_PHYSICAL_EXECUTOR(){
+    
+    Cube<DataType_SFFloat, Layout_CRDB> data11(64, 64, 96, 12);
+    Cube<DataType_SFFloat, Layout_CRDB> data12(64, 64, 96, 12);
+    Cube<DataType_SFFloat, Layout_CRDB> data13(64, 64, 96, 12);
+    Cube<DataType_SFFloat, Layout_CRDB> data14(64, 64, 96, 12);
+    Cube<DataType_SFFloat, Layout_CRDB> data15(64, 64, 96, 12);
+    
+    Cube<DataType_SFFloat, Layout_CRDB> kernel1(5, 5, 96, 256);
+    
+    Cube<DataType_SFFloat, Layout_CRDB> grad11(64, 64, 96, 12);
+    Cube<DataType_SFFloat, Layout_CRDB> grad12(64, 64, 96, 12);
+    Cube<DataType_SFFloat, Layout_CRDB> grad13(64, 64, 96, 12);
+    Cube<DataType_SFFloat, Layout_CRDB> grad14(64, 64, 96, 12);
+    Cube<DataType_SFFloat, Layout_CRDB> grad15(64, 64, 96, 12);
+
+    Cube<DataType_SFFloat, Layout_CRDB> data21(64-5+1, 64-5+1, 256, 12);
+    Cube<DataType_SFFloat, Layout_CRDB> data22(64-5+1, 64-5+1, 256, 12);
+    Cube<DataType_SFFloat, Layout_CRDB> data23(64-5+1, 64-5+1, 256, 12);
+    Cube<DataType_SFFloat, Layout_CRDB> data24(64-5+1, 64-5+1, 256, 12);
+    Cube<DataType_SFFloat, Layout_CRDB> data25(64-5+1, 64-5+1, 256, 12);
+    
+    Cube<DataType_SFFloat, Layout_CRDB> kernel2(0, 0, 256, 2);
+    
+    Cube<DataType_SFFloat, Layout_CRDB> grad21(64-5+1, 64-5+1, 256, 12);
+    Cube<DataType_SFFloat, Layout_CRDB> grad22(64-5+1, 64-5+1, 256, 12);
+    Cube<DataType_SFFloat, Layout_CRDB> grad23(64-5+1, 64-5+1, 256, 12);
+    Cube<DataType_SFFloat, Layout_CRDB> grad24(64-5+1, 64-5+1, 256, 12);
+    Cube<DataType_SFFloat, Layout_CRDB> grad25(64-5+1, 64-5+1, 256, 12);
+
+    Layer<DataType_SFFloat, Layout_CRDB> layer11(&data11, &kernel1, &grad11);
+    Layer<DataType_SFFloat, Layout_CRDB> layer12(&data12, &kernel1, &grad12);
+    Layer<DataType_SFFloat, Layout_CRDB> layer13(&data13, &kernel1, &grad13);
+    Layer<DataType_SFFloat, Layout_CRDB> layer14(&data14, &kernel1, &grad14);
+    Layer<DataType_SFFloat, Layout_CRDB> layer15(&data15, &kernel1, &grad15);
+
+    Layer<DataType_SFFloat, Layout_CRDB> layer21(&data21, &kernel2, &grad21);
+    Layer<DataType_SFFloat, Layout_CRDB> layer22(&data22, &kernel2, &grad22);
+    Layer<DataType_SFFloat, Layout_CRDB> layer23(&data23, &kernel2, &grad23);
+    Layer<DataType_SFFloat, Layout_CRDB> layer24(&data24, &kernel2, &grad24);
+    Layer<DataType_SFFloat, Layout_CRDB> layer25(&data25, &kernel2, &grad25);
+    
+    Bridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, Bridge_CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC> bridge1(&layer11, &layer21);
+    Bridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, Bridge_CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC> bridge2(&layer12, &layer22);
+    Bridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, Bridge_CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC> bridge3(&layer13, &layer23);
+    Bridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, Bridge_CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC> bridge4(&layer14, &layer24);
+    Bridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, Bridge_CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC> bridge5(&layer15, &layer25);
+    
+    bridge1.run_with_n_threads = 1;
+    bridge2.run_with_n_threads = 1;
+    bridge3.run_with_n_threads = 1;
+    bridge4.run_with_n_threads = 1;
+    bridge5.run_with_n_threads = 1;
+    
+    PhysicalStratum stratum;
+    stratum.executors.push_back((PhysicalOperator*)&bridge1);
+    stratum.executors.push_back((PhysicalOperator*)&bridge2);
+    stratum.executors.push_back((PhysicalOperator*)&bridge3);
+    stratum.executors.push_back((PhysicalOperator*)&bridge4);
+    stratum.executors.push_back((PhysicalOperator*)&bridge5);
+    
+    //stratum.forward();
+    
+    //stratum.report_forward_last_transfer.print();
+    
+    stratum.backward();
+    
+    stratum.report_backward_updateweight_last_transfer.print();
+    
+}
+
+void TEST_PHYSICAL_PARALLELBRIDGE_WITH_GROUND_TRUTH(){
+    
+    Cube<DataType_SFFloat, Layout_CRDB> data1(5, 5, 1, 2);
+    Cube<DataType_SFFloat, Layout_CRDB> kernel1(3, 3, 1, 3);
+    Cube<DataType_SFFloat, Layout_CRDB> grad1(5, 5, 1, 2);
+    
+    Cube<DataType_SFFloat, Layout_CRDB> data2(5-3+1, 5-3+1, 3, 2);
+    Cube<DataType_SFFloat, Layout_CRDB> kernel2(0, 0, 3, 2);
+    Cube<DataType_SFFloat, Layout_CRDB> grad2(5-3+1, 5-3+1, 3, 2);
+    
+    
+    for(int i=0;i<5*5*2;i++){
+        data1.p_data[i] = rand()%2;
+    }
+    for(int i=0;i<3*3*3;i++){
+        kernel1.p_data[i] = rand()%2;
+    }
+    
+    Layer<DataType_SFFloat, Layout_CRDB> layer1(&data1, &kernel1, &grad1);
+    Layer<DataType_SFFloat, Layout_CRDB> layer2(&data2, &kernel2, &grad2);
+    
+    ParallelizedBridge<DataType_SFFloat, Layout_CRDB, Bridge_CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC> parallel_bridge(&layer1, &layer2, 2, 1);
+    
+    parallel_bridge.forward();
+    parallel_bridge.report_forward_last_transfer.print();
+
+    data2.logical_print();
+    
+}
+
+
+void TEST_PHYSICAL_PARALLELBRIDGE(){
+    
+    Layer<DataType_SFFloat, Layout_CRDB> * layer1 = Layer<DataType_SFFloat, Layout_CRDB>::make_layer(64, 96, 128, 5, 256);
+
+    Layer<DataType_SFFloat, Layout_CRDB> * layer2 = Layer<DataType_SFFloat, Layout_CRDB>::make_layer(64-5+1, 256, 128, 2, 2);
+    
+    ParallelizedBridge<DataType_SFFloat, Layout_CRDB, Bridge_CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC> parallel_bridge(layer1, layer2, 4, 1);
+    
+    parallel_bridge.forward();
+
+    parallel_bridge.backward();
+
+    parallel_bridge.report_forward_last_transfer.print();
+    
+    parallel_bridge.report_backward_updateweight_last_transfer.print();
+}
+
 
 int main(int argc, const char * argv[]) {
     
-    TEST_CONV_WITH_TANH();
+    TEST_PHYSICAL_PARALLELBRIDGE();
+    
+    //TEST_PHYSICAL_PARALLELBRIDGE_WITH_GROUND_TRUTH();
+    
+    //TEST_PHYSICAL_PARALLELBRIDGE();
+    
+    //TEST_PHYSICAL_EXECUTOR();
+    
+    //TEST_CONV_WITH_TANH();
     
     //TEST_BACKPROP_NOTTOY();
     

@@ -13,6 +13,8 @@
 #include "Layer.h"
 #include "Scanner.h"
 
+#include "PhysicalOperator.h"
+
 #ifndef moka_Bridge_h
 #define moka_Bridge_h
 
@@ -35,7 +37,7 @@ template
 <typename InputLayerDataType, LayoutType InputLayerLayout,
 typename OutputLayerDataType, LayoutType OutputLayerLayout,
 BridgeType LAYERTYPE, NonLinearFunction FUNC>
-class Bridge{
+class Bridge : public PhysicalOperator{
 public:
 
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
@@ -73,7 +75,7 @@ public:
  * Specializations
  */
 template<typename DataType, NonLinearFunction FUNC>
-class Bridge<DataType, Layout_CRDB, DataType, Layout_CRDB, Bridge_CPU_CONV_LOWERINGTYPE1, FUNC>{
+class Bridge<DataType, Layout_CRDB, DataType, Layout_CRDB, Bridge_CPU_CONV_LOWERINGTYPE1, FUNC> : public PhysicalOperator {
 public:
     
     float stepsize;
@@ -88,13 +90,9 @@ public:
     const size_t i2R, i2C, i2D, i2B; /*< Size of the input Cube 2 */
     const size_t oR, oC, oD, oB; /*< Size of the output Cube */
     
-    Report report_forward_constructor;
-    Report report_forward_last_transfer;
-    Report report_forward_history;
-    
     Scanner<DataType, Layout_CRDB, FUNC> * p_forward_applyfunc_scanner;
     
-    Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, Connector_Lowering_R1C1> *
+    Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, Connector_Lowering_TYPE1> *
     p_forward_lower_connector;
     
     Cube<DataType, Layout_CRDB> * p_forward_lowered_data;
@@ -103,10 +101,6 @@ public:
     
     Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS> * p_forward_gemm_kernel;
     
-    Report report_backward_updateweight_constructor;
-    Report report_backward_updateweight_last_transfer;
-    Report report_backward_updateweight_history;
-
     Cube<DataType, Layout_CRDB> * p_backward_outputgrad;
     Cube<DataType, Layout_CRDB> * p_backward_inputgrad;
     

@@ -84,7 +84,7 @@ public:
      * layout will get a compilation error.
      *
      **/
-    T * physical_get_RCslice(size_t d, size_t b);
+    T * physical_get_RCDslice(size_t b);
     
     /**
      * Print to STDOUT the Logical Representation.
@@ -143,7 +143,7 @@ private:
 
     template<typename TYPECONSTRAINT>
     struct PhysicalFetcher<Layout_CRDB, TYPECONSTRAINT> {
-        inline static T * physical_get_RCslice(const Cube<T, LAYOUT>& cube, size_t d, size_t b);
+        inline static T * physical_get_RCDslice(const Cube<T, LAYOUT>& cube, size_t b);
     };
     
 };

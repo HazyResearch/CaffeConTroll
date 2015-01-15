@@ -44,7 +44,7 @@ stepsize(_DEFAULT_STEPSIZE)
     
     std::cout << "Allocating " << (1.0*i2R*i2C*i2D*(i1R-i2R+1)*(i1C-i2C+1)*i1B*sizeof(DataType))/1024/1024/1024 << " GB data for the lowering matrix" << std::endl;
     
-    p_forward_lower_connector = new Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, Connector_Lowering_R1C1>(p_input_layer->p_data_cube, p_forward_lowered_data, &lconfig_forward);
+    p_forward_lower_connector = new Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, Connector_Lowering_TYPE1>(p_input_layer->p_data_cube, p_forward_lowered_data, &lconfig_forward);
     
     p_forward_gemm_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS>(&lowered_forward_model, p_forward_lowered_data, &lowered_forward_output);
     
@@ -88,6 +88,8 @@ template<typename DataType, NonLinearFunction FUNC>
 void Bridge<DataType, Layout_CRDB, DataType, Layout_CRDB, Bridge_CPU_CONV_LOWERINGTYPE1, FUNC>::
 forward(){
     
+    openblas_set_num_threads(run_with_n_threads);
+
     report_forward_last_transfer.reset();
     
     // (0) cast input model and output to matrix
@@ -142,6 +144,8 @@ forward(){
 template<typename DataType, NonLinearFunction FUNC>
 void Bridge<DataType, Layout_CRDB, DataType, Layout_CRDB, Bridge_CPU_CONV_LOWERINGTYPE1, FUNC>::
 backward(){
+    
+    openblas_set_num_threads(run_with_n_threads);
     
     report_backward_updateweight_last_transfer.reset();
     

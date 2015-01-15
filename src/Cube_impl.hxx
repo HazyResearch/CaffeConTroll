@@ -18,11 +18,11 @@ T * Cube<T, LAYOUT>::logical_get(size_t r, size_t c, size_t d, size_t b) const{
 };
 
 template<typename T, LayoutType LAYOUT>
-T * Cube<T, LAYOUT>::physical_get_RCslice(size_t d, size_t b){
+T * Cube<T, LAYOUT>::physical_get_RCDslice(size_t b){
 #ifdef _DO_ASSERT
-    assert(d<D); assert(b<B);
+    assert(b<B);
 #endif
-    return PhysicalFetcher<LAYOUT>::physical_get_RCslice(*this, d, b);
+    return PhysicalFetcher<LAYOUT>::physical_get_RCDslice(*this, b);
 }
 
 template<typename T, LayoutType LAYOUT>
@@ -57,6 +57,8 @@ void Cube<T, LAYOUT>::logical_print(){
                 std::cout << "    " ;
                 for(size_t ic=0;ic<C;ic++){
                     std::cout << *logical_get(ir, ic, id, ib) << " ";
+                    //std::cout << " (" <<
+                    //(ic + ir*C + id*R*C + ib*R*C*D) << ") ";
                 }
                 std::cout << std::endl;
             }
@@ -81,8 +83,8 @@ T* Cube<T,LAYOUT>::LogicalFetcher<Layout_BDRC, TYPECONSTRAINT>::logical_get(cons
 
 template<typename T, LayoutType LAYOUT>
 template<typename TYPECONSTRAINT>
-T* Cube<T,LAYOUT>::PhysicalFetcher<Layout_CRDB, TYPECONSTRAINT>::physical_get_RCslice(const Cube<T, LAYOUT>& cube, size_t d, size_t b){
-    return &cube.p_data[d*cube.R*cube.C + b*cube.R*cube.C*cube.D];
+T* Cube<T,LAYOUT>::PhysicalFetcher<Layout_CRDB, TYPECONSTRAINT>::physical_get_RCDslice(const Cube<T, LAYOUT>& cube, size_t b){
+    return &cube.p_data[b*cube.R*cube.C*cube.D];
 }
 
 #endif

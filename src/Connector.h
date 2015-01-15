@@ -13,9 +13,9 @@
 #define moka_Connector_h
 
 enum ConnectorType{
-    Connector_Lowering_R1C1 = 0,
-    Connector_Lowering_R1C0 = 1,
-    Connector_Lowering_R0C0 = 2
+    Connector_Lowering_TYPE1 = 0, // we definitely need better names -- but these three are the three types of lowering algorithms
+    Connector_Lowering_TYPE2 = 1,
+    Connector_Lowering_TYPE3 = 2
 };
 
 struct LoweringConfig{
@@ -88,7 +88,7 @@ public:
  */
 template
 <typename DataType, LayoutType InputLayout>
-class Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_R1C1>{
+class Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_TYPE1>{
 public:
     
     typedef Cube<DataType, InputLayout> InputCubeType;
@@ -115,6 +115,39 @@ public:
     
 };
 
+
+template
+<typename DataType, LayoutType InputLayout>
+class Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_TYPE2>{
+public:
+    
+    typedef Cube<DataType, InputLayout> InputCubeType;
+    typedef Cube<DataType, Layout_CRDB> OutputCubeType;
+    
+    const size_t iR, iC, iD, iB;
+    const size_t oR, oC, oD, oB;
+    
+    Report report_constructor;
+    Report report_last_transfer;
+    Report report_history;
+    
+    Report report_last_inverse_transfer;
+    Report report_inverse_history;
+    
+    const LoweringConfig * const p_config;
+    
+    Connector(const InputCubeType  * const p_input_cube, const OutputCubeType * const p_output_cube,
+              const void * const _p_config);
+    
+    void transfer(const InputCubeType * const p_input_cube, OutputCubeType * p_output_cube);
+    
+    void inverse_transfer(OutputCubeType * p_output_cube, InputCubeType * p_input_cube);
+    
+};
+
+
+
+
 /*
 template
 <typename InputDataType, typename OutputDataType>
@@ -136,5 +169,6 @@ public:
 
 
 #include "Connector_impl_Lowering.hxx"
+#include "Connector_impl_Lowering_type2.hxx"
 
 #endif

@@ -25,6 +25,14 @@ template
 class Layer{
 public:
     
+    static Layer<DataType, DataLayout> * make_layer(const int N, const int I, const int B, const int K, const int O){
+        return new Layer<DataType, DataLayout>(
+           new Cube<DataType, DataLayout>(N, N, I, B),
+           new Cube<DataType, DataLayout>(K, K, I, O),
+           new Cube<DataType, DataLayout>(N, N, I, B)
+        );
+    }
+    
     typedef Cube<DataType, DataLayout> DataCubeType;
     typedef Cube<DataType, DataLayout> ModelCubeType;
     typedef Cube<DataType, DataLayout> GradientCubeType;

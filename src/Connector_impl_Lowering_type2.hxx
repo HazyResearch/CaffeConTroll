@@ -1,29 +1,29 @@
 //
-//  Connector_impl_Lowering.hxx
+//  Connector_imple_Lowering_type2.hxx
 //  moka
 //
-//  Created by Ce Zhang on 1/12/15.
+//  Created by Ce Zhang on 1/14/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#ifndef moka_Connector_impl_Lowering_hxx
-#define moka_Connector_impl_Lowering_hxx
+#ifndef moka_Connector_imple_Lowering_type2_hxx
+#define moka_Connector_imple_Lowering_type2_hxx
 
 template<typename DataType, LayoutType InputLayout>
-Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_TYPE1>::
+Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_TYPE2>::
 Connector(const InputCubeType  * const p_input_cube, const OutputCubeType * const p_output_cube,
           const void * const _p_config) :
-  iR(p_input_cube->R), iC(p_input_cube->C), iD(p_input_cube->D), iB(p_input_cube->B),
-  oR(p_output_cube->R), oC(p_output_cube->C), oD(p_output_cube->D), oB(p_output_cube->B),
-  p_config((LoweringConfig*)_p_config)
+iR(p_input_cube->R), iC(p_input_cube->C), iD(p_input_cube->D), iB(p_input_cube->B),
+oR(p_output_cube->R), oC(p_output_cube->C), oD(p_output_cube->D), oB(p_output_cube->B),
+p_config((LoweringConfig*)_p_config)
 {
-
+    
     report_constructor.reset();
     report_last_transfer.reset();
     report_history.reset();
     report_last_inverse_transfer.reset();
     report_inverse_history.reset();
-
+    
 #ifdef _DO_ASSERT
     const size_t & ksize = p_config->kernel_size;
     assert(oD==1);
@@ -35,7 +35,7 @@ Connector(const InputCubeType  * const p_input_cube, const OutputCubeType * cons
 }
 
 template<typename DataType, LayoutType InputLayout>
-void Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_TYPE1>::
+void Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_TYPE2>::
 transfer(const InputCubeType * const p_input_cube, OutputCubeType * p_output_cube){
     
     report_last_transfer.reset();
@@ -58,22 +58,22 @@ transfer(const InputCubeType * const p_input_cube, OutputCubeType * p_output_cub
     const size_t & ksize = p_config->kernel_size;
     size_t outr = 0, outc = 0;
     
-    #pragma unroll
+#pragma unroll
     for(size_t kd=0;kd<iD;kd++){
-        #pragma unroll
+#pragma unroll
         for(size_t kr=0;kr<ksize;kr++){
-            #pragma unroll
+#pragma unroll
             for(size_t kc=0;kc<ksize;kc++){
-
+                
                 outc = 0;
-                #pragma unroll
+#pragma unroll
                 for(size_t ib=0;ib<iB;ib++){
-                    #pragma unroll
+#pragma unroll
                     for(size_t cr=0;cr<iR-ksize+1;cr++){
-                        #pragma unroll
+#pragma unroll
                         for(size_t cc=0;cc<iC-ksize+1;cc++){
                             *p_output_cube->logical_get(outr, outc, 0, 0) =
-                                *p_input_cube->logical_get(cr+kr, cc+kc, kd, ib);
+                            *p_input_cube->logical_get(cr+kr, cc+kc, kd, ib);
                             outc ++;
                         }
                     }
@@ -90,7 +90,7 @@ transfer(const InputCubeType * const p_input_cube, OutputCubeType * p_output_cub
 
 
 template<typename DataType, LayoutType InputLayout>
-void Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_TYPE1>::
+void Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_TYPE2>::
 inverse_transfer(OutputCubeType * p_output_cube, InputCubeType * p_input_cube){
     
     report_last_inverse_transfer.reset();
@@ -122,23 +122,23 @@ inverse_transfer(OutputCubeType * p_output_cube, InputCubeType * p_input_cube){
     
     const size_t & ksize = p_config->kernel_size;
     size_t outr = 0, outc = 0;
-
-    #pragma unroll
+    
+#pragma unroll
     for(size_t kd=0;kd<iD;kd++){
-        #pragma unroll
+#pragma unroll
         for(size_t kr=0;kr<ksize;kr++){
-            #pragma unroll
+#pragma unroll
             for(size_t kc=0;kc<ksize;kc++){
                 
                 outc = 0;
-                #pragma unroll
+#pragma unroll
                 for(size_t ib=0;ib<iB;ib++){
-                    #pragma unroll
+#pragma unroll
                     for(size_t cr=0;cr<iR-ksize+1;cr++){
-                        #pragma unroll
+#pragma unroll
                         for(size_t cc=0;cc<iC-ksize+1;cc++){
                             *p_input_cube->logical_get(cr+kr, cc+kc, kd, ib) +=
-                                *p_output_cube->logical_get(outr, outc, 0, 0);
+                            *p_output_cube->logical_get(outr, outc, 0, 0);
                             outc ++;
                         }
                     }
