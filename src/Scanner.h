@@ -6,7 +6,7 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#include "Cube.h"
+#include "LogicalCube.h"
 #include "Report.h"
 
 #ifndef moka_Scanner_h
@@ -18,25 +18,25 @@ enum NonLinearFunction{
 };
 
 /**
- * A scanner is simple -- for each element in a Cube, apply a function, and update the element.
+ * A scanner is simple -- for each element in a LogicalCube, apply a function, and update the element.
  **/
 template
 <typename DataType, LayoutType Layout, NonLinearFunction SCANNER>
 class Scanner{
 public:
     
-    typedef Cube<DataType, Layout> CubeType;
+    typedef LogicalCube<DataType, Layout> LogicalCubeType;
     
     Report report_constructor; /*< Performance reporter for constructor function. */
     Report report_last_apply; /*< Performance reporter for the last run of transfer() function. */
     Report report_history; /*< Performance reporter for all transfer() functions aggregated. */
     
-    Scanner(const CubeType * const p_cube){
+    Scanner(const LogicalCubeType * const p_cube){
         std::cerr << "ERROR: Using a scanner with unsupported Layout or DataType." << std::endl;
         assert(false);
     }
     
-    void apply(CubeType * const p_cube){
+    void apply(LogicalCubeType * const p_cube){
         std::cerr << "ERROR: Using a scanner with unsupported Layout or DataType." << std::endl;
         assert(false);
     }
@@ -51,15 +51,15 @@ template
 class Scanner<DataType, Layout, FUNC_TANH>{
 public:
     
-    typedef Cube<DataType, Layout> CubeType;
+    typedef LogicalCube<DataType, Layout> LogicalCubeType;
     
     Report report_constructor; /*< Performance reporter for constructor function. */
     Report report_last_apply; /*< Performance reporter for the last run of transfer() function. */
     Report report_history; /*< Performance reporter for all transfer() functions aggregated. */
     
-    Scanner(const CubeType * const p_cube);
+    Scanner(const LogicalCubeType * const p_cube);
     
-    void apply(CubeType * const p_cube);
+    void apply(LogicalCubeType * const p_cube);
     
 };
 
@@ -68,13 +68,13 @@ template
 class Scanner<DataType, Layout, FUNC_NOFUNC>{
 public:
     
-    typedef Cube<DataType, Layout> CubeType;
+    typedef LogicalCube<DataType, Layout> LogicalCubeType;
     
     Report report_constructor; /*< Performance reporter for constructor function. */
     Report report_last_apply; /*< Performance reporter for the last run of transfer() function. */
     Report report_history; /*< Performance reporter for all transfer() functions aggregated. */
 
-    Scanner(const CubeType * const p_cube){
+    Scanner(const LogicalCubeType * const p_cube){
         report_constructor.reset();
         report_last_apply.reset();
         report_history.reset();
@@ -82,7 +82,7 @@ public:
         report_constructor.end(0, 0, 0);
     }
     
-    void apply(CubeType * const p_cube){}
+    void apply(LogicalCubeType * const p_cube){}
     
 };
 

@@ -6,7 +6,7 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#include "Cube.h"
+#include "LogicalCube.h"
 #include "Connector.h"
 #include "Kernel.h"
 #include "Report.h"
@@ -43,9 +43,9 @@ public:
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
     
-    const size_t i1R, i1C, i1D, i1B; /*< Size of the input Cube 1 */
-    const size_t i2R, i2C, i2D, i2B; /*< Size of the input Cube 2 */
-    const size_t oR, oC, oD, oB; /*< Size of the output Cube */
+    const size_t i1R, i1C, i1D, i1B; /*< Size of the input LogicalCube 1 */
+    const size_t i2R, i2C, i2D, i2B; /*< Size of the input LogicalCube 2 */
+    const size_t oR, oC, oD, oB; /*< Size of the output LogicalCube */
 
     Report report_constructor;
     Report report_last_transfer;
@@ -86,23 +86,23 @@ public:
     InputLayerType * const p_input_layer;
     OutputLayerType * const p_output_layer;
     
-    const size_t i1R, i1C, i1D, i1B; /*< Size of the input Cube 1 */
-    const size_t i2R, i2C, i2D, i2B; /*< Size of the input Cube 2 */
-    const size_t oR, oC, oD, oB; /*< Size of the output Cube */
+    const size_t i1R, i1C, i1D, i1B; /*< Size of the input LogicalCube 1 */
+    const size_t i2R, i2C, i2D, i2B; /*< Size of the input LogicalCube 2 */
+    const size_t oR, oC, oD, oB; /*< Size of the output LogicalCube */
     
     Scanner<DataType, Layout_CRDB, FUNC> * p_forward_applyfunc_scanner;
     
     Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, Connector_Lowering_TYPE1> *
     p_forward_lower_connector;
     
-    Cube<DataType, Layout_CRDB> * p_forward_lowered_data;
+    LogicalCube<DataType, Layout_CRDB> * p_forward_lowered_data;
     
     LoweringConfig lconfig_forward;
     
     Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS> * p_forward_gemm_kernel;
     
-    Cube<DataType, Layout_CRDB> * p_backward_outputgrad;
-    Cube<DataType, Layout_CRDB> * p_backward_inputgrad;
+    LogicalCube<DataType, Layout_CRDB> * p_backward_outputgrad;
+    LogicalCube<DataType, Layout_CRDB> * p_backward_inputgrad;
     
     Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KernelConfig_TANHGRAD_ON_INPUT1> * p_backward_element_mul_kernel;
     

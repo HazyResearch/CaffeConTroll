@@ -6,7 +6,7 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#include "Cube.h"
+#include "LogicalCube.h"
 #include "Connector.h"
 #include "Kernel.h"
 #include "Report.h"
@@ -16,9 +16,9 @@
 
 /**
  * One Layer contains three things:
- *   - [DATA] A Cube that is the Data in this Layer;
- *   - [MODEL] A Cube that is the Model which we will use for the Forward Pass;
- *   - [GRADIENT] A Cube that is the Gradient of Data which we will use for Backward Pass.
+ *   - [DATA] A LogicalCube that is the Data in this Layer;
+ *   - [MODEL] A LogicalCube that is the Model which we will use for the Forward Pass;
+ *   - [GRADIENT] A LogicalCube that is the Gradient of Data which we will use for Backward Pass.
  **/
 template
 <typename DataType, LayoutType DataLayout>
@@ -27,27 +27,27 @@ public:
     
     static Layer<DataType, DataLayout> * make_layer(const int N, const int I, const int B, const int K, const int O){
         return new Layer<DataType, DataLayout>(
-           new Cube<DataType, DataLayout>(N, N, I, B),
-           new Cube<DataType, DataLayout>(K, K, I, O),
-           new Cube<DataType, DataLayout>(N, N, I, B)
+           new LogicalCube<DataType, DataLayout>(N, N, I, B),
+           new LogicalCube<DataType, DataLayout>(K, K, I, O),
+           new LogicalCube<DataType, DataLayout>(N, N, I, B)
         );
     }
     
-    typedef Cube<DataType, DataLayout> DataCubeType;
-    typedef Cube<DataType, DataLayout> ModelCubeType;
-    typedef Cube<DataType, DataLayout> GradientCubeType;
+    typedef LogicalCube<DataType, DataLayout> DataLogicalCubeType;
+    typedef LogicalCube<DataType, DataLayout> ModelLogicalCubeType;
+    typedef LogicalCube<DataType, DataLayout> GradientLogicalCubeType;
     
     const size_t dR, dC, dD, dB;
     const size_t mR, mC, mD, mB;
     const size_t gR, gC, gD, gB;
     
-    DataCubeType * const p_data_cube;
-    ModelCubeType * const p_model_cube;
-    GradientCubeType * const p_gradient_cube;
+    DataLogicalCubeType * const p_data_cube;
+    ModelLogicalCubeType * const p_model_cube;
+    GradientLogicalCubeType * const p_gradient_cube;
     
-    Layer(DataCubeType * const _p_data_cube,
-          ModelCubeType * const _p_model_cube,
-          GradientCubeType * const _p_gradient_cube) :
+    Layer(DataLogicalCubeType * const _p_data_cube,
+          ModelLogicalCubeType * const _p_model_cube,
+          GradientLogicalCubeType * const _p_gradient_cube) :
         p_data_cube(_p_data_cube),
         p_model_cube(_p_model_cube),
         p_gradient_cube(_p_gradient_cube),

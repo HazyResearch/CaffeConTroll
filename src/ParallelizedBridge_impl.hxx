@@ -39,7 +39,7 @@ ParallelizedBridge<DATATYPE, LAYOUTTYPE, BRIDGETYPE, FUNC>::ParallelizedBridge(L
             >= n_batch ? n_batch - b : n_batch_per_partition;
             
             _data_cubes_lower.push_back(
-                                        new CubeType(layer_lower->p_data_cube->physical_get_RCDslice(b), layer_lower->dR, layer_lower->dC, layer_lower->dD, n_batch_this_partition)
+                                        new LogicalCubeType(layer_lower->p_data_cube->physical_get_RCDslice(b), layer_lower->dR, layer_lower->dC, layer_lower->dD, n_batch_this_partition)
                                         );
             
             _model_cubes_lower.push_back(
@@ -47,12 +47,12 @@ ParallelizedBridge<DATATYPE, LAYOUTTYPE, BRIDGETYPE, FUNC>::ParallelizedBridge(L
                                          );
             
             _grad_cubes_lower.push_back(
-                                        new CubeType(layer_lower->p_gradient_cube->physical_get_RCDslice(b), layer_lower->gR, layer_lower->gC, layer_lower->gD, n_batch_this_partition)
+                                        new LogicalCubeType(layer_lower->p_gradient_cube->physical_get_RCDslice(b), layer_lower->gR, layer_lower->gC, layer_lower->gD, n_batch_this_partition)
                                         );
             
             
             _data_cubes_higher.push_back(
-                                         new CubeType(layer_higher->p_data_cube->physical_get_RCDslice(b), layer_higher->dR, layer_higher->dC, layer_higher->dD, n_batch_this_partition)
+                                         new LogicalCubeType(layer_higher->p_data_cube->physical_get_RCDslice(b), layer_higher->dR, layer_higher->dC, layer_higher->dD, n_batch_this_partition)
                                          );
             
             _model_cubes_higher.push_back(
@@ -60,7 +60,7 @@ ParallelizedBridge<DATATYPE, LAYOUTTYPE, BRIDGETYPE, FUNC>::ParallelizedBridge(L
                                           );
             
             _grad_cubes_higher.push_back(
-                                         new CubeType(layer_higher->p_gradient_cube->physical_get_RCDslice(b), layer_higher->gR, layer_higher->gC, layer_higher->gD, n_batch_this_partition)
+                                         new LogicalCubeType(layer_higher->p_gradient_cube->physical_get_RCDslice(b), layer_higher->gR, layer_higher->gC, layer_higher->gD, n_batch_this_partition)
                                          );
             
         }

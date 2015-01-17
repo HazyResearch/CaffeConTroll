@@ -1,16 +1,16 @@
 //
-//  Cube_impl.hxx
+//  LogicalCube_impl.hxx
 //  moka
 //
 //  Created by Ce Zhang on 1/11/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#ifndef moka_Cube_impl_hxx
-#define moka_Cube_impl_hxx
+#ifndef moka_LogicalCube_impl_hxx
+#define moka_LogicalCube_impl_hxx
 
 template<typename T, LayoutType LAYOUT>
-T * Cube<T, LAYOUT>::logical_get(size_t r, size_t c, size_t d, size_t b) const{
+T * LogicalCube<T, LAYOUT>::logical_get(size_t r, size_t c, size_t d, size_t b) const{
 #ifdef _DO_ASSERT
     assert(r<R); assert(c<C); assert(d<D); assert(b<B);
 #endif
@@ -18,7 +18,7 @@ T * Cube<T, LAYOUT>::logical_get(size_t r, size_t c, size_t d, size_t b) const{
 };
 
 template<typename T, LayoutType LAYOUT>
-T * Cube<T, LAYOUT>::physical_get_RCDslice(size_t b){
+T * LogicalCube<T, LAYOUT>::physical_get_RCDslice(size_t b){
 #ifdef _DO_ASSERT
     assert(b<B);
 #endif
@@ -26,7 +26,7 @@ T * Cube<T, LAYOUT>::physical_get_RCDslice(size_t b){
 }
 
 template<typename T, LayoutType LAYOUT>
-Cube<T, LAYOUT>::Cube(void * _p_data, size_t _R, size_t _C, size_t _D, size_t _B) :
+LogicalCube<T, LAYOUT>::LogicalCube(void * _p_data, size_t _R, size_t _C, size_t _D, size_t _B) :
 p_data(reinterpret_cast<T*>(_p_data)),
 n_elements(_R*_C*_D*_B),
 R(_R), C(_C), D(_D), B(_B),
@@ -34,7 +34,7 @@ own_data(false){}
 
 
 template<typename T, LayoutType LAYOUT>
-Cube<T, LAYOUT>::Cube(size_t _R, size_t _C, size_t _D, size_t _B) :
+LogicalCube<T, LAYOUT>::LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B) :
 p_data((T*) malloc(sizeof(T)*_R*_C*_D*_B)), // TODO: change to 32byte align
 n_elements(_R*_C*_D*_B),
 R(_R), C(_C), D(_D), B(_B),
@@ -42,14 +42,14 @@ own_data(true){}
 
 
 template<typename T, LayoutType LAYOUT>
-Cube<T, LAYOUT>::~Cube(){
+LogicalCube<T, LAYOUT>::~LogicalCube(){
     if(own_data){
         free(p_data);
     }
 }
 
 template<typename T, LayoutType LAYOUT>
-void Cube<T, LAYOUT>::logical_print(){
+void LogicalCube<T, LAYOUT>::logical_print(){
     for(size_t ib=0;ib<B;ib++){
         for(size_t id=0;id<D;id++){
             std::cout << "BATCH " << ib << " DEPTH " << id << std::endl;
@@ -68,7 +68,7 @@ void Cube<T, LAYOUT>::logical_print(){
 
 template<typename T, LayoutType LAYOUT>
 template<typename TYPECONSTRAINT>
-T* Cube<T,LAYOUT>::LogicalFetcher<Layout_CRDB, TYPECONSTRAINT>::logical_get(const Cube<T, LAYOUT>& cube, size_t r, size_t c, size_t d, size_t b){
+T* LogicalCube<T,LAYOUT>::LogicalFetcher<Layout_CRDB, TYPECONSTRAINT>::logical_get(const LogicalCube<T, LAYOUT>& cube, size_t r, size_t c, size_t d, size_t b){
     //std::cout << "(" << c + r*cube.C + d*cube.R*cube.C + b*cube.R*cube.C*cube.D << ")" << std::endl;
     __builtin_prefetch((const void*)&cube.p_data[r*cube.C*cube.D*cube.B + c*cube.D*cube.B + d*cube.B + b],0,0);
     return &cube.p_data[c + r*cube.C + d*cube.R*cube.C + b*cube.R*cube.C*cube.D];
@@ -77,13 +77,13 @@ T* Cube<T,LAYOUT>::LogicalFetcher<Layout_CRDB, TYPECONSTRAINT>::logical_get(cons
 
 template<typename T, LayoutType LAYOUT>
 template<typename TYPECONSTRAINT>
-T* Cube<T,LAYOUT>::LogicalFetcher<Layout_BDRC, TYPECONSTRAINT>::logical_get(const Cube<T, LAYOUT>& cube, size_t r, size_t c, size_t d, size_t b){
+T* LogicalCube<T,LAYOUT>::LogicalFetcher<Layout_BDRC, TYPECONSTRAINT>::logical_get(const LogicalCube<T, LAYOUT>& cube, size_t r, size_t c, size_t d, size_t b){
     return &cube.p_data[b + d*cube.B + r*cube.B*cube.D + c*cube.B*cube.D*cube.R];
 }
 
 template<typename T, LayoutType LAYOUT>
 template<typename TYPECONSTRAINT>
-T* Cube<T,LAYOUT>::PhysicalFetcher<Layout_CRDB, TYPECONSTRAINT>::physical_get_RCDslice(const Cube<T, LAYOUT>& cube, size_t b){
+T* LogicalCube<T,LAYOUT>::PhysicalFetcher<Layout_CRDB, TYPECONSTRAINT>::physical_get_RCDslice(const LogicalCube<T, LAYOUT>& cube, size_t b){
     return &cube.p_data[b*cube.R*cube.C*cube.D];
 }
 

@@ -11,7 +11,7 @@
 
 template
 <typename DataType, LayoutType Layout>
-Scanner<DataType, Layout, FUNC_TANH>::Scanner(const CubeType * const p_cube){
+Scanner<DataType, Layout, FUNC_TANH>::Scanner(const LogicalCubeType * const p_cube){
     report_constructor.reset();
     report_last_apply.reset();
     report_history.reset();
@@ -22,7 +22,7 @@ Scanner<DataType, Layout, FUNC_TANH>::Scanner(const CubeType * const p_cube){
 
 template
 <typename DataType, LayoutType Layout>
-void Scanner<DataType, Layout, FUNC_TANH>::apply(CubeType * const p_cube){
+void Scanner<DataType, Layout, FUNC_TANH>::apply(LogicalCubeType * const p_cube){
     report_last_apply.reset();
 
     size_t i;

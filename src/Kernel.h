@@ -6,7 +6,7 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#include "Cube.h"
+#include "LogicalCube.h"
 #include "Report.h"
 
 #ifndef moka_Kernel_h
@@ -34,13 +34,13 @@ KernelType KERNELTYPE, KernelConfig KERNELCONFIG>
 class Kernel{
 public:
     
-    typedef Cube<Input1DataType, Input1Layout> Input1CubeType;
-    typedef Cube<Input2DataType, Input2Layout> Input2CubeType;
-    typedef Cube<OutputDataType, OutputLayout> OutputCubeType;
+    typedef LogicalCube<Input1DataType, Input1Layout> Input1LogicalCubeType;
+    typedef LogicalCube<Input2DataType, Input2Layout> Input2LogicalCubeType;
+    typedef LogicalCube<OutputDataType, OutputLayout> OutputLogicalCubeType;
     
-    const size_t i1R, i1C, i1D, i1B; /*< Size of the input Cube 1 */
-    const size_t i2R, i2C, i2D, i2B; /*< Size of the input Cube 2 */
-    const size_t oR, oC, oD, oB; /*< Size of the output Cube */
+    const size_t i1R, i1C, i1D, i1B; /*< Size of the input LogicalCube 1 */
+    const size_t i2R, i2C, i2D, i2B; /*< Size of the input LogicalCube 2 */
+    const size_t oR, oC, oD, oB; /*< Size of the output LogicalCube */
     
     Report report_constructor; /*< Performance reporter for constructor function. */
     Report report_last_transfer; /*< Performance reporter for the last run of transfer() function. */
@@ -49,16 +49,16 @@ public:
     /**
      * Similar to Connector()'s constructor.
      **/
-    Kernel(const Input1CubeType * const p_input1_cube,
-           const Input2CubeType * const p_input2_cube,
-           const OutputCubeType * const p_output_cube){
+    Kernel(const Input1LogicalCubeType * const p_input1_cube,
+           const Input2LogicalCubeType * const p_input2_cube,
+           const OutputLogicalCubeType * const p_output_cube){
         std::cerr << "ERROR: Using a kernel with unsupported Layout or DataType." << std::endl;
         assert(false);
     }
     
-    void compute(const Input1CubeType * const p_input1_cube,
-                  const Input2CubeType * const p_input2_cube,
-                  OutputCubeType * const p_output_cube){
+    void compute(const Input1LogicalCubeType * const p_input1_cube,
+                  const Input2LogicalCubeType * const p_input2_cube,
+                  OutputLogicalCubeType * const p_output_cube){
         std::cerr << "ERROR: Using a kernel with unsupported Layout or DataType." << std::endl;
         assert(false);
     }
@@ -73,9 +73,9 @@ template <typename DataType, KernelConfig KERNELCONFIG>
 class Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_GEMM_OpenBlas, KERNELCONFIG>{
 public:
     
-    typedef Cube<DataType, Layout_CRDB> Input1CubeType;
-    typedef Cube<DataType, Layout_CRDB> Input2CubeType;
-    typedef Cube<DataType, Layout_CRDB> OutputCubeType;
+    typedef LogicalCube<DataType, Layout_CRDB> Input1LogicalCubeType;
+    typedef LogicalCube<DataType, Layout_CRDB> Input2LogicalCubeType;
+    typedef LogicalCube<DataType, Layout_CRDB> OutputLogicalCubeType;
     
     float alpha;
     float beta;
@@ -91,11 +91,11 @@ public:
     Report report_last_transfer;
     Report report_history;
 
-    Kernel(const Input1CubeType * const p_input1_cube, const Input2CubeType * const p_input2_cube,
-           const OutputCubeType * const p_output_cube);
+    Kernel(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
+           const OutputLogicalCubeType * const p_output_cube);
     
-    void compute(const Input1CubeType * const p_input1_cube, const Input2CubeType * const p_input2_cube,
-                  OutputCubeType * const p_output_cube);
+    void compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
+                  OutputLogicalCubeType * const p_output_cube);
     
 };
 
@@ -103,9 +103,9 @@ template <typename DataType, KernelConfig KERNELCONFIG>
 class Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KERNELCONFIG>{
 public:
     
-    typedef Cube<DataType, Layout_CRDB> Input1CubeType;
-    typedef Cube<DataType, Layout_CRDB> Input2CubeType;
-    typedef Cube<DataType, Layout_CRDB> OutputCubeType;
+    typedef LogicalCube<DataType, Layout_CRDB> Input1LogicalCubeType;
+    typedef LogicalCube<DataType, Layout_CRDB> Input2LogicalCubeType;
+    typedef LogicalCube<DataType, Layout_CRDB> OutputLogicalCubeType;
     
     char transA;
     char transB;
@@ -118,10 +118,10 @@ public:
     Report report_last_transfer;
     Report report_history;
     
-    Kernel(const Input1CubeType * const p_input1_cube, const Input2CubeType * const p_input2_cube,
-           const OutputCubeType * const p_output_cube);
+    Kernel(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
+           const OutputLogicalCubeType * const p_output_cube);
     
-    void compute(const Input1CubeType * const p_input1_cube, const Input2CubeType * const p_input2_cube, OutputCubeType * const p_output_cube);
+    void compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube, OutputLogicalCubeType * const p_output_cube);
     
 };
 

@@ -11,7 +11,7 @@
 
 template<typename DataType, LayoutType InputLayout>
 Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_TYPE1>::
-Connector(const InputCubeType  * const p_input_cube, const OutputCubeType * const p_output_cube,
+Connector(const InputLogicalCubeType  * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
           const void * const _p_config) :
   iR(p_input_cube->R), iC(p_input_cube->C), iD(p_input_cube->D), iB(p_input_cube->B),
   oR(p_output_cube->R), oC(p_output_cube->C), oD(p_output_cube->D), oB(p_output_cube->B),
@@ -36,14 +36,14 @@ Connector(const InputCubeType  * const p_input_cube, const OutputCubeType * cons
 
 template<typename DataType, LayoutType InputLayout>
 void Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_TYPE1>::
-transfer(const InputCubeType * const p_input_cube, OutputCubeType * p_output_cube){
-    
+transfer(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube){
+
     report_last_transfer.reset();
-    
+
 #ifdef _DO_WARNING
     std::cerr << "WARNING: " << "You are using the most general version of the lowering function. " << "This might be slow!" << std::endl;
 #endif
-    
+
 #ifdef _DO_ASSERT
     assert(p_input_cube->R == iR);
     assert(p_input_cube->C == iC);
@@ -54,10 +54,10 @@ transfer(const InputCubeType * const p_input_cube, OutputCubeType * p_output_cub
     assert(p_output_cube->D == oD);
     assert(p_output_cube->B == oB);
 #endif
-    
+
     const size_t & ksize = p_config->kernel_size;
     size_t outr = 0, outc = 0;
-    
+
     #pragma unroll
     for(size_t kd=0;kd<iD;kd++){
         #pragma unroll
@@ -82,7 +82,7 @@ transfer(const InputCubeType * const p_input_cube, OutputCubeType * p_output_cub
             }
         }
     }
-    
+
     report_last_transfer.end(iR*iC*iD*iB*sizeof(DataType), oR*oC*oD*oB*sizeof(DataType), 0);
     report_history.aggregate(report_last_transfer);
 }
@@ -91,14 +91,14 @@ transfer(const InputCubeType * const p_input_cube, OutputCubeType * p_output_cub
 
 template<typename DataType, LayoutType InputLayout>
 void Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_TYPE1>::
-inverse_transfer(OutputCubeType * p_output_cube, InputCubeType * p_input_cube){
-    
+inverse_transfer(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube){
+
     report_last_inverse_transfer.reset();
-    
+
 #ifdef _DO_WARNING
     std::cerr << "WARNING: " << "You are using the most general version of the lowering function. " << "This might be slow!" << std::endl;
 #endif
-    
+
 #ifdef _DO_ASSERT
     assert(p_input_cube->R == iR);
     assert(p_input_cube->C == iC);
@@ -109,7 +109,7 @@ inverse_transfer(OutputCubeType * p_output_cube, InputCubeType * p_input_cube){
     assert(p_output_cube->D == oD);
     assert(p_output_cube->B == oB);
 #endif
-    
+
     for(size_t c=0;c<iC;c++){
         for(size_t r=0;r<iR;r++){
             for(size_t d=0;d<iD;d++){
@@ -119,7 +119,7 @@ inverse_transfer(OutputCubeType * p_output_cube, InputCubeType * p_input_cube){
             }
         }
     }
-    
+
     const size_t & ksize = p_config->kernel_size;
     size_t outr = 0, outc = 0;
 
@@ -129,7 +129,7 @@ inverse_transfer(OutputCubeType * p_output_cube, InputCubeType * p_input_cube){
         for(size_t kr=0;kr<ksize;kr++){
             #pragma unroll
             for(size_t kc=0;kc<ksize;kc++){
-                
+
                 outc = 0;
                 #pragma unroll
                 for(size_t ib=0;ib<iB;ib++){
@@ -147,7 +147,7 @@ inverse_transfer(OutputCubeType * p_output_cube, InputCubeType * p_input_cube){
             }
         }
     }
-    
+
     report_last_inverse_transfer.end(iR*iC*iD*iB*sizeof(DataType), oR*oC*oD*oB*sizeof(DataType), 0);
     report_history.aggregate(report_last_inverse_transfer);
 }

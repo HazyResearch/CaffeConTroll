@@ -9,7 +9,7 @@
 #include <iostream>
 
 #include "config.h"
-#include "Cube.h"
+#include "LogicalCube.h"
 #include "Connector.h"
 #include "Kernel.h"
 #include "Bridge.h"
@@ -49,9 +49,9 @@
  *
  **/
 void TEST_LOWERING(){
-    Cube<DataType_String, Layout_CRDB> cube1(3, 3, 2, 2);
+    LogicalCube<DataType_String, Layout_CRDB> cube1(3, 3, 2, 2);
     
-    Cube<DataType_String, Layout_CRDB> cube2(2*2*2, (3-2+1)*(3-2+1)*2, 1, 1);
+    LogicalCube<DataType_String, Layout_CRDB> cube2(2*2*2, (3-2+1)*(3-2+1)*2, 1, 1);
     
     LoweringConfig lconfig;
     lconfig.kernel_size = 2;
@@ -99,9 +99,9 @@ void TEST_TIMER(){
     LoweringConfig lconfig;
     lconfig.kernel_size = 3;
     
-    Cube<DataType_SFFloat, Layout_CRDB> cube1(64, 64, 96, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> cube1(64, 64, 96, 12);
     
-    Cube<DataType_SFFloat, Layout_CRDB> cube2(lconfig.kernel_size*lconfig.kernel_size*96,
+    LogicalCube<DataType_SFFloat, Layout_CRDB> cube2(lconfig.kernel_size*lconfig.kernel_size*96,
                         (64-lconfig.kernel_size+1)*(64-lconfig.kernel_size+1)*12, 1, 1);
     
     Connector<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, Connector_Lowering_TYPE1>
@@ -140,9 +140,9 @@ void TEST_TIMER(){
  **/
 void TEST_Kernel_GEMM_OpenBlas_ROW(){
     
-    Cube<DataType_SFFloat, Layout_CRDB> cube1(2, 5, 1, 1);
-    Cube<DataType_SFFloat, Layout_CRDB> cube2(5, 3, 1, 1);
-    Cube<DataType_SFFloat, Layout_CRDB> cube3(2, 3, 1, 1);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> cube1(2, 5, 1, 1);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> cube2(5, 3, 1, 1);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> cube3(2, 3, 1, 1);
 
     for(int i=0;i<10;i++){
         cube1.p_data[i] = 1.0*i;
@@ -168,9 +168,9 @@ void TEST_Kernel_GEMM_OpenBlas_ROW(){
 
 void TEST_Kernel_ELEMENTMUL(){
     
-    Cube<DataType_SFFloat, Layout_CRDB> cube1(5, 5, 1, 1);
-    Cube<DataType_SFFloat, Layout_CRDB> cube2(5, 5, 1, 1);
-    Cube<DataType_SFFloat, Layout_CRDB> cube3(5, 5, 1, 1);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> cube1(5, 5, 1, 1);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> cube2(5, 5, 1, 1);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> cube3(5, 5, 1, 1);
     
     for(int i=0;i<25;i++){
         cube1.p_data[i] = 1.0*i;
@@ -195,9 +195,9 @@ void TEST_Kernel_ELEMENTMUL(){
 
 void TEST_Kernel_ELEMENTMUL_TANHGRAD(){
     
-    Cube<DataType_SFFloat, Layout_CRDB> cube1(5, 5, 1, 1);
-    Cube<DataType_SFFloat, Layout_CRDB> cube2(5, 5, 1, 1);
-    Cube<DataType_SFFloat, Layout_CRDB> cube3(5, 5, 1, 1);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> cube1(5, 5, 1, 1);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> cube2(5, 5, 1, 1);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> cube3(5, 5, 1, 1);
     
     for(int i=0;i<25;i++){
         cube1.p_data[i] = 1.0*i;
@@ -278,13 +278,13 @@ void TEST_Kernel_ELEMENTMUL_TANHGRAD(){
 */
 void TEST_CONV(){
  
-    Cube<DataType_SFFloat, Layout_CRDB> data1(5, 5, 1, 2);
-    Cube<DataType_SFFloat, Layout_CRDB> kernel1(3, 3, 1, 3);
-    Cube<DataType_SFFloat, Layout_CRDB> grad1(5, 5, 1, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data1(5, 5, 1, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> kernel1(3, 3, 1, 3);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad1(5, 5, 1, 2);
     
-    Cube<DataType_SFFloat, Layout_CRDB> data2(5-3+1, 5-3+1, 3, 2);
-    Cube<DataType_SFFloat, Layout_CRDB> kernel2(0, 0, 3, 2);
-    Cube<DataType_SFFloat, Layout_CRDB> grad2(5-3+1, 5-3+1, 3, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data2(5-3+1, 5-3+1, 3, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> kernel2(0, 0, 3, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad2(5-3+1, 5-3+1, 3, 2);
 
     
     for(int i=0;i<5*5*2;i++){
@@ -373,13 +373,13 @@ void TEST_CONV(){
  **/
 void TEST_CONV_WITH_TANH(){
  
-    Cube<DataType_SFFloat, Layout_CRDB> data1(5, 5, 1, 2);
-    Cube<DataType_SFFloat, Layout_CRDB> kernel1(3, 3, 1, 3);
-    Cube<DataType_SFFloat, Layout_CRDB> grad1(5, 5, 1, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data1(5, 5, 1, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> kernel1(3, 3, 1, 3);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad1(5, 5, 1, 2);
     
-    Cube<DataType_SFFloat, Layout_CRDB> data2(5-3+1, 5-3+1, 3, 2);
-    Cube<DataType_SFFloat, Layout_CRDB> kernel2(0, 0, 3, 2);
-    Cube<DataType_SFFloat, Layout_CRDB> grad2(5-3+1, 5-3+1, 3, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data2(5-3+1, 5-3+1, 3, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> kernel2(0, 0, 3, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad2(5-3+1, 5-3+1, 3, 2);
     
     
     for(int i=0;i<5*5*2;i++){
@@ -413,13 +413,13 @@ void TEST_CONV_WITH_TANH(){
 
 void TEST_CONV_NOTTOY(){
     
-    Cube<DataType_SFFloat, Layout_CRDB> data1(64, 64, 96, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> kernel1(5, 5, 96, 256);
-    Cube<DataType_SFFloat, Layout_CRDB> grad1(64, 64, 96, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data1(64, 64, 96, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> kernel1(5, 5, 96, 256);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad1(64, 64, 96, 12);
     
-    Cube<DataType_SFFloat, Layout_CRDB> data2(64-5+1, 64-5+1, 256, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> kernel2(1, 1, 256, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> grad2(64-5+1, 64-5+1, 256, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data2(64-5+1, 64-5+1, 256, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> kernel2(1, 1, 256, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad2(64-5+1, 64-5+1, 256, 12);
     
     Layer<DataType_SFFloat, Layout_CRDB> layer1(&data1, &kernel1, &grad1);
     Layer<DataType_SFFloat, Layout_CRDB> layer2(&data2, &kernel2, &grad2);
@@ -539,13 +539,13 @@ void TEST_CONV_NOTTOY(){
  **/
 void TEST_BACKPROP(){
     
-    Cube<DataType_SFFloat, Layout_CRDB> data1(5, 5, 1, 2);
-    Cube<DataType_SFFloat, Layout_CRDB> kernel1(3, 3, 1, 3);
-    Cube<DataType_SFFloat, Layout_CRDB> grad1(5, 5, 1, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data1(5, 5, 1, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> kernel1(3, 3, 1, 3);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad1(5, 5, 1, 2);
     
-    Cube<DataType_SFFloat, Layout_CRDB> data2(5-3+1, 5-3+1, 3, 2);
-    Cube<DataType_SFFloat, Layout_CRDB> kernel2(0, 0, 3, 2);
-    Cube<DataType_SFFloat, Layout_CRDB> grad2(5-3+1, 5-3+1, 3, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data2(5-3+1, 5-3+1, 3, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> kernel2(0, 0, 3, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad2(5-3+1, 5-3+1, 3, 2);
     
     
     for(int i=0;i<5*5*2;i++){
@@ -594,13 +594,13 @@ void TEST_BACKPROP(){
 
 void TEST_BACKPROP_NOTTOY(){
     
-    Cube<DataType_SFFloat, Layout_CRDB> data1(64, 64, 96, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> kernel1(5, 5, 96, 256);
-    Cube<DataType_SFFloat, Layout_CRDB> grad1(64, 64, 96, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data1(64, 64, 96, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> kernel1(5, 5, 96, 256);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad1(64, 64, 96, 12);
     
-    Cube<DataType_SFFloat, Layout_CRDB> data2(64-5+1, 64-5+1, 256, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> kernel2(0, 0, 256, 2);
-    Cube<DataType_SFFloat, Layout_CRDB> grad2(64-5+1, 64-5+1, 256, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data2(64-5+1, 64-5+1, 256, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> kernel2(0, 0, 256, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad2(64-5+1, 64-5+1, 256, 12);
     
     Layer<DataType_SFFloat, Layout_CRDB> layer1(&data1, &kernel1, &grad1);
     Layer<DataType_SFFloat, Layout_CRDB> layer2(&data2, &kernel2, &grad2);
@@ -630,33 +630,33 @@ void TEST_BACKPROP_NOTTOY(){
 
 void TEST_PHYSICAL_EXECUTOR(){
     
-    Cube<DataType_SFFloat, Layout_CRDB> data11(64, 64, 96, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> data12(64, 64, 96, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> data13(64, 64, 96, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> data14(64, 64, 96, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> data15(64, 64, 96, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data11(64, 64, 96, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data12(64, 64, 96, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data13(64, 64, 96, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data14(64, 64, 96, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data15(64, 64, 96, 12);
     
-    Cube<DataType_SFFloat, Layout_CRDB> kernel1(5, 5, 96, 256);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> kernel1(5, 5, 96, 256);
     
-    Cube<DataType_SFFloat, Layout_CRDB> grad11(64, 64, 96, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> grad12(64, 64, 96, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> grad13(64, 64, 96, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> grad14(64, 64, 96, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> grad15(64, 64, 96, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad11(64, 64, 96, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad12(64, 64, 96, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad13(64, 64, 96, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad14(64, 64, 96, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad15(64, 64, 96, 12);
 
-    Cube<DataType_SFFloat, Layout_CRDB> data21(64-5+1, 64-5+1, 256, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> data22(64-5+1, 64-5+1, 256, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> data23(64-5+1, 64-5+1, 256, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> data24(64-5+1, 64-5+1, 256, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> data25(64-5+1, 64-5+1, 256, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data21(64-5+1, 64-5+1, 256, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data22(64-5+1, 64-5+1, 256, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data23(64-5+1, 64-5+1, 256, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data24(64-5+1, 64-5+1, 256, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data25(64-5+1, 64-5+1, 256, 12);
     
-    Cube<DataType_SFFloat, Layout_CRDB> kernel2(0, 0, 256, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> kernel2(0, 0, 256, 2);
     
-    Cube<DataType_SFFloat, Layout_CRDB> grad21(64-5+1, 64-5+1, 256, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> grad22(64-5+1, 64-5+1, 256, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> grad23(64-5+1, 64-5+1, 256, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> grad24(64-5+1, 64-5+1, 256, 12);
-    Cube<DataType_SFFloat, Layout_CRDB> grad25(64-5+1, 64-5+1, 256, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad21(64-5+1, 64-5+1, 256, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad22(64-5+1, 64-5+1, 256, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad23(64-5+1, 64-5+1, 256, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad24(64-5+1, 64-5+1, 256, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad25(64-5+1, 64-5+1, 256, 12);
 
     Layer<DataType_SFFloat, Layout_CRDB> layer11(&data11, &kernel1, &grad11);
     Layer<DataType_SFFloat, Layout_CRDB> layer12(&data12, &kernel1, &grad12);
@@ -701,13 +701,13 @@ void TEST_PHYSICAL_EXECUTOR(){
 
 void TEST_PHYSICAL_PARALLELBRIDGE_WITH_GROUND_TRUTH(){
     
-    Cube<DataType_SFFloat, Layout_CRDB> data1(5, 5, 1, 2);
-    Cube<DataType_SFFloat, Layout_CRDB> kernel1(3, 3, 1, 3);
-    Cube<DataType_SFFloat, Layout_CRDB> grad1(5, 5, 1, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data1(5, 5, 1, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> kernel1(3, 3, 1, 3);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad1(5, 5, 1, 2);
     
-    Cube<DataType_SFFloat, Layout_CRDB> data2(5-3+1, 5-3+1, 3, 2);
-    Cube<DataType_SFFloat, Layout_CRDB> kernel2(0, 0, 3, 2);
-    Cube<DataType_SFFloat, Layout_CRDB> grad2(5-3+1, 5-3+1, 3, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> data2(5-3+1, 5-3+1, 3, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> kernel2(0, 0, 3, 2);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> grad2(5-3+1, 5-3+1, 3, 2);
     
     
     for(int i=0;i<5*5*2;i++){
@@ -780,13 +780,13 @@ int main(int argc, const char * argv[]) {
     LoweringConfig lconfig;
     lconfig.kernel_size = 3;
     
-    Cube<DataType_SFFloat, Layout_CRDB> cube_kernel(3, 3, 96, 64);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> cube_kernel(3, 3, 96, 64);
  
-    Cube<DataType_SFFloat, Layout_CRDB> cube_output(62, 62, 64, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> cube_output(62, 62, 64, 12);
     
-    Cube<DataType_SFFloat, Layout_CRDB> cube1(64, 64, 96, 12);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> cube1(64, 64, 96, 12);
     
-    Cube<DataType_SFFloat, Layout_CRDB> cube2(lconfig.kernel_size*lconfig.kernel_size*96,
+    LogicalCube<DataType_SFFloat, Layout_CRDB> cube2(lconfig.kernel_size*lconfig.kernel_size*96,
                                               (64-lconfig.kernel_size+1)*(64-lconfig.kernel_size+1)*12, 1, 1);
     
     Connector<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, Connector_Lowering_R1C1>
@@ -794,8 +794,8 @@ int main(int argc, const char * argv[]) {
     
     connector.transfer(&cube1, &cube2);
     
-    Cube<DataType_SFFloat, Layout_CRDB> cube_kernel_matrix(cube_kernel.p_data, 64, 3*3*96, 1, 1);
-    Cube<DataType_SFFloat, Layout_CRDB> cube_output_matrix(cube_output.p_data, 64, (64-lconfig.kernel_size+1)*(64-lconfig.kernel_size+1)*12, 1, 1);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> cube_kernel_matrix(cube_kernel.p_data, 64, 3*3*96, 1, 1);
+    LogicalCube<DataType_SFFloat, Layout_CRDB> cube_output_matrix(cube_output.p_data, 64, (64-lconfig.kernel_size+1)*(64-lconfig.kernel_size+1)*12, 1, 1);
     
     Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, Kernel_GEMM_OpenBlas> kernel(&cube_kernel_matrix, &cube2, &cube_output_matrix);
 
@@ -815,11 +815,11 @@ int main(int argc, const char * argv[]) {
     
     
     /*
-    Cube<DataType_SFFloat, Layout_CRDB> cube1(
+    LogicalCube<DataType_SFFloat, Layout_CRDB> cube1(
         10, 10, 10, 10
     );
     
-    Cube<DataType_SFFloat, Layout_CRDB> cube2(
+    LogicalCube<DataType_SFFloat, Layout_CRDB> cube2(
         3*3*10, (10-3+1)*(10-3+1)*10, 1, 1
     );
     */

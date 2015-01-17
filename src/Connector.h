@@ -6,7 +6,7 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#include "Cube.h"
+#include "LogicalCube.h"
 #include "Report.h"
 
 #ifndef moka_Connector_h
@@ -28,17 +28,17 @@ template
  ConnectorType CONNECTOR>
 class Connector{
 public:
-    
-    typedef Cube<InputDataType, InputLayout> InputCubeType;
-    typedef Cube<OutputDataType, OutputLayout> OutputCubeType;
 
-    const size_t iR, iC, iD, iB; /*< Size of the input Cube */
-    const size_t oR, oC, oD, oB; /*< Size of the output Cube */
-    
+    typedef LogicalCube<InputDataType, InputLayout> InputLogicalCubeType;
+    typedef LogicalCube<OutputDataType, OutputLayout> OutputLogicalCubeType;
+
+    const size_t iR, iC, iD, iB; /*< Size of the input LogicalCube */
+    const size_t oR, oC, oD, oB; /*< Size of the output LogicalCube */
+
     Report report_constructor; /*< Performance reporter for constructor function. */
     Report report_last_transfer; /*< Performance reporter for the last run of transfer() function. */
     Report report_history; /*< Performance reporter for all transfer() functions aggregated. */
-    
+
     Report report_last_inverse_transfer; /*< Performance reporter for the last run of inverse_transfer() function. */
     Report report_inverse_history; /*< Performance reporter for all inverse_transfer() functions aggregated. */
 
@@ -49,34 +49,34 @@ public:
      * The p_input_cube and p_output_cube input in the constructor is just
      * used for getting the dimensional information of input/output, which
      * is assumed to be constant in later transfer(). No transfer() will be
-     * done in the constructor, hinted by that the output Cube is const.
+     * done in the constructor, hinted by that the output LogicalCube is const.
      *
      **/
-    Connector(const InputCubeType * const p_input_cube, const OutputCubeType * const p_output_cube,
+    Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
               const void * const p_config){
         std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
         assert(false);
     }
-    
+
     /**
      * The transfer function takes as input p_input_cube and transfer to
      * p_output_cube.
      *
      **/
-    void transfer(InputCubeType * p_input_cube, OutputCubeType * p_output_cube){
+    void transfer(InputLogicalCubeType * p_input_cube, OutputLogicalCubeType * p_output_cube){
         std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
         assert(false);
     }
-   
+
     /**
      * The inverse transfer function that takes as input p_output_cube, and output
      * p_input_cube.
      **/
-    void inverse_transfer(OutputCubeType * p_output_cube, InputCubeType * p_input_cube){
+    void inverse_transfer(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube){
         std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
         assert(false);
     }
-    
+
 };
 
 /**
@@ -90,29 +90,29 @@ template
 <typename DataType, LayoutType InputLayout>
 class Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_TYPE1>{
 public:
-    
-    typedef Cube<DataType, InputLayout> InputCubeType;
-    typedef Cube<DataType, Layout_CRDB> OutputCubeType;
-    
+
+    typedef LogicalCube<DataType, InputLayout> InputLogicalCubeType;
+    typedef LogicalCube<DataType, Layout_CRDB> OutputLogicalCubeType;
+
     const size_t iR, iC, iD, iB;
     const size_t oR, oC, oD, oB;
-    
+
     Report report_constructor;
     Report report_last_transfer;
     Report report_history;
-    
+
     Report report_last_inverse_transfer;
     Report report_inverse_history;
-    
+
     const LoweringConfig * const p_config;
 
-    Connector(const InputCubeType  * const p_input_cube, const OutputCubeType * const p_output_cube,
+    Connector(const InputLogicalCubeType  * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
               const void * const _p_config);
-    
-    void transfer(const InputCubeType * const p_input_cube, OutputCubeType * p_output_cube);
-    
-    void inverse_transfer(OutputCubeType * p_output_cube, InputCubeType * p_input_cube);
-    
+
+    void transfer(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
+
+    void inverse_transfer(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube);
+
 };
 
 
@@ -120,29 +120,29 @@ template
 <typename DataType, LayoutType InputLayout>
 class Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_TYPE2>{
 public:
-    
-    typedef Cube<DataType, InputLayout> InputCubeType;
-    typedef Cube<DataType, Layout_CRDB> OutputCubeType;
-    
+
+    typedef LogicalCube<DataType, InputLayout> InputLogicalCubeType;
+    typedef LogicalCube<DataType, Layout_CRDB> OutputLogicalCubeType;
+
     const size_t iR, iC, iD, iB;
     const size_t oR, oC, oD, oB;
-    
+
     Report report_constructor;
     Report report_last_transfer;
     Report report_history;
-    
+
     Report report_last_inverse_transfer;
     Report report_inverse_history;
-    
+
     const LoweringConfig * const p_config;
-    
-    Connector(const InputCubeType  * const p_input_cube, const OutputCubeType * const p_output_cube,
+
+    Connector(const InputLogicalCubeType  * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
               const void * const _p_config);
-    
-    void transfer(const InputCubeType * const p_input_cube, OutputCubeType * p_output_cube);
-    
-    void inverse_transfer(OutputCubeType * p_output_cube, InputCubeType * p_input_cube);
-    
+
+    void transfer(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
+
+    void inverse_transfer(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube);
+
 };
 
 
@@ -153,22 +153,22 @@ template
 <typename InputDataType, typename OutputDataType>
 class Connector<InputDataType, Layout_CRDB, OutputDataType, Layout_CRDB, Connector_Lowering_R1C1>{
 public:
-    
-    typedef Cube<InputDataType, Layout_CRDB> InputCubeType;
-    typedef Cube<OutputDataType, Layout_CRDB> OutputCubeType;
-    
+
+    typedef LogicalCube<InputDataType, Layout_CRDB> InputLogicalCubeType;
+    typedef LogicalCube<OutputDataType, Layout_CRDB> OutputLogicalCubeType;
+
     const size_t iR, iC, iD, iB;
     const size_t oR, oC, oD, oB;
-    
-    Connector(const InputCubeType  * const p_input_cube, const OutputCubeType * const p_output_cube);
-    
-    void transfer(InputCubeType * p_input_cube, OutputCubeType * p_output_cube);
-    
+
+    Connector(const InputLogicalCubeType  * const p_input_cube, const OutputLogicalCubeType * const p_output_cube);
+
+    void transfer(InputLogicalCubeType * p_input_cube, OutputLogicalCubeType * p_output_cube);
+
 };
 */
 
 
-#include "Connector_impl_Lowering.hxx"
+#include "Connector_impl_Lowering_type1.hxx"
 #include "Connector_impl_Lowering_type2.hxx"
 
 #endif

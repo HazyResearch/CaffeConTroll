@@ -1,5 +1,5 @@
 //
-//  Cube.h
+//  LogicalCube.h
 //  moka
 //
 //  Created by Ce Zhang on 1/11/15.
@@ -9,8 +9,8 @@
 #include <assert.h>
 #include <string>
 
-#ifndef moka_Cube_h
-#define moka_Cube_h
+#ifndef moka_LogicalCube_h
+#define moka_LogicalCube_h
 
 typedef float  DataType_SFFloat; /*< Single-precision Floating Point. */
 typedef __fp16 DataType_HPFloat; /*< Half-precision Floating Point. */
@@ -37,7 +37,7 @@ enum LayoutType {
  * depth. We call `b` batch.
  */
 template <typename T, LayoutType LAYOUT>
-class Cube {
+class LogicalCube {
 public:
 
     T * const p_data;
@@ -53,7 +53,7 @@ public:
      * Constructor that points to existing data.
      *  - own_data = False
      **/
-    Cube(void * _p_data, size_t _R, size_t _C, size_t _D, size_t _B);
+    LogicalCube(void * _p_data, size_t _R, size_t _C, size_t _D, size_t _B);
     
     /**
      * Constuctor that actually allocates the data.
@@ -61,9 +61,9 @@ public:
      * free it.
      *  - own_data = True
      **/
-    Cube(size_t _R, size_t _C, size_t _D, size_t _B);
+    LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B);
     
-    ~Cube();
+    ~LogicalCube();
     
     /**
      * Get the pointer that points to the physical position
@@ -133,22 +133,22 @@ private:
 
     template<typename TYPECONSTRAINT>
     struct LogicalFetcher<Layout_CRDB, TYPECONSTRAINT> {
-        inline static T * logical_get(const Cube<T, LAYOUT>& cube, size_t r, size_t c, size_t d, size_t b);
+        inline static T * logical_get(const LogicalCube<T, LAYOUT>& cube, size_t r, size_t c, size_t d, size_t b);
     };
     
     template<typename TYPECONSTRAINT>
     struct LogicalFetcher<Layout_BDRC, TYPECONSTRAINT> {
-        inline static T * logical_get(const Cube<T, LAYOUT>& cube, size_t r, size_t c, size_t d, size_t b);
+        inline static T * logical_get(const LogicalCube<T, LAYOUT>& cube, size_t r, size_t c, size_t d, size_t b);
     };
 
     template<typename TYPECONSTRAINT>
     struct PhysicalFetcher<Layout_CRDB, TYPECONSTRAINT> {
-        inline static T * physical_get_RCDslice(const Cube<T, LAYOUT>& cube, size_t b);
+        inline static T * physical_get_RCDslice(const LogicalCube<T, LAYOUT>& cube, size_t b);
     };
     
 };
 
-#include "Cube_impl.hxx"
+#include "LogicalCube_impl.hxx"
 
 #endif
 

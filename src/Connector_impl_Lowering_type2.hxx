@@ -11,7 +11,7 @@
 
 template<typename DataType, LayoutType InputLayout>
 Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_TYPE2>::
-Connector(const InputCubeType  * const p_input_cube, const OutputCubeType * const p_output_cube,
+Connector(const InputLogicalCubeType  * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
           const void * const _p_config) :
 iR(p_input_cube->R), iC(p_input_cube->C), iD(p_input_cube->D), iB(p_input_cube->B),
 oR(p_output_cube->R), oC(p_output_cube->C), oD(p_output_cube->D), oB(p_output_cube->B),
@@ -36,7 +36,7 @@ p_config((LoweringConfig*)_p_config)
 
 template<typename DataType, LayoutType InputLayout>
 void Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_TYPE2>::
-transfer(const InputCubeType * const p_input_cube, OutputCubeType * p_output_cube){
+transfer(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube){
     
     report_last_transfer.reset();
     
@@ -91,7 +91,7 @@ transfer(const InputCubeType * const p_input_cube, OutputCubeType * p_output_cub
 
 template<typename DataType, LayoutType InputLayout>
 void Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_TYPE2>::
-inverse_transfer(OutputCubeType * p_output_cube, InputCubeType * p_input_cube){
+inverse_transfer(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube){
     
     report_last_inverse_transfer.reset();
     

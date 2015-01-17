@@ -9,7 +9,7 @@
 #ifndef moka_ParallelBridge_h
 #define moka_ParallelBridge_h
 
-#include "Cube.h"
+#include "LogicalCube.h"
 #include "Connector.h"
 #include "Kernel.h"
 #include "Report.h"
@@ -32,9 +32,9 @@ public:
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
     
-    const size_t i1R, i1C, i1D, i1B; /*< Size of the input Cube 1 */
-    const size_t i2R, i2C, i2D, i2B; /*< Size of the input Cube 2 */
-    const size_t oR, oC, oD, oB; /*< Size of the output Cube */
+    const size_t i1R, i1C, i1D, i1B; /*< Size of the input LogicalCube 1 */
+    const size_t i2R, i2C, i2D, i2B; /*< Size of the input LogicalCube 2 */
+    const size_t oR, oC, oD, oB; /*< Size of the output LogicalCube */
     
     Report report_constructor;
     Report report_last_transfer;
