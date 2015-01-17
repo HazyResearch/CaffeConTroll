@@ -67,6 +67,20 @@ void LogicalCube<T, LAYOUT>::logical_print(){
 }
 
 template<typename T, LayoutType LAYOUT>
+void LogicalCube<T, LAYOUT>::physical_print(){
+    for(size_t ib=0;ib<B;ib++){
+        for(size_t id=0;id<D;id++){
+            for(size_t ir=0;ir<R;ir++){
+                for(size_t ic=0;ic<C;ic++){
+                    std::cout << *logical_get(ir, ic, id, ib) << " ";
+                }
+            }
+        }
+    }
+    std::cout << std::endl;
+}
+
+template<typename T, LayoutType LAYOUT>
 template<typename TYPECONSTRAINT>
 T* LogicalCube<T,LAYOUT>::LogicalFetcher<Layout_CRDB, TYPECONSTRAINT>::logical_get(const LogicalCube<T, LAYOUT>& cube, size_t r, size_t c, size_t d, size_t b){
     //std::cout << "(" << c + r*cube.C + d*cube.R*cube.C + b*cube.R*cube.C*cube.D << ")" << std::endl;

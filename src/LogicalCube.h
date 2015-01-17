@@ -54,7 +54,7 @@ public:
      *  - own_data = False
      **/
     LogicalCube(void * _p_data, size_t _R, size_t _C, size_t _D, size_t _B);
-    
+
     /**
      * Constuctor that actually allocates the data.
      * If a cube allcoates the data, it needs to
@@ -62,9 +62,9 @@ public:
      *  - own_data = True
      **/
     LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B);
-    
+
     ~LogicalCube();
-    
+
     /**
      * Get the pointer that points to the physical position
      * corresponding to the logical position (r,c,d,b)
@@ -75,7 +75,7 @@ public:
      *
      **/
     T * logical_get(size_t r, size_t c, size_t d, size_t b) const;
-    
+
     /**
      * Get the pointer that points to the RxC slides of Depth d
      * and Batch b.
@@ -85,7 +85,7 @@ public:
      *
      **/
     T * physical_get_RCDslice(size_t b);
-    
+
     /**
      * Print to STDOUT the Logical Representation.
      *
@@ -109,20 +109,21 @@ public:
      *
      **/
     void logical_print();
-    
+    void physical_print();
+
     double size_in_GBytes(){
         return 1.0*R*C*D*B*sizeof(T)/1024/1024/1024;
     }
-    
+
 private:
-    
+
     /**
-     * Functions used for logical_get for different Layout. 
+     * Functions used for logical_get for different Layout.
      * For each Layout, we have one such function, that is why TYPECONSTRAINT is void
      **/
     template<LayoutType LAYOUT2, typename TYPECONSTRAINT = void>
     struct LogicalFetcher {};
-    
+
     /**
      * Functions used forphysical_get_RCslice for diffent Layout.
      * We only support this function for Layout_CRDB; otherwise, throw
@@ -135,7 +136,7 @@ private:
     struct LogicalFetcher<Layout_CRDB, TYPECONSTRAINT> {
         inline static T * logical_get(const LogicalCube<T, LAYOUT>& cube, size_t r, size_t c, size_t d, size_t b);
     };
-    
+
     template<typename TYPECONSTRAINT>
     struct LogicalFetcher<Layout_BDRC, TYPECONSTRAINT> {
         inline static T * logical_get(const LogicalCube<T, LAYOUT>& cube, size_t r, size_t c, size_t d, size_t b);
@@ -145,7 +146,7 @@ private:
     struct PhysicalFetcher<Layout_CRDB, TYPECONSTRAINT> {
         inline static T * physical_get_RCDslice(const LogicalCube<T, LAYOUT>& cube, size_t b);
     };
-    
+
 };
 
 #include "LogicalCube_impl.hxx"
