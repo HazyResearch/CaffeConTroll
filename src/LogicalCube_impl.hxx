@@ -32,21 +32,25 @@ template<typename T, LayoutType LAYOUT>
 void LogicalCube<T, LAYOUT>::lower_logical_matrix(const LogicalMatrix<T> * const m,
     const size_t b_i, const size_t d_i, const size_t kernel_size, const size_t stride) {
 
+  const size_t matrix_C = m->C;
+
   const size_t inverted_kernel_height = m->R - kernel_size + 1;
-  const size_t inverted_kernel_width = m->C - kernel_size + 1;
+  const size_t inverted_kernel_width = matrix_C - kernel_size + 1;
 
-  const size_t bik = b_i*inverted_kernel_width*inverted_kernel_width;
+  const size_t dst_row_base = d_i*kernel_size*kernel_size;
+  const size_t dst_col_base = b_i*inverted_kernel_width*inverted_kernel_width;
 
-  for (size_t i = 0; i < kernel_size; i += stride) {
-    for (size_t j = 0; j < kernel_size; j += stride) {
-      const size_t dst_row   = d_i*kernel_size*kernel_size + i*kernel_size + j;
-      const size_t dst_row_C = dst_row * C;
-      const size_t src_base = j + i * C; //m->C;
-      for (size_t k_r = 0; k_r < inverted_kernel_height; ++k_r) {
-        const size_t dst_col = bik + k_r*inverted_kernel_width;
-        const size_t src_col = src_base + k_r * C;//m->C;
-        _our_memcpy(&p_data[dst_col + dst_row_C],
-            &m->p_data[src_col], //&m->p_data[j + (i + k_r)*m->C],
+  for (size_t i = 0, dst_row_i = dst_row_base, src_i = 0; i < kernel_size;
+      i += stride, dst_row_i += kernel_size, src_i += matrix_C) {
+    for (size_t j = 0, dst_row = dst_row_i, src_i_j = src_i; j < kernel_size;
+        j += stride, ++dst_row, ++src_i_j) {
+      //Same as: size_t dst_row = dst_row_base + i*kernel_size + j;
+
+      for (size_t k_r = 0, dst_col = dst_col_base, src = src_i_j; k_r < inverted_kernel_height;
+          ++k_r, dst_col += inverted_kernel_width, src += matrix_C) {
+        //Same as: size_t dst_col = dst_col_base + k_r*inverted_kernel_width;
+        //         size_t src = j + (i + k_r)*m-C;
+        _our_memcpy(&p_data[dst_col + dst_row*C], &m->p_data[src],
             inverted_kernel_width*sizeof(T));
       }
     }
