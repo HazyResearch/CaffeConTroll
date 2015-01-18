@@ -9,6 +9,39 @@
 #ifndef moka_LogicalCube_impl_hxx
 #define moka_LogicalCube_impl_hxx
 
+using namespace std;
+
+template<typename T, LayoutType LAYOUT>
+LogicalMatrix<T> LogicalCube<T, LAYOUT>::get_logical_matrix(size_t depth_index, size_t batch_index) const {
+#ifdef _DO_ASSERT
+    assert(depth_index < D); assert(batch_index < B);
+#endif
+    return LogicalMatrix<T>(&p_data[batch_index*R*C*D + depth_index*R*C], R, C); // Note: for Layout_CRDB only, TODO: support BDRC, the other layout
+};
+
+
+template<typename T, LayoutType LAYOUT>
+void LogicalCube<T, LAYOUT>::append_logical_matrix(const LogicalMatrix<T> * m,
+    const size_t b_i, const size_t d_i, const size_t kernel_size, const size_t stride) {
+
+  const size_t inverted_kernel_height = m->R - kernel_size + 1;
+  const size_t inverted_kernel_width = m->C - kernel_size + 1;
+
+  #pragma unroll
+  for (size_t i = 0; i < kernel_size; i += stride) {
+    #pragma unroll
+    for (size_t j = 0; j < kernel_size; j += stride) {
+      #pragma unroll
+      for (size_t k_r = 0; k_r < inverted_kernel_height; ++k_r) {
+        const size_t out_row = d_i*kernel_size*kernel_size + i*kernel_size + j;
+        const size_t out_col = b_i*inverted_kernel_width*inverted_kernel_width + k_r*inverted_kernel_width;
+
+        memcpy(&p_data[out_col + out_row*C], &m->p_data[j + (i + k_r)*m->C], inverted_kernel_width*sizeof(T));
+      }
+    }
+  }
+}
+
 template<typename T, LayoutType LAYOUT>
 T * LogicalCube<T, LAYOUT>::logical_get(size_t r, size_t c, size_t d, size_t b) const{
 #ifdef _DO_ASSERT
@@ -52,15 +85,15 @@ template<typename T, LayoutType LAYOUT>
 void LogicalCube<T, LAYOUT>::logical_print(){
     for(size_t ib=0;ib<B;ib++){
         for(size_t id=0;id<D;id++){
-            std::cout << "BATCH " << ib << " DEPTH " << id << std::endl;
+            cout << "BATCH " << ib << " DEPTH " << id << endl;
             for(size_t ir=0;ir<R;ir++){
-                std::cout << "    " ;
+                cout << "    " ;
                 for(size_t ic=0;ic<C;ic++){
-                    std::cout << *logical_get(ir, ic, id, ib) << " ";
-                    //std::cout << " (" <<
+                    cout << *logical_get(ir, ic, id, ib) << " ";
+                    //cout << " (" <<
                     //(ic + ir*C + id*R*C + ib*R*C*D) << ") ";
                 }
-                std::cout << std::endl;
+                cout << endl;
             }
         }
     }
@@ -72,19 +105,19 @@ void LogicalCube<T, LAYOUT>::physical_print(){
         for(size_t id=0;id<D;id++){
             for(size_t ir=0;ir<R;ir++){
                 for(size_t ic=0;ic<C;ic++){
-                    std::cout << *logical_get(ir, ic, id, ib) << " ";
+                    cout << *logical_get(ir, ic, id, ib) << " ";
                 }
             }
         }
     }
-    std::cout << std::endl;
+    cout << endl;
 }
 
 template<typename T, LayoutType LAYOUT>
 template<typename TYPECONSTRAINT>
 T* LogicalCube<T,LAYOUT>::LogicalFetcher<Layout_CRDB, TYPECONSTRAINT>::logical_get(const LogicalCube<T, LAYOUT>& cube, size_t r, size_t c, size_t d, size_t b){
-    //std::cout << "(" << c + r*cube.C + d*cube.R*cube.C + b*cube.R*cube.C*cube.D << ")" << std::endl;
-    __builtin_prefetch((const void*)&cube.p_data[r*cube.C*cube.D*cube.B + c*cube.D*cube.B + d*cube.B + b],0,0);
+    //cout << "(" << c + r*cube.C + d*cube.R*cube.C + b*cube.R*cube.C*cube.D << ")" <<
+    //__builtin_prefetch((const void*)&cube.p_data[r*cube.C*cube.D*cube.B + c*cube.D*cube.B + d*cube.B + b],0,0);
     return &cube.p_data[c + r*cube.C + d*cube.R*cube.C + b*cube.R*cube.C*cube.D];
 }
 

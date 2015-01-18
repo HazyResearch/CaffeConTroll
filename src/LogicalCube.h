@@ -8,6 +8,7 @@
 
 #include <assert.h>
 #include <string>
+#include "LogicalMatrix.h"
 
 #ifndef moka_LogicalCube_h
 #define moka_LogicalCube_h
@@ -110,6 +111,10 @@ public:
      **/
     void logical_print();
     void physical_print();
+
+    LogicalMatrix<T> get_logical_matrix(size_t depth_index, size_t batch_index) const;
+    void append_logical_matrix(const LogicalMatrix<T> * m, const size_t b_i, const size_t d_i,
+        const size_t kernel_size, const size_t stride);
 
     double size_in_GBytes(){
         return 1.0*R*C*D*B*sizeof(T)/1024/1024/1024;

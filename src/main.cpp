@@ -51,14 +51,16 @@ using namespace std;
  *
  **/
 void TEST_LOWERING() {
-    const size_t N = 3;
+    const size_t N = 6;
     const size_t K = 1; // size of the kernel/convolution window (K x K)
 
     LogicalCube<DataType_FPFloat, Layout_CRDB> cube1(N, N, 2, 2);
     LogicalCube<DataType_FPFloat, Layout_CRDB> cube2(K*K*2, (N-K+1)*(N-K+1)*2, 1, 1);
+    LogicalCube<DataType_FPFloat, Layout_CRDB> cube3(K*K*2, (N-K+1)*(N-K+1)*2, 1, 1);
 
     LoweringConfig lconfig;
     lconfig.kernel_size = K;
+    lconfig.stride = 1;
 
     Connector<DataType_FPFloat, Layout_CRDB, DataType_FPFloat, Layout_CRDB, Connector_Lowering_TYPE1>
         connector(&cube1, &cube2, &lconfig);
@@ -66,6 +68,32 @@ void TEST_LOWERING() {
     for (size_t ct = 0, val = 0; ct < N*N*2*2; ct++, val++) {
       cube1.p_data[ct] = val;
     }
+
+    connector.transfer(&cube1, &cube2);
+
+    cout << "BEFORE LOWERING: " << endl;
+    cube1.logical_print();
+    cout << "---------------------" << endl;
+    //cube1.physical_print();
+    cout << "NEW TRANSFER: " << endl;
+    cube2.logical_print();
+    //cube2.physical_print();
+    //
+    connector.report_last_transfer.print();
+    connector.report_history.print();
+
+    Connector<DataType_FPFloat, Layout_CRDB, DataType_FPFloat, Layout_CRDB, Connector_Lowering_TYPE1>
+        old_connector(&cube1, &cube3, &lconfig);
+
+    old_connector.old_transfer(&cube1, &cube3);
+    cout << "OLD TRANSFER: " << endl;
+    cube3.logical_print();
+
+    old_connector.report_last_transfer.print();
+    old_connector.report_history.print();
+    //connector.transfer(&cube1, &cube2);
+    //connector.report_last_transfer.print();
+    //connector.report_history.print();
 
     //cube1.p_data[ct++] = "a1"; cube1.p_data[ct++] = "b1";
     //cube1.p_data[ct++] = "c1"; cube1.p_data[ct++] = "d1";
@@ -91,20 +119,6 @@ void TEST_LOWERING() {
     //cube1.p_data[ct++] = "g2'"; cube1.p_data[ct++] = "h2'";
     //cube1.p_data[ct++] = "i2'";
 
-    connector.transfer(&cube1, &cube2);
-
-    cout << "BEFORE LOWERING: " << endl;
-    //cube1.logical_print();
-    cube1.physical_print();
-    cout << "AFTER LOWERING: " << endl;
-    //cube2.logical_print();
-    cube2.physical_print();
-
-    connector.report_last_transfer.print();
-    connector.report_history.print();
-    connector.transfer(&cube1, &cube2);
-    connector.report_last_transfer.print();
-    connector.report_history.print();
 }
 
 void TEST_TIMER(){

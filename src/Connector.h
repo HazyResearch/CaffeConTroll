@@ -8,6 +8,7 @@
 
 #include "LogicalCube.h"
 #include "Report.h"
+#include "LogicalMatrix.h"
 
 #ifndef moka_Connector_h
 #define moka_Connector_h
@@ -18,15 +19,16 @@ enum ConnectorType{
     Connector_Lowering_TYPE3 = 2
 };
 
-struct LoweringConfig{
+struct LoweringConfig {
     size_t kernel_size;
+    size_t stride;
 };
 
 template
 <typename InputDataType, LayoutType InputLayout,
  typename OutputDataType, LayoutType OutputLayout,
  ConnectorType CONNECTOR>
-class Connector{
+class Connector {
 public:
 
     typedef LogicalCube<InputDataType, InputLayout> InputLogicalCubeType;
@@ -110,6 +112,7 @@ public:
               const void * const _p_config);
 
     void transfer(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
+    void old_transfer(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
 
     void inverse_transfer(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube);
 
