@@ -42,13 +42,13 @@ class LogicalCube {
 public:
 
     T * const p_data;
-    bool own_data;
     const size_t n_elements;
 
     const size_t R;
     const size_t C;
     const size_t D;
     const size_t B;
+    bool own_data;
 
     /**
      * Constructor that points to existing data.
@@ -113,8 +113,10 @@ public:
     void physical_print();
 
     LogicalMatrix<T> get_logical_matrix(size_t depth_index, size_t batch_index) const;
-    void append_logical_matrix(const LogicalMatrix<T> * m, const size_t b_i, const size_t d_i,
-        const size_t kernel_size, const size_t stride);
+
+
+    void lower_logical_matrix(const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i,
+        const size_t kernel_size, const size_t stride); // TODO: take in LOWERING TYPE as parameter
 
     double size_in_GBytes(){
         return 1.0*R*C*D*B*sizeof(T)/1024/1024/1024;

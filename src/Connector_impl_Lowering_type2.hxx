@@ -17,13 +17,13 @@ iR(p_input_cube->R), iC(p_input_cube->C), iD(p_input_cube->D), iB(p_input_cube->
 oR(p_output_cube->R), oC(p_output_cube->C), oD(p_output_cube->D), oB(p_output_cube->B),
 p_config((LoweringConfig*)_p_config)
 {
-    
+
     report_constructor.reset();
     report_last_transfer.reset();
     report_history.reset();
     report_last_inverse_transfer.reset();
     report_inverse_history.reset();
-    
+
 #ifdef _DO_ASSERT
     const size_t & ksize = p_config->kernel_size;
     assert(oD==1);
@@ -37,13 +37,13 @@ p_config((LoweringConfig*)_p_config)
 template<typename DataType, LayoutType InputLayout>
 void Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_TYPE2>::
 transfer(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube){
-    
+
     report_last_transfer.reset();
-    
+
 #ifdef _DO_WARNING
     std::cerr << "WARNING: " << "You are using the most general version of the lowering function. " << "This might be slow!" << std::endl;
 #endif
-    
+
 #ifdef _DO_ASSERT
     assert(p_input_cube->R == iR);
     assert(p_input_cube->C == iC);
@@ -54,23 +54,17 @@ transfer(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType 
     assert(p_output_cube->D == oD);
     assert(p_output_cube->B == oB);
 #endif
-    
+
     const size_t & ksize = p_config->kernel_size;
     size_t outr = 0, outc = 0;
-    
-#pragma unroll
+
     for(size_t kd=0;kd<iD;kd++){
-#pragma unroll
         for(size_t kr=0;kr<ksize;kr++){
-#pragma unroll
             for(size_t kc=0;kc<ksize;kc++){
-                
+
                 outc = 0;
-#pragma unroll
                 for(size_t ib=0;ib<iB;ib++){
-#pragma unroll
                     for(size_t cr=0;cr<iR-ksize+1;cr++){
-#pragma unroll
                         for(size_t cc=0;cc<iC-ksize+1;cc++){
                             *p_output_cube->logical_get(outr, outc, 0, 0) =
                             *p_input_cube->logical_get(cr+kr, cc+kc, kd, ib);
@@ -82,7 +76,7 @@ transfer(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType 
             }
         }
     }
-    
+
     report_last_transfer.end(iR*iC*iD*iB*sizeof(DataType), oR*oC*oD*oB*sizeof(DataType), 0);
     report_history.aggregate(report_last_transfer);
 }
@@ -92,13 +86,13 @@ transfer(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType 
 template<typename DataType, LayoutType InputLayout>
 void Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_TYPE2>::
 inverse_transfer(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube){
-    
+
     report_last_inverse_transfer.reset();
-    
+
 #ifdef _DO_WARNING
     std::cerr << "WARNING: " << "You are using the most general version of the lowering function. " << "This might be slow!" << std::endl;
 #endif
-    
+
 #ifdef _DO_ASSERT
     assert(p_input_cube->R == iR);
     assert(p_input_cube->C == iC);
@@ -109,7 +103,7 @@ inverse_transfer(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p
     assert(p_output_cube->D == oD);
     assert(p_output_cube->B == oB);
 #endif
-    
+
     for(size_t c=0;c<iC;c++){
         for(size_t r=0;r<iR;r++){
             for(size_t d=0;d<iD;d++){
@@ -119,23 +113,17 @@ inverse_transfer(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p
             }
         }
     }
-    
+
     const size_t & ksize = p_config->kernel_size;
     size_t outr = 0, outc = 0;
-    
-#pragma unroll
+
     for(size_t kd=0;kd<iD;kd++){
-#pragma unroll
         for(size_t kr=0;kr<ksize;kr++){
-#pragma unroll
             for(size_t kc=0;kc<ksize;kc++){
-                
+
                 outc = 0;
-#pragma unroll
                 for(size_t ib=0;ib<iB;ib++){
-#pragma unroll
                     for(size_t cr=0;cr<iR-ksize+1;cr++){
-#pragma unroll
                         for(size_t cc=0;cc<iC-ksize+1;cc++){
                             *p_input_cube->logical_get(cr+kr, cc+kc, kd, ib) +=
                             *p_output_cube->logical_get(outr, outc, 0, 0);
@@ -147,7 +135,7 @@ inverse_transfer(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p
             }
         }
     }
-    
+
     report_last_inverse_transfer.end(iR*iC*iD*iB*sizeof(DataType), oR*oC*oD*oB*sizeof(DataType), 0);
     report_history.aggregate(report_last_inverse_transfer);
 }

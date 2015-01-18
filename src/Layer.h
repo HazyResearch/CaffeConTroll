@@ -24,7 +24,7 @@ template
 <typename DataType, LayoutType DataLayout>
 class Layer{
 public:
-    
+
     static Layer<DataType, DataLayout> * make_layer(const int N, const int I, const int B, const int K, const int O){
         return new Layer<DataType, DataLayout>(
            new LogicalCube<DataType, DataLayout>(N, N, I, B),
@@ -32,19 +32,19 @@ public:
            new LogicalCube<DataType, DataLayout>(N, N, I, B)
         );
     }
-    
+
     typedef LogicalCube<DataType, DataLayout> DataLogicalCubeType;
     typedef LogicalCube<DataType, DataLayout> ModelLogicalCubeType;
     typedef LogicalCube<DataType, DataLayout> GradientLogicalCubeType;
-    
-    const size_t dR, dC, dD, dB;
-    const size_t mR, mC, mD, mB;
-    const size_t gR, gC, gD, gB;
-    
+
     DataLogicalCubeType * const p_data_cube;
     ModelLogicalCubeType * const p_model_cube;
     GradientLogicalCubeType * const p_gradient_cube;
-    
+
+    const size_t dR, dC, dD, dB;
+    const size_t mR, mC, mD, mB;
+    const size_t gR, gC, gD, gB;
+
     Layer(DataLogicalCubeType * const _p_data_cube,
           ModelLogicalCubeType * const _p_model_cube,
           GradientLogicalCubeType * const _p_gradient_cube) :

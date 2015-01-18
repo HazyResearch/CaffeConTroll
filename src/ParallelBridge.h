@@ -28,39 +28,37 @@ typename OutputLayerDataType, LayoutType OutputLayerLayout,
 BridgeType LAYERTYPE, NonLinearFunction FUNC>
 class ParallelBridge{
 public:
-    
+
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
-    
+
     const size_t i1R, i1C, i1D, i1B; /*< Size of the input LogicalCube 1 */
     const size_t i2R, i2C, i2D, i2B; /*< Size of the input LogicalCube 2 */
     const size_t oR, oC, oD, oB; /*< Size of the output LogicalCube */
-    
+
     Report report_constructor;
     Report report_last_transfer;
     Report report_history;
-    
+
     InputLayerType * const p_input_layer;
     OutputLayerType * const p_output_layer;
-    
+
     Bridge(InputLayerType * const _p_input_layer,
            OutputLayerType * const _p_output_layer){
         std::cerr << "ERROR: Using a bridge with unsupported Layout or DataType." << std::endl;
         assert(false);
     }
-    
+
     void forward(){
         std::cerr << "ERROR: Using a bridge with unsupported Layout or DataType." << std::endl;
         assert(false);
     }
-    
+
     void backward(){
         std::cerr << "ERROR: Using a bridge with unsupported Layout or DataType." << std::endl;
         assert(false);
     }
-    
+
 };
-
-
 
 #endif

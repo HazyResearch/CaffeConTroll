@@ -13,7 +13,7 @@
 #ifndef moka_Connector_h
 #define moka_Connector_h
 
-enum ConnectorType{
+enum ConnectorType {
     Connector_Lowering_TYPE1 = 0, // we definitely need better names -- but these three are the three types of lowering algorithms
     Connector_Lowering_TYPE2 = 1,
     Connector_Lowering_TYPE3 = 2

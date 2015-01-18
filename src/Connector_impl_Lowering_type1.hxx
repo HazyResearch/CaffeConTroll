@@ -42,10 +42,6 @@ transfer(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType 
 
     report_last_transfer.reset();
 
-#ifdef _DO_WARNING
-    std::cerr << "WARNING: " << "You are using the most general version of the lowering function. " << "This might be slow!" << std::endl;
-#endif
-
 #ifdef _DO_ASSERT
     assert(p_input_cube->R == iR);
     assert(p_input_cube->C == iC);
@@ -57,14 +53,10 @@ transfer(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType 
     assert(p_output_cube->B == oB);
 #endif
 
-    #pragma unroll
     for(size_t kd = 0; kd < iD; kd++){
-      #pragma unroll
       for(size_t ib = 0; ib < iB; ib++){
         const LogicalMatrix<DataType> m = p_input_cube->get_logical_matrix(kd, ib);
-        std::cout << "LOGICAL MATRIX PHYSICAL PRINT: " << std::endl;
-        m.physical_print();
-        p_output_cube->append_logical_matrix(&m, ib, kd, p_config->kernel_size, p_config->stride);
+        p_output_cube->lower_logical_matrix(&m, ib, kd, p_config->kernel_size, p_config->stride);
       }
     }
 
@@ -96,22 +88,14 @@ old_transfer(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeT
     const size_t & ksize = p_config->kernel_size;
     size_t outr = 0, outc = 0;
 
-    #pragma unroll
     for(size_t kd = 0; kd<iD; kd++){
-        #pragma unroll
         for(size_t kr = 0; kr<ksize; kr++){
-            #pragma unroll
             for(size_t kc = 0; kc<ksize; kc++){
 
                 outc = 0;
-                #pragma unroll
                 for(size_t ib = 0; ib < iB; ib++){
-                    #pragma unroll
                     for(size_t cr = 0; cr < iR - ksize + 1; cr++){
-                    //for(size_t cr = 0; cr < ksize; cr++){
-                        #pragma unroll
                         for(size_t cc = 0; cc < iC - ksize + 1; cc++){
-                        //for(size_t cc = 0; cc < ksize; cc++){
                             *p_output_cube->logical_get(outr, outc, 0, 0) = *p_input_cube->logical_get(cr+kr, cc+kc, kd, ib);
                             outc ++;
                         }
@@ -161,19 +145,13 @@ inverse_transfer(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p
     const size_t & ksize = p_config->kernel_size;
     size_t outr = 0, outc = 0;
 
-    #pragma unroll
     for(size_t kd=0;kd<iD;kd++){
-        #pragma unroll
         for(size_t kr=0;kr<ksize;kr++){
-            #pragma unroll
             for(size_t kc=0;kc<ksize;kc++){
 
                 outc = 0;
-                #pragma unroll
                 for(size_t ib=0;ib<iB;ib++){
-                    #pragma unroll
                     for(size_t cr=0;cr<iR-ksize+1;cr++){
-                        #pragma unroll
                         for(size_t cc=0;cc<iC-ksize+1;cc++){
                             *p_input_cube->logical_get(cr+kr, cc+kc, kd, ib) +=
                                 *p_output_cube->logical_get(outr, outc, 0, 0);
