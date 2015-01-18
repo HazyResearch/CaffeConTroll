@@ -19,6 +19,14 @@ LogicalMatrix<T> LogicalCube<T, LAYOUT>::get_logical_matrix(size_t depth_index, 
   return LogicalMatrix<T>(&p_data[batch_index*R*C*D + depth_index*R*C], R, C); // Note: for Layout_CRDB only, TODO: support BDRC, the other layout
 };
 
+// memcpy doesn't inline with g++, so we use this instead
+// (Shamelessly stolen from https://software.intel.com/en-us/articles/memcpy-performance)
+inline void * _our_memcpy(void *b, const void *a, size_t n){
+  char *s1 = (char*) b;
+  const char *s2 = (const char*)a;
+  for(; 0<n; --n)*s1++ = *s2++;
+  return b;
+}
 
 template<typename T, LayoutType LAYOUT>
 void LogicalCube<T, LAYOUT>::lower_logical_matrix(const LogicalMatrix<T> * const m,
@@ -27,14 +35,19 @@ void LogicalCube<T, LAYOUT>::lower_logical_matrix(const LogicalMatrix<T> * const
   const size_t inverted_kernel_height = m->R - kernel_size + 1;
   const size_t inverted_kernel_width = m->C - kernel_size + 1;
 
+  const size_t bik = b_i*inverted_kernel_width*inverted_kernel_width;
+
   for (size_t i = 0; i < kernel_size; i += stride) {
     for (size_t j = 0; j < kernel_size; j += stride) {
-
-      const size_t out_row = d_i*kernel_size*kernel_size + i*kernel_size + j;
+      const size_t dst_row   = d_i*kernel_size*kernel_size + i*kernel_size + j;
+      const size_t dst_row_C = dst_row * C;
+      const size_t src_base = j + i * C; //m->C;
       for (size_t k_r = 0; k_r < inverted_kernel_height; ++k_r) {
-        const size_t out_col = b_i*inverted_kernel_width*inverted_kernel_width + k_r*inverted_kernel_width;
-
-        memcpy(&p_data[out_col + out_row*C], &m->p_data[j + (i + k_r)*m->C], inverted_kernel_width*sizeof(T));
+        const size_t dst_col = bik + k_r*inverted_kernel_width;
+        const size_t src_col = src_base + k_r * C;//m->C;
+        _our_memcpy(&p_data[dst_col + dst_row_C],
+            &m->p_data[src_col], //&m->p_data[j + (i + k_r)*m->C],
+            inverted_kernel_width*sizeof(T));
       }
     }
   }
