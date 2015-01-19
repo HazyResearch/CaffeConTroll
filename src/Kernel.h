@@ -43,7 +43,7 @@ public:
     const size_t oR, oC, oD, oB; /*< Size of the output LogicalCube */
 
     Report report_constructor; /*< Performance reporter for constructor function. */
-    Report report_last_transfer; /*< Performance reporter for the last run of transfer() function. */
+    Report report_last_lowering; /*< Performance reporter for the last run of transfer() function. */
     Report report_history; /*< Performance reporter for all transfer() functions aggregated. */
 
     /**
@@ -88,7 +88,7 @@ public:
     float beta;
 
     Report report_constructor;
-    Report report_last_transfer;
+    Report report_last_lowering;
     Report report_history;
 
     Kernel(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
@@ -115,7 +115,7 @@ public:
     const size_t on_elements;
 
     Report report_constructor;
-    Report report_last_transfer;
+    Report report_last_lowering;
     Report report_history;
 
     Kernel(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,

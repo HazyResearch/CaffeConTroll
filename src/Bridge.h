@@ -51,7 +51,7 @@ public:
     OutputLayerType * const p_output_layer;
 
     Report report_constructor;
-    Report report_last_transfer;
+    Report report_last_lowering;
     Report report_history;
     Bridge(InputLayerType * const _p_input_layer,
            OutputLayerType * const _p_output_layer){

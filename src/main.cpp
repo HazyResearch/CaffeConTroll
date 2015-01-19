@@ -67,27 +67,27 @@ void TEST_LOWERING() {
     }
 
     cout << "BEFORE LOWERING: " << endl;
-    //cube1.logical_print();
+    cube1.logical_print();
     cout << "---------------------" << endl;
 
     Connector<DataType_FPFloat, Layout_CRDB, DataType_FPFloat, Layout_CRDB, LOWERING_TYPE1>
         connector(&cube1, &cube2, &lconfig);
-    connector.transfer(&cube1, &cube2);
-    cout << "NEW TRANSFER: " << endl;
-    //cube2.logical_print();
-    connector.report_last_transfer.print();
+    connector.lower_cube(&cube1, &cube2);
+    cout << "NEW LOWERING: " << endl;
+    cube2.logical_print();
+    connector.report_last_lowering.print();
     connector.report_history.print();
 
     Connector<DataType_FPFloat, Layout_CRDB, DataType_FPFloat, Layout_CRDB, LOWERING_TYPE1>
         old_connector(&cube1, &cube3, &lconfig);
-    old_connector.old_transfer(&cube1, &cube3);
-    cout << "OLD TRANSFER: " << endl;
-    //cube3.logical_print();
-    old_connector.report_last_transfer.print();
+    old_connector.old_lower_cube(&cube1, &cube3);
+    cout << "OLD LOWERING: " << endl;
+    cube3.logical_print();
+    old_connector.report_last_lowering.print();
     old_connector.report_history.print();
 
-    //connector.transfer(&cube1, &cube2);
-    //connector.report_last_transfer.print();
+    //connector.lower_cube(&cube1, &cube2);
+    //connector.report_last_lowering.print();
     //connector.report_history.print();
 }
 
@@ -103,12 +103,12 @@ void TEST_TIMER(){
     Connector<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, LOWERING_TYPE1>
     connector(&cube1, &cube2, &lconfig);
 
-    connector.transfer(&cube1, &cube2);
+    connector.lower_cube(&cube1, &cube2);
 
-    connector.report_last_transfer.print();
+    connector.report_last_lowering.print();
     connector.report_history.print();
-    connector.transfer(&cube1, &cube2);
-    connector.report_last_transfer.print();
+    connector.lower_cube(&cube1, &cube2);
+    connector.report_last_lowering.print();
     connector.report_history.print();
 
 }
@@ -156,7 +156,7 @@ void TEST_Kernel_GEMM_OpenBlas_ROW(){
 
     cube3.logical_print();
 
-    kernel.report_last_transfer.print();
+    kernel.report_last_lowering.print();
     kernel.report_history.print();
 
 }
@@ -184,7 +184,7 @@ void TEST_Kernel_ELEMENTMUL(){
 
     cube3.logical_print();
 
-    kernel.report_last_transfer.print();
+    kernel.report_last_lowering.print();
     kernel.report_history.print();
 
 }
@@ -211,7 +211,7 @@ void TEST_Kernel_ELEMENTMUL_TANHGRAD(){
 
     cube3.logical_print();
 
-    kernel.report_last_transfer.print();
+    kernel.report_last_lowering.print();
     kernel.report_history.print();
 
 }
@@ -428,10 +428,10 @@ void TEST_CONV_NOTTOY(){
     forward.report_forward_last_transfer.print();
 
     cout << "LOWERING PERFORMANCE" << endl;
-    forward.p_forward_lower_connector->report_last_transfer.print();
+    forward.p_forward_lower_connector->report_last_lowering.print();
 
     cout << "GEMM PERFORMANCE" << endl;
-    forward.p_forward_gemm_kernel->report_last_transfer.print();
+    forward.p_forward_gemm_kernel->report_last_lowering.print();
 
 }
 
@@ -609,16 +609,16 @@ void TEST_BACKPROP_NOTTOY(){
     forward.report_backward_updateweight_last_transfer.print();
 
     cout << "Propogate Gradient ELEMENT-WISE MUL:" << endl;
-    forward.p_backward_element_mul_kernel->report_last_transfer.print();
+    forward.p_backward_element_mul_kernel->report_last_lowering.print();
 
     cout << "Upgrade Kernel MUL:" << endl;
-    forward.p_backward_gemm_updateweight_kernel->report_last_transfer.print();
+    forward.p_backward_gemm_updateweight_kernel->report_last_lowering.print();
 
     cout << "Upgrade Grad MUL:" << endl;
-    forward.p_backward_gemm_updategrad_kernel->report_last_transfer.print();
+    forward.p_backward_gemm_updategrad_kernel->report_last_lowering.print();
 
     cout << "INVERSE LOWERING:" << endl;
-    forward.p_forward_lower_connector->report_last_inverse_transfer.print();
+    forward.p_forward_lower_connector->report_last_inverse_lowering.print();
 
 
 }
@@ -797,15 +797,15 @@ int main(int argc, const char * argv[]) {
 
     kernel.compute(&cube_kernel_matrix, &cube2, &cube_output_matrix);
 
-    kernel.report_last_transfer.print();
+    kernel.report_last_lowering.print();
     kernel.report_history.print();
     */
 
     /*
-    connector.report_last_transfer.print();
+    connector.report_last_lowering.print();
     connector.report_history.print();
     connector.transfer(&cube1, &cube2);
-    connector.report_last_transfer.print();
+    connector.report_last_lowering.print();
     connector.report_history.print();
      */
 

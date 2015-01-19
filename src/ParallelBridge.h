@@ -37,7 +37,7 @@ public:
     const size_t oR, oC, oD, oB; /*< Size of the output LogicalCube */
 
     Report report_constructor;
-    Report report_last_transfer;
+    Report report_last_lowering;
     Report report_history;
 
     InputLayerType * const p_input_layer;

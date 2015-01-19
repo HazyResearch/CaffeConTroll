@@ -33,11 +33,11 @@ public:
     const size_t oR, oC, oD, oB; /*< Size of the output LogicalCube */
 
     Report report_constructor; /*< Performance reporter for constructor function. */
-    Report report_last_transfer; /*< Performance reporter for the last run of transfer() function. */
+    Report report_last_lowering; /*< Performance reporter for the last run of transfer() function. */
     Report report_history; /*< Performance reporter for all transfer() functions aggregated. */
 
-    Report report_last_inverse_transfer; /*< Performance reporter for the last run of inverse_transfer() function. */
-    Report report_inverse_history; /*< Performance reporter for all inverse_transfer() functions aggregated. */
+    Report report_last_inverse_lowering; /*< Performance reporter for the last run of inverse_lower_cube() function. */
+    Report report_inverse_history; /*< Performance reporter for all inverse_lower_cube() functions aggregated. */
 
     /**
      * The constructor of a connector allocates necessary memory for
@@ -60,7 +60,7 @@ public:
      * p_output_cube.
      *
      **/
-    void transfer(InputLogicalCubeType * p_input_cube, OutputLogicalCubeType * p_output_cube) {
+    void lower_cube(InputLogicalCubeType * p_input_cube, OutputLogicalCubeType * p_output_cube) {
         std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
         assert(false);
     }
@@ -69,7 +69,7 @@ public:
      * The inverse transfer function that takes as input p_output_cube, and output
      * p_input_cube.
      **/
-    void inverse_transfer(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube) {
+    void inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube) {
         std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
         assert(false);
     }
@@ -95,10 +95,10 @@ public:
     const size_t oR, oC, oD, oB;
 
     Report report_constructor;
-    Report report_last_transfer;
+    Report report_last_lowering;
     Report report_history;
 
-    Report report_last_inverse_transfer;
+    Report report_last_inverse_lowering;
     Report report_inverse_history;
 
     const LoweringConfig * const p_config;
@@ -106,10 +106,10 @@ public:
     Connector(const InputLogicalCubeType  * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
               const void * const _p_config);
 
-    void transfer(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
-    void old_transfer(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
+    void lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
+    void old_lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
 
-    void inverse_transfer(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube);
+    void inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube);
 
 };
 
@@ -126,10 +126,10 @@ public:
     const size_t oR, oC, oD, oB;
 
     Report report_constructor;
-    Report report_last_transfer;
+    Report report_last_lowering;
     Report report_history;
 
-    Report report_last_inverse_transfer;
+    Report report_last_inverse_lowering;
     Report report_inverse_history;
 
     const LoweringConfig * const p_config;
@@ -137,9 +137,9 @@ public:
     Connector(const InputLogicalCubeType  * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
               const void * const _p_config);
 
-    void transfer(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
+    void lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
 
-    void inverse_transfer(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube);
+    void inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube);
 
 };
 
@@ -160,7 +160,7 @@ public:
 
     Connector(const InputLogicalCubeType  * const p_input_cube, const OutputLogicalCubeType * const p_output_cube);
 
-    void transfer(InputLogicalCubeType * p_input_cube, OutputLogicalCubeType * p_output_cube);
+    void lower_cube(InputLogicalCubeType * p_input_cube, OutputLogicalCubeType * p_output_cube);
 
 };
 */

@@ -98,7 +98,7 @@ forward(){
     LogicalCube<DataType, Layout_CRDB> lowered_output(p_output_layer->p_data_cube->p_data, i2B, (i1R-i2R+1)*(i1C-i2C+1)*i1B, 1, 1);
 
     // (1) do the lowering
-    p_forward_lower_connector->transfer(p_input_layer->p_data_cube, p_forward_lowered_data);
+    p_forward_lower_connector->lower_cube(p_input_layer->p_data_cube, p_forward_lowered_data);
 
     // (2) call GEMM kernel
     p_forward_gemm_kernel->compute(&lowered_model, p_forward_lowered_data, &lowered_output);
@@ -109,8 +109,8 @@ forward(){
     }
 
     report_forward_last_transfer.end();
-    report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_transfer);
-    report_forward_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_transfer);
+    report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_lowering);
+    report_forward_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);
 
     if(FUNC != FUNC_NOFUNC){
         report_forward_last_transfer.aggregate_onlystat(p_forward_applyfunc_scanner->report_last_apply);
@@ -160,7 +160,7 @@ backward(){
     p_backward_gemm_updategrad_kernel->compute(&lowered_model, &lowered_outputgrad, p_backward_inputgrad);
 
     //    - 2.2 undo the lowering (i.e., sum together all grad corresponding to the same unlowered position)
-    p_forward_lower_connector->inverse_transfer(p_backward_inputgrad, p_input_layer->p_gradient_cube);
+    p_forward_lower_connector->inverse_lower_cube(p_backward_inputgrad, p_input_layer->p_gradient_cube);
 
     // (3) calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
     p_backward_gemm_updateweight_kernel->alpha = -stepsize;
@@ -168,10 +168,10 @@ backward(){
     p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
 
     report_backward_updateweight_last_transfer.end();
-    report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_element_mul_kernel->report_last_transfer);
-    report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updategrad_kernel->report_last_transfer);
-    report_backward_updateweight_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_transfer);
-    report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updateweight_kernel->report_last_transfer);
+    report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_element_mul_kernel->report_last_lowering);
+    report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updategrad_kernel->report_last_lowering);
+    report_backward_updateweight_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);
+    report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updateweight_kernel->report_last_lowering);
 
     report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
 

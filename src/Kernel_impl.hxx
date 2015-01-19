@@ -25,7 +25,7 @@ oR(p_output_cube->R), oC(p_output_cube->C), oD(p_output_cube->D), oB(p_output_cu
 alpha(1.0), beta(0)
 {
     report_constructor.reset();
-    report_last_transfer.reset();
+    report_last_lowering.reset();
     report_history.reset();
 #ifdef _DO_ASSERT
     if(KERNELCONFIG == KernelConfig_GEMM_NOTRANS_NOTRANS){
@@ -62,7 +62,7 @@ void Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
 compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
         OutputLogicalCubeType * const p_output_cube){
 
-    report_last_transfer.reset();
+    report_last_lowering.reset();
 
     int M, N, K;
     float _alpha = alpha;
@@ -101,9 +101,9 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
     BLASFUNC(sgemm)(&N2, &N1, &N, &M, &K, &_alpha, p_input2_cube->p_data,
                     &LDB, p_input1_cube->p_data, &LDA, &_beta, p_output_cube->p_data, &N );
 
-    report_last_transfer.end((i1R*i1C + i2R*i2C)*sizeof(DataType),
+    report_last_lowering.end((i1R*i1C + i2R*i2C)*sizeof(DataType),
                              oR*oC*sizeof(DataType), 1.0*M*N*K*2);
-    report_history.aggregate(report_last_transfer);
+    report_history.aggregate(report_last_lowering);
     
 }
 
@@ -117,7 +117,7 @@ i2n_elements(p_input2_cube->n_elements),
 on_elements(p_output_cube->n_elements)
 {
     report_constructor.reset();
-    report_last_transfer.reset();
+    report_last_lowering.reset();
     report_history.reset();
 #ifdef _DO_ASSERT
     assert(i1n_elements==i2n_elements);
@@ -131,7 +131,7 @@ void Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
 compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
         OutputLogicalCubeType * const p_output_cube){
     
-    report_last_transfer.reset();
+    report_last_lowering.reset();
     
     size_t i = 0; // TODO: change to SIMD (actuall the following one is so easy to be vectorized by the compiler with -O3...)
     for(i=0;i<i1n_elements;i++){
@@ -152,9 +152,9 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
         flop = 1.0*i1n_elements*3;
     }
     
-    report_last_transfer.end(i1n_elements*2*sizeof(DataType),
+    report_last_lowering.end(i1n_elements*2*sizeof(DataType),
                              i1n_elements*sizeof(DataType), flop);
-    report_history.aggregate(report_last_transfer);
+    report_history.aggregate(report_last_lowering);
     
 }
 
