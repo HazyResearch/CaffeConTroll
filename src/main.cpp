@@ -70,7 +70,7 @@ void TEST_LOWERING() {
     //cube1.logical_print();
     cout << "---------------------" << endl;
 
-    Connector<DataType_FPFloat, Layout_CRDB, DataType_FPFloat, Layout_CRDB, Connector_Lowering_TYPE1>
+    Connector<DataType_FPFloat, Layout_CRDB, DataType_FPFloat, Layout_CRDB, LOWERING_TYPE1>
         connector(&cube1, &cube2, &lconfig);
     connector.transfer(&cube1, &cube2);
     cout << "NEW TRANSFER: " << endl;
@@ -78,7 +78,7 @@ void TEST_LOWERING() {
     connector.report_last_transfer.print();
     connector.report_history.print();
 
-    Connector<DataType_FPFloat, Layout_CRDB, DataType_FPFloat, Layout_CRDB, Connector_Lowering_TYPE1>
+    Connector<DataType_FPFloat, Layout_CRDB, DataType_FPFloat, Layout_CRDB, LOWERING_TYPE1>
         old_connector(&cube1, &cube3, &lconfig);
     old_connector.old_transfer(&cube1, &cube3);
     cout << "OLD TRANSFER: " << endl;
@@ -100,7 +100,7 @@ void TEST_TIMER(){
     LogicalCube<DataType_SFFloat, Layout_CRDB> cube2(lconfig.kernel_size*lconfig.kernel_size*96,
                         (64-lconfig.kernel_size+1)*(64-lconfig.kernel_size+1)*12, 1, 1);
 
-    Connector<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, Connector_Lowering_TYPE1>
+    Connector<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, LOWERING_TYPE1>
     connector(&cube1, &cube2, &lconfig);
 
     connector.transfer(&cube1, &cube2);

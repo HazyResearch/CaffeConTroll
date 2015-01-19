@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <string>
 #include "LogicalMatrix.h"
+#include "LoweringType.h"
 
 #ifndef moka_LogicalCube_h
 #define moka_LogicalCube_h
@@ -70,7 +71,7 @@ public:
      * Get the pointer that points to the physical position
      * corresponding to the logical position (r,c,d,b)
      *
-     * This used the trick of paritial specialization as in
+     * This uses the trick of paritial specialization as in
      * LogicalFetcher. We confirmed that with -O3 opt, both
      * clang and gcc will inline all these functions.
      *
@@ -109,14 +110,16 @@ public:
      *       c2' f2' i2'
      *
      **/
-    void logical_print();
-    void physical_print();
+    void logical_print() const;
+    void physical_print() const;
 
     LogicalMatrix<T> get_logical_matrix(size_t depth_index, size_t batch_index) const;
 
-
+    template<LoweringType LOWERING>
     void lower_logical_matrix(const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i,
-        const size_t kernel_size, const size_t stride); // TODO: take in LOWERING TYPE as parameter
+        const size_t kernel_size, const size_t stride);
+
+    void reset_cube();
 
     double size_in_GBytes(){
         return 1.0*R*C*D*B*sizeof(T)/1024/1024/1024;
@@ -154,6 +157,34 @@ private:
         inline static T * physical_get_RCDslice(const LogicalCube<T, LAYOUT>& cube, size_t b);
     };
 
+    /**
+     * LoweringHelper: Use the same trick as before with LogicalFetcher to
+     * to handle the logical for lowering the matrix 3 different ways:
+     * LOWERING_TYPE1, LOWERING_TYPE2, and LOWERING_TYPE3.
+     ****/
+    template<LoweringType LOWERING, typename DUMMY = void>
+    struct LoweringHelper {};
+
+    template<typename DUMMY>
+    struct LoweringHelper<LOWERING_TYPE1, DUMMY> {
+      inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
+          const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i, const size_t kernel_size,
+          const size_t stride);
+    };
+
+    template<typename DUMMY>
+    struct LoweringHelper<LOWERING_TYPE2, DUMMY> {
+      inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
+          const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i, const size_t kernel_size,
+          const size_t stride);
+    };
+
+    template<typename DUMMY>
+    struct LoweringHelper<LOWERING_TYPE3, DUMMY> {
+      inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
+          const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i, const size_t kernel_size,
+          const size_t stride);
+    };
 };
 
 #include "LogicalCube_impl.hxx"

@@ -9,15 +9,10 @@
 #include "LogicalCube.h"
 #include "Report.h"
 #include "LogicalMatrix.h"
+#include "LoweringType.h"
 
 #ifndef moka_Connector_h
 #define moka_Connector_h
-
-enum ConnectorType {
-    Connector_Lowering_TYPE1 = 0, // we definitely need better names -- but these three are the three types of lowering algorithms
-    Connector_Lowering_TYPE2 = 1,
-    Connector_Lowering_TYPE3 = 2
-};
 
 struct LoweringConfig {
     size_t kernel_size;
@@ -27,7 +22,7 @@ struct LoweringConfig {
 template
 <typename InputDataType, LayoutType InputLayout,
  typename OutputDataType, LayoutType OutputLayout,
- ConnectorType CONNECTOR>
+ LoweringType LOWERING>
 class Connector {
 public:
 
@@ -55,7 +50,7 @@ public:
      *
      **/
     Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
-              const void * const p_config){
+              const void * const p_config) {
         std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
         assert(false);
     }
@@ -65,7 +60,7 @@ public:
      * p_output_cube.
      *
      **/
-    void transfer(InputLogicalCubeType * p_input_cube, OutputLogicalCubeType * p_output_cube){
+    void transfer(InputLogicalCubeType * p_input_cube, OutputLogicalCubeType * p_output_cube) {
         std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
         assert(false);
     }
@@ -74,7 +69,7 @@ public:
      * The inverse transfer function that takes as input p_output_cube, and output
      * p_input_cube.
      **/
-    void inverse_transfer(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube){
+    void inverse_transfer(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube) {
         std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
         assert(false);
     }
@@ -90,7 +85,7 @@ public:
  */
 template
 <typename DataType, LayoutType InputLayout>
-class Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_TYPE1>{
+class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1> {
 public:
 
     typedef LogicalCube<DataType, InputLayout> InputLogicalCubeType;
@@ -121,7 +116,7 @@ public:
 
 template
 <typename DataType, LayoutType InputLayout>
-class Connector<DataType, InputLayout, DataType, Layout_CRDB, Connector_Lowering_TYPE2>{
+class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE2>{
 public:
 
     typedef LogicalCube<DataType, InputLayout> InputLogicalCubeType;

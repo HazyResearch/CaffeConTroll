@@ -91,7 +91,7 @@ public:
 
     Scanner<DataType, Layout_CRDB, FUNC> * p_forward_applyfunc_scanner;
 
-    Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, Connector_Lowering_TYPE1> *
+    Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, LOWERING_TYPE1> *
     p_forward_lower_connector;
 
     LogicalCube<DataType, Layout_CRDB> * p_forward_lowered_data;
