@@ -15,7 +15,7 @@
 #define moka_ParallelizedBridge_h
 
 template<typename DATATYPE, LayoutType LAYOUTTYPE, BridgeType BRIDGETYPE, NonLinearFunction FUNC>
-class ParallelizedBridge : public PhysicalOperator{
+class ParallelizedBridge : public PhysicalOperator {
 public:
 
     typedef LogicalCube<DATATYPE, LAYOUTTYPE> LogicalCubeType;
@@ -55,7 +55,6 @@ public:
     void backward();
 
 };
-
 
 #include "ParallelizedBridge_impl.hxx"
 

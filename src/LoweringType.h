@@ -6,8 +6,8 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#ifndef moka_Connector_imple_Lowering_type2_hxx
-#define moka_Connector_imple_Lowering_type2_hxx
+#ifndef moka_Lowering_Type_h
+#define moka_Lowering_Type_h
 
 enum LoweringType {
     LOWERING_TYPE1 = 0, // we definitely need better names -- but these three are the three types of lowering algorithms

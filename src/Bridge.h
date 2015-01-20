@@ -18,7 +18,7 @@
 #ifndef moka_Bridge_h
 #define moka_Bridge_h
 
-enum BridgeType{
+enum BridgeType {
     Bridge_CPU_CONV_LOWERINGTYPE1 = 0
 };
 
@@ -37,7 +37,7 @@ template
 <typename InputLayerDataType, LayoutType InputLayerLayout,
 typename OutputLayerDataType, LayoutType OutputLayerLayout,
 BridgeType LAYERTYPE, NonLinearFunction FUNC>
-class Bridge : public PhysicalOperator{
+class Bridge : public PhysicalOperator {
 public:
 
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
@@ -54,7 +54,7 @@ public:
     Report report_last_lowering;
     Report report_history;
     Bridge(InputLayerType * const _p_input_layer,
-           OutputLayerType * const _p_output_layer){
+           OutputLayerType * const _p_output_layer) {
         std::cerr << "ERROR: Using a bridge with unsupported Layout or DataType." << std::endl;
         assert(false);
     }

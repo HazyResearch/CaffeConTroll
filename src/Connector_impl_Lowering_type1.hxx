@@ -67,53 +67,6 @@ lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeTyp
 
 template<typename DataType, LayoutType InputLayout>
 void Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1>::
-old_lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube){
-
-  report_last_lowering.reset();
-
-#ifdef _DO_WARNING
-  std::cerr << "WARNING: " << "You are using the most general version of the lowering function. " << "This might be slow!" << std::endl;
-#endif
-
-#ifdef _DO_ASSERT
-  assert(p_input_cube->R == iR);
-  assert(p_input_cube->C == iC);
-  assert(p_input_cube->D == iD);
-  assert(p_input_cube->B == iB);
-  assert(p_output_cube->R == oR);
-  assert(p_output_cube->C == oC);
-  assert(p_output_cube->D == oD);
-  assert(p_output_cube->B == oB);
-#endif
-
-  const size_t & ksize = p_config->kernel_size;
-  size_t outr = 0, outc = 0;
-
-  for(size_t kd = 0; kd<iD; kd++){
-    for(size_t kr = 0; kr<ksize; kr++){
-      for(size_t kc = 0; kc<ksize; kc++){
-
-        outc = 0;
-        for(size_t ib = 0; ib < iB; ib++){
-          for(size_t cr = 0; cr < iR - ksize + 1; cr++){
-            for(size_t cc = 0; cc < iC - ksize + 1; cc++){
-              *p_output_cube->logical_get(outr, outc, 0, 0) = *p_input_cube->logical_get(cr+kr, cc+kc, kd, ib);
-              outc ++;
-            }
-          }
-        }
-        outr ++;
-      }
-    }
-  }
-
-  report_last_lowering.end(iR*iC*iD*iB*sizeof(DataType), oR*oC*oD*oB*sizeof(DataType), 0);
-  report_history.aggregate(report_last_lowering);
-}
-
-
-template<typename DataType, LayoutType InputLayout>
-void Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1>::
 inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube) {
 
   report_last_inverse_lowering.reset();
@@ -139,14 +92,14 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
   const size_t & ksize = p_config->kernel_size;
   size_t outr = 0, outc = 0;
 
-  for(size_t kd=0;kd<iD;kd++){
-    for(size_t kr=0;kr<ksize;kr++){
-      for(size_t kc=0;kc<ksize;kc++){
+  for(size_t kd=0;kd<iD;kd++) {
+    for(size_t kr=0;kr<ksize;kr++) {
+      for(size_t kc=0;kc<ksize;kc++) {
 
         outc = 0;
-        for(size_t ib=0;ib<iB;ib++){
-          for(size_t cr=0;cr<iR-ksize+1;cr++){
-            for(size_t cc=0;cc<iC-ksize+1;cc++){
+        for(size_t ib=0;ib<iB;ib++) {
+          for(size_t cr=0;cr<iR-ksize+1;cr++) {
+            for(size_t cc=0;cc<iC-ksize+1;cc++) {
               *p_input_cube->logical_get(cr+kr, cc+kc, kd, ib) +=
                 *p_output_cube->logical_get(outr, outc, 0, 0);
               outc ++;
@@ -161,6 +114,5 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
   report_last_inverse_lowering.end(iR*iC*iD*iB*sizeof(DataType), oR*oC*oD*oB*sizeof(DataType), 0);
   report_history.aggregate(report_last_inverse_lowering);
 }
-
 
 #endif

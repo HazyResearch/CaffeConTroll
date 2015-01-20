@@ -190,7 +190,3 @@ private:
 #include "LogicalCube_impl.hxx"
 
 #endif
-
-
-
-

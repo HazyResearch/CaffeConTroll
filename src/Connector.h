@@ -15,16 +15,15 @@
 #define moka_Connector_h
 
 struct LoweringConfig {
-    size_t kernel_size;
-    size_t stride;
+  size_t kernel_size;
+  size_t stride;
 };
 
-template
-<typename InputDataType, LayoutType InputLayout,
- typename OutputDataType, LayoutType OutputLayout,
- LoweringType LOWERING>
+template <typename InputDataType,LayoutType InputLayout,
+         typename OutputDataType, LayoutType OutputLayout,
+         LoweringType LOWERING>
 class Connector {
-public:
+  public:
 
     typedef LogicalCube<InputDataType, InputLayout> InputLogicalCubeType;
     typedef LogicalCube<OutputDataType, OutputLayout> OutputLogicalCubeType;
@@ -50,9 +49,9 @@ public:
      *
      **/
     Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
-              const void * const p_config) {
-        std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
-        assert(false);
+        const void * const p_config) {
+      std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
+      assert(false);
     }
 
     /**
@@ -61,8 +60,8 @@ public:
      *
      **/
     void lower_cube(InputLogicalCubeType * p_input_cube, OutputLogicalCubeType * p_output_cube) {
-        std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
-        assert(false);
+      std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
+      assert(false);
     }
 
     /**
@@ -70,8 +69,8 @@ public:
      * p_input_cube.
      **/
     void inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube) {
-        std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
-        assert(false);
+      std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
+      assert(false);
     }
 
 };
@@ -86,7 +85,7 @@ public:
 template
 <typename DataType, LayoutType InputLayout>
 class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1> {
-public:
+  public:
 
     typedef LogicalCube<DataType, InputLayout> InputLogicalCubeType;
     typedef LogicalCube<DataType, Layout_CRDB> OutputLogicalCubeType;
@@ -103,21 +102,18 @@ public:
 
     const LoweringConfig * const p_config;
 
-    Connector(const InputLogicalCubeType  * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
-              const void * const _p_config);
+    Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
+        const void * const _p_config);
 
     void lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
-    void old_lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
 
     void inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube);
-
 };
-
 
 template
 <typename DataType, LayoutType InputLayout>
-class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE2>{
-public:
+class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE2> {
+  public:
 
     typedef LogicalCube<DataType, InputLayout> InputLogicalCubeType;
     typedef LogicalCube<DataType, Layout_CRDB> OutputLogicalCubeType;
@@ -134,37 +130,14 @@ public:
 
     const LoweringConfig * const p_config;
 
-    Connector(const InputLogicalCubeType  * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
-              const void * const _p_config);
+    Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
+        const void * const _p_config);
 
     void lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
 
     void inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube);
 
 };
-
-
-
-
-/*
-template
-<typename InputDataType, typename OutputDataType>
-class Connector<InputDataType, Layout_CRDB, OutputDataType, Layout_CRDB, Connector_Lowering_R1C1>{
-public:
-
-    typedef LogicalCube<InputDataType, Layout_CRDB> InputLogicalCubeType;
-    typedef LogicalCube<OutputDataType, Layout_CRDB> OutputLogicalCubeType;
-
-    const size_t iR, iC, iD, iB;
-    const size_t oR, oC, oD, oB;
-
-    Connector(const InputLogicalCubeType  * const p_input_cube, const OutputLogicalCubeType * const p_output_cube);
-
-    void lower_cube(InputLogicalCubeType * p_input_cube, OutputLogicalCubeType * p_output_cube);
-
-};
-*/
-
 
 #include "Connector_impl_Lowering_type1.hxx"
 #include "Connector_impl_Lowering_type2.hxx"

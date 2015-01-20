@@ -86,7 +86,7 @@ stepsize(_DEFAULT_STEPSIZE)
  **/
 template<typename DataType, NonLinearFunction FUNC>
 void Bridge<DataType, Layout_CRDB, DataType, Layout_CRDB, Bridge_CPU_CONV_LOWERINGTYPE1, FUNC>::
-forward(){
+forward() {
 
     openblas_set_num_threads(run_with_n_threads);
 
@@ -117,7 +117,6 @@ forward(){
     }
 
     report_forward_history.aggregate(report_forward_last_transfer);
-
 }
 
 
@@ -143,7 +142,7 @@ forward(){
  **/
 template<typename DataType, NonLinearFunction FUNC>
 void Bridge<DataType, Layout_CRDB, DataType, Layout_CRDB, Bridge_CPU_CONV_LOWERINGTYPE1, FUNC>::
-backward(){
+backward() {
 
     openblas_set_num_threads(run_with_n_threads);
 
@@ -174,7 +173,6 @@ backward(){
     report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updateweight_kernel->report_last_lowering);
 
     report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
-
 }
 
 #endif

@@ -22,10 +22,9 @@
  **/
 template
 <typename DataType, LayoutType DataLayout>
-class Layer{
+class Layer {
 public:
-
-    static Layer<DataType, DataLayout> * make_layer(const int N, const int I, const int B, const int K, const int O){
+    static Layer<DataType, DataLayout> * make_layer(const int N, const int I, const int B, const int K, const int O) {
         return new Layer<DataType, DataLayout>(
            new LogicalCube<DataType, DataLayout>(N, N, I, B),
            new LogicalCube<DataType, DataLayout>(K, K, I, O),
