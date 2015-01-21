@@ -1,5 +1,5 @@
 #include "../src/Kernel.h"
-#include "../src/Cube.h"
+#include "../src/LogicalCube.h"
 #include "../src/Layer.h"
 #include "../src/config.h"
 #include "../src/Connector.h"
@@ -9,10 +9,11 @@
 #include "glog/logging.h"
 #include <iostream>
 #include <assert.h>
+#include <cmath>
 #include <cstring>
 
 template <typename T>
-void simple_conv(Cube<T, Layout_CRDB>* in, Cube<T, Layout_CRDB>* kernel, Cube<T, Layout_CRDB>* out){
+void simple_conv(LogicalCube<T, Layout_CRDB>* in, LogicalCube<T, Layout_CRDB>* kernel, LogicalCube<T, Layout_CRDB>* out){
 	int ofm = out->D;
 	int ifm = in->D;
 	for (int n = 0; n < out->B; n++) {
@@ -41,13 +42,13 @@ class BridgeTest : public ::testing::Test {
  public:
   typedef typename TypeParam::T T;	
   BridgeTest(){
-  	data1 = new Cube<T, Layout_CRDB>(5, 5, 1, 2);
-    kernel1 = new Cube<T, Layout_CRDB>(3, 3, 1, 2);
-    grad1 = new Cube<T, Layout_CRDB>(5, 5, 1, 2);
+  	data1 = new LogicalCube<T, Layout_CRDB>(iR, iC, iD, mB);
+    kernel1 = new LogicalCube<T, Layout_CRDB>(k, k, iD, oD);
+    grad1 = new LogicalCube<T, Layout_CRDB>(iR, iC, iD, mB);
     
-    data2 = new Cube<T, Layout_CRDB>(5-3+1, 5-3+1, 2, 2);
-    kernel2 = new Cube<T, Layout_CRDB> (0, 0, 2, 2);
-    grad2 = new Cube<T, Layout_CRDB> (5-3+1, 5-3+1, 2, 2);
+    data2 = new LogicalCube<T, Layout_CRDB>(iR-k+1, iC-k+1, oD, mB);
+    kernel2 = new LogicalCube<T, Layout_CRDB> (0, 0, iD, oD);
+    grad2 = new LogicalCube<T, Layout_CRDB> (iR-k+1, iC-k+1, oD, mB);
 
     layer1 = new Layer<T, Layout_CRDB>(data1, kernel1, grad1);
     layer2 = new Layer<T, Layout_CRDB>(data2, kernel2, grad2);
@@ -58,19 +59,26 @@ class BridgeTest : public ::testing::Test {
   	virtual ~BridgeTest() { delete bridge_; delete layer1; delete layer2;}
     Bridge<T, Layout_CRDB, T, Layout_CRDB, Bridge_CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC>* bridge_;
 
-  	Cube<T, Layout_CRDB>* data1;
-    Cube<T, Layout_CRDB>* kernel1;
-    Cube<T, Layout_CRDB>* grad1;
+  	LogicalCube<T, Layout_CRDB>* data1;
+    LogicalCube<T, Layout_CRDB>* kernel1;
+    LogicalCube<T, Layout_CRDB>* grad1;
     
-    Cube<T, Layout_CRDB>* data2;
-    Cube<T, Layout_CRDB>* kernel2;
-    Cube<T, Layout_CRDB>* grad2;
+    LogicalCube<T, Layout_CRDB>* data2;
+    LogicalCube<T, Layout_CRDB>* kernel2;
+    LogicalCube<T, Layout_CRDB>* grad2;
 
     Layer<T, Layout_CRDB>* layer1;
     Layer<T, Layout_CRDB>* layer2;
+
+    const int mB = 1;
+    const int iD = 3;
+    const int oD = 2;
+    const int iR = 5;
+    const int iC = 5;
+    const int k = 3;
 };
 
-typedef ::testing::Types<FloatNOFUNC> DataTypes;
+typedef ::testing::Types<FloatNOFUNC, FloatTANH> DataTypes;
 
 TYPED_TEST_CASE(BridgeTest, DataTypes);
 
@@ -83,27 +91,33 @@ TYPED_TEST(BridgeTest, TestInitialization){
 
 TYPED_TEST(BridgeTest, TestForward){
 	typedef typename TypeParam::T T;
-	for(int i=0;i<5*5*2;i++){
+	for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
         this->data1->p_data[i] = rand()%2;
     }
-    for(int i=0;i<3*3*2;i++){
+    for(int i=0;i<this->k*this->k*this->iD*this->oD;i++){
         this->kernel1->p_data[i] = rand()%2;
     }
 
-    Cube<T, Layout_CRDB>* out_expected = new Cube<T, Layout_CRDB>(5-3+1, 5-3+1, 2, 2);
+    int oR = this->iR - this->k + 1;
+    int oC = this->iC - this->k + 1;
+    LogicalCube<T, Layout_CRDB>* out_expected = new LogicalCube<T, Layout_CRDB>(oR, oC, this->oD, this->mB);
 
     this->bridge_->forward();
     simple_conv<T>(this->data1, this->kernel1, out_expected);
-    std::cout << "\nINPUT DATA=" << std::endl;
-    this->layer1->p_data_cube->logical_print();
-    std::cout << "\nMODEL DATA=" << std::endl;
-    this->layer1->p_model_cube->logical_print();
-    std::cout << "\nOUTPUT DATA=" << std::endl;
-    this->layer2->p_data_cube->logical_print();
-    std::cout << "\nEXPECTED OUTPUT DATA=" << std::endl;
-    out_expected->logical_print();
+
+    if(TypeParam::FUNC == FUNC_NOFUNC){
+        for(int i=0; i<oR*oC*this->oD*this->mB;i++){
+            EXPECT_NEAR(out_expected->p_data[i], this->data2->p_data[i],EPS);              
+        }
+    }
+    else if(TypeParam::FUNC == FUNC_TANH){
+        for(int i=0; i<oR*oC*this->oD*this->mB;i++){
+            EXPECT_NEAR(tanh(out_expected->p_data[i]), this->data2->p_data[i],EPS);             
+        }
+    } 
 }
 
+// TODO ---- Test Backward
 /*
 TYPED_TEST(BridgeTest, TestBackward){
 	for(int i=0;i<5*5*2;i++){

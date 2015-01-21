@@ -1,7 +1,7 @@
 #include <cstring>
 #include "gtest/gtest.h"
 #include "glog/logging.h"
-#include "../src/Cube.h"
+#include "../src/LogicalCube.h"
 #include <iostream>
 #include <assert.h>
 #include <cmath>
@@ -18,11 +18,11 @@ class ScannerTANHTest : public ::testing::Test {
 	typedef typename TypeParam::T T ;
 
 	ScannerTANHTest()
-			: cube_(new Cube<T, LAYOUT>(4, 5, 3, 2)),
+			: cube_(new LogicalCube<T, LAYOUT>(4, 5, 3, 2)),
 				scanner_(new Scanner<T, LAYOUT, FUNC_TANH>(cube_)) {}
 	virtual ~ScannerTANHTest() { delete cube_; delete scanner_; }
 	Scanner<T, LAYOUT, FUNC_TANH>*  scanner_;
-	Cube<T, LAYOUT>* cube_;
+	LogicalCube<T, LAYOUT>* cube_;
 };
 
 typedef ::testing::Types<FloatBDRC, FloatCRDB> DataTypes;
@@ -48,11 +48,11 @@ class ScannerNO_FUNCTest : public ::testing::Test {
 	typedef typename TypeParam::T T ;
 
 	ScannerNO_FUNCTest()
-			: cube_(new Cube<T, LAYOUT>(4, 5, 3, 2)),
+			: cube_(new LogicalCube<T, LAYOUT>(4, 5, 3, 2)),
 				scanner_(new Scanner<T, LAYOUT, FUNC_NOFUNC>(cube_)) {}
 	virtual ~ScannerNO_FUNCTest() { delete cube_; delete scanner_; }
 	Scanner<T, LAYOUT, FUNC_NOFUNC>*  scanner_;
-	Cube<T, LAYOUT>* cube_;
+	LogicalCube<T, LAYOUT>* cube_;
 };
 
 

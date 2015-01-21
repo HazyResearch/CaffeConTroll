@@ -1,7 +1,9 @@
+///// NOT REQUIRED for now--- UPDATE after rest of the tests are done
+
 #include <cstring>
 #include "gtest/gtest.h"
 #include "glog/logging.h"
-#include "../src/Cube.h"
+#include "../src/LogicalCube.h"
 #include <iostream>
 #include <assert.h>
 #include "test_types.h"
@@ -9,20 +11,20 @@
 using namespace std;
 
 template <typename TypeParam>
-class CubeTest : public ::testing::Test {
+class LogicalCubeTest : public ::testing::Test {
  protected:
  	typedef typename TypeParam::T T ;
-  CubeTest()
-      : cube_(new Cube<T, TypeParam::LAYOUT>(4, 5, 3, 2)) {}
-  virtual ~CubeTest() { delete cube_; }
-  Cube<T, TypeParam::LAYOUT>*  cube_;
+  LogicalCubeTest()
+      : cube_(new LogicalCube<T, TypeParam::LAYOUT>(4, 5, 3, 2)) {}
+  virtual ~LogicalCubeTest() { delete cube_; }
+  LogicalCube<T, TypeParam::LAYOUT>*  cube_;
 };
 
 typedef ::testing::Types<FloatCRDB, FloatBDRC> DataTypes;
 
-TYPED_TEST_CASE(CubeTest, DataTypes);
+TYPED_TEST_CASE(LogicalCubeTest, DataTypes);
 
-TYPED_TEST(CubeTest, TestInitialization) {
+TYPED_TEST(LogicalCubeTest, TestInitialization) {
 
   EXPECT_TRUE(this->cube_);
   EXPECT_EQ(this->cube_->B, 2);
@@ -32,7 +34,7 @@ TYPED_TEST(CubeTest, TestInitialization) {
   EXPECT_EQ(this->cube_->n_elements, 120);
 }
 
-TYPED_TEST(CubeTest, TestLogicalFetcher) {
+TYPED_TEST(LogicalCubeTest, TestLogicalFetcher) {
 
   for(int i=0; i<this->cube_->n_elements; i++){
 		this->cube_->p_data[i] = i;
@@ -68,15 +70,15 @@ TYPED_TEST(CubeTest, TestLogicalFetcher) {
    }	  
 }
 
-class CubeTest_CRDB : public ::testing::Test {
+class LogicalCubeTest_CRDB : public ::testing::Test {
  protected:
-  CubeTest_CRDB()
-      : cube_(new Cube<DataType_SFFloat, Layout_CRDB>(4, 5, 3, 2)) {}
-  virtual ~CubeTest_CRDB() { delete cube_; }
-  Cube<DataType_SFFloat, Layout_CRDB>*  cube_;
+  LogicalCubeTest_CRDB()
+      : cube_(new LogicalCube<DataType_SFFloat, Layout_CRDB>(4, 5, 3, 2)) {}
+  virtual ~LogicalCubeTest_CRDB() { delete cube_; }
+  LogicalCube<DataType_SFFloat, Layout_CRDB>*  cube_;
 };
 
-TEST_F(CubeTest_CRDB, TestRCSlice){
+TEST_F(LogicalCubeTest_CRDB, TestRCSlice){
 	for(int i=0; i<this->cube_->n_elements; i++){
 		this->cube_->p_data[i] = i;
   	}
