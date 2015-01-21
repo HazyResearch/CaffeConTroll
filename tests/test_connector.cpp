@@ -69,35 +69,35 @@ TYPED_TEST(ConnectorTest, TestInitialization) {
 }
 
 TYPED_TEST(ConnectorTest, TestLowering){
- typedef typename TypeParam::T T;
- int R = this->R;
- int C = this->C;
- int D = this->D;
- int B = this->B;
- int k = this->k;
- int s = this->s;
- int oR = (R-k)/s+1;
- int oC = (C-k)/s+1;
+  typedef typename TypeParam::T T;
+  int R = this->R;
+  int C = this->C;
+  int D = this->D;
+  int B = this->B;
+  int k = this->k;
+  int s = this->s;
+  int oR = (R-k)/s+1;
+  int oC = (C-k)/s+1;
 
-	for(int r=0;r<this->input_cube->R;r++){
-      for(int c=0;c<this->input_cube->C;c++){
-        for(int d=0;d<this->input_cube->D;d++){
-          for(int b=0;b<this->input_cube->B;b++){
-            *this->input_cube->logical_get(r,c,d,b) = rand()%10;
-          } 
-        }   
-      }
+  for(int r=0;r<this->input_cube->R;r++){
+    for(int c=0;c<this->input_cube->C;c++){
+      for(int d=0;d<this->input_cube->D;d++){
+        for(int b=0;b<this->input_cube->B;b++){
+          *this->input_cube->logical_get(r,c,d,b) = rand()%10;
+        } 
+      }   
     }
+  }
 
-    LogicalCube<T, Layout_CRDB>* expected_output = new LogicalCube<T, Layout_CRDB>(k*k*D,oR*oC*B,1,1);
-    simple_lowering<T,TypeParam::LAYOUT>(this->input_cube,expected_output,k,s);
+  LogicalCube<T, Layout_CRDB>* expected_output = new LogicalCube<T, Layout_CRDB>(k*k*D,oR*oC*B,1,1);
+  simple_lowering<T,TypeParam::LAYOUT>(this->input_cube,expected_output,k,s);
 
-    int n = this->output_cube->n_elements; 
-  	this->connector_->lower_cube(this->input_cube, this->output_cube);
+  int n = this->output_cube->n_elements; 
+  this->connector_->lower_cube(this->input_cube, this->output_cube);
 
-  	for(int i=0; i<n; i++){
-      EXPECT_NEAR(this->output_cube->p_data[i],  expected_output->p_data[i],EPS);
-	}
+  for(int i=0; i<n; i++){
+    EXPECT_NEAR(this->output_cube->p_data[i],  expected_output->p_data[i],EPS);
+  }
 }
 
 //TODO -- Check for inverse lowering
