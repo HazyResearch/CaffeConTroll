@@ -96,7 +96,6 @@ TYPED_TEST(ConnectorTest, TestLowering){
   	this->connector_->lower_cube(this->input_cube, this->output_cube);
 
   	for(int i=0; i<n; i++){
-		  //EXPECT_EQ(this->output_cube->p_data[i], *this->input_cube->logical_get((i/4/3/2)%3+(i/2)%2, (i/4/2)%3+(i%2), i/1442, (i/2/2)%2));
       EXPECT_NEAR(this->output_cube->p_data[i],  expected_output->p_data[i],EPS);
 	}
 }
