@@ -64,6 +64,88 @@ TYPED_TEST(BlasNNKernelTest, TestCompute){
   }
 }
 
+template <typename TypeParam>
+class ElemMulKernelTest : public ::testing::Test {
+ protected:
+  typedef typename TypeParam::T T;
+  ElemMulKernelTest(){
+    cube1 = new LogicalCube<T, Layout_CRDB>(i1R, i1C, 1, 1);
+    cube2 = new LogicalCube<T, Layout_CRDB>(i1R, i1C, 1, 1);
+    cube3 = new LogicalCube<T, Layout_CRDB>(i1R, i1C, 1, 1);
+    kernel_ = new Kernel<T, Layout_CRDB, T, Layout_CRDB, T, Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KernelConfig_NONE>(cube1, cube2, cube3);
+  }
+
+  virtual ~ElemMulKernelTest() { delete kernel_; }
+  Kernel<T, Layout_CRDB, T, Layout_CRDB, T, Layout_CRDB,  Kernel_ELEMENTWISEMUL_CPU, KernelConfig_NONE>*  kernel_;
+  LogicalCube<T, Layout_CRDB>* cube1;
+  LogicalCube<T, Layout_CRDB>* cube2;
+  LogicalCube<T, Layout_CRDB>* cube3;
+  const int i1R = 10;
+  const int i1C = 8;
+};
+
+TYPED_TEST_CASE(ElemMulKernelTest, DTypes);
+
+TYPED_TEST(ElemMulKernelTest, TestCompute){
+  typedef typename TypeParam::T T;
+  float expected;
+  for(int i=0;i<this->i1R*this->i1C;i++){
+        this->cube1->p_data[i] = (rand()%100)/10.0;
+    }
+
+  for(int i=0;i<this->i1R*this->i1C;i++){
+      this->cube2->p_data[i] = (rand()%100)/10.0; 
+  }
+
+  this->kernel_->compute(this->cube1, this->cube2, this->cube3);
+
+  for(int i=0;i<this->i1R*this->i1C;i++){
+    expected = this->cube1->p_data[i] * this->cube2->p_data[i];
+    EXPECT_NEAR(this->cube3->p_data[i],expected,EPS);
+  }
+}
+
+template <typename TypeParam>
+class ElemMulTanhKernelTest : public ::testing::Test {
+ typedef typename TypeParam::T T; 
+ protected:;
+  ElemMulTanhKernelTest(){
+    cube1 = new LogicalCube<T, Layout_CRDB>(i1R, i1C, 1, 1);
+    cube2 = new LogicalCube<T, Layout_CRDB>(i1R, i1C, 1, 1);
+    cube3 = new LogicalCube<T, Layout_CRDB>(i1R, i1C, 1, 1);
+    kernel_ = new Kernel<T, Layout_CRDB, T, Layout_CRDB, T, Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KernelConfig_TANHGRAD_ON_INPUT1>(cube1, cube2, cube3);
+  }
+
+  virtual ~ElemMulTanhKernelTest() { delete kernel_; }
+  Kernel<T, Layout_CRDB, T, Layout_CRDB, T, Layout_CRDB,  Kernel_ELEMENTWISEMUL_CPU, KernelConfig_TANHGRAD_ON_INPUT1>*  kernel_;
+  LogicalCube<T, Layout_CRDB>* cube1;
+  LogicalCube<T, Layout_CRDB>* cube2;
+  LogicalCube<T, Layout_CRDB>* cube3;
+  const int i1R = 10;
+  const int i1C = 8;
+};
+
+TYPED_TEST_CASE(ElemMulTanhKernelTest, DTypes);
+
+TYPED_TEST(ElemMulTanhKernelTest, TestCompute){
+  typedef typename TypeParam::T T;
+  float expected;
+  for(int i=0;i<this->i1R*this->i1C;i++){
+        this->cube1->p_data[i] = (rand()%100)/10.0;
+    }
+
+  for(int i=0;i<this->i1R*this->i1C;i++){
+      this->cube2->p_data[i] = (rand()%100)/10.0; 
+  }
+
+  this->kernel_->compute(this->cube1, this->cube2, this->cube3);
+
+  for(int i=0;i<this->i1R*this->i1C;i++){
+    expected = this->cube2->p_data[i]*(1 - pow(this->cube1->p_data[i],2));
+    EXPECT_NEAR(this->cube3->p_data[i],expected,EPS);
+  }
+}
+
 // TODO --- for Different types of GEMM
 
 /*
@@ -149,85 +231,3 @@ TYPED_TEST(BlasNTKernelTest, TestCompute){
   }
 }
 */
-
-template <typename TypeParam>
-class ElemMulKernelTest : public ::testing::Test {
- protected:
-  typedef typename TypeParam::T T;
-  ElemMulKernelTest(){
-    cube1 = new LogicalCube<T, Layout_CRDB>(i1R, i1C, 1, 1);
-    cube2 = new LogicalCube<T, Layout_CRDB>(i1R, i1C, 1, 1);
-    cube3 = new LogicalCube<T, Layout_CRDB>(i1R, i1C, 1, 1);
-    kernel_ = new Kernel<T, Layout_CRDB, T, Layout_CRDB, T, Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KernelConfig_NONE>(cube1, cube2, cube3);
-  }
-
-  virtual ~ElemMulKernelTest() { delete kernel_; }
-  Kernel<T, Layout_CRDB, T, Layout_CRDB, T, Layout_CRDB,  Kernel_ELEMENTWISEMUL_CPU, KernelConfig_NONE>*  kernel_;
-  LogicalCube<T, Layout_CRDB>* cube1;
-  LogicalCube<T, Layout_CRDB>* cube2;
-  LogicalCube<T, Layout_CRDB>* cube3;
-  const int i1R = 10;
-  const int i1C = 8;
-};
-
-TYPED_TEST_CASE(ElemMulKernelTest, DTypes);
-
-TYPED_TEST(ElemMulKernelTest, TestCompute){
-  typedef typename TypeParam::T T;
-  float expected;
-  for(int i=0;i<this->i1R*this->i1C;i++){
-        this->cube1->p_data[i] = (rand()%100)/10.0;
-    }
-
-  for(int i=0;i<this->i1R*this->i1C;i++){
-      this->cube2->p_data[i] = (rand()%100)/10.0; 
-  }
-
-  this->kernel_->compute(this->cube1, this->cube2, this->cube3);
-
-  for(int i=0;i<this->i1R*this->i1C;i++){
-    expected = this->cube1->p_data[i] * this->cube2->p_data[i];
-    EXPECT_NEAR(this->cube3->p_data[i],expected,EPS);
-  }
-}
-
-template <typename TypeParam>
-class ElemMulTanhKernelTest : public ::testing::Test {
- typedef typename TypeParam::T T; 
- protected:;
-  ElemMulTanhKernelTest(){
-    cube1 = new LogicalCube<T, Layout_CRDB>(i1R, i1C, 1, 1);
-    cube2 = new LogicalCube<T, Layout_CRDB>(i1R, i1C, 1, 1);
-    cube3 = new LogicalCube<T, Layout_CRDB>(i1R, i1C, 1, 1);
-    kernel_ = new Kernel<T, Layout_CRDB, T, Layout_CRDB, T, Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KernelConfig_TANHGRAD_ON_INPUT1>(cube1, cube2, cube3);
-  }
-
-  virtual ~ElemMulTanhKernelTest() { delete kernel_; }
-  Kernel<T, Layout_CRDB, T, Layout_CRDB, T, Layout_CRDB,  Kernel_ELEMENTWISEMUL_CPU, KernelConfig_TANHGRAD_ON_INPUT1>*  kernel_;
-  LogicalCube<T, Layout_CRDB>* cube1;
-  LogicalCube<T, Layout_CRDB>* cube2;
-  LogicalCube<T, Layout_CRDB>* cube3;
-  const int i1R = 10;
-  const int i1C = 8;
-};
-
-TYPED_TEST_CASE(ElemMulTanhKernelTest, DTypes);
-
-TYPED_TEST(ElemMulTanhKernelTest, TestCompute){
-  typedef typename TypeParam::T T;
-  float expected;
-  for(int i=0;i<this->i1R*this->i1C;i++){
-        this->cube1->p_data[i] = (rand()%100)/10.0;
-    }
-
-  for(int i=0;i<this->i1R*this->i1C;i++){
-      this->cube2->p_data[i] = (rand()%100)/10.0; 
-  }
-
-  this->kernel_->compute(this->cube1, this->cube2, this->cube3);
-
-  for(int i=0;i<this->i1R*this->i1C;i++){
-    expected = this->cube2->p_data[i]*(1 - pow(this->cube1->p_data[i],2));
-    EXPECT_NEAR(this->cube3->p_data[i],expected,EPS);
-  }
-}
