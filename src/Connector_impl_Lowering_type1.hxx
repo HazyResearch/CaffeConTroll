@@ -13,7 +13,7 @@
 
 template<typename DataType, LayoutType InputLayout>
 Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1>::
-Connector(const InputLogicalCubeType  * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
+Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
     const void * const _p_config) :
   iR(p_input_cube->R), iC(p_input_cube->C), iD(p_input_cube->D), iB(p_input_cube->B),
   oR(p_output_cube->R), oC(p_output_cube->C), oD(p_output_cube->D), oB(p_output_cube->B),

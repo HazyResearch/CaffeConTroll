@@ -42,7 +42,7 @@ template <typename T, LayoutType LAYOUT>
 class LogicalCube {
 public:
 
-    T * const p_data;
+    T * /*const*/ p_data; //TODO: get rid of this const when we no longer need remap_output
     const size_t n_elements;
 
     const size_t R;
@@ -119,6 +119,10 @@ public:
     void lower_logical_matrix(const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i,
         const size_t kernel_size, const size_t stride);
 
+    template<LoweringType LOWERING>
+    void remap_output(const size_t O, const size_t B, const size_t kernel_size);
+
+
     void reset_cube();
 
     double size_in_GBytes(){
@@ -170,6 +174,8 @@ private:
       inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
           const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i, const size_t kernel_size,
           const size_t stride);
+
+      inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size);
     };
 
     template<typename DUMMY>
@@ -177,6 +183,8 @@ private:
       inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
           const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i, const size_t kernel_size,
           const size_t stride);
+
+      inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size);
     };
 
     template<typename DUMMY>
@@ -184,6 +192,8 @@ private:
       inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
           const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i, const size_t kernel_size,
           const size_t stride);
+
+      inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size);
     };
 };
 
