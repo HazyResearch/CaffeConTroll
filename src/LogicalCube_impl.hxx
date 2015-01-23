@@ -24,7 +24,7 @@ LogicalMatrix<T> LogicalCube<T, LAYOUT>::get_logical_matrix(size_t depth_index, 
 
 // memcpy doesn't inline with g++, so we use this instead
 // (Shamelessly stolen from https://software.intel.com/en-us/articles/memcpy-performance)
-inline void * _our_memcpy(void *b, const void *a, size_t n){
+inline void * _our_memcpy(void *b, const void *a, size_t n) {
   char *s1 = (char*) b;
   const char *s2 = (const char*)a;
   for(; 0<n; --n)*s1++ = *s2++;
@@ -33,8 +33,39 @@ inline void * _our_memcpy(void *b, const void *a, size_t n){
 
 template <typename T, LayoutType LAYOUT>
 template<LoweringType LOWERING>
+void LogicalCube<T, LAYOUT>::remap_output(const size_t O,
+    const size_t B, const size_t kernel_size) {
+  return LoweringHelper<LOWERING>::remap_output(*this, O, B, kernel_size);
+}
+
+template<typename T, LayoutType LAYOUT>
+template<typename DUMMY>
+void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C,
+    const size_t kernel_size) {
+  T* old_p_data = cube.p_data;
+  cube.p_data = (T*) malloc(sizeof(T)*cube.R*cube.C*cube.B*cube.D);
+
+  size_t dst_index = 0;
+  for (size_t c_i = 0; c_i < C; ++c_i) {
+    for (size_t r_i = 0; r_i < R; ++r_i) {
+      const size_t src_index = c_i*kernel_size + r_i*C*kernel_size;
+      _our_memcpy(&cube.p_data[dst_index], &old_p_data[src_index], sizeof(T)*kernel_size);
+      dst_index += kernel_size;
+    }
+  }
+
+  free(old_p_data);
+}
+
+template <typename T, LayoutType LAYOUT>
+template<LoweringType LOWERING>
 void LogicalCube<T, LAYOUT>::lower_logical_matrix(const LogicalMatrix<T> * const m,
     const size_t b_i, const size_t d_i, const size_t kernel_size, const size_t stride) {
+#ifdef _DO_ASSERT
+  assert(stride > 0);
+  assert(kernel_size > 0);
+  assert(stride < kernel_size);
+#endif
   return LoweringHelper<LOWERING>::lower_logical_matrix(*this, m, b_i, d_i, kernel_size, stride);
 }
 
@@ -99,7 +130,7 @@ T * LogicalCube<T, LAYOUT>::logical_get(size_t r, size_t c, size_t d, size_t b) 
 };
 
 template<typename T, LayoutType LAYOUT>
-T * LogicalCube<T, LAYOUT>::physical_get_RCDslice(size_t b){
+T * LogicalCube<T, LAYOUT>::physical_get_RCDslice(size_t b) {
 #ifdef _DO_ASSERT
   assert(b<B);
 #endif
@@ -111,7 +142,7 @@ LogicalCube<T, LAYOUT>::LogicalCube(void * _p_data, size_t _R, size_t _C, size_t
   p_data(reinterpret_cast<T*>(_p_data)),
   n_elements(_R*_C*_D*_B),
   R(_R), C(_C), D(_D), B(_B),
-  own_data(false){}
+  own_data(false) {}
 
 
 template<typename T, LayoutType LAYOUT>
@@ -119,28 +150,28 @@ LogicalCube<T, LAYOUT>::LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B) 
   p_data((T*) malloc(sizeof(T)*_R*_C*_D*_B)), // TODO: change to 32byte align
   n_elements(_R*_C*_D*_B),
   R(_R), C(_C), D(_D), B(_B),
-  own_data(true){}
+  own_data(true) {}
 
 template<typename T, LayoutType LAYOUT>
 void LogicalCube<T, LAYOUT>::reset_cube() {
-  memset(p_data, 0, sizeof(T)*n_elements);
+  memset(p_data, 0, sizeof(T)*n_elements); // TODO: replace this with our own inline version
 }
 
 template<typename T, LayoutType LAYOUT>
 LogicalCube<T, LAYOUT>::~LogicalCube() {
-  if(own_data){
+  if(own_data) {
     free(p_data);
   }
 }
 
 template<typename T, LayoutType LAYOUT>
 void LogicalCube<T, LAYOUT>::logical_print() const {
-  for(size_t ib=0;ib<B;ib++){
-    for(size_t id=0;id<D;id++){
+  for(size_t ib=0;ib<B;ib++) {
+    for(size_t id=0;id<D;id++) {
       cout << "BATCH " << ib << " DEPTH " << id << endl;
-      for(size_t ir=0;ir<R;ir++){
+      for(size_t ir=0;ir<R;ir++) {
         cout << "    " ;
-        for(size_t ic=0;ic<C;ic++){
+        for(size_t ic=0;ic<C;ic++) {
           cout << *logical_get(ir, ic, id, ib) << " ";
           //cout << " (" <<
           //(ic + ir*C + id*R*C + ib*R*C*D) << ") ";
@@ -153,10 +184,10 @@ void LogicalCube<T, LAYOUT>::logical_print() const {
 
 template<typename T, LayoutType LAYOUT>
 void LogicalCube<T, LAYOUT>::physical_print() const {
-  for(size_t ib=0;ib<B;ib++){
-    for(size_t id=0;id<D;id++){
-      for(size_t ir=0;ir<R;ir++){
-        for(size_t ic=0;ic<C;ic++){
+  for(size_t ib=0;ib<B;ib++) {
+    for(size_t id=0;id<D;id++) {
+      for(size_t ir=0;ir<R;ir++) {
+        for(size_t ic=0;ic<C;ic++) {
           cout << *logical_get(ir, ic, id, ib) << " ";
         }
       }
@@ -167,20 +198,20 @@ void LogicalCube<T, LAYOUT>::physical_print() const {
 
 template<typename T, LayoutType LAYOUT>
 template<typename TYPECONSTRAINT>
-T* LogicalCube<T,LAYOUT>::LogicalFetcher<Layout_CRDB, TYPECONSTRAINT>::logical_get(const LogicalCube<T, LAYOUT>& cube, size_t r, size_t c, size_t d, size_t b){
+T* LogicalCube<T,LAYOUT>::LogicalFetcher<Layout_CRDB, TYPECONSTRAINT>::logical_get(const LogicalCube<T, LAYOUT>& cube, size_t r, size_t c, size_t d, size_t b) {
   return &cube.p_data[c + r*cube.C + d*cube.R*cube.C + b*cube.R*cube.C*cube.D];
 }
 
 
 template<typename T, LayoutType LAYOUT>
 template<typename TYPECONSTRAINT>
-T* LogicalCube<T,LAYOUT>::LogicalFetcher<Layout_BDRC, TYPECONSTRAINT>::logical_get(const LogicalCube<T, LAYOUT>& cube, size_t r, size_t c, size_t d, size_t b){
+T* LogicalCube<T,LAYOUT>::LogicalFetcher<Layout_BDRC, TYPECONSTRAINT>::logical_get(const LogicalCube<T, LAYOUT>& cube, size_t r, size_t c, size_t d, size_t b) {
   return &cube.p_data[b + d*cube.B + r*cube.B*cube.D + c*cube.B*cube.D*cube.R];
 }
 
 template<typename T, LayoutType LAYOUT>
 template<typename TYPECONSTRAINT>
-T* LogicalCube<T,LAYOUT>::PhysicalFetcher<Layout_CRDB, TYPECONSTRAINT>::physical_get_RCDslice(const LogicalCube<T, LAYOUT>& cube, size_t b){
+T* LogicalCube<T,LAYOUT>::PhysicalFetcher<Layout_CRDB, TYPECONSTRAINT>::physical_get_RCDslice(const LogicalCube<T, LAYOUT>& cube, size_t b) {
   return &cube.p_data[b*cube.R*cube.C*cube.D];
 }
 

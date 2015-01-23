@@ -69,7 +69,7 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
     float _beta = beta;
     int LDA, LDB;
     char N1, N2;
-    
+
     if(KERNELCONFIG == KernelConfig_GEMM_NOTRANS_NOTRANS){
         N1 = 'N';
         N2 = 'N';
@@ -97,14 +97,14 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
         LDA = M;
         LDB = N;
     }
-    
+
     BLASFUNC(sgemm)(&N2, &N1, &N, &M, &K, &_alpha, p_input2_cube->p_data,
                     &LDB, p_input1_cube->p_data, &LDA, &_beta, p_output_cube->p_data, &N );
 
     report_last_lowering.end((i1R*i1C + i2R*i2C)*sizeof(DataType),
                              oR*oC*sizeof(DataType), 1.0*M*N*K*2);
     report_history.aggregate(report_last_lowering);
-    
+
 }
 
 
@@ -130,9 +130,9 @@ template <typename DataType, KernelConfig KERNELCONFIG>
 void Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KERNELCONFIG>::
 compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
         OutputLogicalCubeType * const p_output_cube){
-    
+
     report_last_lowering.reset();
-    
+
     size_t i = 0; // TODO: change to SIMD (actuall the following one is so easy to be vectorized by the compiler with -O3...)
     for(i=0;i<i1n_elements;i++){
         if(KERNELCONFIG == KernelConfig_NONE){ // this should be optimized out by the compiler with -O3
@@ -146,16 +146,16 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
             assert(false);
         }
     }
-    
+
     double flop = 1.0*i1n_elements;
     if(KERNELCONFIG == KernelConfig_TANHGRAD_ON_INPUT1){
         flop = 1.0*i1n_elements*3;
     }
-    
+
     report_last_lowering.end(i1n_elements*2*sizeof(DataType),
                              i1n_elements*sizeof(DataType), flop);
     report_history.aggregate(report_last_lowering);
-    
+
 }
 
 #endif

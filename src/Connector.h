@@ -15,8 +15,11 @@
 #define moka_Connector_h
 
 struct LoweringConfig {
+  // default values for kernel size, stride, and padding
+  LoweringConfig() : kernel_size(1), stride(1), padding(0) {}
   size_t kernel_size;
   size_t stride;
+  size_t padding;
 };
 
 template <typename InputDataType,LayoutType InputLayout,
