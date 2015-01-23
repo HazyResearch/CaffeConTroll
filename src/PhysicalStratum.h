@@ -18,11 +18,11 @@
  * used when we call std::thread
  **/
 void _forward(PhysicalOperator * physical_executor){
-    physical_executor->forward();
+  physical_executor->forward();
 }
 
 void _backward(PhysicalOperator * physical_executor){
-    physical_executor->backward();
+  physical_executor->backward();
 }
 
 /**
@@ -31,14 +31,14 @@ void _backward(PhysicalOperator * physical_executor){
  * an PhysicalOperator.
  **/
 class PhysicalStratum : public PhysicalOperator{
-public:
+  public:
     std::vector<PhysicalOperator*> executors; // STL overhead is not that crucial here, so
                                               // we just use a vector
-    
+
     PhysicalStratum();
-    
+
     void forward();
-    
+
     void backward();
 };
 

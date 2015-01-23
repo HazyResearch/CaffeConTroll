@@ -6,22 +6,14 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#ifndef moka_Bridge_impl_hxx
-#define moka_Bridge_impl_hxx
+#ifndef moka_ConvolutionBridge_impl_hxx
+#define moka_ConvolutionBridge_impl_hxx
 
 template<typename DataType, NonLinearFunction FUNC>
-Bridge<DataType, Layout_CRDB, DataType, Layout_CRDB, Bridge_CPU_CONV_LOWERINGTYPE1, FUNC>::
-Bridge(InputLayerType * const _p_input_layer,
-    OutputLayerType * const _p_output_layer):
-  i1R(_p_input_layer->p_data_cube->R), i1C(_p_input_layer->p_data_cube->C),
-  i1D(_p_input_layer->p_data_cube->D), i1B(_p_input_layer->p_data_cube->B),
-  i2R(_p_input_layer->p_model_cube->R), i2C(_p_input_layer->p_model_cube->C),
-  i2D(_p_input_layer->p_model_cube->D), i2B(_p_input_layer->p_model_cube->B),
-  oR(_p_output_layer->p_data_cube->R), oC(_p_output_layer->p_data_cube->C),
-  oD(_p_output_layer->p_data_cube->D), oB(_p_output_layer->p_data_cube->B),
-  p_input_layer(_p_input_layer), p_output_layer(_p_output_layer),
-  stepsize(_DEFAULT_STEPSIZE)
-{
+ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
+ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer)
+: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer),
+stepsize(_DEFAULT_STEPSIZE) {
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();
   report_forward_history.reset();
@@ -36,41 +28,55 @@ Bridge(InputLayerType * const _p_input_layer,
   // Following code is very messy without the Matrix interface -- TODO
   lconfig_forward.kernel_size = i2R;
 
-  p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(i2R*i2C*i2D, (i1R-i2R+1)*(i1C-i2C+1)*i1B, 1, 1);
+  p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(i2R*i2C*i2D, (i1R-i2R+1)*(i1C-i2C+1)*i1B,
+      1, 1);
 
-  LogicalCube<DataType, Layout_CRDB> lowered_forward_model(p_input_layer->p_model_cube->p_data, i2B, i2R*i2C*i2D, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_forward_model(p_input_layer->p_model_cube->p_data, i2B,
+      i2R*i2C*i2D, 1, 1);
 
-  LogicalCube<DataType, Layout_CRDB> lowered_forward_output(p_output_layer->p_data_cube->p_data, i2B, (i1R-i2R+1)*(i1C-i2C+1)*i1B, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_forward_output(p_output_layer->p_data_cube->p_data, i2B,
+      (i1R-i2R+1)*(i1C-i2C+1)*i1B, 1, 1);
 
-  std::cout << "Allocating " << (1.0*i2R*i2C*i2D*(i1R-i2R+1)*(i1C-i2C+1)*i1B*sizeof(DataType))/1024/1024/1024 << " GB data for the lowering matrix" << std::endl;
+  std::cout << "Allocating " << (1.0*i2R*i2C*i2D*(i1R-i2R+1)*(i1C-i2C+1)*i1B* \
+      sizeof(DataType))/1024/1024/1024 << " GB data for the lowering matrix" << std::endl;
 
-  p_forward_lower_connector = new Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, LOWERING_TYPE1>(p_input_layer->p_data_cube, p_forward_lowered_data, &lconfig_forward);
+  p_forward_lower_connector = new Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, LOWERING_TYPE1>(p_input_layer->p_data_cube,
+      p_forward_lowered_data, &lconfig_forward);
 
-  p_forward_gemm_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS>(&lowered_forward_model, p_forward_lowered_data, &lowered_forward_output);
+  p_forward_gemm_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
+                        Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS>(&lowered_forward_model,
+                            p_forward_lowered_data, &lowered_forward_output);
 
   p_forward_applyfunc_scanner = new Scanner<DataType, Layout_CRDB, FUNC>(p_output_layer->p_data_cube);
 
   // second, allocate the space we need for backward
   p_backward_outputgrad = new LogicalCube<DataType, Layout_CRDB>(oR, oC, oD, oB);
 
-  std::cout << "Allocating " << (1.0*i2R*i2C*i2D*(i1R-i2R+1)*(i1C-i2C+1)*i1B*sizeof(DataType))/1024/1024/1024 << " GB data for the lowering matrix" << std::endl;
+  std::cout << "Allocating " << (1.0*i2R*i2C*i2D*(i1R-i2R+1)*(i1C-i2C+1)*i1B* \
+      sizeof(DataType))/1024/1024/1024 << " GB data for the lowering matrix" << std::endl;
 
   p_backward_inputgrad = new LogicalCube<DataType, Layout_CRDB>(i2R*i2C*i2D, (i1R-i2R+1)*(i1C-i2C+1)*i1B, 1, 1);
 
-  p_backward_element_mul_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KernelConfig_TANHGRAD_ON_INPUT1>(p_output_layer->p_data_cube, p_output_layer->p_gradient_cube, p_backward_outputgrad);
+  p_backward_element_mul_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
+                                Kernel_ELEMENTWISEMUL_CPU, KernelConfig_TANHGRAD_ON_INPUT1>(p_output_layer->p_data_cube,
+                                    p_output_layer->p_gradient_cube, p_backward_outputgrad);
 
-  p_backward_gemm_updateweight_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_TRANS>(&lowered_forward_output, p_forward_lowered_data, &lowered_forward_model);
+  p_backward_gemm_updateweight_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
+                                      Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_TRANS>(&lowered_forward_output,
+                                          p_forward_lowered_data, &lowered_forward_model);
   p_backward_gemm_updateweight_kernel->alpha = -stepsize;
   p_backward_gemm_updateweight_kernel->beta = 1.0;
 
-  p_backward_gemm_updategrad_kernel = new Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_TRANS_NOTRANS>(&lowered_forward_model, &lowered_forward_output, p_backward_inputgrad);
+  p_backward_gemm_updategrad_kernel = new Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
+                                    Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_TRANS_NOTRANS>(&lowered_forward_model,
+                                        &lowered_forward_output, p_backward_inputgrad);
 
   report_forward_constructor.end(0, 0, 0);
 }
 
 /**
 
-  This function do the following.
+  This function does the following:
 
   First Layer {iData, iModel, iGrad}
   Next Layer {oData, oModel, oGrad}
@@ -85,7 +91,7 @@ Procedure:
 
  **/
 template<typename DataType, NonLinearFunction FUNC>
-void Bridge<DataType, Layout_CRDB, DataType, Layout_CRDB, Bridge_CPU_CONV_LOWERINGTYPE1, FUNC>::
+void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 forward() {
 
   openblas_set_num_threads(run_with_n_threads);
@@ -115,18 +121,13 @@ forward() {
   //  TODO: figure out how to properly transpose the
   //  inputs so that we get the correct output without
   //  needing to call remap
-  cout << "BEFORE: " << endl;
-  p_output_layer->p_data_cube->physical_print();
-
-  p_output_layer->p_data_cube->template remap_output<LOWERING_TYPE1>(i2B /*O*/, i1B /*B*/, (i1R-i2R+1)*(i1C-i2C+1) /*kernel_size*/);
-
-  cout << "AFTER: " << endl;
-  p_output_layer->p_data_cube->physical_print();
 
   // (3) apply non-linear functions
   if (FUNC != FUNC_NOFUNC) {
-    p_forward_applyfunc_scanner->apply(&lowered_output);
+     p_forward_applyfunc_scanner->apply(&lowered_output); // TODO: figure out why TANH is not being applied
   }
+
+  p_output_layer->p_data_cube->template remap_output<LOWERING_TYPE1>(i2B /*O*/, i1B /*B*/, (i1R-i2R+1)*(i1C-i2C+1) /*kernel_size*/);
 
   report_forward_last_transfer.end();
   report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_lowering);
@@ -161,7 +162,7 @@ Procedure:
 
  **/
 template<typename DataType, NonLinearFunction FUNC>
-void Bridge<DataType, Layout_CRDB, DataType, Layout_CRDB, Bridge_CPU_CONV_LOWERINGTYPE1, FUNC>::
+void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 backward() {
 
   openblas_set_num_threads(run_with_n_threads);
@@ -196,3 +197,4 @@ backward() {
 }
 
 #endif
+

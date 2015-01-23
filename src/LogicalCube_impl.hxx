@@ -42,19 +42,20 @@ template<typename T, LayoutType LAYOUT>
 template<typename DUMMY>
 void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C,
     const size_t kernel_size) {
-  T* old_p_data = cube.p_data;
-  cube.p_data = (T*) malloc(sizeof(T)*cube.R*cube.C*cube.B*cube.D);
+
+  T* temp_buffer = (T*) malloc(sizeof(T)*cube.R*cube.C*cube.B*cube.D);
+  _our_memcpy(temp_buffer, cube.p_data, sizeof(T)*cube.R*cube.C*cube.B*cube.D);
 
   size_t dst_index = 0;
   for (size_t c_i = 0; c_i < C; ++c_i) {
     for (size_t r_i = 0; r_i < R; ++r_i) {
       const size_t src_index = c_i*kernel_size + r_i*C*kernel_size;
-      _our_memcpy(&cube.p_data[dst_index], &old_p_data[src_index], sizeof(T)*kernel_size);
+      _our_memcpy(&cube.p_data[dst_index], &temp_buffer[src_index], sizeof(T)*kernel_size);
       dst_index += kernel_size;
     }
   }
 
-  free(old_p_data);
+  free(temp_buffer);
 }
 
 template <typename T, LayoutType LAYOUT>
