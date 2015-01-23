@@ -6,7 +6,8 @@ DIR_PARAMS=$(foreach d, $(DIRS), -I$d -L$d)
 PROTOBUF = `pkg-config --cflags --libs protobuf`
 LDFLAGS = -llmdb -lopenblas
 CFLAGS = -Wall -std=c++11
-DEBUG_FLAGS = -g -O0
+DEBUG_FLAGS = -g -O0 -ferror-limit=10
+
 PRODUCT_FLAGS = -O3
 
 .PHONY: all product clean

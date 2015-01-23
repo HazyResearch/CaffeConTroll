@@ -12,9 +12,9 @@
 #include "LogicalCube.h"
 #include "Connector.h"
 #include "Kernel.h"
-#include "Bridge.h"
+#include "ConvolutionBridge.h"
 #include "Layer.h"
-#include "ParallelizedBridge.h"
+//#include "ParallelizedBridge.h"
 #include "parser/parser.h"
 #include "Operation.h"
 #include "Corpus.h"
@@ -140,7 +140,7 @@ void TEST_BRIDGE() {
   Layer<DataType_SFFloat, Layout_CRDB> layer1(&data1, &kernel1, &grad1);
   Layer<DataType_SFFloat, Layout_CRDB> layer2(&data2, &kernel2, &grad2);
 
-  Bridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, Bridge_CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC> forward(&layer1, &layer2);
+  ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> forward(&layer1, &layer2);
 
   cout << "\nINPUT DATA=" << endl;
   layer1.p_data_cube->logical_print();
@@ -157,7 +157,6 @@ void TEST_BRIDGE() {
 
   cout << "\nRESULT=" << endl;
   layer2.p_data_cube->logical_print();
-  //layer2.p_data_cube->physical_print();
 
   cout << "\nEXPECTED RESULT=" << endl;
   out_expected.logical_print();
