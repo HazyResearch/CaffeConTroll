@@ -9,13 +9,13 @@
 #ifndef moka_Abstract_Bridge_h
 #define moka_Abstract_Bridge_h
 
-#include "LogicalCube.h"
-#include "Connector.h"
-#include "Kernel.h"
-#include "Report.h"
-#include "Layer.h"
-#include "Scanner.h"
-#include "PhysicalOperator.h"
+#include "../LogicalCube.h"
+#include "../Connector.h"
+#include "../Kernel.h"
+#include "../Report.h"
+#include "../Layer.h"
+#include "../Scanner.h"
+#include "../PhysicalOperator.h"
 
 template
 <typename InputLayerDataType, LayoutType InputLayerLayout,

@@ -6,14 +6,17 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#include "PhysicalOperator.h"
+#include "../PhysicalOperator.h"
 #include "AbstractBridge.h"
+#include "../util.h"
 
 #ifndef moka_Convolution_Bridge_h
 #define moka_Convolution_Bridge_h
 
 enum ConvolutionBridgeType {
-  CPU_CONV_LOWERINGTYPE1 = 0
+  CPU_CONV_LOWERINGTYPE1 = 0,
+  CPU_CONV_LOWERINGTYPE2 = 1, // TODO: support the
+  CPU_CONV_LOWERINGTYPE3 = 2  // other lowering types
 };
 
 /**
@@ -39,25 +42,22 @@ class ConvolutionBridge : public AbstractBridge<InputLayerDataType, InputLayerLa
 
     ConvolutionBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer) {
-      std::cerr << "ERROR: Using a bridge with unsupported Layout or DataType." << std::endl;
-      assert(false);
+      NOT_IMPLEMENTED;
     }
 
     void forward() {
-      std::cerr << "ERROR: Using a bridge with unsupported Layout or DataType." << std::endl;
-      assert(false);
+      NOT_IMPLEMENTED;
     }
 
     void backward() {
-      std::cerr << "ERROR: Using a bridge with unsupported Layout or DataType." << std::endl;
-      assert(false);
+      NOT_IMPLEMENTED;
     }
 };
 
 /******
  * Specializations
  */
-template<typename DataType, NonLinearFunction FUNC>
+template <typename DataType, NonLinearFunction FUNC>
 class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>
 : public AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> {
   public:

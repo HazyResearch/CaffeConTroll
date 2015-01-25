@@ -1,5 +1,5 @@
 //
-//  Layer_impl.hxx
+//  ConvolutionBridge_impl.hxx
 //  moka
 //
 //  Created by Ce Zhang on 1/13/15.
@@ -9,7 +9,7 @@
 #ifndef moka_ConvolutionBridge_impl_hxx
 #define moka_ConvolutionBridge_impl_hxx
 
-template<typename DataType, NonLinearFunction FUNC>
+template <typename DataType, NonLinearFunction FUNC>
 ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer),
@@ -57,6 +57,7 @@ stepsize(_DEFAULT_STEPSIZE) {
 
   p_backward_inputgrad = new LogicalCube<DataType, Layout_CRDB>(i2R*i2C*i2D, (i1R-i2R+1)*(i1C-i2C+1)*i1B, 1, 1);
 
+  // TODO: figure out a better way to support other functions besides tanh
   p_backward_element_mul_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
                                 Kernel_ELEMENTWISEMUL_CPU, KernelConfig_TANHGRAD_ON_INPUT1>(p_output_layer->p_data_cube,
                                     p_output_layer->p_gradient_cube, p_backward_outputgrad);
@@ -90,7 +91,7 @@ Procedure:
 (3) oData -----non-linear func (if any)-----> oData
 
  **/
-template<typename DataType, NonLinearFunction FUNC>
+template <typename DataType, NonLinearFunction FUNC>
 void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 forward() {
 
@@ -124,7 +125,7 @@ forward() {
 
   // (3) apply non-linear functions
   if (FUNC != FUNC_NOFUNC) {
-     p_forward_applyfunc_scanner->apply(&lowered_output); // TODO: figure out why TANH is not being applied
+     p_forward_applyfunc_scanner->apply(&lowered_output);
   }
 
   p_output_layer->p_data_cube->template remap_output<LOWERING_TYPE1>(i2B /*O*/, i1B /*B*/, (i1R-i2R+1)*(i1C-i2C+1) /*kernel_size*/);
@@ -161,7 +162,7 @@ Procedure:
 (3) BackPropogatedGradient x Lowered_iData * stepsize + iModel ---------> New iModel
 
  **/
-template<typename DataType, NonLinearFunction FUNC>
+template <typename DataType, NonLinearFunction FUNC>
 void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 backward() {
 
@@ -170,7 +171,9 @@ backward() {
   report_backward_updateweight_last_transfer.reset();
 
   // (1) calculate the gradient of output and store in the buffer
-  p_backward_element_mul_kernel->compute(p_output_layer->p_data_cube, p_output_layer->p_gradient_cube, p_backward_outputgrad);
+  if (FUNC != FUNC_NOFUNC) {
+    p_backward_element_mul_kernel->compute(p_output_layer->p_data_cube, p_output_layer->p_gradient_cube, p_backward_outputgrad);
+  }
 
   // (2) calculate the GEMM between the gradient of output and old kernel to calc the update on grad
   LogicalCube<DataType, Layout_CRDB> lowered_model(p_input_layer->p_model_cube->p_data, i2B, i2R*i2C*i2D, 1, 1);
@@ -197,4 +200,3 @@ backward() {
 }
 
 #endif
-
