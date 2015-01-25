@@ -1,3 +1,6 @@
+///// Issues with Lowering ----- 
+///// TO FIX -- Working only for stride 1
+
 #include "../src/Connector.h"
 #include "../src/LogicalCube.h"
 #include "test_types.h"
@@ -52,15 +55,15 @@ class ConnectorTest : public ::testing::Test {
   LoweringConfig * p_config;
   const int R = 4;
   const int C = 4;
-  const int D = 2;
-  const int B = 2;
-  const int k = 3;
+  const int D = 1;
+  const int B = 1;
+  const int k = 2;
   const int s = 1;
 };
 
 
 //TODO -- Check For Layout Type BDRC-- not working properly
-typedef ::testing::Types<FloatCRDB, FloatBDRC> DataTypes;
+typedef ::testing::Types<FloatCRDB> DataTypes;
 
 TYPED_TEST_CASE(ConnectorTest, DataTypes);
 
@@ -96,14 +99,14 @@ TYPED_TEST(ConnectorTest, TestLowering){
   this->connector_->lower_cube(this->input_cube, this->output_cube);
 
   for(int i=0; i<n; i++){
-   // EXPECT_NEAR(this->output_cube->p_data[i],  expected_output->p_data[i],EPS);
+    EXPECT_NEAR(this->output_cube->p_data[i],  expected_output->p_data[i],EPS);
   }
-  // cout << "input" << endl;
-  // this->input_cube->logical_print();
-  // cout << "Expected output" << endl;
-  // expected_output->logical_print();
-  // cout << "Actual Output" << endl;
-  // this->output_cube->logical_print();
+ cout << "input" << endl;
+ this->input_cube->logical_print();
+ cout << "Expected output" << endl;
+ expected_output->logical_print();
+ cout << "Actual Output" << endl;
+ this->output_cube->logical_print();
 }
 
 //TODO -- Check for inverse lowering
@@ -115,18 +118,24 @@ TYPED_TEST(ConnectorTest, TestInverseLowering){
 
 
  	typedef typename TypeParam::T T;
-  	LogicalCube<T, Layout_CRDB> input_expected(4, 4, 2, 2);
+  LogicalCube<T, Layout_CRDB> input_expected(5, 5, 3, 1);
 
-  	this->connector_->inverse_lower_cube(this->output_cube, this->input_cube);
+  this->connector_->inverse_lower_cube(this->output_cube, this->input_cube);
 
+  cout << "Cube to be lowered" << endl;
+  this->output_cube->logical_print();
+
+  cout << "Inverse Lowered Cube" << endl;
+  this->input_cube->logical_print();
 	if (TypeParam::LAYOUT == Layout_CRDB){
 	  	for(int i=0; i<this->output_cube->n_elements; i++){
-	  		*input_expected.logical_get((i/24)%3+(i/2)%2, (i/8)%3+(i%2), i/72, (i/4)%2) += *this->output_cube->logical_get(i/8,i%8,0,0);
+	  		//*input_expected.logical_get((i/24)%3+(i/2)%2, (i/8)%3+(i%2), i/72, (i/4)%2) += *this->output_cube->logical_get(i/8,i%8,0,0);
 		}
 
 		for(int i=0; i<this->input_cube->n_elements; i++){
 	  		//EXPECT_NEAR(input_expected.p_data[i], this->input_cube->p_data[i],EPS);
 		}
+
 	}
 }
 */

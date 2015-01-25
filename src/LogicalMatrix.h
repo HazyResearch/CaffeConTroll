@@ -14,7 +14,7 @@
 #define moka_LogicalMatrix_h
 
 typedef float  DataType_SFFloat; /*< Single-precision Floating Point. */
-typedef __fp16 DataType_HPFloat; /*< Half-precision Floating Point. */
+//typedef __fp16 DataType_HPFloat; /*< Half-precision Floating Point. */
 typedef short  DataType_FPFloat; /*< 16-bit Fixed Point. */
 
 typedef std::string DataType_String; /*< String-type data only for deubgging/unit testing. */

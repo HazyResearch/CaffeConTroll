@@ -8,7 +8,7 @@
 
 #ifndef moka_LogicalCube_impl_hxx
 #define moka_LogicalCube_impl_hxx
-
+#include <string.h>
 using namespace std;
 
 /**************************************/
@@ -78,11 +78,11 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::lower_logica
 
   const size_t matrix_C = m->C;
 
-  const size_t inverted_kernel_height = m->R - kernel_size + 1;
-  const size_t inverted_kernel_width = matrix_C - kernel_size + 1;
+  const size_t inverted_kernel_height = (m->R - kernel_size)/stride + 1;
+  const size_t inverted_kernel_width = (matrix_C - kernel_size)/stride + 1;
 
   const size_t dst_row_base = d_i*kernel_size*kernel_size;
-  const size_t dst_col_base = b_i*inverted_kernel_width*inverted_kernel_width;
+  const size_t dst_col_base = b_i*inverted_kernel_height*inverted_kernel_width;
 
   for (size_t i = 0, dst_row_i = dst_row_base, src_i = 0; i < kernel_size;
       i += stride, dst_row_i += kernel_size, src_i += matrix_C) {

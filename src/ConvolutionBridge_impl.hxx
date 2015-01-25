@@ -14,9 +14,9 @@ ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType,
 ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer),
 stepsize(_DEFAULT_STEPSIZE) {
-  report_forward_constructor.reset();
-  report_forward_last_transfer.reset();
-  report_forward_history.reset();
+  this->report_forward_constructor.reset();
+  this->report_forward_last_transfer.reset();
+  this->report_forward_history.reset();
 #ifdef _DO_ASSERT
   assert(oR==i1R-i2R+1); assert(oC==i1C-i2C+1);
   assert(i1D==i2D); assert(i1B==oB);
@@ -58,7 +58,7 @@ stepsize(_DEFAULT_STEPSIZE) {
   p_backward_inputgrad = new LogicalCube<DataType, Layout_CRDB>(i2R*i2C*i2D, (i1R-i2R+1)*(i1C-i2C+1)*i1B, 1, 1);
 
   p_backward_element_mul_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
-                                Kernel_ELEMENTWISEMUL_CPU, KernelConfig_TANHGRAD_ON_INPUT1>(p_output_layer->p_data_cube,
+                                Kernel_ELEMENTWISEMUL_CPU, KernelConfig_NONE>(p_output_layer->p_data_cube,
                                     p_output_layer->p_gradient_cube, p_backward_outputgrad);
 
   p_backward_gemm_updateweight_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
@@ -71,7 +71,7 @@ stepsize(_DEFAULT_STEPSIZE) {
                                     Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_TRANS_NOTRANS>(&lowered_forward_model,
                                         &lowered_forward_output, p_backward_inputgrad);
 
-  report_forward_constructor.end(0, 0, 0);
+  this->report_forward_constructor.end(0, 0, 0);
 }
 
 /**
@@ -96,7 +96,7 @@ forward() {
 
   openblas_set_num_threads(run_with_n_threads);
 
-  report_forward_last_transfer.reset();
+  this->report_forward_last_transfer.reset();
 
   // (0) cast input model and output to matrix
   // This one should be refactored with the matrix interface
@@ -129,15 +129,15 @@ forward() {
 
   p_output_layer->p_data_cube->template remap_output<LOWERING_TYPE1>(i2B /*O*/, i1B /*B*/, (i1R-i2R+1)*(i1C-i2C+1) /*kernel_size*/);
 
-  report_forward_last_transfer.end();
-  report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_lowering);
-  report_forward_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);
+  this->report_forward_last_transfer.end();
+  this->report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_lowering);
+  this->report_forward_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);
 
   if (FUNC != FUNC_NOFUNC) {
-    report_forward_last_transfer.aggregate_onlystat(p_forward_applyfunc_scanner->report_last_apply);
+    this->report_forward_last_transfer.aggregate_onlystat(p_forward_applyfunc_scanner->report_last_apply);
   }
 
-  report_forward_history.aggregate(report_forward_last_transfer);
+  this->report_forward_history.aggregate(this->report_forward_last_transfer);
 }
 
 
@@ -167,11 +167,13 @@ backward() {
 
   openblas_set_num_threads(run_with_n_threads);
 
-  report_backward_updateweight_last_transfer.reset();
+  this->report_backward_updateweight_last_transfer.reset();
 
   // (1) calculate the gradient of output and store in the buffer
-  p_backward_element_mul_kernel->compute(p_output_layer->p_data_cube, p_output_layer->p_gradient_cube, p_backward_outputgrad);
-
+    
+    //p_backward_element_mul_kernel->compute(p_output_layer->p_data_cube, p_output_layer->p_gradient_cube, p_backward_outputgrad);
+    p_backward_outputgrad = p_output_layer->p_gradient_cube;
+    
   // (2) calculate the GEMM between the gradient of output and old kernel to calc the update on grad
   LogicalCube<DataType, Layout_CRDB> lowered_model(p_input_layer->p_model_cube->p_data, i2B, i2R*i2C*i2D, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(p_backward_outputgrad->p_data, i2B, (i1R-i2R+1)*(i1C-i2C+1)*i1B, 1, 1);
@@ -187,13 +189,13 @@ backward() {
   p_backward_gemm_updateweight_kernel->beta = 1.0;
   p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
 
-  report_backward_updateweight_last_transfer.end();
-  report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_element_mul_kernel->report_last_lowering);
-  report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updategrad_kernel->report_last_lowering);
-  report_backward_updateweight_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);
-  report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updateweight_kernel->report_last_lowering);
+  this->report_backward_updateweight_last_transfer.end();
+  this->report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_element_mul_kernel->report_last_lowering);
+  this->report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updategrad_kernel->report_last_lowering);
+  this->report_backward_updateweight_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);
+  this->report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updateweight_kernel->report_last_lowering);
 
-  report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
+  this->report_backward_updateweight_history.aggregate(this->report_backward_updateweight_last_transfer);
 }
 
 #endif
