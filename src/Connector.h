@@ -10,17 +10,10 @@
 #include "Report.h"
 #include "LogicalMatrix.h"
 #include "LoweringType.h"
+#include "bridges/BridgeConfig.h"
 
 #ifndef moka_Connector_h
 #define moka_Connector_h
-
-struct LoweringConfig {
-  // default values for kernel size, stride, and padding
-  LoweringConfig() : kernel_size(1), stride(1), padding(0) {}
-  size_t kernel_size;
-  size_t stride;
-  size_t padding;
-};
 
 template <typename InputDataType,LayoutType InputLayout,
          typename OutputDataType, LayoutType OutputLayout,
@@ -47,7 +40,7 @@ class Connector {
      *
      * The p_input_cube and p_output_cube input in the constructor is just
      * used for getting the dimensional information of input/output, which
-     * is assumed to be constant in later transfer(). No transfer() will be
+     * is assumed to be constant in later lower_cube(). No lower_cube() will be
      * done in the constructor, hinted by that the output LogicalCube is const.
      *
      **/
@@ -103,7 +96,7 @@ class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1> {
     Report report_last_inverse_lowering;
     Report report_inverse_history;
 
-    const LoweringConfig * const p_config;
+    const BridgeConfig * const p_config;
 
     Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
         const void * const _p_config);
@@ -131,7 +124,7 @@ class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE2> {
     Report report_last_inverse_lowering;
     Report report_inverse_history;
 
-    const LoweringConfig * const p_config;
+    const BridgeConfig * const p_config;
 
     Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
         const void * const _p_config);

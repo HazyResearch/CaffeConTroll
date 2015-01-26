@@ -10,16 +10,19 @@
 #define moka_SoftmaxLossBridge_impl_hxx
 
 template <typename DataType>
-SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::SoftmaxLossBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer)
-: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer)/*, stepsize(_DEFAULT_STEPSIZE) */ {
+SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::SoftmaxLossBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer, const DataLabelsLogicalCubeType * const _p_data_labels)
+: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer),
+p_data_labels(_p_data_labels),
+ldR(p_data_labels->R), ldC(p_data_labels->C),
+ldD(p_data_labels->D), ldB(p_data_labels->B) {
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();
   report_forward_history.reset();
 #ifdef _DO_ASSERT
-  assert(oR==i1R-i2R+1); assert(oC==i1C-i2C+1);
-  assert(i1D==i2D); assert(i1B==oB);
-  assert(i2B==oD);
-  assert(i2R==i2C);
+  assert(oR==iR); assert(oC==iC);
+  assert(oB==iB); assert(oD==iD);
+  assert(ldR==1); assert(ldC==1);
+  assert(oB==ldB); assert(oD==1);
 #endif
 
   // TODO

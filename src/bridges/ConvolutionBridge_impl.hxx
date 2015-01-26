@@ -15,37 +15,37 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
     ModelLogicalCubeType * const _p_model_cube)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer),
 p_model_cube(_p_model_cube),
-i2R(p_model_cube->R), i2C(p_model_cube->C),
-i2D(p_model_cube->D), i2B(p_model_cube->B),
+mR(p_model_cube->R), mC(p_model_cube->C),
+mD(p_model_cube->D), mB(p_model_cube->B),
 stepsize(_DEFAULT_STEPSIZE) {
   this->report_forward_constructor.reset();
   this->report_forward_last_transfer.reset();
   this->report_forward_history.reset();
 #ifdef _DO_ASSERT
-  assert(oR==i1R-i2R+1); assert(oC==i1C-i2C+1);
-  assert(i1D==i2D); assert(i1B==oB);
-  assert(i2B==oD);
-  assert(i2R==i2C);
+  assert(oR==iR-mR+1); assert(oC==iC-mC+1);
+  assert(iD==mD); assert(iB==oB);
+  assert(mB==oD);
+  assert(mR==mC);
 #endif
 
   // First, allocate the space we need for lowering
   // Following code is very messy without the Matrix interface -- TODO
-  lconfig_forward.kernel_size = i2R;
+  bconfig_forward.kernel_size = mR;
 
-  p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(i2R*i2C*i2D, (i1R-i2R+1)*(i1C-i2C+1)*i1B,
+  p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(mR*mC*mD, (iR-mR+1)*(iC-mC+1)*iB,
       1, 1);
 
-  LogicalCube<DataType, Layout_CRDB> lowered_forward_model(p_model_cube->p_data, i2B,
-      i2R*i2C*i2D, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_forward_model(p_model_cube->p_data, mB,
+      mR*mC*mD, 1, 1);
 
-  LogicalCube<DataType, Layout_CRDB> lowered_forward_output(p_output_layer->p_data_cube->p_data, i2B,
-      (i1R-i2R+1)*(i1C-i2C+1)*i1B, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_forward_output(p_output_layer->p_data_cube->p_data, mB,
+      (iR-mR+1)*(iC-mC+1)*iB, 1, 1);
 
-  std::cout << "Allocating " << (1.0*i2R*i2C*i2D*(i1R-i2R+1)*(i1C-i2C+1)*i1B* \
+  std::cout << "Allocating " << (1.0*mR*mC*mD*(iR-mR+1)*(iC-mC+1)*iB* \
       sizeof(DataType))/1024/1024/1024 << " GB data for the lowering matrix" << std::endl;
 
   p_forward_lower_connector = new Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, LOWERING_TYPE1>(p_input_layer->p_data_cube,
-      p_forward_lowered_data, &lconfig_forward);
+      p_forward_lowered_data, &bconfig_forward);
 
   p_forward_gemm_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
                         Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS>(&lowered_forward_model,
@@ -56,10 +56,10 @@ stepsize(_DEFAULT_STEPSIZE) {
   // second, allocate the space we need for backward
   p_backward_outputgrad = new LogicalCube<DataType, Layout_CRDB>(oR, oC, oD, oB);
 
-  std::cout << "Allocating " << (1.0*i2R*i2C*i2D*(i1R-i2R+1)*(i1C-i2C+1)*i1B* \
+  std::cout << "Allocating " << (1.0*mR*mC*mD*(iR-mR+1)*(iC-mC+1)*iB* \
       sizeof(DataType))/1024/1024/1024 << " GB data for the lowering matrix" << std::endl;
 
-  p_backward_inputgrad = new LogicalCube<DataType, Layout_CRDB>(i2R*i2C*i2D, (i1R-i2R+1)*(i1C-i2C+1)*i1B, 1, 1);
+  p_backward_inputgrad = new LogicalCube<DataType, Layout_CRDB>(mR*mC*mD, (iR-mR+1)*(iC-mC+1)*iB, 1, 1);
 
   // TODO: figure out a better way to support other functions besides tanh
   p_backward_element_mul_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
@@ -105,8 +105,8 @@ forward() {
 
   // (0) cast input model and output to matrix
   // This one should be refactored with the matrix interface
-  LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->p_data, i2B, i2R*i2C*i2D, 1, 1);
-  LogicalCube<DataType, Layout_CRDB> lowered_output(p_output_layer->p_data_cube->p_data, i2B, (i1R-i2R+1)*(i1C-i2C+1)*i1B, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->p_data, mB, mR*mC*mD, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_output(p_output_layer->p_data_cube->p_data, mB, (iR-mR+1)*(iC-mC+1)*iB, 1, 1);
 
   // (1) do the lowering
   p_forward_lower_connector->lower_cube(p_input_layer->p_data_cube, p_forward_lowered_data);
@@ -132,7 +132,7 @@ forward() {
      p_forward_applyfunc_scanner->apply(&lowered_output);
   }
 
-  p_output_layer->p_data_cube->template remap_output<LOWERING_TYPE1>(i2B /*O*/, i1B /*B*/, (i1R-i2R+1)*(i1C-i2C+1) /*kernel_size*/);
+  p_output_layer->p_data_cube->template remap_output<LOWERING_TYPE1>(mB /*O*/, iB /*B*/, (iR-mR+1)*(iC-mC+1) /*kernel_size*/);
 
   this->report_forward_last_transfer.end();
   this->report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_lowering);
@@ -182,8 +182,8 @@ backward() {
     p_backward_element_mul_kernel->compute(p_output_layer->p_data_cube, p_output_layer->p_gradient_cube, p_backward_outputgrad);
   }
   // (2) calculate the GEMM between the gradient of output and old kernel to calc the update on grad
-  LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->p_data, i2B, i2R*i2C*i2D, 1, 1);
-  LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(p_backward_outputgrad->p_data, i2B, (i1R-i2R+1)*(i1C-i2C+1)*i1B, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->p_data, mB, mR*mC*mD, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(p_backward_outputgrad->p_data, mB, (iR-mR+1)*(iC-mC+1)*iB, 1, 1);
 
   //    - 2.1 GEMM between the gradient of output and old kernel
   p_backward_gemm_updategrad_kernel->compute(&lowered_model, &lowered_outputgrad, p_backward_inputgrad);

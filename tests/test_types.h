@@ -9,7 +9,7 @@
 using std::cout;
 using std::endl;
 
-const double EPS=1e-4;
+const double EPS=1e-3;
 
 struct FloatCRDB{
 	typedef DataType_SFFloat T;

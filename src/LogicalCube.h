@@ -123,6 +123,7 @@ public:
 
 
     void reset_cube();
+    void reset_cube(int val);
 
     double size_in_GBytes(){
         return 1.0*R*C*D*B*sizeof(T)/1024/1024/1024;

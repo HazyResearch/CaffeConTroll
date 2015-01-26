@@ -47,10 +47,10 @@ class ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Abstract
     using PhysicalOperator::report_backward_updateweight_last_transfer;
     using PhysicalOperator::report_backward_updateweight_history;
 
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::i1R;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::i1C;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::i1D;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::i1B;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iR;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iC;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iD;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iB;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oR;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oC;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oD;
