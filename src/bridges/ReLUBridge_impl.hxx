@@ -11,15 +11,13 @@
 
 template <typename DataType>
 ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::ReLUBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer)
-: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer)/*, stepsize(_DEFAULT_STEPSIZE) */ {
+: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer) {
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();
   report_forward_history.reset();
 #ifdef _DO_ASSERT
-  assert(oR==i1R); assert(oC==i1C);
-  assert(oB==i1B); assert(oD==i1D);
-  // we don't have to worry about i2[R,C,D,B]
-  // because there's no kernel
+  assert(oR==iR); assert(oC==iC);
+  assert(oB==iB); assert(oD==iD);
 #endif
 
   // no-op

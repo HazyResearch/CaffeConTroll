@@ -35,7 +35,7 @@ void Parser::ReadNetParamsFromTextFile(const string& param_file, Message* param)
 }
 
 void Parser::DataSetup(cnn::LayerParameter& layer_param, cnn::Datum& datum){
-  MDB_env* mdb_env_; //TODO: resolve compiler warning about not being initialized
+  MDB_env* mdb_env_ = NULL; //TODO: resolve compiler warning about not being initialized
   MDB_dbi mdb_dbi_;
   MDB_txn* mdb_txn_;
   MDB_cursor* mdb_cursor_;
