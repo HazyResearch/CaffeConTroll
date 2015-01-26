@@ -50,7 +50,3 @@ private:
 #include "LogicalMatrix_impl.hxx"
 
 #endif
-
-
-
-

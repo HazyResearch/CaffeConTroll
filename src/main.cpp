@@ -19,7 +19,6 @@
 #include "Layer.h"
 //#include "bridges/ParallelizedBridge.h"
 #include "parser/parser.h"
-#include "Corpus.h"
 
 using namespace std;
 
@@ -65,9 +64,9 @@ void TEST_LOWERING() {
   LogicalCube<DataType_FPFloat, Layout_CRDB> cube2(K*K*D, (N-K+1)*(N-K+1)*B, 1, 1);
   cube2.reset_cube();
 
-  LoweringConfig lconfig;
-  lconfig.kernel_size = K;
-  lconfig.stride = 1;
+  BridgeConfig bconfig;
+  bconfig.kernel_size = K;
+  bconfig.stride = 1;
 
   for (size_t ct = 0, val = 0; ct < N*N*D*B; ct++, val++) {
     cube1.p_data[ct] = val;
@@ -79,7 +78,7 @@ void TEST_LOWERING() {
   cout << "---------------------" << endl;
 
   Connector<DataType_FPFloat, Layout_CRDB, DataType_FPFloat, Layout_CRDB, LOWERING_TYPE1>
-    connector(&cube1, &cube2, &lconfig);
+    connector(&cube1, &cube2, &bconfig);
   connector.lower_cube(&cube1, &cube2);
 
   cout << "AFTER LOWERING: " << endl;

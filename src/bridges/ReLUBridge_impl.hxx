@@ -37,8 +37,8 @@ void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
   report_forward_last_transfer.reset();
 
   const size_t num_elements = p_input_layer->p_data_cube->n_elements;
-  const DataType* input_data = p_input_layer->p_data_cube->p_data;
-  const DataType* output_data = p_output_layer->p_data_cube->p_data;
+  const DataType* const input_data = p_input_layer->p_data_cube->p_data;
+  DataType* const output_data = p_output_layer->p_data_cube->p_data;
 
   for (size_t i = 0; i < num_elements; ++i) {
     output_data[i] = max(input_data[i], DataType(0));
@@ -61,10 +61,10 @@ void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
   report_backward_updateweight_last_transfer.reset();
 
   const size_t num_elements = p_input_layer->p_data_cube->n_elements;
-  const DataType* input_data = p_input_layer->p_data_cube->p_data;
+  const DataType* const input_data = p_input_layer->p_data_cube->p_data;
 
-  const DataType* input_gradient = p_input_layer->p_gradient_cube->p_data;
-  const DataType* output_gradient = p_output_layer->p_gradient_cube->p_data;
+  DataType* const input_gradient = p_input_layer->p_gradient_cube->p_data;
+  const DataType* const output_gradient = p_output_layer->p_gradient_cube->p_data;
 
   for (size_t i = 0; i < num_elements; ++i) {
     input_gradient[i] = output_gradient[i] * (input_data[i] > 0);

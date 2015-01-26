@@ -102,7 +102,7 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
 
     LogicalCube<DataType, Layout_CRDB> * p_forward_lowered_data;
 
-    LoweringConfig lconfig_forward;
+    BridgeConfig bconfig_forward;
 
     Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
       Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS> * p_forward_gemm_kernel;

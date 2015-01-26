@@ -10,6 +10,8 @@
 #define moka_util_h
 
 #include <iostream>
+#include <math.h>
+#include <float.h>
 
 using std::max;
 using std::min;

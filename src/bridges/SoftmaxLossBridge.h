@@ -18,8 +18,10 @@ class SoftmaxLossBridge : public AbstractBridge<InputLayerDataType, InputLayerLa
   public:
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
+    typedef LogicalCube<InputLayerDataType, InputLayerLayout> DataLabelsLogicalCubeType;
 
-    SoftmaxLossBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer) {
+    SoftmaxLossBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
+        const DataLabelsLogicalCubeType * const _p_data_labels) {
       NOT_IMPLEMENTED;
     }
 
@@ -47,14 +49,10 @@ class SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public A
     using PhysicalOperator::report_backward_updateweight_last_transfer;
     using PhysicalOperator::report_backward_updateweight_history;
 
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::i1R;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::i1C;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::i1D;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::i1B;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::i2R;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::i2C;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::i2D;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::i2B;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iR;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iC;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iD;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iB;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oR;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oC;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oD;
@@ -66,8 +64,14 @@ class SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public A
     /* Re-declare these typedefs */
     typedef Layer<DataType, Layout_CRDB> InputLayerType;
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
+    typedef LogicalCube<DataType, Layout_CRDB> DataLabelsLogicalCubeType;
 
-    SoftmaxLossBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer);
+    const DataLabelsLogicalCubeType * const p_data_labels;
+
+    const size_t ldR, ldC, ldD, ldB; /*< Size of the data labels LogicalCube */
+
+    SoftmaxLossBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
+        const DataLabelsLogicalCubeType * const _p_data_labels);
 
     void forward();
     void backward();

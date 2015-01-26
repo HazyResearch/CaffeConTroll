@@ -30,7 +30,7 @@ stepsize(_DEFAULT_STEPSIZE) {
 
   // First, allocate the space we need for lowering
   // Following code is very messy without the Matrix interface -- TODO
-  lconfig_forward.kernel_size = mR;
+  bconfig_forward.kernel_size = mR;
 
   p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(mR*mC*mD, (iR-mR+1)*(iC-mC+1)*iB,
       1, 1);
@@ -45,7 +45,7 @@ stepsize(_DEFAULT_STEPSIZE) {
       sizeof(DataType))/1024/1024/1024 << " GB data for the lowering matrix" << std::endl;
 
   p_forward_lower_connector = new Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, LOWERING_TYPE1>(p_input_layer->p_data_cube,
-      p_forward_lowered_data, &lconfig_forward);
+      p_forward_lowered_data, &bconfig_forward);
 
   p_forward_gemm_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
                         Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS>(&lowered_forward_model,

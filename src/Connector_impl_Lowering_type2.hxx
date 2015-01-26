@@ -15,7 +15,7 @@ Connector(const InputLogicalCubeType  * const p_input_cube, const OutputLogicalC
     const void * const _p_config) :
   iR(p_input_cube->R), iC(p_input_cube->C), iD(p_input_cube->D), iB(p_input_cube->B),
   oR(p_output_cube->R), oC(p_output_cube->C), oD(p_output_cube->D), oB(p_output_cube->B),
-  p_config((LoweringConfig*)_p_config)
+  p_config((BridgeConfig*)_p_config)
 {
 
   report_constructor.reset();

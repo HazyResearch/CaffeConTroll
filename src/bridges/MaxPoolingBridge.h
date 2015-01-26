@@ -9,6 +9,7 @@
 #include "../PhysicalOperator.h"
 #include "AbstractBridge.h"
 #include "../util.h"
+#include "BridgeConfig.h"
 
 #ifndef moka_Max_Pooling_Bridge_h
 #define moka_Max_Pooling_Bridge_h
@@ -19,7 +20,8 @@ class MaxPoolingBridge : public AbstractBridge<InputLayerDataType, InputLayerLay
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
 
-    MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer) {
+    MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
+        const BridgeConfig * const _bconfig) {
       NOT_IMPLEMENTED;
     }
 
@@ -47,14 +49,10 @@ class MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Ab
     using PhysicalOperator::report_backward_updateweight_last_transfer;
     using PhysicalOperator::report_backward_updateweight_history;
 
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::i1R;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::i1C;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::i1D;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::i1B;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::i2R;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::i2C;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::i2D;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::i2B;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iR;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iC;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iD;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iB;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oR;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oC;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oD;
@@ -67,10 +65,20 @@ class MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Ab
     typedef Layer<DataType, Layout_CRDB> InputLayerType;
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
 
-    MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer);
+    MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
+        const BridgeConfig * const _bconfig);
+    ~MaxPoolingBridge();
+
+    const BridgeConfig * const bconfig;
+
+    size_t pooled_height;
+    size_t pooled_width;
 
     void forward();
     void backward();
+
+  private:
+    LogicalCube<size_t, Layout_CRDB> * const max_index;
 };
 
 #include "MaxPoolingBridge_impl.hxx"
