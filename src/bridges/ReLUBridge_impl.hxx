@@ -8,7 +8,6 @@
 
 #ifndef moka_ReLUBridge_impl_hxx
 #define moka_ReLUBridge_impl_hxx
-
 template <typename DataType>
 ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::ReLUBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer) {
@@ -32,8 +31,6 @@ ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::ReLUBridge(InputLayerT
 template <typename DataType>
 void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
 
-  openblas_set_num_threads(run_with_n_threads);
-
   this->report_forward_last_transfer.reset();
 
   const size_t num_elements = p_input_layer->p_data_cube->n_elements;
@@ -55,8 +52,6 @@ void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
  **/
 template <typename DataType>
 void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
-
-  openblas_set_num_threads(run_with_n_threads);
 
   this->report_backward_updateweight_last_transfer.reset();
 

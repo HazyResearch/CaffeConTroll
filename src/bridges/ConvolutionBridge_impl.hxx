@@ -54,7 +54,11 @@ stepsize(_DEFAULT_STEPSIZE) {
   p_forward_applyfunc_scanner = new Scanner<DataType, Layout_CRDB, FUNC>(p_output_layer->p_data_cube);
 
   // second, allocate the space we need for backward
-  p_backward_outputgrad = new LogicalCube<DataType, Layout_CRDB>(oR, oC, oD, oB);
+  // (only if we're applying a non-linear function
+  // after the convolution)
+  if (FUNC != FUNC_NOFUNC) {
+    p_backward_outputgrad = new LogicalCube<DataType, Layout_CRDB>(oR, oC, oD, oB);
+  }
 
   std::cout << "Allocating " << (1.0*mR*mC*mD*(iR-mR+1)*(iC-mC+1)*iB* \
       sizeof(DataType))/1024/1024/1024 << " GB data for the lowering matrix" << std::endl;
@@ -62,9 +66,12 @@ stepsize(_DEFAULT_STEPSIZE) {
   p_backward_inputgrad = new LogicalCube<DataType, Layout_CRDB>(mR*mC*mD, (iR-mR+1)*(iC-mC+1)*iB, 1, 1);
 
   // TODO: figure out a better way to support other functions besides tanh
-  p_backward_element_mul_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
-                                Kernel_ELEMENTWISEMUL_CPU, KernelConfig_NONE>(p_output_layer->p_data_cube,
-                                    p_output_layer->p_gradient_cube, p_backward_outputgrad);
+
+  if (FUNC != FUNC_NOFUNC) {
+    p_backward_element_mul_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
+                                  Kernel_ELEMENTWISEMUL_CPU, KernelConfig_TANHGRAD_ON_INPUT1>(p_output_layer->p_data_cube,
+                                      p_output_layer->p_gradient_cube, p_backward_outputgrad);
+  }
 
   p_backward_gemm_updateweight_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
                                       Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_TRANS>(&lowered_forward_output,
@@ -106,7 +113,8 @@ forward() {
   // (0) cast input model and output to matrix
   // This one should be refactored with the matrix interface
   LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->p_data, mB, mR*mC*mD, 1, 1);
-  LogicalCube<DataType, Layout_CRDB> lowered_output(p_output_layer->p_data_cube->p_data, mB, (iR-mR+1)*(iC-mC+1)*iB, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_output(p_output_layer->p_data_cube->p_data,
+      mB, (iR-mR+1)*(iC-mC+1)*iB, 1, 1);
 
   // (1) do the lowering
   p_forward_lower_connector->lower_cube(p_input_layer->p_data_cube, p_forward_lowered_data);
@@ -176,28 +184,29 @@ backward() {
 
   // (1) calculate the gradient of output and store in the buffer
     //p_backward_element_mul_kernel->compute(p_output_layer->p_data_cube, p_output_layer->p_gradient_cube, p_backward_outputgrad);
-    p_backward_outputgrad = p_output_layer->p_gradient_cube;
     
   if (FUNC != FUNC_NOFUNC) {
     p_backward_element_mul_kernel->compute(p_output_layer->p_data_cube, p_output_layer->p_gradient_cube, p_backward_outputgrad);
+  } else {
+    p_backward_outputgrad = p_output_layer->p_gradient_cube;
   }
   // (2) calculate the GEMM between the gradient of output and old kernel to calc the update on grad
   LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->p_data, mB, mR*mC*mD, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(p_backward_outputgrad->p_data, mB, (iR-mR+1)*(iC-mC+1)*iB, 1, 1);
-
+  // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
+  p_backward_outputgrad->template remap_output<LOWERING_TYPE1>(mB /*O*/, iB /*B*/, (iR-mR+1)*(iC-mC+1) /*kernel_size*/);
   //    - 2.1 GEMM between the gradient of output and old kernel
   p_backward_gemm_updategrad_kernel->compute(&lowered_model, &lowered_outputgrad, p_backward_inputgrad);
-
   //    - 2.2 undo the lowering (i.e., sum together all grad corresponding to the same unlowered position)
   p_forward_lower_connector->inverse_lower_cube(p_backward_inputgrad, p_input_layer->p_gradient_cube);
-
   // (3) calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
   p_backward_gemm_updateweight_kernel->alpha = -stepsize;
   p_backward_gemm_updateweight_kernel->beta = 1.0;
   p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
-
   this->report_backward_updateweight_last_transfer.end();
-  this->report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_element_mul_kernel->report_last_lowering);
+  if(FUNC != FUNC_NOFUNC){
+    this->report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_element_mul_kernel->report_last_lowering);
+  }
   this->report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updategrad_kernel->report_last_lowering);
   this->report_backward_updateweight_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);
   this->report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updateweight_kernel->report_last_lowering);

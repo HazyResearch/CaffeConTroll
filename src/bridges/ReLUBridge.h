@@ -42,7 +42,6 @@ class ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Abstract
     using PhysicalOperator::report_forward_constructor;
     using PhysicalOperator::report_forward_last_transfer;
     using PhysicalOperator::report_forward_history;
-    using PhysicalOperator::run_with_n_threads;
     using PhysicalOperator::report_backward_updateweight_constructor;
     using PhysicalOperator::report_backward_updateweight_last_transfer;
     using PhysicalOperator::report_backward_updateweight_history;

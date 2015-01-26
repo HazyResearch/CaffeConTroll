@@ -12,7 +12,8 @@
 template <typename DataType>
 MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
     const BridgeConfig * const _bconfig)
-: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer), bconfig(_bconfig)  {
+: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer), bconfig(_bconfig) {
+
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();
   report_forward_history.reset();
@@ -39,6 +40,7 @@ MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::MaxPoolingBridge
   max_index = new LogicalCube<size_t, Layout_CRDB>(pooled_height, pooled_width, iD, iB);
   // initialize this to FLOAT_MIN
   p_output_layer->p_data_cube->reset_cube(FLT_MIN);
+  p_input_layer->p_gradient_cube->reset_cube();
 
   report_forward_constructor.end(0, 0, 0);
 }
@@ -48,8 +50,6 @@ MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::MaxPoolingBridge
  **/
 template <typename DataType>
 void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
-
-  openblas_set_num_threads(run_with_n_threads);
 
   report_forward_last_transfer.reset();
 
@@ -63,10 +63,10 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
       LogicalMatrix<DataType> output_data_slice = output_data->get_logical_matrix(d_i, b_i);
 
       for (int ph = 0; ph < pooled_height; ++ph) {
+        const size_t h_start = ph * bconfig->stride;
+        const size_t h_end = min(h_start + bconfig->kernel_size, iR);
         for (int pw = 0; pw < pooled_width; ++pw) {
-          const size_t h_start = ph * bconfig->stride;
           const size_t w_start = pw * bconfig->stride;
-          const size_t h_end = min(h_start + bconfig->kernel_size, iR);
           const size_t w_end = min(w_start + bconfig->kernel_size, iC);
           const size_t pool_index = ph * pooled_width + pw;
           for (size_t h = h_start; h < h_end; ++h) {
@@ -94,10 +94,7 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
 template <typename DataType>
 void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
 
-  openblas_set_num_threads(run_with_n_threads);
-
   report_backward_updateweight_last_transfer.reset();
-
 
   const LogicalCube<DataType, Layout_CRDB>* const input_grad = p_input_layer->p_gradient_cube;
   LogicalCube<DataType, Layout_CRDB>* const output_grad = p_output_layer->p_gradient_cube;

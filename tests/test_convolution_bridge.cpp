@@ -140,7 +140,7 @@ TYPED_TEST(ConvolutionBridgeTest, TestBackward){
     }
 
     this->ConvolutionBridge_->forward();
-
+    
     this->ConvolutionBridge_->backward();
     
     std::fstream expected_output("conv_backward.txt", std::ios_base::in);

@@ -53,11 +53,11 @@ class MaxPoolingBridgeTest : public ::testing::Test {
     const int iD = 3;
     const int iR = 10;
     const int iC = 10;
-    const int oR = 5;
-    const int oC = 5;
     const int k = 2;
     const int s = 2;
     const int p = 0;
+    const int oR = (iR - k)/s + 1;
+    const int oC = (iC - k)/s + 1;
 };
 
 typedef ::testing::Types<FloatCRDB> DataTypes;

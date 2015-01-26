@@ -107,7 +107,6 @@ TYPED_TEST(ReLUBridgeTest, TestBackward){
 
     this->ReLUBridge_->forward();
     
-    cube->logical_print();    
     this->ReLUBridge_->backward();
 
     std::fstream expected_output("relu_backward.txt", std::ios_base::in);

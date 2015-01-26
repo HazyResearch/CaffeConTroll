@@ -44,7 +44,6 @@ class MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Ab
     using PhysicalOperator::report_forward_constructor;
     using PhysicalOperator::report_forward_last_transfer;
     using PhysicalOperator::report_forward_history;
-    using PhysicalOperator::run_with_n_threads;
     using PhysicalOperator::report_backward_updateweight_constructor;
     using PhysicalOperator::report_backward_updateweight_last_transfer;
     using PhysicalOperator::report_backward_updateweight_history;
@@ -78,7 +77,7 @@ class MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Ab
     void backward();
 
   private:
-    LogicalCube<size_t, Layout_CRDB> * const max_index;
+    LogicalCube<size_t, Layout_CRDB> * max_index;
 };
 
 #include "MaxPoolingBridge_impl.hxx"
