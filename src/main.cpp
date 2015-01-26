@@ -12,11 +12,13 @@
 #include "LogicalCube.h"
 #include "Connector.h"
 #include "Kernel.h"
-#include "ConvolutionBridge.h"
+#include "bridges/MaxPoolingBridge.h"
+#include "bridges/ReLUBridge.h"
+#include "bridges/ConvolutionBridge.h"
+#include "bridges/SoftmaxLossBridge.h"
 #include "Layer.h"
-//#include "ParallelizedBridge.h"
+//#include "bridges/ParallelizedBridge.h"
 #include "parser/parser.h"
-#include "Operation.h"
 #include "Corpus.h"
 
 using namespace std;
@@ -124,7 +126,6 @@ void TEST_BRIDGE() {
   LogicalCube<DataType_SFFloat, Layout_CRDB> grad1(N, N, D, B);
 
   LogicalCube<DataType_SFFloat, Layout_CRDB> data2(N-K+1, N-K+1, O, B);
-  LogicalCube<DataType_SFFloat, Layout_CRDB> kernel2(0, 0, O, B);
   LogicalCube<DataType_SFFloat, Layout_CRDB> grad2(N-K+1, N-K+1, O, B);
 
   data1.reset_cube();
@@ -137,16 +138,16 @@ void TEST_BRIDGE() {
     kernel1.p_data[i] = rand() % 2;
   }
 
-  Layer<DataType_SFFloat, Layout_CRDB> layer1(&data1, &kernel1, &grad1);
-  Layer<DataType_SFFloat, Layout_CRDB> layer2(&data2, &kernel2, &grad2);
+  Layer<DataType_SFFloat, Layout_CRDB> layer1(&data1, &grad1);
+  Layer<DataType_SFFloat, Layout_CRDB> layer2(&data2, &grad2);
 
-  ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> forward(&layer1, &layer2);
+  ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> forward(&layer1, &layer2, &kernel1);
 
   cout << "\nINPUT DATA=" << endl;
   layer1.p_data_cube->logical_print();
 
   cout << "\nINPUT MODEL=" << endl;
-  layer1.p_model_cube->logical_print();
+  kernel1.logical_print();
 
   forward.forward();
 

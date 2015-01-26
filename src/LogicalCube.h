@@ -6,10 +6,9 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#include <assert.h>
-#include <string>
 #include "LogicalMatrix.h"
 #include "LoweringType.h"
+#include "util.h"
 
 #ifndef moka_LogicalCube_h
 #define moka_LogicalCube_h
@@ -42,7 +41,7 @@ template <typename T, LayoutType LAYOUT>
 class LogicalCube {
 public:
 
-    T * /*const*/ p_data; //TODO: get rid of this const when we no longer need remap_output
+    T* const p_data;
     const size_t n_elements;
 
     const size_t R;

@@ -22,15 +22,6 @@ LogicalMatrix<T> LogicalCube<T, LAYOUT>::get_logical_matrix(size_t depth_index, 
   return LogicalMatrix<T>(&p_data[batch_index*R*C*D + depth_index*R*C], R, C); // Note: for Layout_CRDB only, TODO: support BDRC, the other layout
 };
 
-// memcpy doesn't inline with g++, so we use this instead
-// (Shamelessly stolen from https://software.intel.com/en-us/articles/memcpy-performance)
-inline void * _our_memcpy(void *b, const void *a, size_t n) {
-  char *s1 = (char*) b;
-  const char *s2 = (const char*)a;
-  for(; 0<n; --n)*s1++ = *s2++;
-  return b;
-}
-
 template <typename T, LayoutType LAYOUT>
 template<LoweringType LOWERING>
 void LogicalCube<T, LAYOUT>::remap_output(const size_t O,
@@ -78,8 +69,8 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::lower_logica
 
   const size_t matrix_C = m->C;
 
-  const size_t inverted_kernel_height = (m->R - kernel_size)/stride + 1;
-  const size_t inverted_kernel_width = (matrix_C - kernel_size)/stride + 1;
+  const size_t inverted_kernel_height = (m->R - kernel_size) / stride + 1;
+  const size_t inverted_kernel_width = (matrix_C - kernel_size) / stride + 1;
 
   const size_t dst_row_base = d_i*kernel_size*kernel_size;
   const size_t dst_col_base = b_i*inverted_kernel_height*inverted_kernel_width;
@@ -100,6 +91,40 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::lower_logica
     }
   }
 }
+
+/*
+ * TODO: Implement Caffe's more general version of lowering, which handles
+ *       different stride heights and widths and different padding heights
+ *       and widths
+ *
+ * template <typename Dtype>
+ * void im2col_cpu(const Dtype* data_im, const int channels,
+ *     const int height, const int width, const int kernel_h, const int kernel_w,
+ *     const int pad_h, const int pad_w,
+ *     const int stride_h, const int stride_w,
+ *     Dtype* data_col) {
+ *   int height_col = (height + 2 * pad_h - kernel_h) / stride_h + 1;
+ *   int width_col = (width + 2 * pad_w - kernel_w) / stride_w + 1;
+ *   int channels_col = channels * kernel_h * kernel_w;
+ *   for (int c = 0; c < channels_col; ++c) {
+ *     int w_offset = c % kernel_w;
+ *     int h_offset = (c / kernel_w) % kernel_h;
+ *     int c_im = c / kernel_h / kernel_w;
+ *     for (int h = 0; h < height_col; ++h) {
+ *       for (int w = 0; w < width_col; ++w) {
+ *         int h_pad = h * stride_h - pad_h + h_offset;
+ *         int w_pad = w * stride_w - pad_w + w_offset;
+ *         if (h_pad >= 0 && h_pad < height && w_pad >= 0 && w_pad < width)
+ *           data_col[(c * height_col + h) * width_col + w] =
+ *             data_im[(c_im * height + h_pad) * width + w_pad];
+ *         else
+ *           data_col[(c * height_col + h) * width_col + w] = 0;
+ *       }
+ *     }
+ *   }
+ * }
+ *
+ */
 
 template<typename T, LayoutType LAYOUT>
 template<typename DUMMY>
@@ -155,7 +180,7 @@ LogicalCube<T, LAYOUT>::LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B) 
 
 template<typename T, LayoutType LAYOUT>
 void LogicalCube<T, LAYOUT>::reset_cube() {
-  memset(p_data, 0, sizeof(T)*n_elements); // TODO: replace this with our own inline version
+  _our_memset(p_data, 0, sizeof(T)*n_elements);
 }
 
 template<typename T, LayoutType LAYOUT>

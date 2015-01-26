@@ -15,7 +15,7 @@ Scanner<DataType, Layout, FUNC_TANH>::Scanner(const LogicalCubeType * const p_cu
     report_constructor.reset();
     report_last_apply.reset();
     report_history.reset();
-    
+
     report_constructor.end(0, 0, 0);
 };
 

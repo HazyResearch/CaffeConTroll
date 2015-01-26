@@ -4,7 +4,7 @@
 #include "../src/Layer.h"
 #include "../src/config.h"
 #include "../src/Connector.h"
-#include "../src/ConvolutionBridge.h"
+#include "../src/bridges/ConvolutionBridge.h"
 #include "test_types.h"
 #include "gtest/gtest.h"
 #include "glog/logging.h"
