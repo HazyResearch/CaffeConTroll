@@ -27,31 +27,24 @@ public:
     static Layer<DataType, DataLayout> * make_layer(const int N, const int I, const int B, const int K, const int O) {
         return new Layer<DataType, DataLayout>(
            new LogicalCube<DataType, DataLayout>(N, N, I, B),
-           new LogicalCube<DataType, DataLayout>(K, K, I, O),
            new LogicalCube<DataType, DataLayout>(N, N, I, B)
         );
     }
 
     typedef LogicalCube<DataType, DataLayout> DataLogicalCubeType;
-    typedef LogicalCube<DataType, DataLayout> ModelLogicalCubeType;
     typedef LogicalCube<DataType, DataLayout> GradientLogicalCubeType;
 
     DataLogicalCubeType * const p_data_cube;
-    ModelLogicalCubeType * const p_model_cube;
     GradientLogicalCubeType * const p_gradient_cube;
 
     const size_t dR, dC, dD, dB;
-    const size_t mR, mC, mD, mB;
     const size_t gR, gC, gD, gB;
 
     Layer(DataLogicalCubeType * const _p_data_cube,
-          ModelLogicalCubeType * const _p_model_cube,
           GradientLogicalCubeType * const _p_gradient_cube) :
         p_data_cube(_p_data_cube),
-        p_model_cube(_p_model_cube),
         p_gradient_cube(_p_gradient_cube),
         dR(_p_data_cube->R), dC(_p_data_cube->C), dD(_p_data_cube->D), dB(_p_data_cube->B),
-        mR(_p_model_cube->R), mC(_p_model_cube->C), mD(_p_model_cube->D), mB(_p_model_cube->B),
         gR(_p_gradient_cube->R), gC(_p_gradient_cube->C), gD(_p_gradient_cube->D), gB(_p_gradient_cube->B)
     {
 #ifdef _DO_ASSERT

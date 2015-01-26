@@ -11,8 +11,12 @@
 
 template <typename DataType, NonLinearFunction FUNC>
 ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
-ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer)
+ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
+    ModelLogicalCubeType * const _p_model_cube)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer),
+p_model_cube(_p_model_cube),
+i2R(p_model_cube->R), i2C(p_model_cube->C),
+i2D(p_model_cube->D), i2B(p_model_cube->B),
 stepsize(_DEFAULT_STEPSIZE) {
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();
@@ -31,7 +35,7 @@ stepsize(_DEFAULT_STEPSIZE) {
   p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(i2R*i2C*i2D, (i1R-i2R+1)*(i1C-i2C+1)*i1B,
       1, 1);
 
-  LogicalCube<DataType, Layout_CRDB> lowered_forward_model(p_input_layer->p_model_cube->p_data, i2B,
+  LogicalCube<DataType, Layout_CRDB> lowered_forward_model(p_model_cube->p_data, i2B,
       i2R*i2C*i2D, 1, 1);
 
   LogicalCube<DataType, Layout_CRDB> lowered_forward_output(p_output_layer->p_data_cube->p_data, i2B,
@@ -101,7 +105,7 @@ forward() {
 
   // (0) cast input model and output to matrix
   // This one should be refactored with the matrix interface
-  LogicalCube<DataType, Layout_CRDB> lowered_model(p_input_layer->p_model_cube->p_data, i2B, i2R*i2C*i2D, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->p_data, i2B, i2R*i2C*i2D, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_output(p_output_layer->p_data_cube->p_data, i2B, (i1R-i2R+1)*(i1C-i2C+1)*i1B, 1, 1);
 
   // (1) do the lowering
@@ -176,7 +180,7 @@ backward() {
   }
 
   // (2) calculate the GEMM between the gradient of output and old kernel to calc the update on grad
-  LogicalCube<DataType, Layout_CRDB> lowered_model(p_input_layer->p_model_cube->p_data, i2B, i2R*i2C*i2D, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->p_data, i2B, i2R*i2C*i2D, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(p_backward_outputgrad->p_data, i2B, (i1R-i2R+1)*(i1C-i2C+1)*i1B, 1, 1);
 
   //    - 2.1 GEMM between the gradient of output and old kernel
