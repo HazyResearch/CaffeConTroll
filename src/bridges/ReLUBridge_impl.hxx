@@ -32,8 +32,6 @@ ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::ReLUBridge(InputLayerT
 template <typename DataType>
 void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
 
-  openblas_set_num_threads(run_with_n_threads);
-
   report_forward_last_transfer.reset();
 
   const size_t num_elements = p_input_layer->p_data_cube->n_elements;
@@ -55,8 +53,6 @@ void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
  **/
 template <typename DataType>
 void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
-
-  openblas_set_num_threads(run_with_n_threads);
 
   report_backward_updateweight_last_transfer.reset();
 
