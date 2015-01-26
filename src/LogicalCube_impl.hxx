@@ -39,8 +39,9 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output
 
   size_t dst_index = 0;
   for (size_t c_i = 0; c_i < C; ++c_i) {
+    const size_t src_index_base = c_i*kernel_size;
     for (size_t r_i = 0; r_i < R; ++r_i) {
-      const size_t src_index = c_i*kernel_size + r_i*C*kernel_size;
+      const size_t src_index = src_index_base + r_i*C*kernel_size;
       _our_memcpy(&cube.p_data[dst_index], &temp_buffer[src_index], sizeof(T)*kernel_size);
       dst_index += kernel_size;
     }

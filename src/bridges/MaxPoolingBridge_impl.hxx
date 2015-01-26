@@ -40,6 +40,7 @@ MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::MaxPoolingBridge
   max_index = new LogicalCube<size_t, Layout_CRDB>(pooled_height, pooled_width, iD, iB);
   // initialize this to FLOAT_MIN
   p_output_layer->p_data_cube->reset_cube(FLT_MIN);
+  p_input_layer->p_gradient_cube->reset_cube();
 
   report_forward_constructor.end(0, 0, 0);
 }
