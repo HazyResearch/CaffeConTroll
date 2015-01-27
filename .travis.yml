@@ -1,11 +1,16 @@
 language: cpp
 compiler:
-  - gcc
-  - clang
+  - g++
 # Change this to your needs
-script: 
-- cd externals/OpenBLAS
-- make
-- cd ../../
+install:
+- sudo apt-get install libprotobuf-dev libboost-all-dev
+- sudo apt-get install libgflags-dev libgoogle-glog-dev protobuf-compiler
+
+#before_script: 
+#- cd externals/OpenBLAS
+#- make
+#- cd ../../
+
+script:
 - make test
 - ./tests/test
