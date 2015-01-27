@@ -12,7 +12,7 @@ PRODUCT_FLAGS = -O3
 
 TEST_CC=g++
 TEST_CFLAGS=-O2 -std=c++0x
-TEST_LDFLAGS=-lgtest -lpthread -lglog -lrt -L/home/shubham/Documents/research/OpenBLAS/ -lopenblas
+TEST_LDFLAGS=-lgtest -lpthread -lrt -L/home/shubham/Documents/research/OpenBLAS/ -lopenblas
 TEST_BLASFLAGS=-lblas -lm -I/home/shubham/Documents/research/OpenBLAS/
 TEST_SOURCES = tests/test_main.cpp tests/test_convolution_bridge.cpp tests/test_MaxPooling_bridge.cpp tests/test_ReLU_bridge.cpp
 TEST_EXECUTABLE=test
