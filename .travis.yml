@@ -5,10 +5,14 @@ language: cpp
 compiler:
   - g++
 # Change this to your needs
+before_install:
+- sudo apt-get update
+- sudo apt-get install libgtest-dev
+- "cd /usr/src/gtest && sudo cmake . && sudo cmake --build . && sudo mv libg* /usr/local/lib/ ; cd -"
+
 install:
 - sudo apt-get install libprotobuf-dev libboost-all-dev
 - sudo apt-get install protobuf-compiler
-- sudo apt-get install libgtest0 libgtest-dev
 
 script:
 - make test
