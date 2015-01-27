@@ -14,9 +14,9 @@ MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::MaxPoolingBridge
     const BridgeConfig * const _bconfig)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer), bconfig(_bconfig) {
 
-  report_forward_constructor.reset();
-  report_forward_last_transfer.reset();
-  report_forward_history.reset();
+  this->report_forward_constructor.reset();
+  this->report_forward_last_transfer.reset();
+  this->report_forward_history.reset();
 
   const size_t _k_size = bconfig->kernel_size;
   const size_t _stride = bconfig->stride;
@@ -42,7 +42,7 @@ MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::MaxPoolingBridge
   p_output_layer->p_data_cube->reset_cube(FLT_MIN);
   p_input_layer->p_gradient_cube->reset_cube();
 
-  report_forward_constructor.end(0, 0, 0);
+  this->report_forward_constructor.end(0, 0, 0);
 }
 
 /**
@@ -51,7 +51,7 @@ MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::MaxPoolingBridge
 template <typename DataType>
 void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
 
-  report_forward_last_transfer.reset();
+  this->report_forward_last_transfer.reset();
 
   const LogicalCube<DataType, Layout_CRDB>* const input_data = p_input_layer->p_data_cube;
   LogicalCube<DataType, Layout_CRDB>* const output_data = p_output_layer->p_data_cube;
@@ -83,8 +83,8 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
     }
   }
 
-  report_forward_last_transfer.end();
-  report_forward_history.aggregate(report_forward_last_transfer);
+  this->report_forward_last_transfer.end();
+  this->report_forward_history.aggregate(this->report_forward_last_transfer);
 }
 
 
@@ -94,7 +94,7 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
 template <typename DataType>
 void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
 
-  report_backward_updateweight_last_transfer.reset();
+  this->report_backward_updateweight_last_transfer.reset();
 
   const LogicalCube<DataType, Layout_CRDB>* const input_grad = p_input_layer->p_gradient_cube;
   LogicalCube<DataType, Layout_CRDB>* const output_grad = p_output_layer->p_gradient_cube;
@@ -115,8 +115,8 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() 
     }
   }
 
-  report_backward_updateweight_last_transfer.end();
-  report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
+  this->report_backward_updateweight_last_transfer.end();
+  this->report_backward_updateweight_history.aggregate(this->report_backward_updateweight_last_transfer);
 }
 
 template <typename DataType>
