@@ -20,13 +20,13 @@ ldD(p_data_labels->D), ldB(p_data_labels->B) {
   report_forward_last_transfer.reset();
   report_forward_history.reset();
 #ifdef _DO_ASSERT
-  assert(iR==oR); assert(iC==oC);
-  assert(iB==oB); assert(iD==oD);
-  assert(ldR==1); assert(ldC==1);
-  assert(oB==ldB); assert(oD==1);
+  assert(iR==oR);  assert(iC==oC);
+  assert(iB==oB);  assert(ldR==1);
+  assert(ldC==1);  assert(oB==ldB);
+  assert(oD==1);
 #endif
 
-  loss = DataType(0);
+  loss = DataType(0.0);
 
   report_forward_constructor.end(0, 0, 0);
 }
@@ -55,13 +55,13 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() 
 
   report_forward_last_transfer.reset();
 
-  const LogicalCube<DataType, Layout_CRDB> * const input_data = p_input_layer->p_data_cube;
+  LogicalCube<DataType, Layout_CRDB> * const input_data = p_input_layer->p_data_cube;
   LogicalCube<DataType, Layout_CRDB> * const output_data = p_output_layer->p_data_cube;
 
   const DataType * const ground_truth = p_data_labels->p_data;
 
   for (size_t i_b = 0; i_b < iB; ++i_b) {
-    const DataType * const single_input_batch = input_data->physical_get_RCDslice(i_b);
+    DataType * const single_input_batch = input_data->physical_get_RCDslice(i_b);
     DataType * const single_output_batch = output_data->physical_get_RCDslice(i_b);
     DataType max = single_input_batch[0];
     const size_t size_of_single_batch = iR*iC*iD;
@@ -76,7 +76,7 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() 
       single_output_batch[i] = exponentiated_val;
       denom += exponentiated_val;
     }
-    loss += denom - input_data[static_cast<int>(ground_truth[i_b])];
+    loss += denom - single_input_batch[static_cast<int>(ground_truth[i_b])];
   }
 
   report_forward_last_transfer.end();
@@ -132,8 +132,9 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward()
     }
   }
 
-    //const Dtype loss_weight = top[0]->cpu_diff()[0];
-    //caffe_scal(prob_.count(), loss_weight / num / spatial_dim, bottom_diff);
+  // scaling from Caffe:
+  //const Dtype loss_weight = top[0]->cpu_diff()[0];
+  //caffe_scal(prob_.count(), loss_weight / num / spatial_dim, bottom_diff);
 
 
   report_backward_updateweight_last_transfer.end();
