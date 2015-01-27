@@ -3,6 +3,7 @@ compiler:
   - g++
 # Change this to your needs
 install:
+- sudo apt-get install gfortran-4.4
 - cd externals/OpenBLAS
 - make && make install
 - sudo apt-get install libprotobuf-dev libboost-all-dev
