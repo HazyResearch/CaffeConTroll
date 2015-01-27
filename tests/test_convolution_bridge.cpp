@@ -71,12 +71,12 @@ class ConvolutionBridgeTest : public ::testing::Test {
     Layer<T, Layout_CRDB>* layer1;
     Layer<T, Layout_CRDB>* layer2;
 
-    const int mB = 2;
-    const int iD = 3;
-    const int oD = 2;
-    const int iR = 10;
-    const int iC = 10;
-    const int k = 3;
+    static const int mB = 2;
+    static const int iD = 3;
+    static const int oD = 2;
+    static const int iR = 10;
+    static const int iC = 10;
+    static const int k = 3;
 };
 
 typedef ::testing::Types<FloatNOFUNC> DataTypes;

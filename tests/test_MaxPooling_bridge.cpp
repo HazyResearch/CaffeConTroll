@@ -49,15 +49,15 @@ class MaxPoolingBridgeTest : public ::testing::Test {
 
     BridgeConfig * bconfig;
 
-    const int mB = 2;
-    const int iD = 3;
-    const int iR = 10;
-    const int iC = 10;
-    const int k = 2;
-    const int s = 2;
-    const int p = 0;
-    const int oR = (iR - k)/s + 1;
-    const int oC = (iC - k)/s + 1;
+    static const int mB = 2;
+    static const int iD = 3;
+    static const int iR = 10;
+    static const int iC = 10;
+    static const int k = 2;
+    static const int s = 2;
+    static const int p = 0;
+    static const int oR = (iR - k)/s + 1;
+    static const int oC = (iC - k)/s + 1;
 };
 
 typedef ::testing::Types<FloatCRDB> DataTypes;
