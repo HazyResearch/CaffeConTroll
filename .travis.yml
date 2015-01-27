@@ -1,3 +1,6 @@
+notifications:
+email: false
+
 language: cpp
 compiler:
   - g++
@@ -5,6 +8,7 @@ compiler:
 install:
 - sudo apt-get install libprotobuf-dev libboost-all-dev
 - sudo apt-get install protobuf-compiler
+- sudo apt-get install libgtest0 libgtest-dev
 
 script:
 - make test
