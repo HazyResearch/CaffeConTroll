@@ -4,8 +4,8 @@ compiler:
   - clang
 # Change this to your needs
 script: 
-	- cd externals/OpenBLAS
-	- make
-	- cd ../../
-	- make test
-	- ./tests/test
+- cd externals/OpenBLAS
+- make
+- cd ../../
+- make test
+- ./tests/test
