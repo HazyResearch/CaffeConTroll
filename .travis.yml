@@ -9,6 +9,7 @@ before_install:
 - sudo apt-get update
 - sudo apt-get install libgtest-dev
 - "cd /usr/src/gtest && sudo cmake . && sudo cmake --build . && sudo mv libg* /usr/local/lib/ ; cd -"
+- "cd externals/OpenBLAS && sudo make; cd -"
 
 install:
 - sudo apt-get install libprotobuf-dev libboost-all-dev
