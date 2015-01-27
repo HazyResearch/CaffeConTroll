@@ -3,8 +3,21 @@ compiler:
   - g++
 # Change this to your needs
 install:
+- cd externals/OpenBLAS
+- make && make install
 - sudo apt-get install libprotobuf-dev libboost-all-dev
-- sudo apt-get install libgflags-dev libgoogle-glog-dev protobuf-compiler
+- sudo apt-get install protobuf-compiler
+- wget https://google-glog.googlecode.com/files/glog-0.3.3.tar.gz
+- tar zxvf glog-0.3.3.tar.gz
+- cd glog-0.3.3
+- ./configure
+- make && make install
+- wget https://github.com/schuhschuh/gflags/archive/master.zip
+- unzip master.zip
+- cd gflags-master
+- mkdir build && cd build
+- export CXXFLAGS="-fPIC" && cmake .. && make VERBOSE=1
+- make && make install
 
 script:
 - make test
