@@ -3,4 +3,9 @@ compiler:
   - gcc
   - clang
 # Change this to your needs
-script: make test && ./tests/test
+script: 
+	- cd externals/OpenBLAS
+	- make
+	- cd ../../
+	- make test
+	- ./tests/test
