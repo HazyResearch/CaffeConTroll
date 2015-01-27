@@ -185,7 +185,7 @@ void LogicalCube<T, LAYOUT>::reset_cube() {
 }
 
 template<typename T, LayoutType LAYOUT>
-void LogicalCube<T, LAYOUT>::reset_cube(int val) {
+void LogicalCube<T, LAYOUT>::reset_cube(const T val) {
   _our_memset(p_data, val, sizeof(T)*n_elements);
 }
 

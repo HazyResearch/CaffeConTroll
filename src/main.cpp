@@ -113,7 +113,7 @@ void simple_conv(LogicalCube<T, Layout_CRDB>* in, LogicalCube<T, Layout_CRDB>* k
   }
 }
 
-void TEST_BRIDGE() {
+void TEST_CONVOLUTION_BRIDGE() {
   const size_t N = 5;
   const size_t K = 3;
   const size_t D = 2;
@@ -122,6 +122,7 @@ void TEST_BRIDGE() {
 
   LogicalCube<DataType_SFFloat, Layout_CRDB> data1(N, N, D, B);
   LogicalCube<DataType_SFFloat, Layout_CRDB> kernel1(K, K, D, O);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> bias(1, 1, O, B);
   LogicalCube<DataType_SFFloat, Layout_CRDB> grad1(N, N, D, B);
 
   LogicalCube<DataType_SFFloat, Layout_CRDB> data2(N-K+1, N-K+1, O, B);
@@ -140,13 +141,16 @@ void TEST_BRIDGE() {
   Layer<DataType_SFFloat, Layout_CRDB> layer1(&data1, &grad1);
   Layer<DataType_SFFloat, Layout_CRDB> layer2(&data2, &grad2);
 
-  ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> forward(&layer1, &layer2, &kernel1);
+  ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> forward(&layer1, &layer2, &kernel1, &bias);
 
   cout << "\nINPUT DATA=" << endl;
   layer1.p_data_cube->logical_print();
 
   cout << "\nINPUT MODEL=" << endl;
   kernel1.logical_print();
+
+  cout << "\nINPUT BIAS=" << endl;
+  bias.logical_print();
 
   forward.forward();
 
@@ -167,7 +171,7 @@ void TEST_BRIDGE() {
 int main(int argc, const char * argv[]) {
   //TEST_LOWERING();
 
-  TEST_BRIDGE();
+  TEST_CONVOLUTION_BRIDGE();
 
   return 0;
 }

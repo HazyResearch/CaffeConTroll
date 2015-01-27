@@ -53,8 +53,8 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
 
   this->report_forward_last_transfer.reset();
 
-  const LogicalCube<DataType, Layout_CRDB>* const input_data = p_input_layer->p_data_cube;
-  LogicalCube<DataType, Layout_CRDB>* const output_data = p_output_layer->p_data_cube;
+  const LogicalCube<DataType, Layout_CRDB> * const input_data = p_input_layer->p_data_cube;
+  LogicalCube<DataType, Layout_CRDB> * const output_data = p_output_layer->p_data_cube;
 
   for (size_t b_i = 0; b_i < iB; ++b_i) {
     for (size_t d_i = 0; d_i < iD; ++d_i) {

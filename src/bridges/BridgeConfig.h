@@ -11,16 +11,19 @@
 
 struct BridgeConfig {
   // default values for kernel size, stride, and padding
-  BridgeConfig() : kernel_size(1), stride(1), padding(0) {}
-  BridgeConfig(const size_t _k_size) : kernel_size(_k_size), stride(1), padding(0) {}
+  BridgeConfig() : kernel_size(1), stride(1), padding(0), bias_term(true) {}
+  BridgeConfig(const size_t _k_size) : kernel_size(_k_size), stride(1), padding(0), bias_term(true) {}
   BridgeConfig(const size_t _k_size, const size_t _stride)
-    : kernel_size(_k_size), stride(_stride), padding(0) {}
+    : kernel_size(_k_size), stride(_stride), padding(0), bias_term(true) {}
   BridgeConfig(const size_t _k_size, const size_t _stride, const size_t _padding)
-    : kernel_size(_k_size), stride(_stride), padding(_padding) {}
+    : kernel_size(_k_size), stride(_stride), padding(_padding), bias_term(true) {}
+  BridgeConfig(const size_t _k_size, const size_t _stride, const size_t _padding, const bool _bias_term)
+    : kernel_size(_k_size), stride(_stride), padding(_padding), bias_term(_bias_term) {}
 
   size_t kernel_size;
   size_t stride;
   size_t padding;
+  bool   bias_term;
 };
 
 #endif

@@ -1,5 +1,6 @@
 .DS_Store
 a.out
 deepnet
+tests/test
 *.swp
 lib/
