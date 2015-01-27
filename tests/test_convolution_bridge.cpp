@@ -6,7 +6,7 @@
 #include "../src/bridges/ConvolutionBridge.h"
 #include "test_types.h"
 #include "gtest/gtest.h"
-#include "glog/logging.h"
+// #include "glog/logging.h"
 #include <iostream>
 #include <fstream>
 #include <assert.h>
