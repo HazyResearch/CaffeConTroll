@@ -3,9 +3,6 @@ compiler:
   - g++
 # Change this to your needs
 install:
-- sudo apt-get install gfortran-4.4
-- cd externals/OpenBLAS
-- make && make install
 - sudo apt-get install libprotobuf-dev libboost-all-dev
 - sudo apt-get install protobuf-compiler
 - wget https://google-glog.googlecode.com/files/glog-0.3.3.tar.gz
