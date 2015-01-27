@@ -74,7 +74,10 @@ class SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public A
         const DataLabelsLogicalCubeType * const _p_data_labels);
 
     void forward();
+
     void backward();
+
+    DataType loss;
 };
 
 #include "SoftmaxLossBridge_impl.hxx"
