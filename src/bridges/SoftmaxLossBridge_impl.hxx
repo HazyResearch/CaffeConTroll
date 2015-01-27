@@ -76,7 +76,7 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() 
       single_output_batch[i] = exponentiated_val;
       denom += exponentiated_val;
     }
-    loss += denom - input_data[ground_truth[i_b]];
+    loss += denom - input_data[static_cast<int>(ground_truth[i_b])];
   }
 
   report_forward_last_transfer.end();
@@ -122,7 +122,7 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward()
 
   for (size_t i_b = 0; i_b < iB; ++i_b) {
     DataType * const single_input_batch = input_grad->physical_get_RCDslice(i_b);
-    single_input_batch[ground_truth[i_b]] -= 1;
+    single_input_batch[static_cast<int>(ground_truth[i_b])] -= 1;
   }
   for (size_t i_b = 0; i_b < iB; ++i_b) {
     DataType * const single_input_batch = input_grad->physical_get_RCDslice(i_b);
