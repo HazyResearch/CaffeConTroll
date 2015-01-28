@@ -11,7 +11,7 @@ before_install:
 - "cd /usr/src/gtest && sudo cmake . && sudo cmake --build . && sudo mv libg* /usr/local/lib/ ; cd -"
 - git submodule init
 - git submodule update
-- "cd externals/OpenBLAS && sudo make && sudo make install PREFIX= externals/OpenBLAS; cd -"
+- "cd externals/OpenBLAS && sudo make && sudo make install PREFIX= ./externals/OpenBLAS; cd -"
 
 install:
 - sudo apt-get install libprotobuf-dev libboost-all-dev
