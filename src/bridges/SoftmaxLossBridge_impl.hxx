@@ -61,7 +61,7 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() 
       const DataType exponentiated_val = exp(single_input_batch[i] - max);
       denom += exponentiated_val;
     }
-    loss += log(denom) - single_input_batch[static_cast<int>(ground_truth[i_b])];
+    loss += log(denom) - single_input_batch[static_cast<int>(ground_truth[i_b])] + max;
   }
 
   report_forward_last_transfer.end();
@@ -97,13 +97,13 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward()
     DataType * const single_input_batch = input_grad->physical_get_RCDslice(i_b);
     const size_t size_of_single_batch = iR*iC*iD;
     for (size_t i = 0; i < size_of_single_batch; ++i) {
-      single_input_batch[i] *= (loss / iB / (iR*iC)); // borrowing caffe's scaling (see below)
+      single_input_batch[i] *= (1 / iB / (iR*iC)); // borrowing caffe's scaling (see below)
     }
   }
 
   // scaling from Caffe:
   //const Dtype loss_weight = top[0]->cpu_diff()[0];
-  //caffe_scal(prob_.count(), loss_weight / num / spatial_dim, bottom_diff);
+  //caffe_scal(prob_.count(), loss_weight = 1 / num / spatial_dim, bottom_diff);
 
   report_backward_updateweight_last_transfer.end();
   //report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_element_mul_kernel->report_last_lowering);

@@ -6,8 +6,8 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#include "PhysicalOperator.h"
-#include "PhysicalStratum.h"
+#include "../PhysicalOperator.h"
+#include "../PhysicalStratum.h"
 #include <thread>
 #include <vector>
 

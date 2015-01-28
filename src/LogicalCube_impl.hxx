@@ -124,7 +124,6 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::lower_logica
  *     }
  *   }
  * }
- *
  */
 
 template<typename T, LayoutType LAYOUT>
