@@ -1,4 +1,5 @@
 .DS_Store
+*.DSYM
 a.out
 deepnet
 tests/test

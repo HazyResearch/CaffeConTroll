@@ -30,7 +30,7 @@ stepsize(_DEFAULT_STEPSIZE) {
 
   // First, allocate the space we need for lowering
   // Following code is very messy without the Matrix interface -- TODO
-
+  bconfig_forward.kernel_size = mR; // TODO: shouldn't this be asserted?
 
   p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(mR*mC*mD, (iR-mR+1)*(iC-mC+1)*iB,
       1, 1);

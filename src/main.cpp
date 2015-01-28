@@ -132,7 +132,7 @@ void TEST_CONVOLUTION_BRIDGE() {
   constant_initialize<float>(bias.p_data, 0.0, O);
 
   kernel1.reset_cube();
-  for (int i=0;i<K*K*D*O;i++) {
+  for (size_t i = 0; i < K*K*D*O; i++) {
     kernel1.p_data[i] = rand() % 2;
   }
 

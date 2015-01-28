@@ -1,7 +1,13 @@
-CC = clang++
+UNAME := $(shell uname)
+
+ifeq ($(UNAME), Darwin)
+  CC = clang++
+else ifeq ($(UNAME), Linux)
+  CC = g++-4.8
+endif
 TARGET = deepnet
 SRC = src/main.cpp src/parser/parser.cpp src/parser/cnn.pb.cc
-DIRS=./lib/OpenBLAS/ ./lib/lmdb/
+DIRS=./externals/OpenBLAS/ ./lib/lmdb/
 DIR_PARAMS=$(foreach d, $(DIRS), -I$d -L$d)
 PROTOBUF = `pkg-config --cflags --libs protobuf`
 LDFLAGS = -llmdb -lopenblas
@@ -9,7 +15,11 @@ CFLAGS = -Wall -std=c++11
 
 ASSEMBLY_FLAGS= -S
 
-DEBUG_FLAGS = -g -O0 -ferror-limit=10
+ifeq ($(UNAME), Darwin)
+  DEBUG_FLAGS = -g -O0 -ferror-limit=10
+else ifeq ($(UNAME), Linux)
+  DEBUG_FLAGS = -g -O0
+endif
 
 WARNING_FLAGS = -Wextra
 
