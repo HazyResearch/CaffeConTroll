@@ -2,6 +2,7 @@
 *.DSYM
 a.out
 deepnet
+test
 tests/test
 *.swp
 lib/
