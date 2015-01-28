@@ -1,15 +1,28 @@
-CC = clang++
+UNAME := $(shell uname)
+
+ifeq ($(UNAME), Darwin)
+  CC = clang++
+  CFLAGS = -Wall -std=c++11
+  LDFLAGS = -llmdb -lopenblas
+  DIRS=./externals/OpenBLAS/ ./lib/lmdb/
+else ifeq ($(UNAME), Linux)
+  CC = g++-4.8
+  CFLAGS = -Wall -std=c++11 -Wl,--no-as-needed
+  LDFLAGS = -llmdb -lopenblas -lrt
+  DIRS=./externals/OpenBLAS/
+endif
 TARGET = deepnet
 SRC = src/main.cpp src/parser/parser.cpp src/parser/cnn.pb.cc
-DIRS=./lib/OpenBLAS/ ./lib/lmdb/
 DIR_PARAMS=$(foreach d, $(DIRS), -I$d -L$d)
 PROTOBUF = `pkg-config --cflags --libs protobuf`
-LDFLAGS = -llmdb -lopenblas
-CFLAGS = -Wall -std=c++11
 
 ASSEMBLY_FLAGS= -S
 
-DEBUG_FLAGS = -g -O0 -ferror-limit=10
+ifeq ($(UNAME), Darwin)
+  DEBUG_FLAGS = -g -O0 -ferror-limit=10
+else ifeq ($(UNAME), Linux)
+  DEBUG_FLAGS = -g -O0
+endif
 
 WARNING_FLAGS = -Wextra
 
@@ -18,8 +31,8 @@ PRODUCT_FLAGS = -O3
 TEST_CC=clang++
 TEST_CFLAGS=-O2 -std=c++11
 
-TEST_LDFLAGS=-I./lib/gtest-1.7.0/include/ -L./lib/gtest/ -lgtest -lpthread -L ./lib/OpenBLAS/ -lopenblas
-TEST_BLASFLAGS=-lm -I ./lib/OpenBLAS/
+TEST_LDFLAGS=-I./lib/gtest-1.7.0/include/ -L./lib/gtest/ -lgtest -lpthread -L ./externals/OpenBLAS/ -lopenblas
+TEST_BLASFLAGS=-lm -I ./externals/OpenBLAS/
 TEST_SOURCES = tests/test_main.cpp tests/test_softmax_bridge.cpp 
 #tests/test_convolution_bridge.cpp tests/test_MaxPooling_bridge.cpp tests/test_ReLU_bridge.cpp
 TEST_EXECUTABLE=test

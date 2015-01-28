@@ -6,19 +6,18 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
+#if defined __MACH__ && __APPLE__
+#include <mach/clock.h>
+#include <mach/mach.h>
+#include <sys/time.h>
+#else
+#include <time.h>
+#endif
+
 #ifndef moka_timer_h
 #define moka_timer_h
 
-#include <time.h>
-#include <sys/time.h>
-
-#ifdef __MACH__
-#include <mach/clock.h>
-#include <mach/mach.h>
-#endif
-
-#ifdef __MACH__
-#include <sys/time.h>
+#if defined __MACH__ && __APPLE__
 //clock_gettime is not implemented on OSX
 int clock_gettime(int /*clk_id*/, struct timespec* t) {
     struct timeval now;
@@ -33,30 +32,28 @@ int clock_gettime(int /*clk_id*/, struct timespec* t) {
 #endif
 
 
-#include <time.h>
-
     class Timer {
     public:
-        
+
         struct timespec _start;
         struct timespec _end;
-        
+
         Timer(){
             clock_gettime(CLOCK_MONOTONIC, &_start);
         }
-        
+
         virtual ~Timer(){}
-        
+
         inline void restart(){
             clock_gettime(CLOCK_MONOTONIC, &_start);
         }
-        
+
         inline float elapsed(){
             clock_gettime(CLOCK_MONOTONIC, &_end);
             return (_end.tv_sec - _start.tv_sec) + (_end.tv_nsec - _start.tv_nsec) / 1000000000.0;
         }
-        
-        
+
+
     };
 
 #endif

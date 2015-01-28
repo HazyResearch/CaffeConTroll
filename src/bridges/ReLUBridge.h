@@ -39,12 +39,12 @@ template <typename DataType>
 class ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> {
   public:
     /* Re-declare these member fields so that they don't have to be resolved using vtable lookups */
-    using PhysicalOperator::report_forward_constructor;
-    using PhysicalOperator::report_forward_last_transfer;
-    using PhysicalOperator::report_forward_history;
-    using PhysicalOperator::report_backward_updateweight_constructor;
-    using PhysicalOperator::report_backward_updateweight_last_transfer;
-    using PhysicalOperator::report_backward_updateweight_history;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_forward_constructor;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_forward_last_transfer;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_forward_history;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_backward_updateweight_constructor;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_backward_updateweight_last_transfer;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_backward_updateweight_history;
 
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iR;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iC;

@@ -53,10 +53,10 @@ lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeTyp
   assert(p_output_cube->B == oB);
 #endif
 
-  for(size_t kd = 0; kd < iD; kd++) {
-    for(size_t ib = 0; ib < iB; ib++) {
-      const LogicalMatrix<DataType> m = p_input_cube->get_logical_matrix(kd, ib);
-      p_output_cube->template lower_logical_matrix<LOWERING_TYPE1>(&m, ib, kd, p_config->kernel_size,
+  for (size_t i_b = 0; i_b < iB; ++i_b) {
+    for (size_t i_d = 0; i_d < iD; ++i_d) {
+      const LogicalMatrix<DataType> m = p_input_cube->get_logical_matrix(i_d, i_b);
+      p_output_cube->template lower_logical_matrix<LOWERING_TYPE1>(&m, i_b, i_d, p_config->kernel_size,
           p_config->stride);
     }
   }

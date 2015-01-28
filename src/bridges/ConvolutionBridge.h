@@ -43,7 +43,8 @@ class ConvolutionBridge : public AbstractBridge<InputLayerDataType, InputLayerLa
 
     ConvolutionBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
-        ModelLogicalCubeType * const _p_model_cube) {
+        ModelLogicalCubeType * const _p_model_cube,
+        ModelLogicalCubeType * const _p_bias_cube) {
       NOT_IMPLEMENTED;
     }
 
@@ -64,13 +65,13 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
 : public AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> {
   public:
     /* Re-declare these member fields so that they don't have to be resolved using vtable lookups */
-    using PhysicalOperator::report_forward_constructor;
-    using PhysicalOperator::report_forward_last_transfer;
-    using PhysicalOperator::report_forward_history;
-    using PhysicalOperator::run_with_n_threads;
-    using PhysicalOperator::report_backward_updateweight_constructor;
-    using PhysicalOperator::report_backward_updateweight_last_transfer;
-    using PhysicalOperator::report_backward_updateweight_history;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_forward_constructor;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_forward_last_transfer;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_forward_history;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::run_with_n_threads;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_backward_updateweight_constructor;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_backward_updateweight_last_transfer;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_backward_updateweight_history;
 
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iR;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iC;
@@ -90,6 +91,7 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     typedef LogicalCube<DataType, Layout_CRDB> ModelLogicalCubeType;
 
     ModelLogicalCubeType * const p_model_cube;
+    ModelLogicalCubeType * const p_bias_cube;
 
     const size_t mR, mC, mD, mB; /*< Size of the model LogicalCube */
 
@@ -102,7 +104,10 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
 
     LogicalCube<DataType, Layout_CRDB> * p_forward_lowered_data;
 
-    BridgeConfig bconfig_forward;
+    BridgeConfig bconfig_forward; // TODO: right now, we don't use this at all
+                                  // and we really should. Instead of passing in
+                                  // a model cube into the constructor, only
+                                  // a BridgeConfig should be passed in
 
     Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
       Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS> * p_forward_gemm_kernel;
@@ -121,7 +126,8 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
 
     ConvolutionBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
-        ModelLogicalCubeType * const _p_model_cube);
+        ModelLogicalCubeType * const _p_model_cube,
+        ModelLogicalCubeType * const _p_bias_cube);
 
     void forward();
 
