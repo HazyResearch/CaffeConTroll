@@ -11,8 +11,8 @@ before_install:
 - sudo apt-get install gfortran
 - "cd /usr/src/gtest && sudo cmake . && sudo cmake --build . && sudo mv libg* /usr/local/lib/ ; cd -"
 - git submodule update
-- "cd ./externals/OpenBLAS && sudo make && sudo make install PREFIX= ./externals/OpenBLAS; cd -"
-
+- "cd ./externals/OpenBLAS && sudo make > /dev/null; cd -"
+#&& sudo make install PREFIX= ./externals/OpenBLAS
 install:
 - sudo apt-get install libprotobuf-dev libboost-all-dev
 - sudo apt-get install protobuf-compiler
