@@ -255,11 +255,13 @@ void LeNet(const char * file) {
   cout << "NUM MINI BATCHES: " << corpus->num_mini_batches << endl;
   cout << "LAST BATCH SIZE: " << corpus->last_batch_size << endl;
 
+  Timer t = Timer();
   const size_t num_epochs = 6;
   const size_t R1 = corpus->n_rows;
   const size_t C1 = corpus->n_cols;
   const size_t D = corpus->dim;
   const size_t B = corpus->mini_batch_size;
+  const size_t last_B = corpus->last_batch_size;
   const size_t conv_O1 = 20;
   const size_t conv_O2 = 50;
   const size_t conv_O3 = 500;
@@ -357,20 +359,22 @@ void LeNet(const char * file) {
     softmax(&layer8, &layer9, &labels);
 
   for (size_t epoch = 0; epoch < num_epochs; ++epoch) {
-    cout << "EPOCH: " << epoch << endl;
+    //cout << "EPOCH: " << epoch << endl;
     // num_mini_batches - 1, because we need one more iteration for the final mini batch
     // (the last mini batch may not be the same size as the rest of the mini batches)
+    size_t corpus_batch_index = 0;
     for (size_t batch = 0; batch < corpus->num_mini_batches - 1; ++batch) {
-      cout << "BATCH: " << batch << endl;
+      //cout << "BATCH: " << batch << endl;
       // initialize data1 for this mini batch
-      float * const mini_batch = corpus->images->physical_get_RCDslice(batch);
+      float * const mini_batch = corpus->images->physical_get_RCDslice(corpus_batch_index);
+      corpus_batch_index += B;
       data1.p_data = mini_batch;
 
       // reset loss
       softmax.loss = 0.0;
 
       // initialize labels for this mini batch
-      labels.p_data = corpus->labels->physical_get_RCDslice(batch);
+      labels.p_data = corpus->labels->physical_get_RCDslice(corpus_batch_index);
 
       // clear data and grad outputs for this batch (but not the weights and biases!)
       grad1.reset_cube(); data2.reset_cube(); grad2.reset_cube(); data3.reset_cube(); grad3.reset_cube();
@@ -378,7 +382,7 @@ void LeNet(const char * file) {
       grad6.reset_cube(); data7.reset_cube(); grad7.reset_cube(); data8.reset_cube(); grad8.reset_cube();
       Util::constant_initialize(grad9.p_data, 1.0, R5*C5*conv_O4*B); //initialize to 1 for backprop
 
-      cout << "FORWARD PASS" << endl;
+      //cout << "FORWARD PASS" << endl;
       // forward pass
       conv1.forward();
       //cout << "conv1" << endl;
@@ -397,9 +401,9 @@ void LeNet(const char * file) {
       softmax.forward();
       //cout << "softmax" << endl;
 
-      cout << "LOSS: " << softmax.loss << endl;
+      //cout << "LOSS: " << softmax.loss << endl;
 
-      cout << "BACKWARD PASS" << endl;
+      //cout << "BACKWARD PASS" << endl;
       // backward pass
       softmax.backward();
       //cout << "softmax" << endl;
@@ -418,7 +422,73 @@ void LeNet(const char * file) {
       conv1.backward();
       //cout << "conv1" << endl;
     }
+    // compute very last batch
+    data1.B = last_B; grad1.B = last_B;
+    data2.B = last_B; grad2.B = last_B;
+    data3.B = last_B; grad3.B = last_B;
+    data4.B = last_B; grad4.B = last_B;
+    data5.B = last_B; grad5.B = last_B;
+    data6.B = last_B; grad6.B = last_B;
+    data7.B = last_B; grad7.B = last_B;
+    data8.B = last_B; grad8.B = last_B;
+    data9.B = last_B; grad9.B = last_B;
+    float * const mini_batch = corpus->images->physical_get_RCDslice(corpus_batch_index);
+    data1.p_data = mini_batch;
+
+    // reset loss
+    softmax.loss = 0.0;
+
+    // initialize labels for this mini batch
+    labels.p_data = corpus->labels->physical_get_RCDslice(corpus_batch_index);
+
+    // clear data and grad outputs for this batch (but not the weights and biases!)
+    grad1.reset_cube(); data2.reset_cube(); grad2.reset_cube(); data3.reset_cube(); grad3.reset_cube();
+    data4.reset_cube(); grad4.reset_cube(); data5.reset_cube(); grad5.reset_cube(); data6.reset_cube();
+    grad6.reset_cube(); data7.reset_cube(); grad7.reset_cube(); data8.reset_cube(); grad8.reset_cube();
+    Util::constant_initialize(grad9.p_data, 1.0, R5*C5*conv_O4*B); //initialize to 1 for backprop
+
+    //cout << "FORWARD PASS" << endl;
+    // forward pass
+    conv1.forward();
+    //cout << "conv1" << endl;
+    pool1.forward();
+    //cout << "pool1" << endl;
+    conv2.forward();
+    //cout << "conv2" << endl;
+    pool2.forward();
+    //cout << "pool2" << endl;
+    ip1.forward();
+    //cout << "ip1" << endl;
+    relu1.forward();
+    //cout << "relu1" << endl;
+    ip2.forward();
+    //cout << "ip2" << endl;
+    softmax.forward();
+    //cout << "softmax" << endl;
+
+    //cout << "LOSS: " << softmax.loss << endl;
+
+    //cout << "BACKWARD PASS" << endl;
+    // backward pass
+    softmax.backward();
+    //cout << "softmax" << endl;
+    ip2.backward();
+    //cout << "ip2" << endl;
+    relu1.backward();
+    //cout << "relu" << endl;
+    ip1.backward();
+    //cout << "ip1" << endl;
+    pool2.backward();
+    //cout << "pool2" << endl;
+    conv2.backward();
+    //cout << "conv2" << endl;
+    pool1.backward();
+    //cout << "pool1" << endl;
+    conv1.backward();
+    //cout << "conv1" << endl;
+    cout << "Time Elapsed for a single epoch: " << t.elapsed() << endl;
   }
+  cout << "Total Time Elapsed: " << t.elapsed() << endl;
 }
 
 int main(int argc, const char * argv[]) {

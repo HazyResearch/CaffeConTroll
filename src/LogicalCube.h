@@ -47,7 +47,7 @@ public:
     const size_t R;
     const size_t C;
     const size_t D;
-    const size_t B;
+    /*const*/ size_t B; //TODO: fix this later, too, for the same reason
     bool own_data;
 
     /**
