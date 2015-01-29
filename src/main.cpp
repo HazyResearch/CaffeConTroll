@@ -284,18 +284,18 @@ void LeNet(const char * file) {
 
   LogicalCube<DataType_SFFloat, Layout_CRDB> kernel2(conv_K, conv_K, conv_O1, conv_O2);
   LogicalCube<DataType_SFFloat, Layout_CRDB> bias2(1, 1, conv_O2, 1);
-  Util::xavier_initialize(kernel1.p_data, conv_K*conv_K*conv_O1*conv_O2, B);
-  Util::constant_initialize(bias1.p_data, 0.0, conv_O2);
+  Util::xavier_initialize(kernel2.p_data, conv_K*conv_K*conv_O1*conv_O2, B);
+  Util::constant_initialize(bias2.p_data, 0.0, conv_O2);
 
   LogicalCube<DataType_SFFloat, Layout_CRDB> kernel3(1, 1, conv_O2, conv_O3);
   LogicalCube<DataType_SFFloat, Layout_CRDB> bias3(1, 1, conv_O3, 1);
-  Util::xavier_initialize(kernel1.p_data, conv_K*conv_K*conv_O2*conv_O3, B);
-  Util::constant_initialize(bias1.p_data, 0.0, conv_O3);
+  Util::xavier_initialize(kernel3.p_data, 1*1*conv_O2*conv_O3, B);
+  Util::constant_initialize(bias3.p_data, 0.0, conv_O3);
 
   LogicalCube<DataType_SFFloat, Layout_CRDB> kernel4(1, 1, conv_O3, conv_O4);
   LogicalCube<DataType_SFFloat, Layout_CRDB> bias4(1, 1, conv_O4, 1);
-  Util::xavier_initialize(kernel1.p_data, conv_K*conv_K*conv_O3*conv_O4, B);
-  Util::constant_initialize(bias1.p_data, 0.0, conv_O4);
+  Util::xavier_initialize(kernel4.p_data, 1*1*conv_O3*conv_O4, B);
+  Util::constant_initialize(bias4.p_data, 0.0, conv_O4);
 
   LogicalCube<DataType_SFFloat, Layout_CRDB> data1(NULL, R1, C1, D, B); // must be initialized to point to next mini batch
   LogicalCube<DataType_SFFloat, Layout_CRDB> grad1(R1, C1, D, B);
