@@ -21,7 +21,7 @@ class softmaxBridgeTest : public ::testing::Test {
     grad1 = new LogicalCube<T, Layout_CRDB>(1, 1, iD, mB);
     
     data2 = new LogicalCube<T, Layout_CRDB>(1, 1, 1, mB);
-    grad2 = new LogicalCube<T, Layout_CRDB> (1, 1, 1, mB);
+    grad2 = new LogicalCube<T, Layout_CRDB> (1, 1, iD, mB);
 
     label = new LogicalCube<T, Layout_CRDB> (1, 1, 1, mB);
 
@@ -67,50 +67,41 @@ TYPED_TEST(softmaxBridgeTest, TestForward){
     srand(1);  
     for(int i=0;i<this->iD*this->mB;i++){
         this->data1->p_data[i] = (rand()%5)*0.1;
-        cout << this->data1->p_data[i] << endl;
     }
 
     srand(0);
     for(int n=0;n<this->mB;n++){
         this->label->p_data[n] = rand()%10;
-        cout << this->label->p_data[n] << endl;
     }
 
     
     this->softmaxBridge_->forward();
-    this->data2->logical_print();
-    // std::fstream expected_output("softmax_forward.txt", std::ios_base::in);
+    std::fstream expected_output("softmax_forward.txt", std::ios_base::in);
     
-    // T output;
-    // int idx = 0;
-    // if (expected_output.is_open()) {
-    //     expected_output >> output;
-    //     while (!expected_output.eof()) {
-    //         EXPECT_NEAR(this->data2->p_data[idx], output, EPS);
-    //         expected_output >> output;
-    //         idx++;
-    //     }
-    // }
-    // expected_output.close();
+    T output;
+    int idx = 0;
+    if (expected_output.is_open()) {
+        expected_output >> output;
+        EXPECT_NEAR(this->softmaxBridge_->loss, output, EPS);
+        expected_output >> output;
+    }
+    expected_output.close();
 }
 
-/*
+
 TYPED_TEST(softmaxBridgeTest, TestBackward){
     typedef typename TypeParam::T T;
     
     srand(1);
-    for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
-        this->data1->p_data[i] = rand()%2 - rand()%2;
-        this->grad1->p_data[i] = 1;
+    for(int i=0;i<this->iD*this->mB;i++){
+        this->grad2->p_data[i] = (rand()%5)*0.1;
     }
     
-    int oR = this->iR;
-    int oC = this->iC;
-
-    for(int i=0;i<oR*oC*this->iD*this->mB;i++){
-        this->data2->p_data[i] = 1;
-        this->grad2->p_data[i] = i;
+    srand(0);
+    for(int n=0;n<this->mB;n++){
+        this->label->p_data[n] = rand()%10;
     }
+
 
     this->softmaxBridge_->forward();
     
@@ -130,4 +121,4 @@ TYPED_TEST(softmaxBridgeTest, TestBackward){
     }
     expected_output.close();   
 }
-*/
+

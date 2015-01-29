@@ -50,11 +50,12 @@ class ConvolutionBridgeTest : public ::testing::Test {
     grad2 = new LogicalCube<T, Layout_CRDB> (iR-k+1, iC-k+1, oD, mB);
 
     kernel = new LogicalCube<T, Layout_CRDB> (k, k, iD, oD);
+    bias = new LogicalCube<T, Layout_CRDB> (1, 1, oD, 1);
 
     layer1 = new Layer<T, Layout_CRDB>(data1, grad1);
     layer2 = new Layer<T, Layout_CRDB>(data2, grad2);
     
-    ConvolutionBridge_ = new ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>(layer1, layer2, kernel);
+    ConvolutionBridge_ = new ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>(layer1, layer2, kernel, bias);
    } 
 
   	virtual ~ConvolutionBridgeTest() { delete ConvolutionBridge_; delete layer1; delete layer2;}
@@ -67,6 +68,7 @@ class ConvolutionBridgeTest : public ::testing::Test {
     LogicalCube<T, Layout_CRDB>* grad2;
 
     LogicalCube<T, Layout_CRDB>* kernel;
+    LogicalCube<T, Layout_CRDB>* bias;
 
     Layer<T, Layout_CRDB>* layer1;
     Layer<T, Layout_CRDB>* layer2;
@@ -97,6 +99,10 @@ TYPED_TEST(ConvolutionBridgeTest, TestForward){
     }
     for(int i=0;i<this->k*this->k*this->iD*this->oD;i++){
         this->kernel->p_data[i] = rand()%10;
+    }
+
+    for(int i=0;i<this->oD;i++){
+        this->bias->p_data[i] = 0.0;
     }
 
     int oR = this->iR - this->k + 1;
@@ -137,6 +143,10 @@ TYPED_TEST(ConvolutionBridgeTest, TestBackward){
     for(int i=0;i<oR*oC*this->oD*this->mB;i++){
         this->data2->p_data[i] = 0;
         this->grad2->p_data[i] = i*0.1;
+    }
+
+    for(int i=0;i<this->oD;i++){
+        this->bias->p_data[i] = 0.0;
     }
 
     this->ConvolutionBridge_->forward();
