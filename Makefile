@@ -1,10 +1,12 @@
 UNAME := $(shell uname)
 
+# For Mac OS X 10.10 x86_64 Yosemite
 ifeq ($(UNAME), Darwin)
   CC = clang++
   CFLAGS = -Wall -std=c++11
   LDFLAGS = -llmdb -lopenblas
   DIRS=./externals/OpenBLAS/ ./lib/lmdb/
+# For Ubuntu 12.04 x86_64 (raiders3 machine)
 else ifeq ($(UNAME), Linux)
   CC = g++-4.8
   CFLAGS = -Wall -std=c++11 -Wl,--no-as-needed
@@ -12,16 +14,15 @@ else ifeq ($(UNAME), Linux)
   DIRS=./externals/OpenBLAS/
 endif
 TARGET = deepnet
-SRC = src/main.cpp src/parser/parser.cpp src/parser/cnn.pb.cc
+SRC = src/main.cpp src/parser/parser.cpp src/parser/cnn.pb.cc src/parser/corpus.cpp src/util.cpp
 DIR_PARAMS=$(foreach d, $(DIRS), -I$d -L$d)
 PROTOBUF = `pkg-config --cflags --libs protobuf`
 
 ASSEMBLY_FLAGS= -S
 
+DEBUG_FLAGS = -g -O0 -DDEBUG
 ifeq ($(UNAME), Darwin)
-  DEBUG_FLAGS = -g -O0 -ferror-limit=10
-else ifeq ($(UNAME), Linux)
-  DEBUG_FLAGS = -g -O0
+  DEBUG_FLAGS += -ferror-limit=10
 endif
 
 WARNING_FLAGS = -Wextra

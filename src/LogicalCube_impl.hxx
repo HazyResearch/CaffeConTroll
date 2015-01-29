@@ -35,14 +35,14 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output
     const size_t kernel_size) {
 
   T* temp_buffer = (T*) malloc(sizeof(T)*cube.R*cube.C*cube.B*cube.D);
-  _our_memcpy(temp_buffer, cube.p_data, sizeof(T)*cube.R*cube.C*cube.B*cube.D);
+  Util::_our_memcpy(temp_buffer, cube.p_data, sizeof(T)*cube.R*cube.C*cube.B*cube.D);
 
   size_t dst_index = 0;
   for (size_t c_i = 0; c_i < C; ++c_i) {
     const size_t src_index_base = c_i*kernel_size;
     for (size_t r_i = 0; r_i < R; ++r_i) {
       const size_t src_index = src_index_base + r_i*C*kernel_size;
-      _our_memcpy(&cube.p_data[dst_index], &temp_buffer[src_index], sizeof(T)*kernel_size);
+      Util::_our_memcpy(&cube.p_data[dst_index], &temp_buffer[src_index], sizeof(T)*kernel_size);
       dst_index += kernel_size;
     }
   }
@@ -57,7 +57,7 @@ void LogicalCube<T, LAYOUT>::lower_logical_matrix(const LogicalMatrix<T> * const
 #ifdef _DO_ASSERT
   assert(stride > 0);
   assert(kernel_size > 0);
-  assert(stride < kernel_size);
+  assert(stride <= kernel_size);
 #endif
   return LoweringHelper<LOWERING>::lower_logical_matrix(*this, m, b_i, d_i, kernel_size, stride);
 }
@@ -86,7 +86,7 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::lower_logica
           ++k_r, dst_col += inverted_kernel_width, src += matrix_C) {
         //Same as: size_t dst_col = dst_col_base + k_r*inverted_kernel_width;
         //         size_t src = j + (i + k_r)*m-C;
-        _our_memcpy(&cube.p_data[dst_col + dst_row*cube.C], &m->p_data[src],
+        Util::_our_memcpy(&cube.p_data[dst_col + dst_row*cube.C], &m->p_data[src],
             inverted_kernel_width*sizeof(T));
       }
     }
@@ -180,12 +180,12 @@ LogicalCube<T, LAYOUT>::LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B) 
 
 template<typename T, LayoutType LAYOUT>
 void LogicalCube<T, LAYOUT>::reset_cube() {
-  _our_memset(p_data, 0, sizeof(T)*n_elements);
+  Util::_our_memset(p_data, 0, sizeof(T)*n_elements);
 }
 
 template<typename T, LayoutType LAYOUT>
 void LogicalCube<T, LAYOUT>::reset_cube(const T val) {
-  _our_memset(p_data, val, sizeof(T)*n_elements);
+  Util::_our_memset(p_data, val, sizeof(T)*n_elements);
 }
 
 template<typename T, LayoutType LAYOUT>

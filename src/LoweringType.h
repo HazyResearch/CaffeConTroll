@@ -9,8 +9,11 @@
 #ifndef moka_Lowering_Type_h
 #define moka_Lowering_Type_h
 
+// We definitely need better names,
+// but these three are the three types
+// of lowering algorithms
 enum LoweringType {
-    LOWERING_TYPE1 = 0, // we definitely need better names -- but these three are the three types of lowering algorithms
+    LOWERING_TYPE1 = 0,
     LOWERING_TYPE2 = 1,
     LOWERING_TYPE3 = 2
 };

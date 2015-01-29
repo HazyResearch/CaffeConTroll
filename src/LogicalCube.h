@@ -41,7 +41,7 @@ template <typename T, LayoutType LAYOUT>
 class LogicalCube {
 public:
 
-    T* const p_data;
+    T* /*const*/ p_data; //TODO: fix this later, when we don't have to update p_data for each mini-batch
     const size_t n_elements;
 
     const size_t R;

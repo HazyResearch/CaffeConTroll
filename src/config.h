@@ -9,8 +9,10 @@
 #ifndef moka_config_h
 #define moka_config_h
 
+#ifdef DEBUG
 #define _DO_ASSERT
 #define _DO_WARNING
+#endif
 
 #define _DEFAULT_STEPSIZE 0.1
 

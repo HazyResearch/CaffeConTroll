@@ -23,7 +23,7 @@ ldD(p_data_labels->D), ldB(p_data_labels->B) {
   assert(iR==oR);  assert(iC==oC);
   assert(iB==oB);  assert(ldR==1);
   assert(ldC==1);  assert(ldD==1);
-  assert(oB==ldB); assert(oD==ldD);
+  assert(oB==ldB); //assert(oD==ldD);
 #endif
 
   loss = DataType(0.0);
@@ -82,7 +82,7 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward()
   report_backward_updateweight_last_transfer.reset();
 
   // First, copy the output gradient into the input gradient
-  _our_memcpy(p_input_layer->p_gradient_cube->p_data,
+  Util::_our_memcpy(p_input_layer->p_gradient_cube->p_data,
       p_output_layer->p_gradient_cube->p_data,
       p_output_layer->p_gradient_cube->n_elements*sizeof(DataType));
 
@@ -97,7 +97,7 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward()
     DataType * const single_input_batch = input_grad->physical_get_RCDslice(i_b);
     const size_t size_of_single_batch = iR*iC*iD;
     for (size_t i = 0; i < size_of_single_batch; ++i) {
-      single_input_batch[i] *= (1 / iB / (iR*iC)); // borrowing caffe's scaling (see below)
+      single_input_batch[i] *= (1 / iB / (iR*iC)); // borrowing Caffe's scaling (see below)
     }
   }
 

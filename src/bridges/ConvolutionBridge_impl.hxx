@@ -224,7 +224,7 @@ backward() {
   DataType * const bias_term = p_bias_cube->p_data;
   for (size_t o_b = 0; o_b < oB; ++o_b) {
     for (size_t o_d = 0; o_d < oD; ++o_d) {
-      const LogicalMatrix<DataType> input_grad_slice = p_input_layer->p_gradient_cube->get_logical_matrix(o_d, o_b);
+      const LogicalMatrix<DataType> input_grad_slice = p_output_layer->p_gradient_cube->get_logical_matrix(o_d, o_b);
       DataType sum = DataType(0.0);
       for (size_t i = 0; i < output_feature_size; ++i) {
         sum += input_grad_slice.p_data[i];

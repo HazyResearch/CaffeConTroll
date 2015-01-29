@@ -19,6 +19,8 @@
 #include "Layer.h"
 //#include "bridges/ParallelizedBridge.h"
 #include "parser/parser.h"
+#include "parser/corpus.h"
+#include "util.h"
 
 using namespace std;
 
@@ -128,8 +130,9 @@ void TEST_CONVOLUTION_BRIDGE() {
   LogicalCube<DataType_SFFloat, Layout_CRDB> data2(N-K+1, N-K+1, O, B);
   LogicalCube<DataType_SFFloat, Layout_CRDB> grad2(N-K+1, N-K+1, O, B);
 
-  xavier_initialize(data1.p_data, N*N*D*B, B);
-  constant_initialize<float>(bias.p_data, 0.0, O);
+  Util::xavier_initialize(data1.p_data, N*N*D*B, B);
+  //Util::constant_initialize<float>(bias.p_data, 0.0, O);
+  Util::constant_initialize(bias.p_data, 0.0, O);
 
   kernel1.reset_cube();
   for (size_t i = 0; i < K*K*D*O; i++) {
@@ -183,14 +186,14 @@ void TEST_SOFTMAX() {
   SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> softmaxBridge_(&layer1, &layer2, &label);
 
   srand(1);
-  for(int i=0; i < iD*mB; i++){
+  for(int i=0; i < iD*mB; i++) {
     data1.p_data[i] = (rand()%5)*0.1;
   }
   cout << "INPUT DATA:" << endl;
   data1.logical_print();
 
   srand(0);
-  for(int n=0;n<mB;n++){
+  for(int n=0;n<mB;n++) {
     label.p_data[n] = rand()%10;
   }
   cout << "LABEL DATA:" << endl;
@@ -200,12 +203,237 @@ void TEST_SOFTMAX() {
   cout << "LOSS: " << softmaxBridge_.loss << endl;
 }
 
+void LeNet(const char * file) {
+
+  cnn::SolverParameter solver_param;
+  Parser::ReadProtoFromTextFile(file, &solver_param);
+  cnn::NetParameter net_param;
+  Parser::ReadNetParamsFromTextFile(solver_param.net(), &net_param);
+
+  // Build Network
+  cnn::Datum train_data;
+  //cnn::Datum test_data;
+  //int n_label = 10;
+
+  //int mini_batch_size_test;
+  //size_t noutput_feature_map, nrow_output, ncol_output;
+  //int nrow_conv, ncol_conv;
+  //int pad, stride;
+
+  //int local_size;
+  //float ratio, alpha, beta;
+  //bool is_across = false;
+
+  const size_t num_layers = net_param.layers_size();
+  const Corpus* corpus = NULL;
+
+  // load training data into corpus
+  for (size_t i = 0; i < num_layers; ++i) {
+    cnn::LayerParameter layer_param = net_param.layers(i);
+    if (layer_param.type() == cnn::LayerParameter_LayerType_DATA) {
+      if (layer_param.include(0).phase() == 0) { // training phase
+        Parser::DataSetup(layer_param, train_data);
+        corpus = new Corpus(layer_param);
+        cout << "Corpus train loaded" << endl;
+        break;
+      }
+      //if (layer_param.include(0).phase() == 1) { // testing phase
+      //  dataSetup(layer_param, test_data);
+      //  mini_batch_size_test = layer_param.data_param().batch_size();
+      //  mini_batch_size_test = mini_batch_size_train;
+      //  //Corpus corpus(layer_param);
+      //  //cout << "Corpus test loaded" << endl;
+      //}
+      //num_layers--;
+    }
+  }
+  cout << "NUM IMAGES: " << corpus->n_images << endl;
+  cout << "NUM ROWS: " << corpus->n_rows << endl;
+  cout << "NUM COLS: " << corpus->n_cols << endl;
+  cout << "NUM CHANNELS: " << corpus->dim << endl;
+  cout << "MINI BATCH SIZE: " << corpus->mini_batch_size << endl;
+  cout << "NUM MINI BATCHES: " << corpus->num_mini_batches << endl;
+  cout << "LAST BATCH SIZE: " << corpus->last_batch_size << endl;
+
+  const size_t num_epochs = 6;
+  const size_t R1 = corpus->n_rows;
+  const size_t C1 = corpus->n_cols;
+  const size_t D = corpus->dim;
+  const size_t B = corpus->mini_batch_size;
+  const size_t conv_O1 = 20;
+  const size_t conv_O2 = 50;
+  const size_t conv_O3 = 500;
+  const size_t conv_O4 = 10;
+  const size_t conv_K = 5;
+  const size_t pool_K = 2;
+  const size_t pool_stride = 2;
+
+  // Layers:
+  // conv1 (O: 20, K: 5),
+  // pool1 (kernel: 2, stride: 2),
+  // conv2 (O: 50, K: 5),
+  // pool2 (kernel: 2, stride: 2),
+  // ip1 (O: 500, K:1),
+  // relu1,
+  // ip2 (O: 10, K: 1),
+  // softmax
+  LogicalCube<DataType_SFFloat, Layout_CRDB> kernel1(conv_K, conv_K, D, conv_O1);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> bias1(1, 1, conv_O1, 1);
+  Util::xavier_initialize(kernel1.p_data, conv_K*conv_K*D*conv_O1, B);
+  Util::constant_initialize(bias1.p_data, 0.0, conv_O1);
+
+  LogicalCube<DataType_SFFloat, Layout_CRDB> kernel2(conv_K, conv_K, conv_O1, conv_O2);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> bias2(1, 1, conv_O2, 1);
+  Util::xavier_initialize(kernel1.p_data, conv_K*conv_K*conv_O1*conv_O2, B);
+  Util::constant_initialize(bias1.p_data, 0.0, conv_O2);
+
+  LogicalCube<DataType_SFFloat, Layout_CRDB> kernel3(1, 1, conv_O2, conv_O3);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> bias3(1, 1, conv_O3, 1);
+  Util::xavier_initialize(kernel1.p_data, conv_K*conv_K*conv_O2*conv_O3, B);
+  Util::constant_initialize(bias1.p_data, 0.0, conv_O3);
+
+  LogicalCube<DataType_SFFloat, Layout_CRDB> kernel4(1, 1, conv_O3, conv_O4);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> bias4(1, 1, conv_O4, 1);
+  Util::xavier_initialize(kernel1.p_data, conv_K*conv_K*conv_O3*conv_O4, B);
+  Util::constant_initialize(bias1.p_data, 0.0, conv_O4);
+
+  LogicalCube<DataType_SFFloat, Layout_CRDB> data1(NULL, R1, C1, D, B); // must be initialized to point to next mini batch
+  LogicalCube<DataType_SFFloat, Layout_CRDB> grad1(R1, C1, D, B);
+  // conv1
+  size_t R2 = R1-conv_K+1, C2 = C1-conv_K+1;
+  LogicalCube<DataType_SFFloat, Layout_CRDB> data2(R2, C2, conv_O1, B);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> grad2(R2, C2, conv_O1, B);
+  // pool1
+  size_t R3 = (R2-pool_K)/pool_stride + 1, C3 = (C2-pool_K)/pool_stride + 1;
+  LogicalCube<DataType_SFFloat, Layout_CRDB> data3(R3, C3, conv_O1, B);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> grad3(R3, C3, conv_O1, B);
+  // conv2
+  size_t R4 = R3-conv_K+1, C4 = C3-conv_K+1;
+  LogicalCube<DataType_SFFloat, Layout_CRDB> data4(R4, C4, conv_O2, B);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> grad4(R4, C4, conv_O2, B);
+  // pool2
+  size_t R5 = (R4-pool_K)/pool_stride + 1, C5 = (C4-pool_K)/pool_stride + 1;
+  LogicalCube<DataType_SFFloat, Layout_CRDB> data5(R5, C5, conv_O2, B);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> grad5(R5, C5, conv_O2, B);
+  // ip1
+  LogicalCube<DataType_SFFloat, Layout_CRDB> data6(R5, C5, conv_O3, B);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> grad6(R5, C5, conv_O3, B);
+  // relu1
+  LogicalCube<DataType_SFFloat, Layout_CRDB> data7(R5, C5, conv_O3, B);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> grad7(R5, C5, conv_O3, B);
+  // ip2
+  LogicalCube<DataType_SFFloat, Layout_CRDB> data8(R5, C5, conv_O4, B);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> grad8(R5, C5, conv_O4, B);
+  // softmax
+  LogicalCube<DataType_SFFloat, Layout_CRDB> data9(NULL, R5, C5, conv_O4, B); // not used
+  LogicalCube<DataType_SFFloat, Layout_CRDB> grad9(R5, C5, conv_O4, B);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> labels(NULL, 1, 1, 1, B); // must be initialized to point to next mini batch
+
+  Layer<DataType_SFFloat, Layout_CRDB> layer1(&data1, &grad1);
+  Layer<DataType_SFFloat, Layout_CRDB> layer2(&data2, &grad2);
+  Layer<DataType_SFFloat, Layout_CRDB> layer3(&data3, &grad3);
+  Layer<DataType_SFFloat, Layout_CRDB> layer4(&data4, &grad4);
+  Layer<DataType_SFFloat, Layout_CRDB> layer5(&data5, &grad5);
+  Layer<DataType_SFFloat, Layout_CRDB> layer6(&data6, &grad6);
+  Layer<DataType_SFFloat, Layout_CRDB> layer7(&data7, &grad7);
+  Layer<DataType_SFFloat, Layout_CRDB> layer8(&data8, &grad8);
+  Layer<DataType_SFFloat, Layout_CRDB> layer9(&data9, &grad9);
+
+  ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>
+    conv1(&layer1, &layer2, &kernel1, &bias1);
+  MaxPoolingBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>
+    pool1(&layer2, &layer3, new BridgeConfig(pool_K, pool_stride));
+  ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>
+    conv2(&layer3, &layer4, &kernel2, &bias2);
+  MaxPoolingBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>
+    pool2(&layer4, &layer5, new BridgeConfig(pool_K, pool_stride));
+  ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>
+    ip1(&layer5, &layer6, &kernel3, &bias3);
+  ReLUBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>
+    relu1(&layer6, &layer7);
+  ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>
+    ip2(&layer7, &layer8, &kernel4, &bias4);
+  SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>
+    softmax(&layer8, &layer9, &labels);
+
+  for (size_t epoch = 0; epoch < num_epochs; ++epoch) {
+    cout << "EPOCH: " << epoch << endl;
+    // num_mini_batches - 1, because we need one more iteration for the final mini batch
+    // (the last mini batch may not be the same size as the rest of the mini batches)
+    for (size_t batch = 0; batch < corpus->num_mini_batches - 1; ++batch) {
+      cout << "BATCH: " << batch << endl;
+      // initialize data1 for this mini batch
+      float * const mini_batch = corpus->images->physical_get_RCDslice(batch);
+      data1.p_data = mini_batch;
+
+      // reset loss
+      softmax.loss = 0.0;
+
+      // initialize labels for this mini batch
+      labels.p_data = corpus->labels->physical_get_RCDslice(batch);
+
+      // clear data and grad outputs for this batch (but not the weights and biases!)
+      grad1.reset_cube(); data2.reset_cube(); grad2.reset_cube(); data3.reset_cube(); grad3.reset_cube();
+      data4.reset_cube(); grad4.reset_cube(); data5.reset_cube(); grad5.reset_cube(); data6.reset_cube();
+      grad6.reset_cube(); data7.reset_cube(); grad7.reset_cube(); data8.reset_cube(); grad8.reset_cube();
+      Util::constant_initialize(grad9.p_data, 1.0, R5*C5*conv_O4*B); //initialize to 1 for backprop
+
+      cout << "FORWARD PASS" << endl;
+      // forward pass
+      conv1.forward();
+      //cout << "conv1" << endl;
+      pool1.forward();
+      //cout << "pool1" << endl;
+      conv2.forward();
+      //cout << "conv2" << endl;
+      pool2.forward();
+      //cout << "pool2" << endl;
+      ip1.forward();
+      //cout << "ip1" << endl;
+      relu1.forward();
+      //cout << "relu1" << endl;
+      ip2.forward();
+      //cout << "ip2" << endl;
+      softmax.forward();
+      //cout << "softmax" << endl;
+
+      cout << "LOSS: " << softmax.loss << endl;
+
+      cout << "BACKWARD PASS" << endl;
+      // backward pass
+      softmax.backward();
+      //cout << "softmax" << endl;
+      ip2.backward();
+      //cout << "ip2" << endl;
+      relu1.backward();
+      //cout << "relu" << endl;
+      ip1.backward();
+      //cout << "ip1" << endl;
+      pool2.backward();
+      //cout << "pool2" << endl;
+      conv2.backward();
+      //cout << "conv2" << endl;
+      pool1.backward();
+      //cout << "pool1" << endl;
+      conv1.backward();
+      //cout << "conv1" << endl;
+    }
+  }
+}
+
 int main(int argc, const char * argv[]) {
   //TEST_LOWERING();
 
   //TEST_CONVOLUTION_BRIDGE();
 
-  TEST_SOFTMAX();
+  //TEST_SOFTMAX();
+
+  if (argc != 2) {
+    cout << "Usage: ./deepnet <solver.prototxt>" << endl;
+    exit(1);
+  }
+
+  LeNet(argv[1]);
 
   return 0;
 }
