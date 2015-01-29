@@ -8,7 +8,7 @@ compiler:
 before_install:
 - sudo apt-get update
 - sudo apt-get install libgtest-dev
-- sudo apt-get install gfortran-4.6
+- sudo apt-get install gfortran
 - "cd /usr/src/gtest && sudo cmake . && sudo cmake --build . && sudo mv libg* /usr/local/lib/ ; cd -"
 - git submodule init
 - git submodule update
