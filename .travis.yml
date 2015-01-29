@@ -5,17 +5,17 @@ language: cpp
 compiler:
   - g++
 # Change this to your needs
-before_install:
-- sudo apt-get update
-- sudo apt-get install libgtest-dev
-- sudo apt-get install gfortran
-- "cd /usr/src/gtest && sudo cmake . && sudo cmake --build . && sudo mv libg* /usr/local/lib/ ; cd -"
-- git submodule update
-- "cd ./externals/OpenBLAS && sudo make && sudo make install PREFIX= ./externals/OpenBLAS; cd -"
+#before_install:
+#- sudo apt-get update
+#- sudo apt-get install libgtest-dev
+#- sudo apt-get install gfortran
+#- "cd /usr/src/gtest && sudo cmake . && sudo cmake --build . && sudo mv libg* /usr/local/lib/ ; cd -"
+#- git submodule update
+#- "cd ./externals/OpenBLAS && sudo make && sudo make install PREFIX= ./externals/OpenBLAS; cd -"
 
-install:
-- sudo apt-get install libprotobuf-dev libboost-all-dev
-- sudo apt-get install protobuf-compiler
+#install:
+#- sudo apt-get install libprotobuf-dev libboost-all-dev
+#- sudo apt-get install protobuf-compiler
 
 cache:
 apt: true
