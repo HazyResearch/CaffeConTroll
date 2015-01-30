@@ -16,9 +16,9 @@ SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::SoftmaxLossBrid
 p_data_labels(_p_data_labels),
 ldR(p_data_labels->R), ldC(p_data_labels->C),
 ldD(p_data_labels->D), ldB(p_data_labels->B) {
-  report_forward_constructor.reset();
-  report_forward_last_transfer.reset();
-  report_forward_history.reset();
+  this->report_forward_constructor.reset();
+  this->report_forward_last_transfer.reset();
+  this->report_forward_history.reset();
 #ifdef _DO_ASSERT
   assert(iR==oR);  assert(iC==oC);
   assert(iB==oB);  assert(ldR==1);
@@ -28,7 +28,7 @@ ldD(p_data_labels->D), ldB(p_data_labels->B) {
 
   loss = DataType(0.0);
 
-  report_forward_constructor.end(0, 0, 0);
+  this->report_forward_constructor.end(0, 0, 0);
 }
 
 /**
@@ -41,7 +41,7 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() 
   // TODO: uncomment this when we move to OpenBLAS implementation
   // openblas_set_num_threads(run_with_n_threads);
 
-  report_forward_last_transfer.reset();
+  this->report_forward_last_transfer.reset();
 
   LogicalCube<DataType, Layout_CRDB> * const input_data = p_input_layer->p_data_cube;
 
@@ -64,10 +64,10 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() 
     loss += log(denom) - single_input_batch[static_cast<int>(ground_truth[i_b])] + max;
   }
 
-  report_forward_last_transfer.end();
-  //report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_lowering);
-  //report_forward_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);
-  report_forward_history.aggregate(report_forward_last_transfer);
+  this->report_forward_last_transfer.end();
+  //this->report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->this->report_last_lowering);
+  //this->report_forward_last_transfer.aggregate_onlystat(p_forward_lower_connector->this->report_last_lowering);
+  this->report_forward_history.aggregate(this->report_forward_last_transfer);
 }
 
 /**
@@ -79,7 +79,7 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward()
   // TODO: uncomment this when we move to OpenBLAS implementation
   //openblas_set_num_threads(run_with_n_threads);
 
-  report_backward_updateweight_last_transfer.reset();
+  this->report_backward_updateweight_last_transfer.reset();
 
   // First, copy the output gradient into the input gradient
   Util::_our_memcpy(p_input_layer->p_gradient_cube->p_data,
@@ -105,13 +105,13 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward()
   //const Dtype loss_weight = top[0]->cpu_diff()[0];
   //caffe_scal(prob_.count(), loss_weight = 1 / num / spatial_dim, bottom_diff);
 
-  report_backward_updateweight_last_transfer.end();
-  //report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_element_mul_kernel->report_last_lowering);
-  //report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updategrad_kernel->report_last_lowering);
-  //report_backward_updateweight_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);
-  //report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updateweight_kernel->report_last_lowering);
+  this->report_backward_updateweight_last_transfer.end();
+  //this->report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_element_mul_kernel->this->report_last_lowering);
+  //this->report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updategrad_kernel->this->report_last_lowering);
+  //this->report_backward_updateweight_last_transfer.aggregate_onlystat(p_forward_lower_connector->this->report_last_lowering);
+  //this->report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updateweight_kernel->this->report_last_lowering);
 
-  report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
+  this->report_backward_updateweight_history.aggregate(this->report_backward_updateweight_last_transfer);
 }
 
 #endif

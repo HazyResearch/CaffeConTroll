@@ -38,8 +38,8 @@ MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::MaxPoolingBridge
 
   // create Logical Cube to keep track of indices for max values
   max_index = new LogicalCube<size_t, Layout_CRDB>(pooled_height, pooled_width, iD, iB);
-  // initialize this to FLOAT_MIN
-  p_output_layer->p_data_cube->reset_cube(FLT_MIN);
+  // initialize this to LARGE-NEGATIVE NUMBER -- hardcoded currently to -100
+  p_output_layer->p_data_cube->reset_cube(-100);
   p_input_layer->p_gradient_cube->reset_cube();
 
   this->report_forward_constructor.end(0, 0, 0);
@@ -55,7 +55,7 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
 
   const LogicalCube<DataType, Layout_CRDB> * const input_data = p_input_layer->p_data_cube;
   LogicalCube<DataType, Layout_CRDB> * const output_data = p_output_layer->p_data_cube;
-
+  
   for (size_t b_i = 0; b_i < iB; ++b_i) {
     for (size_t d_i = 0; d_i < iD; ++d_i) {
       const LogicalMatrix<DataType> input_data_slice = input_data->get_logical_matrix(d_i, b_i);
@@ -75,7 +75,12 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
               if (input_data_slice.p_data[index] > output_data_slice.p_data[pool_index]) {
                 output_data_slice.p_data[pool_index] = input_data_slice.p_data[index];
                 max_index_slice.p_data[pool_index] = index;
+                //cout << index << " ";
+                //cout << pool_index << endl;
               }
+              // if (max_index_slice.p_data[pool_index] == 0){
+              //   max_index_slice.p_data[pool_index] = h_start * iC + w_start;
+              // }
             }
           }
         }
@@ -98,7 +103,7 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() 
 
   const LogicalCube<DataType, Layout_CRDB>* const input_grad = p_input_layer->p_gradient_cube;
   LogicalCube<DataType, Layout_CRDB>* const output_grad = p_output_layer->p_gradient_cube;
-
+  //max_index->logical_print();
   for (size_t b_i = 0; b_i < iB; ++b_i) {
     for (size_t d_i = 0; d_i < iD; ++d_i) {
       const LogicalMatrix<DataType> output_grad_slice = output_grad->get_logical_matrix(d_i, b_i);

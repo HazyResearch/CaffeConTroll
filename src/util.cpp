@@ -8,12 +8,12 @@
 
 #include "util.h"
 
-random_device rd;
-mt19937 gen(rd());
-
 //template <typename T>
 //void Util::xavier_initialize(T * const arr, const size_t n_arr_elements, const size_t n_batch) {
 void Util::xavier_initialize(float * const arr, const size_t n_arr_elements, const size_t n_batch) {
+  random_device rd;
+  mt19937 gen(rd());
+
   const size_t fan_in = n_arr_elements / n_batch;
   const float scale = sqrt(/*T(3)*/3.0 / fan_in);
   uniform_real_distribution<float> uni(-scale, scale);

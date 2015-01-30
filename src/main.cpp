@@ -204,12 +204,10 @@ void TEST_SOFTMAX() {
 }
 
 void LeNet(const char * file) {
-
   cnn::SolverParameter solver_param;
   Parser::ReadProtoFromTextFile(file, &solver_param);
   cnn::NetParameter net_param;
   Parser::ReadNetParamsFromTextFile(solver_param.net(), &net_param);
-
   // Build Network
   cnn::Datum train_data;
   //cnn::Datum test_data;
@@ -225,7 +223,7 @@ void LeNet(const char * file) {
   //bool is_across = false;
 
   const size_t num_layers = net_param.layers_size();
-  const Corpus* corpus = NULL;
+  const Corpus* corpus;
 
   // load training data into corpus
   for (size_t i = 0; i < num_layers; ++i) {
@@ -359,12 +357,12 @@ void LeNet(const char * file) {
     softmax(&layer8, &layer9, &labels);
 
   for (size_t epoch = 0; epoch < num_epochs; ++epoch) {
-    //cout << "EPOCH: " << epoch << endl;
+    cout << "EPOCH: " << epoch << endl;
     // num_mini_batches - 1, because we need one more iteration for the final mini batch
     // (the last mini batch may not be the same size as the rest of the mini batches)
     size_t corpus_batch_index = 0;
     for (size_t batch = 0; batch < corpus->num_mini_batches - 1; ++batch) {
-      //cout << "BATCH: " << batch << endl;
+      cout << "BATCH: " << batch << endl;
       // initialize data1 for this mini batch
       float * const mini_batch = corpus->images->physical_get_RCDslice(corpus_batch_index);
       corpus_batch_index += B;
@@ -382,7 +380,7 @@ void LeNet(const char * file) {
       grad6.reset_cube(); data7.reset_cube(); grad7.reset_cube(); data8.reset_cube(); grad8.reset_cube();
       Util::constant_initialize(grad9.p_data, 1.0, R5*C5*conv_O4*B); //initialize to 1 for backprop
 
-      //cout << "FORWARD PASS" << endl;
+      cout << "FORWARD PASS" << endl;
       // forward pass
       conv1.forward();
       //cout << "conv1" << endl;
@@ -401,9 +399,9 @@ void LeNet(const char * file) {
       softmax.forward();
       //cout << "softmax" << endl;
 
-      //cout << "LOSS: " << softmax.loss << endl;
+      cout << "LOSS: " << softmax.loss << endl;
 
-      //cout << "BACKWARD PASS" << endl;
+      cout << "BACKWARD PASS" << endl;
       // backward pass
       softmax.backward();
       //cout << "softmax" << endl;

@@ -7,6 +7,7 @@
 #include "../src/config.h"
 #include "../src/Connector.h"
 #include "../src/bridges/MaxPoolingBridge.h"
+#include "../src/util.h"
 #include "test_types.h"
 #include "gtest/gtest.h"
 // #include "glog/logging.h"
@@ -51,13 +52,13 @@ class MaxPoolingBridgeTest : public ::testing::Test {
 
     static const int mB = 2;
     static const int iD = 3;
-    static const int iR = 10;
-    static const int iC = 10;
+    static const int iR = 28;
+    static const int iC = 21;
     static const int k = 2;
     static const int s = 2;
     static const int p = 0;
-    static const int oR = (iR - k)/s + 1;
-    static const int oC = (iC - k)/s + 1;
+    static const int oR = static_cast<int>(ceil(static_cast<float>(iR - k) / s)) + 1;
+    static const int oC = static_cast<int>(ceil(static_cast<float>(iC - k) / s)) + 1;
 };
 
 typedef ::testing::Types<FloatCRDB> DataTypes;
@@ -94,12 +95,12 @@ TYPED_TEST(MaxPoolingBridgeTest, TestForward){
         }
     }
     expected_output.close();
-    // this->data1->logical_print();
-    // this->data2->logical_print();
+    //this->data1->logical_print();
 }
 
 
 TYPED_TEST(MaxPoolingBridgeTest, TestBackward){
+    cout << numeric_limits<float>::lowest() << endl;
     typedef typename TypeParam::T T;
     srand(1);
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
@@ -107,16 +108,15 @@ TYPED_TEST(MaxPoolingBridgeTest, TestBackward){
         this->grad1->p_data[i] = 0;
     }
     
-    int oR = (this->iR - this->k)/this->s + 1;
-    int oC = (this->iC - this->k)/this->s + 1;
+    int oR = this->oR;
+    int oC = this->oC;
 
     for(int i=0;i<oR*oC*this->iD*this->mB;i++){
-        this->data2->p_data[i] = 1;
         this->grad2->p_data[i] = i;
     }
 
     this->MaxPoolingBridge_->forward();
-
+    //this->data2->logical_print();
     this->MaxPoolingBridge_->backward();
 
     std::fstream expected_output("pooling_backward.txt", std::ios_base::in);
@@ -133,6 +133,6 @@ TYPED_TEST(MaxPoolingBridgeTest, TestBackward){
         }
     }
     expected_output.close();   
-   // this->grad1->logical_print();
+    //this->grad1->logical_print();
 }
 

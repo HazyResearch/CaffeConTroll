@@ -18,9 +18,9 @@ p_model_cube(_p_model_cube), p_bias_cube(_p_bias_cube),
 mR(p_model_cube->R), mC(p_model_cube->C),
 mD(p_model_cube->D), mB(p_model_cube->B),
 stepsize(_DEFAULT_STEPSIZE) {
-  report_forward_constructor.reset();
-  report_forward_last_transfer.reset();
-  report_forward_history.reset();
+  this->report_forward_constructor.reset();
+  this->report_forward_last_transfer.reset();
+  this->report_forward_history.reset();
 #ifdef _DO_ASSERT
   assert(oR==iR-mR+1); assert(oC==iC-mC+1);
   assert(iD==mD); assert(iB==oB);
@@ -83,7 +83,7 @@ stepsize(_DEFAULT_STEPSIZE) {
                                     Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_TRANS_NOTRANS>(&lowered_forward_model,
                                         &lowered_forward_output, p_backward_inputgrad);
 
-  report_forward_constructor.end(0, 0, 0);
+  this->report_forward_constructor.end(0, 0, 0);
 }
 
 /**
@@ -108,7 +108,7 @@ forward() {
 
   openblas_set_num_threads(run_with_n_threads);
 
-  report_forward_last_transfer.reset();
+  this->report_forward_last_transfer.reset();
 
   // (0) cast input model and output to matrix
   // This one should be refactored with the matrix interface
@@ -154,15 +154,15 @@ forward() {
     }
   }
 
-  report_forward_last_transfer.end();
-  report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_lowering);
-  report_forward_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);
+  this->report_forward_last_transfer.end();
+  this->report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_lowering);
+  this->report_forward_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);
 
   if (FUNC != FUNC_NOFUNC) {
-    report_forward_last_transfer.aggregate_onlystat(p_forward_applyfunc_scanner->report_last_apply);
+    this->report_forward_last_transfer.aggregate_onlystat(p_forward_applyfunc_scanner->report_last_apply);
   }
 
-  report_forward_history.aggregate(report_forward_last_transfer);
+  this->report_forward_history.aggregate(this->report_forward_last_transfer);
 }
 
 
@@ -191,7 +191,7 @@ backward() {
 
   openblas_set_num_threads(run_with_n_threads);
 
-  report_backward_updateweight_last_transfer.reset();
+  this->report_backward_updateweight_last_transfer.reset();
 
   // (1) calculate the gradient of output and store in the buffer
   if (FUNC != FUNC_NOFUNC) {
@@ -217,7 +217,7 @@ backward() {
   p_backward_gemm_updateweight_kernel->alpha = -stepsize;
   p_backward_gemm_updateweight_kernel->beta = 1.0;
   p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
-  report_backward_updateweight_last_transfer.end();
+  this->report_backward_updateweight_last_transfer.end();
 
   // (4) update the bias term, summing over the gradients for each O and B
   const size_t output_feature_size = oR*oC;
@@ -234,14 +234,14 @@ backward() {
   }
 
   if (FUNC != FUNC_NOFUNC) {
-    report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_element_mul_kernel->report_last_lowering);
+    this->report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_element_mul_kernel->report_last_lowering);
   }
 
-  report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updategrad_kernel->report_last_lowering);
-  report_backward_updateweight_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);
-  report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updateweight_kernel->report_last_lowering);
+  this->report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updategrad_kernel->report_last_lowering);
+  this->report_backward_updateweight_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);
+  this->report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updateweight_kernel->report_last_lowering);
 
-  report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
+  this->report_backward_updateweight_history.aggregate(this->report_backward_updateweight_last_transfer);
 }
 
 #endif
