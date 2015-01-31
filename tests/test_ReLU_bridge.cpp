@@ -6,7 +6,6 @@
 #include "../src/bridges/ReLUBridge.h"
 #include "test_types.h"
 #include "gtest/gtest.h"
-// #include "glog/logging.h"
 #include <iostream>
 #include <fstream>
 #include <assert.h>
@@ -42,10 +41,10 @@ class ReLUBridgeTest : public ::testing::Test {
     Layer<T, Layout_CRDB>* layer1;
     Layer<T, Layout_CRDB>* layer2;
 
-    static const int mB = 2;
+    static const int mB = 5;
     static const int iD = 3;
-    static const int iR = 10;
-    static const int iC = 10;
+    static const int iR = 50;
+    static const int iC = 50;
 };
 
 typedef ::testing::Types<FloatCRDB> DataTypes;

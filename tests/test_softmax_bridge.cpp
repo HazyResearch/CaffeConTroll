@@ -45,8 +45,8 @@ class softmaxBridgeTest : public ::testing::Test {
     Layer<T, Layout_CRDB>* layer1;
     Layer<T, Layout_CRDB>* layer2;
 
-    static const int mB = 2;
-    static const int iD = 15;
+    static const int mB = 5;
+    static const int iD = 100;
 };
 
 typedef ::testing::Types<FloatCRDB> DataTypes;

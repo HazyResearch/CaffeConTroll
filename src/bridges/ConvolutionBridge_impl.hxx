@@ -205,7 +205,7 @@ backward() {
   LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(p_backward_outputgrad->p_data, mB, (iR-mR+1)*(iC-mC+1)*iB, 1, 1);
 
   // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
-  p_backward_outputgrad->template remap_output<LOWERING_TYPE1>(mB /*O*/, oB /*B*/, (iR-mR+1)*(iC-mC+1) /*kernel_size*/);
+  p_backward_outputgrad->template remap_output<LOWERING_TYPE1>(oB /*O*/, mB /*B*/, (iR-mR+1)*(iC-mC+1) /*kernel_size*/);
 
   //    - 2.1 GEMM between the gradient of output and old kernel
   p_backward_gemm_updategrad_kernel->compute(&lowered_model, &lowered_outputgrad, p_backward_inputgrad);

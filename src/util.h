@@ -13,12 +13,14 @@
 #include <math.h>
 #include <random>
 #include <float.h>
+#include <limits>
 
 using std::max;
 using std::min;
 using std::random_device;
 using std::mt19937;
 using std::uniform_real_distribution;
+
 
 #define NOT_IMPLEMENTED std::cerr << "ERROR: Using a bridge with unsupported Layout or DataType." << std::endl; assert(false)
 

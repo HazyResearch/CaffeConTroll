@@ -97,7 +97,7 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward()
     DataType * const single_input_batch = input_grad->physical_get_RCDslice(i_b);
     const size_t size_of_single_batch = iR*iC*iD;
     for (size_t i = 0; i < size_of_single_batch; ++i) {
-      single_input_batch[i] *= (1 / iB / (iR*iC)); // borrowing Caffe's scaling (see below)
+      single_input_batch[i] *= (1.0 / iB / (iR*iC)); // borrowing Caffe's scaling (see below)
     }
   }
 

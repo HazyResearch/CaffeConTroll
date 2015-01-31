@@ -9,6 +9,8 @@
 #ifndef moka_LogicalCube_impl_hxx
 #define moka_LogicalCube_impl_hxx
 #include <string.h>
+#include "util.h"
+
 using namespace std;
 
 /**************************************/

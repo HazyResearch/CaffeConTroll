@@ -71,7 +71,8 @@ void Corpus::initialize_input_data_and_labels(cnn::LayerParameter& layer_param) 
         for (size_t c = 0; c < n_cols; ++c) {
           //float datum_element = static_cast<float>(static_cast<uint8_t>(data[d*n_rows*n_cols+r*n_cols+c]));
           float datum_element = static_cast<float>(data[d*n_rows*n_cols+r*n_cols+c]);
-          single_input_batch[d*n_rows*n_cols+r*n_cols+c] = datum_element;
+          //single_input_batch[d*n_rows*n_cols+r*n_cols+c] = datum_element;
+          single_input_batch[d*n_rows*n_cols+r*n_cols+c] = rand()%10;
         }
       }
     }
