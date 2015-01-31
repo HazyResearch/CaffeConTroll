@@ -42,7 +42,7 @@ void Parser::ReadNetParamsFromTextFile(const string& param_file, Message* param)
 }
 
 void Parser::DataSetup(cnn::LayerParameter& layer_param, cnn::Datum& datum){
-  MDB_env* mdb_env_; //TODO: resolve compiler warning about not being initialized
+  MDB_env* mdb_env_ = NULL;
   MDB_dbi mdb_dbi_;
   MDB_txn* mdb_txn_;
   MDB_cursor* mdb_cursor_;
@@ -61,6 +61,11 @@ void Parser::DataSetup(cnn::LayerParameter& layer_param, cnn::Datum& datum){
   default:
     break;
   }
+
+#ifdef _DO_ASSERT
+  assert(mdb_env_ != NULL);
+#endif
+
   // Read a data point, and use it to initialize the top blob.
   switch (layer_param.data_param().backend()) {
   case 1:
