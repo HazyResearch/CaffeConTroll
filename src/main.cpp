@@ -384,11 +384,15 @@ void LeNet(const char * file) {
 
   for (size_t epoch = 0; epoch < num_epochs; ++epoch) {
     cout << "EPOCH: " << epoch << endl;
+    float epoch_loss = 0.0;
     // num_mini_batches - 1, because we need one more iteration for the final mini batch
     // (the last mini batch may not be the same size as the rest of the mini batches)
     size_t corpus_batch_index = 0;
     for (size_t batch = 0; batch < corpus->num_mini_batches - 1; ++batch) {
-      cout << "BATCH: " << batch << endl;
+      if( batch % 100 == 0){
+        cout << "BATCH: " << batch << endl;  
+      }
+      
       // initialize data1 for this mini batch
       float * const mini_batch = corpus->images->physical_get_RCDslice(corpus_batch_index);
       data1.p_data = mini_batch;
@@ -405,7 +409,7 @@ void LeNet(const char * file) {
       grad6.reset_cube(); data7.reset_cube(); grad7.reset_cube(); data8.reset_cube(); grad8.reset_cube();
       Util::constant_initialize<float>(grad9.p_data, 1.0, 1*1*conv_O4*B); //initialize to 1 for backprop
 
-      cout << "FORWARD PASS" << endl;
+      //cout << "FORWARD PASS" << endl;
       // forward pass
       conv1.forward();
       //cout << "conv1" << endl;
@@ -423,9 +427,9 @@ void LeNet(const char * file) {
       //cout << "ip2" << endl;
       softmax.forward();
       //cout << "softmax" << endl;
-
-      cout << "LOSS: " << (softmax.loss/B) << endl;
-      cout << "BACKWARD PASS" << endl;
+      epoch_loss += (softmax.loss/B);
+      //cout << "LOSS: " << (softmax.loss/B) << endl;
+      //cout << "BACKWARD PASS" << endl;
       // backward pass
       softmax.backward();
       //cout << "softmax" << endl;
@@ -445,6 +449,7 @@ void LeNet(const char * file) {
       
       //cout << "conv1" << endl;
     }
+    cout << "LOSS:" << epoch_loss/(num_mini_batches-1) << endl;
     // compute very last batch
     // data1.B = last_B; grad1.B = last_B;
     // data2.B = last_B; grad2.B = last_B;
