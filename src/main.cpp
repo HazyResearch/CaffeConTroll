@@ -260,7 +260,7 @@ void LeNet(const char * file) {
   cout << "LAST BATCH SIZE: " << corpus->last_batch_size << endl;
 
   Timer t = Timer();
-  const size_t num_epochs = 6;
+  const size_t num_epochs = 30;
   const size_t R1 = corpus->n_rows;
   const size_t C1 = corpus->n_cols;
   const size_t D = corpus->dim;
