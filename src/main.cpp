@@ -283,25 +283,25 @@ void LeNet(const char * file) {
   // relu1,
   // ip2 (O: 10, K: 1),
   // softmax
-  LogicalCube<DataType_SFFloat, Layout_CRDB> kernel1(conv_K, conv_K, D, conv_O1);
-  LogicalCube<DataType_SFFloat, Layout_CRDB> bias1(1, 1, conv_O1, 1);
-  Util::xavier_initialize(kernel1.p_data, conv_K*conv_K*D*conv_O1, B);
-  Util::constant_initialize<float>(bias1.p_data, 0.0, conv_O1);
+  // LogicalCube<DataType_SFFloat, Layout_CRDB> kernel1(conv_K, conv_K, D, conv_O1);
+  // LogicalCube<DataType_SFFloat, Layout_CRDB> bias1(1, 1, conv_O1, 1);
+  // Util::xavier_initialize(kernel1.p_data, conv_K*conv_K*D*conv_O1, conv_O1);
+  // Util::constant_initialize<float>(bias1.p_data, 0.0, conv_O1);
 
-  LogicalCube<DataType_SFFloat, Layout_CRDB> kernel2(conv_K, conv_K, conv_O1, conv_O2);
-  LogicalCube<DataType_SFFloat, Layout_CRDB> bias2(1, 1, conv_O2, 1);
-  Util::xavier_initialize(kernel2.p_data, conv_K*conv_K*conv_O1*conv_O2, B);
-  Util::constant_initialize<float>(bias2.p_data, 0.0, conv_O2);
+  // LogicalCube<DataType_SFFloat, Layout_CRDB> kernel2(conv_K, conv_K, conv_O1, conv_O2);
+  // LogicalCube<DataType_SFFloat, Layout_CRDB> bias2(1, 1, conv_O2, 1);
+  // Util::xavier_initialize(kernel2.p_data, conv_K*conv_K*conv_O1*conv_O2, conv_O2);
+  // Util::constant_initialize<float>(bias2.p_data, 0.0, conv_O2);
 
-  LogicalCube<DataType_SFFloat, Layout_CRDB> kernel3(1, 1, conv_O2, conv_O3);
-  LogicalCube<DataType_SFFloat, Layout_CRDB> bias3(1, 1, conv_O3, 1);
-  Util::xavier_initialize(kernel3.p_data, 1*1*conv_O2*conv_O3, B);
-  Util::constant_initialize<float>(bias3.p_data, 0.0, conv_O3);
+  // LogicalCube<DataType_SFFloat, Layout_CRDB> kernel3(1, 1, conv_O2, conv_O3);
+  // LogicalCube<DataType_SFFloat, Layout_CRDB> bias3(1, 1, conv_O3, 1);
+  // Util::xavier_initialize(kernel3.p_data, 1*1*conv_O2*conv_O3, conv_O3);
+  // Util::constant_initialize<float>(bias3.p_data, 0.0, conv_O3);
 
-  LogicalCube<DataType_SFFloat, Layout_CRDB> kernel4(1, 1, conv_O3, conv_O4);
-  LogicalCube<DataType_SFFloat, Layout_CRDB> bias4(1, 1, conv_O4, 1);
-  Util::xavier_initialize(kernel4.p_data, 1*1*conv_O3*conv_O4, B);
-  Util::constant_initialize<float>(bias4.p_data, 0.0, conv_O4);
+  // LogicalCube<DataType_SFFloat, Layout_CRDB> kernel4(1, 1, conv_O3, conv_O4);
+  // LogicalCube<DataType_SFFloat, Layout_CRDB> bias4(1, 1, conv_O4, 1);
+  // Util::xavier_initialize(kernel4.p_data, 1*1*conv_O3*conv_O4, conv_O4);
+  // Util::constant_initialize<float>(bias4.p_data, 0.0, conv_O4);
 
   LogicalCube<DataType_SFFloat, Layout_CRDB> data1(NULL, R1, C1, D, B); // must be initialized to point to next mini batch
   LogicalCube<DataType_SFFloat, Layout_CRDB> grad1(R1, C1, D, B);
@@ -322,18 +322,38 @@ void LeNet(const char * file) {
   LogicalCube<DataType_SFFloat, Layout_CRDB> data5(R5, C5, conv_O2, B);
   LogicalCube<DataType_SFFloat, Layout_CRDB> grad5(R5, C5, conv_O2, B);
   // ip1
-  LogicalCube<DataType_SFFloat, Layout_CRDB> data6(R5, C5, conv_O3, B);
-  LogicalCube<DataType_SFFloat, Layout_CRDB> grad6(R5, C5, conv_O3, B);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> data6(1, 1, conv_O3, B);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> grad6(1, 1, conv_O3, B);
   // relu1
-  LogicalCube<DataType_SFFloat, Layout_CRDB> data7(R5, C5, conv_O3, B);
-  LogicalCube<DataType_SFFloat, Layout_CRDB> grad7(R5, C5, conv_O3, B);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> data7(1, 1, conv_O3, B);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> grad7(1, 1, conv_O3, B);
   // ip2
-  LogicalCube<DataType_SFFloat, Layout_CRDB> data8(R5, C5, conv_O4, B);
-  LogicalCube<DataType_SFFloat, Layout_CRDB> grad8(R5, C5, conv_O4, B);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> data8(1, 1, conv_O4, B);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> grad8(1, 1, conv_O4, B);
   // softmax
-  LogicalCube<DataType_SFFloat, Layout_CRDB> data9(NULL, R5, C5, conv_O4, B); // not used
-  LogicalCube<DataType_SFFloat, Layout_CRDB> grad9(R5, C5, conv_O4, B);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> data9(NULL, 1, 1, conv_O4, B); // not used
+  LogicalCube<DataType_SFFloat, Layout_CRDB> grad9(1, 1, conv_O4, B);
   LogicalCube<DataType_SFFloat, Layout_CRDB> labels(NULL, 1, 1, 1, B); // must be initialized to point to next mini batch
+
+  LogicalCube<DataType_SFFloat, Layout_CRDB> kernel1(conv_K, conv_K, D, conv_O1);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> bias1(1, 1, conv_O1, 1);
+  Util::xavier_initialize(kernel1.p_data, conv_K*conv_K*D*conv_O1, conv_O1);
+  Util::constant_initialize<float>(bias1.p_data, 0.0, conv_O1);
+
+  LogicalCube<DataType_SFFloat, Layout_CRDB> kernel2(conv_K, conv_K, conv_O1, conv_O2);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> bias2(1, 1, conv_O2, 1);
+  Util::xavier_initialize(kernel2.p_data, conv_K*conv_K*conv_O1*conv_O2, conv_O2);
+  Util::constant_initialize<float>(bias2.p_data, 0.0, conv_O2);
+
+  LogicalCube<DataType_SFFloat, Layout_CRDB> kernel3(R5, C5, conv_O2, conv_O3);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> bias3(1, 1, conv_O3, 1);
+  Util::xavier_initialize(kernel3.p_data, R5*C5*conv_O2*conv_O3, conv_O3);
+  Util::constant_initialize<float>(bias3.p_data, 0.0, conv_O3);
+
+  LogicalCube<DataType_SFFloat, Layout_CRDB> kernel4(1, 1, conv_O3, conv_O4);
+  LogicalCube<DataType_SFFloat, Layout_CRDB> bias4(1, 1, conv_O4, 1);
+  Util::xavier_initialize(kernel4.p_data, 1*1*conv_O3*conv_O4, conv_O4);
+  Util::constant_initialize<float>(bias4.p_data, 0.0, conv_O4);
 
   Layer<DataType_SFFloat, Layout_CRDB> layer1(&data1, &grad1);
   Layer<DataType_SFFloat, Layout_CRDB> layer2(&data2, &grad2);
@@ -383,7 +403,7 @@ void LeNet(const char * file) {
       grad1.reset_cube(); data2.reset_cube(); grad2.reset_cube(); data3.reset_cube(); grad3.reset_cube();
       data4.reset_cube(); grad4.reset_cube(); data5.reset_cube(); grad5.reset_cube(); data6.reset_cube();
       grad6.reset_cube(); data7.reset_cube(); grad7.reset_cube(); data8.reset_cube(); grad8.reset_cube();
-      Util::constant_initialize<float>(grad9.p_data, 1.0, R5*C5*conv_O4*B); //initialize to 1 for backprop
+      Util::constant_initialize<float>(grad9.p_data, 1.0, 1*1*conv_O4*B); //initialize to 1 for backprop
 
       cout << "FORWARD PASS" << endl;
       // forward pass
@@ -404,7 +424,7 @@ void LeNet(const char * file) {
       softmax.forward();
       //cout << "softmax" << endl;
 
-      cout << "LOSS: " << softmax.loss << endl;
+      cout << "LOSS: " << (softmax.loss/B) << endl;
       cout << "BACKWARD PASS" << endl;
       // backward pass
       softmax.backward();
@@ -426,68 +446,68 @@ void LeNet(const char * file) {
       //cout << "conv1" << endl;
     }
     // compute very last batch
-    data1.B = last_B; grad1.B = last_B;
-    data2.B = last_B; grad2.B = last_B;
-    data3.B = last_B; grad3.B = last_B;
-    data4.B = last_B; grad4.B = last_B;
-    data5.B = last_B; grad5.B = last_B;
-    data6.B = last_B; grad6.B = last_B;
-    data7.B = last_B; grad7.B = last_B;
-    data8.B = last_B; grad8.B = last_B;
-    data9.B = last_B; grad9.B = last_B;
-    float * const mini_batch = corpus->images->physical_get_RCDslice(corpus_batch_index);
-    data1.p_data = mini_batch;
+    // data1.B = last_B; grad1.B = last_B;
+    // data2.B = last_B; grad2.B = last_B;
+    // data3.B = last_B; grad3.B = last_B;
+    // data4.B = last_B; grad4.B = last_B;
+    // data5.B = last_B; grad5.B = last_B;
+    // data6.B = last_B; grad6.B = last_B;
+    // data7.B = last_B; grad7.B = last_B;
+    // data8.B = last_B; grad8.B = last_B;
+    // data9.B = last_B; grad9.B = last_B;
+    // float * const mini_batch = corpus->images->physical_get_RCDslice(corpus_batch_index);
+    // data1.p_data = mini_batch;
 
-    // reset loss
-    softmax.loss = 0.0;
+    // // reset loss
+    // softmax.loss = 0.0;
 
-    // initialize labels for this mini batch
-    labels.p_data = corpus->labels->physical_get_RCDslice(corpus_batch_index);
+    // // initialize labels for this mini batch
+    // labels.p_data = corpus->labels->physical_get_RCDslice(corpus_batch_index);
 
-    // clear data and grad outputs for this batch (but not the weights and biases!)
-    grad1.reset_cube(); data2.reset_cube(); grad2.reset_cube(); data3.reset_cube(); grad3.reset_cube();
-    data4.reset_cube(); grad4.reset_cube(); data5.reset_cube(); grad5.reset_cube(); data6.reset_cube();
-    grad6.reset_cube(); data7.reset_cube(); grad7.reset_cube(); data8.reset_cube(); grad8.reset_cube();
-    Util::constant_initialize<float>(grad9.p_data, 1.0, R5*C5*conv_O4*B); //initialize to 1 for backprop
+    // // clear data and grad outputs for this batch (but not the weights and biases!)
+    // grad1.reset_cube(); data2.reset_cube(); grad2.reset_cube(); data3.reset_cube(); grad3.reset_cube();
+    // data4.reset_cube(); grad4.reset_cube(); data5.reset_cube(); grad5.reset_cube(); data6.reset_cube();
+    // grad6.reset_cube(); data7.reset_cube(); grad7.reset_cube(); data8.reset_cube(); grad8.reset_cube();
+    // Util::constant_initialize<float>(grad9.p_data, 1.0, R5*C5*conv_O4*B); //initialize to 1 for backprop
 
-    //cout << "FORWARD PASS" << endl;
-    // forward pass
-    conv1.forward();
-    //cout << "conv1" << endl;
-    pool1.forward();
-    //cout << "pool1" << endl;
-    conv2.forward();
-    //cout << "conv2" << endl;
-    pool2.forward();
-    //cout << "pool2" << endl;
-    ip1.forward();
-    //cout << "ip1" << endl;
-    relu1.forward();
-    //cout << "relu1" << endl;
-    ip2.forward();
-    //cout << "ip2" << endl;
-    softmax.forward();
-    //cout << "softmax" << endl;
+    // //cout << "FORWARD PASS" << endl;
+    // // forward pass
+    // conv1.forward();
+    // //cout << "conv1" << endl;
+    // pool1.forward();
+    // //cout << "pool1" << endl;
+    // conv2.forward();
+    // //cout << "conv2" << endl;
+    // pool2.forward();
+    // //cout << "pool2" << endl;
+    // ip1.forward();
+    // //cout << "ip1" << endl;
+    // relu1.forward();
+    // //cout << "relu1" << endl;
+    // ip2.forward();
+    // //cout << "ip2" << endl;
+    // softmax.forward();
+    // //cout << "softmax" << endl;
 
-    //cout << "LOSS: " << softmax.loss << endl;
+    // //cout << "LOSS: " << softmax.loss << endl;
 
-    //cout << "BACKWARD PASS" << endl;
-    // backward pass
-    softmax.backward();
-    //cout << "softmax" << endl;
-    ip2.backward();
-    //cout << "ip2" << endl;
-    relu1.backward();
-    //cout << "relu" << endl;
-    ip1.backward();
-    //cout << "ip1" << endl;
-    pool2.backward();
-    //cout << "pool2" << endl;
-    conv2.backward();
-    //cout << "conv2" << endl;
-    pool1.backward();
-    //cout << "pool1" << endl;
-    conv1.backward();
+    // //cout << "BACKWARD PASS" << endl;
+    // // backward pass
+    // softmax.backward();
+    // //cout << "softmax" << endl;
+    // ip2.backward();
+    // //cout << "ip2" << endl;
+    // relu1.backward();
+    // //cout << "relu" << endl;
+    // ip1.backward();
+    // //cout << "ip1" << endl;
+    // pool2.backward();
+    // //cout << "pool2" << endl;
+    // conv2.backward();
+    // //cout << "conv2" << endl;
+    // pool1.backward();
+    // //cout << "pool1" << endl;
+    // conv1.backward();
     //cout << "conv1" << endl;
     cout << "Time Elapsed for a single epoch: " << t.elapsed() << endl;
   }
