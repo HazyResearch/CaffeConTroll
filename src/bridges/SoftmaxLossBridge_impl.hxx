@@ -61,6 +61,12 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() 
       const DataType exponentiated_val = exp(single_input_batch[i] - max);
       denom += exponentiated_val;
     }
+
+    DataType* const output_data = p_output_layer->p_data_cube->p_data;
+    for (size_t i = 0; i < size_of_single_batch; ++i) {
+      output_data[i + i_b*iD] = exp(single_input_batch[i] - max)/denom;
+    }
+
     loss += log(denom) - single_input_batch[static_cast<int>(ground_truth[i_b])] + max;
   }
 
@@ -83,7 +89,7 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward()
 
   // First, copy the output gradient into the input gradient
   Util::_our_memcpy(p_input_layer->p_gradient_cube->p_data,
-      p_output_layer->p_gradient_cube->p_data,
+      p_output_layer->p_data_cube->p_data,
       p_output_layer->p_gradient_cube->n_elements*sizeof(DataType));
 
   LogicalCube<DataType, Layout_CRDB> * const input_grad = p_input_layer->p_gradient_cube;

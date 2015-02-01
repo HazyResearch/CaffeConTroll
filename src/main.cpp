@@ -331,7 +331,7 @@ void LeNet(const char * file) {
   LogicalCube<DataType_SFFloat, Layout_CRDB> data8(1, 1, conv_O4, B);
   LogicalCube<DataType_SFFloat, Layout_CRDB> grad8(1, 1, conv_O4, B);
   // softmax
-  LogicalCube<DataType_SFFloat, Layout_CRDB> data9(NULL, 1, 1, conv_O4, B); // not used
+  LogicalCube<DataType_SFFloat, Layout_CRDB> data9(1, 1, conv_O4, B); // not used
   LogicalCube<DataType_SFFloat, Layout_CRDB> grad9(1, 1, conv_O4, B);
   LogicalCube<DataType_SFFloat, Layout_CRDB> labels(NULL, 1, 1, 1, B); // must be initialized to point to next mini batch
 
@@ -407,7 +407,7 @@ void LeNet(const char * file) {
       grad1.reset_cube(); data2.reset_cube(); grad2.reset_cube(); data3.reset_cube(); grad3.reset_cube();
       data4.reset_cube(); grad4.reset_cube(); data5.reset_cube(); grad5.reset_cube(); data6.reset_cube();
       grad6.reset_cube(); data7.reset_cube(); grad7.reset_cube(); data8.reset_cube(); grad8.reset_cube();
-      Util::constant_initialize<float>(grad9.p_data, 1.0, 1*1*conv_O4*B); //initialize to 1 for backprop
+      //Util::constant_initialize<float>(grad9.p_data, 1.0, 1*1*conv_O4*B); //initialize to 1 for backprop
 
       //cout << "FORWARD PASS" << endl;
       // forward pass
