@@ -14,15 +14,15 @@ MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::MaxPoolingBridge
     const BridgeConfig * const _bconfig)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer), bconfig(_bconfig) {
 
-  this->report_forward_constructor.reset();
-  this->report_forward_last_transfer.reset();
-  this->report_forward_history.reset();
+  report_forward_constructor.reset();
+  report_forward_last_transfer.reset();
+  report_forward_history.reset();
 
   const size_t _k_size = bconfig->kernel_size;
   const size_t _stride = bconfig->stride;
 
 #ifdef _DO_ASSERT
-  assert(iD==oD); assert(iB==oB);
+  assert(iD == oD); assert(iB == oB);
   assert(_stride >= _k_size); // for now, we assume that the K x K patches for
                               // max pooling never overlap
 #endif
@@ -33,16 +33,15 @@ MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::MaxPoolingBridge
       iC  - _k_size) / _stride)) + 1;
 
 #ifdef _DO_ASSERT
-  assert(oR==pooled_height); assert(oC==pooled_width);
+  assert(oR == pooled_height); assert(oC == pooled_width);
 #endif
 
   // create Logical Cube to keep track of indices for max values
   max_index = new LogicalCube<size_t, Layout_CRDB>(pooled_height, pooled_width, iD, iB);
-  // initialize this to LARGE-NEGATIVE NUMBER -- hardcoded currently to -100
-  p_output_layer->p_data_cube->reset_cube(-100);
+  p_output_layer->p_data_cube->reset_cube(-FLT_MAX);
   p_input_layer->p_gradient_cube->reset_cube();
 
-  this->report_forward_constructor.end(0, 0, 0);
+  report_forward_constructor.end(0, 0, 0);
 }
 
 /**
@@ -51,21 +50,21 @@ MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::MaxPoolingBridge
 template <typename DataType>
 void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
 
-  this->report_forward_last_transfer.reset();
+  report_forward_last_transfer.reset();
 
   const LogicalCube<DataType, Layout_CRDB> * const input_data = p_input_layer->p_data_cube;
   LogicalCube<DataType, Layout_CRDB> * const output_data = p_output_layer->p_data_cube;
-  
+
   for (size_t b_i = 0; b_i < iB; ++b_i) {
     for (size_t d_i = 0; d_i < iD; ++d_i) {
       const LogicalMatrix<DataType> input_data_slice = input_data->get_logical_matrix(d_i, b_i);
       LogicalMatrix<size_t> max_index_slice = max_index->get_logical_matrix(d_i, b_i);
       LogicalMatrix<DataType> output_data_slice = output_data->get_logical_matrix(d_i, b_i);
 
-      for (int ph = 0; ph < pooled_height; ++ph) {
+      for (size_t ph = 0; ph < pooled_height; ++ph) {
         const size_t h_start = ph * bconfig->stride;
         const size_t h_end = min(h_start + bconfig->kernel_size, iR);
-        for (int pw = 0; pw < pooled_width; ++pw) {
+        for (size_t pw = 0; pw < pooled_width; ++pw) {
           const size_t w_start = pw * bconfig->stride;
           const size_t w_end = min(w_start + bconfig->kernel_size, iC);
           const size_t pool_index = ph * pooled_width + pw;
@@ -88,8 +87,8 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
     }
   }
 
-  this->report_forward_last_transfer.end();
-  this->report_forward_history.aggregate(this->report_forward_last_transfer);
+  report_forward_last_transfer.end();
+  report_forward_history.aggregate(report_forward_last_transfer);
 }
 
 
@@ -99,7 +98,7 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
 template <typename DataType>
 void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
 
-  this->report_backward_updateweight_last_transfer.reset();
+  report_backward_updateweight_last_transfer.reset();
 
   const LogicalCube<DataType, Layout_CRDB>* const input_grad = p_input_layer->p_gradient_cube;
   LogicalCube<DataType, Layout_CRDB>* const output_grad = p_output_layer->p_gradient_cube;
@@ -120,8 +119,8 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() 
     }
   }
 
-  this->report_backward_updateweight_last_transfer.end();
-  this->report_backward_updateweight_history.aggregate(this->report_backward_updateweight_last_transfer);
+  report_backward_updateweight_last_transfer.end();
+  report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
 }
 
 template <typename DataType>

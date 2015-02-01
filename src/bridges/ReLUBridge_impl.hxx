@@ -11,9 +11,9 @@
 template <typename DataType>
 ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::ReLUBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer) {
-  this->report_forward_constructor.reset();
-  this->report_forward_last_transfer.reset();
-  this->report_forward_history.reset();
+  report_forward_constructor.reset();
+  report_forward_last_transfer.reset();
+  report_forward_history.reset();
 #ifdef _DO_ASSERT
   assert(oR==iR); assert(oC==iC);
   assert(oB==iB); assert(oD==iD);
@@ -21,7 +21,7 @@ ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::ReLUBridge(InputLayerT
 
   // no-op
 
-  this->report_forward_constructor.end(0, 0, 0);
+  report_forward_constructor.end(0, 0, 0);
 }
 
 /**
@@ -31,7 +31,7 @@ ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::ReLUBridge(InputLayerT
 template <typename DataType>
 void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
 
-  this->report_forward_last_transfer.reset();
+  report_forward_last_transfer.reset();
 
   const size_t num_elements = p_input_layer->p_data_cube->n_elements;
   const DataType* const input_data = p_input_layer->p_data_cube->p_data;
@@ -41,8 +41,8 @@ void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
     output_data[i] = max(input_data[i], DataType(0));
   }
 
-  this->report_forward_last_transfer.end();
-  this->report_forward_history.aggregate(this->report_forward_last_transfer);
+  report_forward_last_transfer.end();
+  report_forward_history.aggregate(report_forward_last_transfer);
 }
 
 
@@ -53,7 +53,7 @@ void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
 template <typename DataType>
 void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
 
-  this->report_backward_updateweight_last_transfer.reset();
+  report_backward_updateweight_last_transfer.reset();
 
   const size_t num_elements = p_input_layer->p_data_cube->n_elements;
   const DataType* const input_data = p_input_layer->p_data_cube->p_data;
@@ -65,8 +65,8 @@ void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
     input_gradient[i] = output_gradient[i] * (input_data[i] > 0);
   }
 
-  this->report_backward_updateweight_last_transfer.end();
-  this->report_backward_updateweight_history.aggregate(this->report_backward_updateweight_last_transfer);
+  report_backward_updateweight_last_transfer.end();
+  report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
 }
 
 #endif

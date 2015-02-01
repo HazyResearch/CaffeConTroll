@@ -16,6 +16,7 @@
 #include "bridges/ReLUBridge.h"
 #include "bridges/ConvolutionBridge.h"
 #include "bridges/SoftmaxLossBridge.h"
+#include "bridges/DropoutBridge.h"
 #include "Layer.h"
 //#include "bridges/ParallelizedBridge.h"
 #include "parser/parser.h"
@@ -131,8 +132,7 @@ void TEST_CONVOLUTION_BRIDGE() {
   LogicalCube<DataType_SFFloat, Layout_CRDB> grad2(N-K+1, N-K+1, O, B);
 
   Util::xavier_initialize(data1.p_data, N*N*D*B, B);
-  //Util::constant_initialize<float>(bias.p_data, 0.0, O);
-  Util::constant_initialize(bias.p_data, 0.0, O);
+  Util::constant_initialize<float>(bias.p_data, 0.0, O);
 
   kernel1.reset_cube();
   for (size_t i = 0; i < K*K*D*O; i++) {
@@ -224,7 +224,7 @@ void LeNet(const char * file) {
   //bool is_across = false;
 
   const size_t num_layers = net_param.layers_size();
-  const Corpus* corpus;
+  const Corpus* corpus = NULL;
 
   // load training data into corpus
   for (size_t i = 0; i < num_layers; ++i) {
@@ -246,6 +246,11 @@ void LeNet(const char * file) {
       //num_layers--;
     }
   }
+
+#ifdef _DO_ASSERT
+  assert(corpus != NULL);
+#endif
+
   cout << "NUM IMAGES: " << corpus->n_images << endl;
   cout << "NUM ROWS: " << corpus->n_rows << endl;
   cout << "NUM COLS: " << corpus->n_cols << endl;
@@ -281,22 +286,22 @@ void LeNet(const char * file) {
   LogicalCube<DataType_SFFloat, Layout_CRDB> kernel1(conv_K, conv_K, D, conv_O1);
   LogicalCube<DataType_SFFloat, Layout_CRDB> bias1(1, 1, conv_O1, 1);
   Util::xavier_initialize(kernel1.p_data, conv_K*conv_K*D*conv_O1, B);
-  Util::constant_initialize(bias1.p_data, 0.0, conv_O1);
+  Util::constant_initialize<float>(bias1.p_data, 0.0, conv_O1);
 
   LogicalCube<DataType_SFFloat, Layout_CRDB> kernel2(conv_K, conv_K, conv_O1, conv_O2);
   LogicalCube<DataType_SFFloat, Layout_CRDB> bias2(1, 1, conv_O2, 1);
   Util::xavier_initialize(kernel2.p_data, conv_K*conv_K*conv_O1*conv_O2, B);
-  Util::constant_initialize(bias2.p_data, 0.0, conv_O2);
+  Util::constant_initialize<float>(bias2.p_data, 0.0, conv_O2);
 
   LogicalCube<DataType_SFFloat, Layout_CRDB> kernel3(1, 1, conv_O2, conv_O3);
   LogicalCube<DataType_SFFloat, Layout_CRDB> bias3(1, 1, conv_O3, 1);
   Util::xavier_initialize(kernel3.p_data, 1*1*conv_O2*conv_O3, B);
-  Util::constant_initialize(bias3.p_data, 0.0, conv_O3);
+  Util::constant_initialize<float>(bias3.p_data, 0.0, conv_O3);
 
   LogicalCube<DataType_SFFloat, Layout_CRDB> kernel4(1, 1, conv_O3, conv_O4);
   LogicalCube<DataType_SFFloat, Layout_CRDB> bias4(1, 1, conv_O4, 1);
   Util::xavier_initialize(kernel4.p_data, 1*1*conv_O3*conv_O4, B);
-  Util::constant_initialize(bias4.p_data, 0.0, conv_O4);
+  Util::constant_initialize<float>(bias4.p_data, 0.0, conv_O4);
 
   LogicalCube<DataType_SFFloat, Layout_CRDB> data1(NULL, R1, C1, D, B); // must be initialized to point to next mini batch
   LogicalCube<DataType_SFFloat, Layout_CRDB> grad1(R1, C1, D, B);
@@ -378,7 +383,7 @@ void LeNet(const char * file) {
       grad1.reset_cube(); data2.reset_cube(); grad2.reset_cube(); data3.reset_cube(); grad3.reset_cube();
       data4.reset_cube(); grad4.reset_cube(); data5.reset_cube(); grad5.reset_cube(); data6.reset_cube();
       grad6.reset_cube(); data7.reset_cube(); grad7.reset_cube(); data8.reset_cube(); grad8.reset_cube();
-      Util::constant_initialize(grad9.p_data, 1.0, R5*C5*conv_O4*B); //initialize to 1 for backprop
+      Util::constant_initialize<float>(grad9.p_data, 1.0, R5*C5*conv_O4*B); //initialize to 1 for backprop
 
       cout << "FORWARD PASS" << endl;
       // forward pass
@@ -443,7 +448,7 @@ void LeNet(const char * file) {
     grad1.reset_cube(); data2.reset_cube(); grad2.reset_cube(); data3.reset_cube(); grad3.reset_cube();
     data4.reset_cube(); grad4.reset_cube(); data5.reset_cube(); grad5.reset_cube(); data6.reset_cube();
     grad6.reset_cube(); data7.reset_cube(); grad7.reset_cube(); data8.reset_cube(); grad8.reset_cube();
-    Util::constant_initialize(grad9.p_data, 1.0, R5*C5*conv_O4*B); //initialize to 1 for backprop
+    Util::constant_initialize<float>(grad9.p_data, 1.0, R5*C5*conv_O4*B); //initialize to 1 for backprop
 
     //cout << "FORWARD PASS" << endl;
     // forward pass
