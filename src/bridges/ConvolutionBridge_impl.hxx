@@ -204,6 +204,20 @@ backward() {
   LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->p_data, mB, mR*mC*mD, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(p_backward_outputgrad->p_data, mB, (iR-mR+1)*(iC-mC+1)*iB, 1, 1);
 
+  // (4) update the bias term, summing over the gradients for each O and B
+  const size_t output_feature_size = oR*oC;
+  DataType * const bias_term = p_bias_cube->p_data;
+  for (size_t o_b = 0; o_b < oB; ++o_b) {
+    for (size_t o_d = 0; o_d < oD; ++o_d) {
+      const LogicalMatrix<DataType> input_grad_slice = p_output_layer->p_gradient_cube->get_logical_matrix(o_d, o_b);
+      DataType sum = DataType(0.0);
+      for (size_t i = 0; i < output_feature_size; ++i) {
+        sum += input_grad_slice.p_data[i];
+      }
+      bias_term[o_d] += stepsize*sum;
+    }
+  }
+
   // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
   p_backward_outputgrad->template remap_output<LOWERING_TYPE1>(oB /*O*/, mB /*B*/, (iR-mR+1)*(iC-mC+1) /*kernel_size*/);
 
@@ -219,19 +233,19 @@ backward() {
   p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
   this->report_backward_updateweight_last_transfer.end();
 
-  // (4) update the bias term, summing over the gradients for each O and B
-  const size_t output_feature_size = oR*oC;
-  DataType * const bias_term = p_bias_cube->p_data;
-  for (size_t o_b = 0; o_b < oB; ++o_b) {
-    for (size_t o_d = 0; o_d < oD; ++o_d) {
-      const LogicalMatrix<DataType> input_grad_slice = p_output_layer->p_gradient_cube->get_logical_matrix(o_d, o_b);
-      DataType sum = DataType(0.0);
-      for (size_t i = 0; i < output_feature_size; ++i) {
-        sum += input_grad_slice.p_data[i];
-      }
-      bias_term[o_d] += stepsize*sum;
-    }
-  }
+  // // (4) update the bias term, summing over the gradients for each O and B
+  // const size_t output_feature_size = oR*oC;
+  // DataType * const bias_term = p_bias_cube->p_data;
+  // for (size_t o_b = 0; o_b < oB; ++o_b) {
+  //   for (size_t o_d = 0; o_d < oD; ++o_d) {
+  //     const LogicalMatrix<DataType> input_grad_slice = p_output_layer->p_gradient_cube->get_logical_matrix(o_d, o_b);
+  //     DataType sum = DataType(0.0);
+  //     for (size_t i = 0; i < output_feature_size; ++i) {
+  //       sum += input_grad_slice.p_data[i];
+  //     }
+  //     bias_term[o_d] += stepsize*sum;
+  //   }
+  // }
 
   if (FUNC != FUNC_NOFUNC) {
     this->report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_element_mul_kernel->report_last_lowering);

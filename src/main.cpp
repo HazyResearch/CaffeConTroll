@@ -449,7 +449,7 @@ void LeNet(const char * file) {
       
       //cout << "conv1" << endl;
     }
-    cout << "LOSS:" << epoch_loss/(num_mini_batches-1) << endl;
+    cout << "LOSS:" << epoch_loss/(corpus->num_mini_batches-1) << endl;
     // compute very last batch
     // data1.B = last_B; grad1.B = last_B;
     // data2.B = last_B; grad2.B = last_B;
