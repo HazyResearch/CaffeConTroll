@@ -62,7 +62,6 @@ void Corpus::initialize_input_data_and_labels(cnn::LayerParameter& layer_param) 
     mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
     datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
     const string& data = datum.data();
-    op = MDB_NEXT;
     int img_label = datum.label();
     labels->p_data[b] = img_label;
     float * const single_input_batch = images->physical_get_RCDslice(b);
@@ -70,12 +69,13 @@ void Corpus::initialize_input_data_and_labels(cnn::LayerParameter& layer_param) 
       for (size_t r = 0; r < n_rows; ++r) {
         for (size_t c = 0; c < n_cols; ++c) {
           //float datum_element = static_cast<float>(static_cast<uint8_t>(data[d*n_rows*n_cols+r*n_cols+c]));
-          float datum_element = static_cast<float>(data[d*n_rows*n_cols+r*n_cols+c]);
-          //single_input_batch[d*n_rows*n_cols+r*n_cols+c] = datum_element;
-          single_input_batch[d*n_rows*n_cols+r*n_cols+c] = rand()%10;
+          float datum_element = static_cast<float>(static_cast<uint8_t>(data[d*n_rows*n_cols+r*n_cols+c]));
+          single_input_batch[d*n_rows*n_cols+r*n_cols+c] = 1.0*0.00390625*unsigned(datum_element)/255;
+          //single_input_batch[d*n_rows*n_cols+r*n_cols+c] = rand()%10;
         }
       }
     }
+    op = MDB_NEXT;
   }
 }
 

@@ -210,6 +210,7 @@ void LeNet(const char * file) {
   Parser::ReadNetParamsFromTextFile(solver_param.net(), &net_param);
   // Build Network
   cnn::Datum train_data;
+
   //cnn::Datum test_data;
   //int n_label = 10;
 
@@ -365,15 +366,14 @@ void LeNet(const char * file) {
       cout << "BATCH: " << batch << endl;
       // initialize data1 for this mini batch
       float * const mini_batch = corpus->images->physical_get_RCDslice(corpus_batch_index);
-      corpus_batch_index += B;
       data1.p_data = mini_batch;
-
+      //data1.logical_print();
       // reset loss
       softmax.loss = 0.0;
 
       // initialize labels for this mini batch
       labels.p_data = corpus->labels->physical_get_RCDslice(corpus_batch_index);
-
+      corpus_batch_index += B;
       // clear data and grad outputs for this batch (but not the weights and biases!)
       grad1.reset_cube(); data2.reset_cube(); grad2.reset_cube(); data3.reset_cube(); grad3.reset_cube();
       data4.reset_cube(); grad4.reset_cube(); data5.reset_cube(); grad5.reset_cube(); data6.reset_cube();
@@ -400,7 +400,6 @@ void LeNet(const char * file) {
       //cout << "softmax" << endl;
 
       cout << "LOSS: " << softmax.loss << endl;
-
       cout << "BACKWARD PASS" << endl;
       // backward pass
       softmax.backward();
@@ -418,6 +417,7 @@ void LeNet(const char * file) {
       pool1.backward();
       //cout << "pool1" << endl;
       conv1.backward();
+      
       //cout << "conv1" << endl;
     }
     // compute very last batch
