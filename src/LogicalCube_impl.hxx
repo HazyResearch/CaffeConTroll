@@ -86,8 +86,8 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::lower_logica
   const size_t inverted_kernel_height = m->R - kernel_size + 1;
   const size_t inverted_kernel_width = matrix_C - kernel_size + 1;
 
-  const size_t dst_row_base = d_i*kernel_size*kernel_size;
-  const size_t dst_col_base = b_i*inverted_kernel_height*inverted_kernel_width;
+  const size_t dst_row_base = d_i * kernel_size * kernel_size;
+  const size_t dst_col_base = b_i * inverted_kernel_height * inverted_kernel_width;
 
   for (size_t i = 0, dst_row_i = dst_row_base, src_i = 0; i < kernel_size;
       ++i, dst_row_i += kernel_size, src_i += matrix_C) {
@@ -110,7 +110,7 @@ template<typename T, LayoutType LAYOUT>
 template<typename DUMMY>
 void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::lower_logical_matrix(const LogicalCube<T,
     LAYOUT>& cube, const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i,
-    const int kernel_size, const size_t stride, const int padding) {
+    const int kernel_size, const int stride, const int padding) {
 
   const T * const m_data = m->p_data;
   const int height = m->R;
@@ -122,15 +122,19 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::lower_logica
   const size_t dst_row_base = d_i * kernel_size * kernel_size;
   const size_t dst_col_base = b_i * inverted_kernel_height * inverted_kernel_width / stride / stride;
 
-  const int new_width = width + 2 * padding - kernel_size + stride - 1;
-  const int new_height = height + 2 * padding - kernel_size + stride - 1;
+  const int num_height_windows = (height + 2 * padding - kernel_size) / stride + 1; // number of convolution "windows" row-wise
+  const int num_width_windows = (width + 2 * padding - kernel_size) / stride + 1; // number of convolution "windows" column-wise
 
-  for (int i = -padding, dst_col = dst_col_base; i < new_width; i+= stride) {
-    for (int j = -padding; j < new_height; j+= stride, ++dst_col) {
-
-      for (int src_row = i, dst_row_i = dst_row_base; src_row < kernel_size + i; ++src_row, dst_row_i += kernel_size) {
-        for (int src_col = j, dst_row = dst_row_i; src_col < kernel_size + j; ++src_col, ++dst_row) {
-
+  // i & j keep track of which "window" we're currently calculating. Incremented by 1 each time.
+  // src_row_base and src_col_base indicate the starting indices for the window. Incremented by stride length each time.
+  // dst_col increases every time we calculate a new windo. Incremented by 1 each time.
+  for (int src_row_base = -padding, i = 0, dst_col = dst_col_base; i < num_height_windows; src_row_base += stride, ++i) {
+    for (int src_col_base = -padding, j = 0; j < num_width_windows; src_col_base += stride, ++dst_col, ++j) {
+      // src_row and src_col start at src_row_base and src_col_base, respectively, and iterate a total of kernel_size times. Incremented by 1 each time.
+      // dst_row_i starts at dst_row_base. Incremented by kernel_size each time.
+      // dst_row starts at dst_row. Incremented by 1 each time.
+      for (int src_row = src_row_base, dst_row_i = dst_row_base; src_row < kernel_size + src_row_base; ++src_row, dst_row_i += kernel_size) {
+        for (int src_col = src_col_base, dst_row = dst_row_i; src_col < kernel_size + src_col_base; ++src_col, ++dst_row) {
           const size_t dst = dst_col + dst_row*cube.C;
           if (src_row < 0 || src_row >= width || src_col < 0 || src_col >= height) {
             cube.p_data[dst] = 0;
@@ -155,7 +159,7 @@ template<typename T, LayoutType LAYOUT>
 template<typename DUMMY>
 void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE2, DUMMY>::lower_logical_matrix(const LogicalCube<T,
     LAYOUT>& cube, const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i,
-    const int kernel_size, const size_t stride, const int padding) {
+    const int kernel_size, const int stride, const int padding) {
   // TODO: Lowering type 2, stride > 1, padding > 0
 }
 
@@ -171,7 +175,7 @@ template<typename T, LayoutType LAYOUT>
 template<typename DUMMY>
 void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE3, DUMMY>::lower_logical_matrix(const LogicalCube<T,
     LAYOUT>& cube, const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i,
-    const int kernel_size, const size_t stride, const int padding) {
+    const int kernel_size, const int stride, const int padding) {
   // TODO: Lowering type 3, stride > 1, padding > 0
 }
 

@@ -180,7 +180,7 @@ private:
 
       inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
           const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i, const int kernel_size,
-          const size_t stride, const int padding);
+          const int stride, const int padding);
 
       inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size);
     };
@@ -192,7 +192,7 @@ private:
 
       inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
           const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i, const int kernel_size,
-          const size_t stride, const int padding);
+          const int stride, const int padding);
 
       inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size);
     };
@@ -204,7 +204,7 @@ private:
 
       inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
           const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i, const int kernel_size,
-          const size_t stride, const int padding);
+          const int stride, const int padding);
 
       inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size);
     };

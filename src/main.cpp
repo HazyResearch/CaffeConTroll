@@ -58,20 +58,23 @@ using namespace std;
  *
  **/
 void TEST_LOWERING() {
-  const size_t N = 3;
-  const size_t K = 2; // size of the kernel/convolution window (K x K)
-  const size_t D = 2;
-  const size_t B = 3;
+  const size_t N = 5;
+  const size_t K = 3; // size of the kernel/convolution window (K x K)
+  const size_t D = 1;
+  const size_t B = 1;
+  const size_t stride = 3;
+  const size_t padding = 1;
 
   LogicalCube<DataType_FPFloat, Layout_CRDB> cube1(N, N, D, B);
-  LogicalCube<DataType_FPFloat, Layout_CRDB> cube2(K*K*D, (N-K+1)*(N-K+1)*B, 1, 1);
+  LogicalCube<DataType_FPFloat, Layout_CRDB> cube2(K*K*D, ((N + 2 * padding - K) / stride + 1)*((N + 2 * padding - K) / stride + 1)*B, 1, 1);
   cube2.reset_cube();
 
   BridgeConfig bconfig;
   bconfig.kernel_size = K;
-  bconfig.stride = 1;
+  bconfig.stride = stride;
+  bconfig.padding = padding;
 
-  for (size_t ct = 0, val = 0; ct < N*N*D*B; ct++, val++) {
+  for (size_t ct = 0, val = 1; ct < N*N*D*B; ct++, val++) {
     cube1.p_data[ct] = val;
   }
 
