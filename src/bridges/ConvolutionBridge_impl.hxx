@@ -204,7 +204,7 @@ backward() {
   LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->p_data, mB, mR*mC*mD, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(p_backward_outputgrad->p_data, mB, (iR-mR+1)*(iC-mC+1)*iB, 1, 1);
 
-  // (4) update the bias term, summing over the gradients for each O and B
+  // (3) update the bias term, summing over the gradients for each O and B
   const size_t output_feature_size = oR*oC;
   DataType * const bias_term = p_bias_cube->p_data;
   for (size_t o_b = 0; o_b < oB; ++o_b) {
@@ -227,25 +227,11 @@ backward() {
   //    - 2.2 undo the lowering (i.e., sum together all grad corresponding to the same unlowered position)
   p_forward_lower_connector->inverse_lower_cube(p_backward_inputgrad, p_input_layer->p_gradient_cube);
 
-  // (3) calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
+  // (4) calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
   p_backward_gemm_updateweight_kernel->alpha = -stepsize;
   p_backward_gemm_updateweight_kernel->beta = 1.0;
   p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
   this->report_backward_updateweight_last_transfer.end();
-
-  // // (4) update the bias term, summing over the gradients for each O and B
-  // const size_t output_feature_size = oR*oC;
-  // DataType * const bias_term = p_bias_cube->p_data;
-  // for (size_t o_b = 0; o_b < oB; ++o_b) {
-  //   for (size_t o_d = 0; o_d < oD; ++o_d) {
-  //     const LogicalMatrix<DataType> input_grad_slice = p_output_layer->p_gradient_cube->get_logical_matrix(o_d, o_b);
-  //     DataType sum = DataType(0.0);
-  //     for (size_t i = 0; i < output_feature_size; ++i) {
-  //       sum += input_grad_slice.p_data[i];
-  //     }
-  //     bias_term[o_d] += stepsize*sum;
-  //   }
-  // }
 
   if (FUNC != FUNC_NOFUNC) {
     this->report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_element_mul_kernel->report_last_lowering);
