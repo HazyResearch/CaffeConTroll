@@ -17,6 +17,7 @@
 #include "bridges/ConvolutionBridge.h"
 #include "bridges/SoftmaxLossBridge.h"
 #include "bridges/DropoutBridge.h"
+#include "bridges/LRNBridge.h"
 #include "Layer.h"
 //#include "bridges/ParallelizedBridge.h"
 #include "parser/parser.h"

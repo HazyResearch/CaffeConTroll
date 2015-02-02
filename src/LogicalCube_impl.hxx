@@ -81,24 +81,34 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::lower_logica
     const size_t kernel_size) {
 
   const size_t matrix_C = m->C;
+  const size_t matrix_R = m->R;
   const T * const m_data = m->p_data;
 
-  const size_t inverted_kernel_height = m->R - kernel_size + 1;
+  // if K == 1 or K == N (a fully connected layer)
+  // then we should simply copy over the original data into the lowered cube
+  if (kernel_size == m->C || kernel_size == 1) {
+    Util::_our_memcpy(cube.p_data, m_data, matrix_C * matrix_R * sizeof(T));
+    return;
+  }
+
+  const size_t inverted_kernel_height = matrix_R - kernel_size + 1;
   const size_t inverted_kernel_width = matrix_C - kernel_size + 1;
 
   const size_t dst_row_base = d_i * kernel_size * kernel_size;
   const size_t dst_col_base = b_i * inverted_kernel_height * inverted_kernel_width;
 
-  for (size_t i = 0, dst_row_i = dst_row_base, src_i = 0; i < kernel_size;
-      ++i, dst_row_i += kernel_size, src_i += matrix_C) {
-    for (size_t j = 0, dst_row = dst_row_i, src_i_j = src_i; j < kernel_size;
-        ++j, ++dst_row, ++src_i_j) {
-      //Same as: size_t dst_row = dst_row_base + i*kernel_size + j;
+  for (size_t src_i = 0, dst_row_i = dst_row_base; src_i < kernel_size * matrix_C;
+      dst_row_i += kernel_size, src_i += matrix_C) {
+    for (size_t src_i_j = src_i, dst_row = dst_row_i; src_i_j < kernel_size + src_i;
+        ++dst_row, ++src_i_j) {
+      // Same as: size_t dst_row = dst_row_base + i*kernel_size + j, where 0 <= i < kernel_size
+      // and 0 <= j < kernel_size
 
-      for (size_t k_r = 0, dst_col = dst_col_base, src = src_i_j; k_r < inverted_kernel_height;
-          ++k_r, dst_col += inverted_kernel_width, src += matrix_C) {
-        //Same as: size_t dst_col = dst_col_base + k_r*inverted_kernel_width;
-        //         size_t src = j + (i + k_r)*m-C;
+      for (size_t src = src_i_j, dst_col = dst_col_base; src < src_i_j + inverted_kernel_height * matrix_C;
+          dst_col += inverted_kernel_width, src += matrix_C) {
+        // Same as: size_t dst_col = dst_col_base + k_r*inverted_kernel_width,
+        //          size_t src = j + (i + k_r)*m->C,
+        //          where 0 <= k_r < inverted_kernel_height
         Util::_our_memcpy(&cube.p_data[dst_col + dst_row*cube.C], &m_data[src],
             inverted_kernel_width*sizeof(T));
       }
@@ -112,9 +122,9 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::lower_logica
     LAYOUT>& cube, const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i,
     const int kernel_size, const int stride, const int padding) {
 
-  const T * const m_data = m->p_data;
   const int height = m->R;
   const int width = m->C;
+  const T * const m_data = m->p_data;
 
   const size_t inverted_kernel_width = width + 2 * padding - kernel_size + 1;
   const size_t inverted_kernel_height = height + 2 * padding - kernel_size + 1;
@@ -126,13 +136,13 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::lower_logica
   const int num_width_windows = (width + 2 * padding - kernel_size) / stride + 1; // number of convolution "windows" column-wise
 
   // i & j keep track of which "window" we're currently calculating. Incremented by 1 each time.
-  // src_row_base and src_col_base indicate the starting indices for the window. Incremented by stride length each time.
+  // src_row_base and src_col_base indicate the starting indices for the window. Incremented by stride each time.
   // dst_col increases every time we calculate a new windo. Incremented by 1 each time.
   for (int src_row_base = -padding, i = 0, dst_col = dst_col_base; i < num_height_windows; src_row_base += stride, ++i) {
     for (int src_col_base = -padding, j = 0; j < num_width_windows; src_col_base += stride, ++dst_col, ++j) {
       // src_row and src_col start at src_row_base and src_col_base, respectively, and iterate a total of kernel_size times. Incremented by 1 each time.
       // dst_row_i starts at dst_row_base. Incremented by kernel_size each time.
-      // dst_row starts at dst_row. Incremented by 1 each time.
+      // dst_row starts at dst_row_i. Incremented by 1 each time.
       for (int src_row = src_row_base, dst_row_i = dst_row_base; src_row < kernel_size + src_row_base; ++src_row, dst_row_i += kernel_size) {
         for (int src_col = src_col_base, dst_row = dst_row_i; src_col < kernel_size + src_col_base; ++src_col, ++dst_row) {
           const size_t dst = dst_col + dst_row*cube.C;
