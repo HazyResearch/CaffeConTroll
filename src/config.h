@@ -11,9 +11,9 @@
 
 #ifdef DEBUG
 #define _DO_ASSERT
-#define _DO_WARNING
+//#define _DO_WARNING
 #endif
 
-#define _DEFAULT_STEPSIZE 0.01
+#define _DEFAULT_STEPSIZE 0.05
 
 #endif

@@ -260,7 +260,7 @@ void LeNet(const char * file) {
   cout << "LAST BATCH SIZE: " << corpus->last_batch_size << endl;
 
   Timer t = Timer();
-  const size_t num_epochs = 30;
+  const size_t num_epochs = 100;
   const size_t R1 = corpus->n_rows;
   const size_t C1 = corpus->n_cols;
   const size_t D = corpus->dim;
@@ -388,11 +388,11 @@ void LeNet(const char * file) {
     // num_mini_batches - 1, because we need one more iteration for the final mini batch
     // (the last mini batch may not be the same size as the rest of the mini batches)
     size_t corpus_batch_index = 0;
-    for (size_t batch = 0; batch < corpus->num_mini_batches - 1; ++batch) {
-      if( batch % 100 == 0){
-        cout << "BATCH: " << batch << endl;  
-      }
-      
+    for (size_t batch = 0; batch < 500; ++batch) {
+      // if( batch % 100 == 0){
+      //   cout << "BATCH: " << batch << endl;  
+      // }
+      cout << "BATCH: " << batch << endl;
       // initialize data1 for this mini batch
       float * const mini_batch = corpus->images->physical_get_RCDslice(corpus_batch_index);
       data1.p_data = mini_batch;
@@ -402,10 +402,11 @@ void LeNet(const char * file) {
 
       // initialize labels for this mini batch
       labels.p_data = corpus->labels->physical_get_RCDslice(corpus_batch_index);
+      //labels.logical_print();
       corpus_batch_index += B;
       // clear data and grad outputs for this batch (but not the weights and biases!)
-      grad1.reset_cube(); data2.reset_cube(); grad2.reset_cube(); data3.reset_cube(); grad3.reset_cube();
-      data4.reset_cube(); grad4.reset_cube(); data5.reset_cube(); grad5.reset_cube(); data6.reset_cube();
+      grad1.reset_cube(); data2.reset_cube(); grad2.reset_cube(); data3.reset_cube(-1000.0); grad3.reset_cube();
+      data4.reset_cube(); grad4.reset_cube(); data5.reset_cube(-1000.0); grad5.reset_cube(); data6.reset_cube();
       grad6.reset_cube(); data7.reset_cube(); grad7.reset_cube(); data8.reset_cube(); grad8.reset_cube();
       //Util::constant_initialize<float>(grad9.p_data, 1.0, 1*1*conv_O4*B); //initialize to 1 for backprop
 
@@ -427,8 +428,7 @@ void LeNet(const char * file) {
       //cout << "ip2" << endl;
       softmax.forward();
       //cout << "softmax" << endl;
-      epoch_loss += (softmax.loss/B);
-      //cout << "LOSS: " << (softmax.loss/B) << endl;
+      cout << "LOSS: " << (softmax.loss/B) << endl;
       //cout << "BACKWARD PASS" << endl;
       // backward pass
       softmax.backward();
@@ -449,7 +449,7 @@ void LeNet(const char * file) {
       
       //cout << "conv1" << endl;
     }
-    cout << "LOSS:" << epoch_loss/(corpus->num_mini_batches-1) << endl;
+    //cout << "LOSS:" << epoch_loss/(corpus->num_mini_batches-1) << endl;
     // compute very last batch
     // data1.B = last_B; grad1.B = last_B;
     // data2.B = last_B; grad2.B = last_B;

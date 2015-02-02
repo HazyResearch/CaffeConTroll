@@ -12,9 +12,9 @@ template <typename DataType>
 DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::DropoutBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer, const float _dropout_ratio)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer),
  dropout_ratio(_dropout_ratio) {
-  report_forward_constructor.reset();
-  report_forward_last_transfer.reset();
-  report_forward_history.reset();
+  this->report_forward_constructor.reset();
+  this->report_forward_last_transfer.reset();
+  this->report_forward_history.reset();
 #ifdef _DO_ASSERT
   assert(oR == iR); assert(oC == iC);
   assert(oB == iB); assert(oD == iD);
@@ -26,7 +26,7 @@ DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::DropoutBridge(Input
   mask_cube = new LogicalCube<unsigned int, Layout_CRDB>(iR, iC, iD, iB);
   Util::bernoulli_initialize(mask_cube->p_data, iR*iC*iD*iB, 1. - dropout_ratio);
 
-  report_forward_constructor.end(0, 0, 0);
+  this->report_forward_constructor.end(0, 0, 0);
 }
 
 /**
@@ -35,7 +35,7 @@ DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::DropoutBridge(Input
 template <typename DataType>
 void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
 
-  report_forward_last_transfer.reset();
+  this->report_forward_last_transfer.reset();
 
   const size_t num_elements = p_input_layer->p_data_cube->n_elements;
 #ifdef _DO_ASSERT
@@ -49,8 +49,8 @@ void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
     output_data[i] = input_data[i] * mask[i] * scale;
   }
 
-  report_forward_last_transfer.end();
-  report_forward_history.aggregate(report_forward_last_transfer);
+  this->report_forward_last_transfer.end();
+  this->report_forward_history.aggregate(report_forward_last_transfer);
 }
 
 
@@ -60,7 +60,7 @@ void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
 template <typename DataType>
 void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
 
-  report_backward_updateweight_last_transfer.reset();
+  this->report_backward_updateweight_last_transfer.reset();
 
   const size_t num_elements = p_input_layer->p_data_cube->n_elements;
 #ifdef _DO_ASSERT
@@ -76,8 +76,8 @@ void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
     input_gradient[i] = output_gradient[i] * mask[i] * scale;
   }
 
-  report_backward_updateweight_last_transfer.end();
-  report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
+  this->report_backward_updateweight_last_transfer.end();
+  this->report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
 }
 
 template <typename DataType>

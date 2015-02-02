@@ -214,7 +214,7 @@ backward() {
       for (size_t i = 0; i < output_feature_size; ++i) {
         sum += input_grad_slice.p_data[i];
       }
-      bias_term[o_d] += stepsize*sum;
+      bias_term[o_d] -= stepsize*sum;
     }
   }
 

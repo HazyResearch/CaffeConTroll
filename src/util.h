@@ -57,7 +57,7 @@ class Util {
     }
 
     template <typename T>
-    static inline void bernoulli_initialize(T * const arr, const size_t n_arr_elements, const T p) {
+    static inline void bernoulli_initialize(unsigned int * const arr, const size_t n_arr_elements, const T p) {
       mt19937 gen(rd());
 
       bernoulli_distribution bern(p);
