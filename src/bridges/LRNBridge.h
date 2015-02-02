@@ -1,5 +1,5 @@
 //
-//  RELUBridge.h
+//  LRNBridge.h
 //  moka
 //
 //  Created by Firas Abuzaid on 1/22/15.
@@ -10,18 +10,18 @@
 #include "AbstractBridge.h"
 #include "../util.h"
 
-#ifndef moka_Dropout_Bridge_h
-#define moka_Dropout_Bridge_h
+#ifndef moka_LRN_Bridge_h
+#define moka_LRN_Bridge_h
 
 template
 <typename InputLayerDataType, LayoutType InputLayerLayout, typename OutputLayerDataType, LayoutType OutputLayerLayout>
-class DropoutBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType, OutputLayerLayout> {
+class LRNBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType, OutputLayerLayout> {
   public:
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
 
-    DropoutBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-        const float _dropout_ratio) {
+    LRNBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer, const float _alpha,
+        const float _beta, const size_t _local_size) {
       NOT_IMPLEMENTED;
     }
 
@@ -38,7 +38,7 @@ class DropoutBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout
  * Specializations
  */
 template <typename DataType>
-class DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> {
+class LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> {
   public:
     /* Re-declare these member fields so that they don't have to be resolved using vtable lookups */
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_forward_constructor;
@@ -64,20 +64,22 @@ class DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Abstr
     typedef Layer<DataType, Layout_CRDB> InputLayerType;
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
 
-    DropoutBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-        const float _dropout_ratio);
-    ~DropoutBridge();
+    LRNBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer, const float _alpha,
+        const float _beta, const size_t _local_size);
+    ~LRNBridge();
 
     void forward();
     void backward();
 
-    const float dropout_ratio;
+    const float alpha;
+    const float beta;
+    const size_t local_size;
 
   private:
-    LogicalCube<unsigned int, Layout_CRDB> * mask_cube;
-    float scale;
+    LogicalCube<DataType, Layout_CRDB> * denoms;
+
 };
 
-#include "DropoutBridge_impl.hxx"
+#include "LRNBridge_impl.hxx"
 
 #endif

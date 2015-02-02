@@ -8,8 +8,10 @@
 
 #ifndef moka_DropoutBridge_impl_hxx
 #define moka_DropoutBridge_impl_hxx
+
 template <typename DataType>
-DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::DropoutBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer, const float _dropout_ratio)
+DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::DropoutBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
+    const float _dropout_ratio)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer),
  dropout_ratio(_dropout_ratio) {
   this->report_forward_constructor.reset();
