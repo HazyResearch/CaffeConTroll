@@ -57,7 +57,7 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
             if (channel < 0 || channel >= iD) {
               continue; // in the padding region, so we're adding 0
             }
-            sum += pow(i_c + i_r*iC + channel*iR*iC, 2);
+            sum += pow(*p_input_layer->p_data_cube->logical_get(i_r, i_c, channel, i_b), 2);
           }
           const DataType denom_no_exponent = alpha_over_size * sum + 1;
           const DataType denom = pow(denom_no_exponent, beta);
@@ -96,7 +96,7 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
           const DataType denom_no_exponent = *denoms->logical_get(o_r, o_c, o_d, o_b);
           const DataType denom = pow(denom_no_exponent, beta);
           const DataType input_data = *p_input_layer->p_data_cube->logical_get(o_r, o_c, o_d, o_b);
-          const DataType input_grad = (denom + input_data * beta * alpha_over_size * pow(denom_no_exponent, beta - 1)) / pow(denom, 2);
+          const DataType input_grad = (denom - 2*pow(input_data,2) * beta * alpha_over_size * pow(denom_no_exponent, beta - 1)) / pow(denom, 2);
           *p_input_layer->p_gradient_cube->logical_get(o_r, o_c, o_d, o_b) = input_grad * output_grad;
         }
       }
