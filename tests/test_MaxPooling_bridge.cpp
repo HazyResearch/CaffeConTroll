@@ -50,10 +50,10 @@ class MaxPoolingBridgeTest : public ::testing::Test {
 
     BridgeConfig * bconfig;
 
-    static const int mB = 2;
+    static const int mB = 10;
     static const int iD = 3;
-    static const int iR = 28;
-    static const int iC = 21;
+    static const int iR = 10;
+    static const int iC = 10;
     static const int k = 2;
     static const int s = 2;
     static const int p = 0;
