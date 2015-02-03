@@ -14,6 +14,6 @@
 //#define _DO_WARNING
 #endif
 
-#define _DEFAULT_STEPSIZE 0.05
+#define _DEFAULT_STEPSIZE 0.01
 
 #endif

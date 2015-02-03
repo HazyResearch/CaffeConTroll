@@ -22,8 +22,10 @@
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/message_lite.h>
+#include "parser.h"
 #include "lmdb.h"
 #include "cnn.pb.h"
+
 
 #include "../LogicalCube.h"
 
@@ -42,6 +44,8 @@ class Corpus {
     LogicalCube<DataType_SFFloat, Layout_CRDB>* images;
     // 1 x 1 x 1 x n_images
     LogicalCube<DataType_SFFloat, Layout_CRDB>* labels;
+    // n_rows x n_cols x dim x 1
+    LogicalCube<DataType_SFFloat, Layout_CRDB>* mean;
 
     Corpus(cnn::LayerParameter& layer_param);
     ~Corpus();

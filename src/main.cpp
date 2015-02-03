@@ -20,7 +20,7 @@
 #include "bridges/LRNBridge.h"
 #include "Layer.h"
 //#include "bridges/ParallelizedBridge.h"
-#include "parser/parser.h"
+//#include "parser/parser.h"
 #include "parser/corpus.h"
 #include "util.h"
 

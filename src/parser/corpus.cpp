@@ -14,6 +14,7 @@ Corpus::Corpus(cnn::LayerParameter& layer_param) {
 
 void Corpus::initialize_input_data_and_labels(cnn::LayerParameter& layer_param) {
   cnn::Datum datum;
+  cnn::Cube cube;
   MDB_env* mdb_env_ = NULL;
   MDB_dbi mdb_dbi_;
   MDB_txn* mdb_txn_;
@@ -55,7 +56,22 @@ void Corpus::initialize_input_data_and_labels(cnn::LayerParameter& layer_param) 
 
   images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, n_images);
   labels = new LogicalCube<DataType_SFFloat, Layout_CRDB>(1, 1, 1, n_images);
+  mean = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, 1);
+  
+  if (layer_param.transform_param().has_mean_file()){
+    const string& mean_file = layer_param.transform_param().mean_file();
+    Parser::ReadProtoFromBinaryFile(mean_file.c_str(), &cube);
+    const int count_ = n_rows* n_cols* dim;
+    for (int i = 0; i < count_; ++i) {
+      mean->p_data[i] = cube.data(i);
+    }
+  }
+  else{
+    mean->reset_cube();
+  }
+  
 
+  
   MDB_cursor_op op = MDB_FIRST;
 
   for (size_t b = 0; b < n_images; b++) {
@@ -69,17 +85,20 @@ void Corpus::initialize_input_data_and_labels(cnn::LayerParameter& layer_param) 
       for (size_t r = 0; r < n_rows; ++r) {
         for (size_t c = 0; c < n_cols; ++c) {
           //float datum_element = static_cast<float>(static_cast<uint8_t>(data[d*n_rows*n_cols+r*n_cols+c]));
+          const int data_index = d*n_rows*n_cols+r*n_cols+c;
           float datum_element = static_cast<float>(static_cast<uint8_t>(data[d*n_rows*n_cols+r*n_cols+c]));
-          single_input_batch[d*n_rows*n_cols+r*n_cols+c] = datum_element*0.00390625;
+          single_input_batch[data_index] = (datum_element - mean->p_data[data_index])*0.00390625;
           //single_input_batch[d*n_rows*n_cols+r*n_cols+c] = rand()%10;
         }
       }
     }
     op = MDB_NEXT;
   }
+
 }
 
 Corpus::~Corpus() {
   delete images;
   delete labels;
+  delete mean;
 }

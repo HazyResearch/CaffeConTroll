@@ -20,6 +20,9 @@ namespace cnn {
 
 namespace {
 
+const ::google::protobuf::Descriptor* Cube_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  Cube_reflection_ = NULL;
 const ::google::protobuf::Descriptor* Datum_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   Datum_reflection_ = NULL;
@@ -150,13 +153,33 @@ void protobuf_AssignDesc_cnn_2eproto() {
     ::google::protobuf::DescriptorPool::generated_pool()->FindFileByName(
       "cnn.proto");
   GOOGLE_CHECK(file != NULL);
-  Datum_descriptor_ = file->message_type(0);
-  static const int Datum_offsets_[5] = {
+  Cube_descriptor_ = file->message_type(0);
+  static const int Cube_offsets_[5] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Cube, num_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Cube, channels_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Cube, height_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Cube, width_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Cube, data_),
+  };
+  Cube_reflection_ =
+    new ::google::protobuf::internal::GeneratedMessageReflection(
+      Cube_descriptor_,
+      Cube::default_instance_,
+      Cube_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Cube, _has_bits_[0]),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Cube, _unknown_fields_),
+      -1,
+      ::google::protobuf::DescriptorPool::generated_pool(),
+      ::google::protobuf::MessageFactory::generated_factory(),
+      sizeof(Cube));
+  Datum_descriptor_ = file->message_type(1);
+  static const int Datum_offsets_[6] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Datum, channels_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Datum, height_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Datum, width_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Datum, data_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Datum, label_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Datum, float_data_),
   };
   Datum_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -169,7 +192,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(Datum));
-  FillerParameter_descriptor_ = file->message_type(1);
+  FillerParameter_descriptor_ = file->message_type(2);
   static const int FillerParameter_offsets_[7] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(FillerParameter, type_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(FillerParameter, value_),
@@ -190,7 +213,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(FillerParameter));
-  NetParameter_descriptor_ = file->message_type(2);
+  NetParameter_descriptor_ = file->message_type(3);
   static const int NetParameter_offsets_[5] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(NetParameter, name_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(NetParameter, layers_),
@@ -209,7 +232,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(NetParameter));
-  SolverParameter_descriptor_ = file->message_type(3);
+  SolverParameter_descriptor_ = file->message_type(4);
   static const int SolverParameter_offsets_[33] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SolverParameter, net_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SolverParameter, net_param_),
@@ -258,7 +281,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       sizeof(SolverParameter));
   SolverParameter_SolverMode_descriptor_ = SolverParameter_descriptor_->enum_type(0);
   SolverParameter_SolverType_descriptor_ = SolverParameter_descriptor_->enum_type(1);
-  NetState_descriptor_ = file->message_type(4);
+  NetState_descriptor_ = file->message_type(5);
   static const int NetState_offsets_[3] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(NetState, phase_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(NetState, level_),
@@ -275,7 +298,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(NetState));
-  NetStateRule_descriptor_ = file->message_type(5);
+  NetStateRule_descriptor_ = file->message_type(6);
   static const int NetStateRule_offsets_[5] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(NetStateRule, phase_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(NetStateRule, min_level_),
@@ -294,7 +317,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(NetStateRule));
-  LayerParameter_descriptor_ = file->message_type(6);
+  LayerParameter_descriptor_ = file->message_type(7);
   static const int LayerParameter_offsets_[35] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(LayerParameter, bottom_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(LayerParameter, top_),
@@ -344,7 +367,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(LayerParameter));
   LayerParameter_LayerType_descriptor_ = LayerParameter_descriptor_->enum_type(0);
-  TransformationParameter_descriptor_ = file->message_type(7);
+  TransformationParameter_descriptor_ = file->message_type(8);
   static const int TransformationParameter_offsets_[4] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TransformationParameter, scale_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TransformationParameter, mirror_),
@@ -362,7 +385,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(TransformationParameter));
-  AccuracyParameter_descriptor_ = file->message_type(8);
+  AccuracyParameter_descriptor_ = file->message_type(9);
   static const int AccuracyParameter_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(AccuracyParameter, top_k_),
   };
@@ -377,7 +400,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(AccuracyParameter));
-  ArgMaxParameter_descriptor_ = file->message_type(9);
+  ArgMaxParameter_descriptor_ = file->message_type(10);
   static const int ArgMaxParameter_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ArgMaxParameter, out_max_val_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ArgMaxParameter, top_k_),
@@ -393,7 +416,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(ArgMaxParameter));
-  ConcatParameter_descriptor_ = file->message_type(10);
+  ConcatParameter_descriptor_ = file->message_type(11);
   static const int ConcatParameter_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ConcatParameter, concat_dim_),
   };
@@ -408,7 +431,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(ConcatParameter));
-  ContrastiveLossParameter_descriptor_ = file->message_type(11);
+  ContrastiveLossParameter_descriptor_ = file->message_type(12);
   static const int ContrastiveLossParameter_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ContrastiveLossParameter, margin_),
   };
@@ -423,7 +446,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(ContrastiveLossParameter));
-  ConvolutionParameter_descriptor_ = file->message_type(12);
+  ConvolutionParameter_descriptor_ = file->message_type(13);
   static const int ConvolutionParameter_offsets_[15] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ConvolutionParameter, num_output_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ConvolutionParameter, bias_term_),
@@ -453,7 +476,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(ConvolutionParameter));
   ConvolutionParameter_Engine_descriptor_ = ConvolutionParameter_descriptor_->enum_type(0);
-  DataParameter_descriptor_ = file->message_type(13);
+  DataParameter_descriptor_ = file->message_type(14);
   static const int DataParameter_offsets_[8] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(DataParameter, source_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(DataParameter, batch_size_),
@@ -476,7 +499,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(DataParameter));
   DataParameter_DB_descriptor_ = DataParameter_descriptor_->enum_type(0);
-  DropoutParameter_descriptor_ = file->message_type(14);
+  DropoutParameter_descriptor_ = file->message_type(15);
   static const int DropoutParameter_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(DropoutParameter, dropout_ratio_),
   };
@@ -491,7 +514,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(DropoutParameter));
-  DummyDataParameter_descriptor_ = file->message_type(15);
+  DummyDataParameter_descriptor_ = file->message_type(16);
   static const int DummyDataParameter_offsets_[5] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(DummyDataParameter, data_filler_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(DummyDataParameter, num_),
@@ -510,7 +533,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(DummyDataParameter));
-  EltwiseParameter_descriptor_ = file->message_type(16);
+  EltwiseParameter_descriptor_ = file->message_type(17);
   static const int EltwiseParameter_offsets_[3] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(EltwiseParameter, operation_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(EltwiseParameter, coeff_),
@@ -528,7 +551,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(EltwiseParameter));
   EltwiseParameter_EltwiseOp_descriptor_ = EltwiseParameter_descriptor_->enum_type(0);
-  ThresholdParameter_descriptor_ = file->message_type(17);
+  ThresholdParameter_descriptor_ = file->message_type(18);
   static const int ThresholdParameter_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ThresholdParameter, threshold_),
   };
@@ -543,7 +566,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(ThresholdParameter));
-  HDF5DataParameter_descriptor_ = file->message_type(18);
+  HDF5DataParameter_descriptor_ = file->message_type(19);
   static const int HDF5DataParameter_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HDF5DataParameter, source_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HDF5DataParameter, batch_size_),
@@ -559,7 +582,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(HDF5DataParameter));
-  HDF5OutputParameter_descriptor_ = file->message_type(19);
+  HDF5OutputParameter_descriptor_ = file->message_type(20);
   static const int HDF5OutputParameter_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HDF5OutputParameter, file_name_),
   };
@@ -574,7 +597,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(HDF5OutputParameter));
-  HingeLossParameter_descriptor_ = file->message_type(20);
+  HingeLossParameter_descriptor_ = file->message_type(21);
   static const int HingeLossParameter_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HingeLossParameter, norm_),
   };
@@ -590,7 +613,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(HingeLossParameter));
   HingeLossParameter_Norm_descriptor_ = HingeLossParameter_descriptor_->enum_type(0);
-  ImageDataParameter_descriptor_ = file->message_type(21);
+  ImageDataParameter_descriptor_ = file->message_type(22);
   static const int ImageDataParameter_offsets_[10] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImageDataParameter, source_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImageDataParameter, batch_size_),
@@ -614,7 +637,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(ImageDataParameter));
-  InfogainLossParameter_descriptor_ = file->message_type(22);
+  InfogainLossParameter_descriptor_ = file->message_type(23);
   static const int InfogainLossParameter_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(InfogainLossParameter, source_),
   };
@@ -629,7 +652,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(InfogainLossParameter));
-  InnerProductParameter_descriptor_ = file->message_type(23);
+  InnerProductParameter_descriptor_ = file->message_type(24);
   static const int InnerProductParameter_offsets_[4] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(InnerProductParameter, num_output_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(InnerProductParameter, bias_term_),
@@ -647,7 +670,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(InnerProductParameter));
-  LRNParameter_descriptor_ = file->message_type(24);
+  LRNParameter_descriptor_ = file->message_type(25);
   static const int LRNParameter_offsets_[4] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(LRNParameter, local_size_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(LRNParameter, alpha_),
@@ -666,7 +689,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(LRNParameter));
   LRNParameter_NormRegion_descriptor_ = LRNParameter_descriptor_->enum_type(0);
-  MemoryDataParameter_descriptor_ = file->message_type(25);
+  MemoryDataParameter_descriptor_ = file->message_type(26);
   static const int MemoryDataParameter_offsets_[4] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MemoryDataParameter, batch_size_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MemoryDataParameter, channels_),
@@ -684,7 +707,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(MemoryDataParameter));
-  MVNParameter_descriptor_ = file->message_type(26);
+  MVNParameter_descriptor_ = file->message_type(27);
   static const int MVNParameter_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MVNParameter, normalize_variance_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MVNParameter, across_channels_),
@@ -700,7 +723,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(MVNParameter));
-  PoolingParameter_descriptor_ = file->message_type(27);
+  PoolingParameter_descriptor_ = file->message_type(28);
   static const int PoolingParameter_offsets_[11] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(PoolingParameter, pool_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(PoolingParameter, pad_),
@@ -727,7 +750,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       sizeof(PoolingParameter));
   PoolingParameter_PoolMethod_descriptor_ = PoolingParameter_descriptor_->enum_type(0);
   PoolingParameter_Engine_descriptor_ = PoolingParameter_descriptor_->enum_type(1);
-  PowerParameter_descriptor_ = file->message_type(28);
+  PowerParameter_descriptor_ = file->message_type(29);
   static const int PowerParameter_offsets_[3] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(PowerParameter, power_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(PowerParameter, scale_),
@@ -744,7 +767,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(PowerParameter));
-  ReLUParameter_descriptor_ = file->message_type(29);
+  ReLUParameter_descriptor_ = file->message_type(30);
   static const int ReLUParameter_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ReLUParameter, negative_slope_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ReLUParameter, engine_),
@@ -761,7 +784,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(ReLUParameter));
   ReLUParameter_Engine_descriptor_ = ReLUParameter_descriptor_->enum_type(0);
-  SigmoidParameter_descriptor_ = file->message_type(30);
+  SigmoidParameter_descriptor_ = file->message_type(31);
   static const int SigmoidParameter_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SigmoidParameter, engine_),
   };
@@ -777,7 +800,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(SigmoidParameter));
   SigmoidParameter_Engine_descriptor_ = SigmoidParameter_descriptor_->enum_type(0);
-  SliceParameter_descriptor_ = file->message_type(31);
+  SliceParameter_descriptor_ = file->message_type(32);
   static const int SliceParameter_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SliceParameter, slice_dim_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SliceParameter, slice_point_),
@@ -793,7 +816,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(SliceParameter));
-  SoftmaxParameter_descriptor_ = file->message_type(32);
+  SoftmaxParameter_descriptor_ = file->message_type(33);
   static const int SoftmaxParameter_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SoftmaxParameter, engine_),
   };
@@ -809,7 +832,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(SoftmaxParameter));
   SoftmaxParameter_Engine_descriptor_ = SoftmaxParameter_descriptor_->enum_type(0);
-  TanHParameter_descriptor_ = file->message_type(33);
+  TanHParameter_descriptor_ = file->message_type(34);
   static const int TanHParameter_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TanHParameter, engine_),
   };
@@ -825,7 +848,7 @@ void protobuf_AssignDesc_cnn_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(TanHParameter));
   TanHParameter_Engine_descriptor_ = TanHParameter_descriptor_->enum_type(0);
-  WindowDataParameter_descriptor_ = file->message_type(34);
+  WindowDataParameter_descriptor_ = file->message_type(35);
   static const int WindowDataParameter_offsets_[11] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(WindowDataParameter, source_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(WindowDataParameter, scale_),
@@ -863,6 +886,8 @@ inline void protobuf_AssignDescriptorsOnce() {
 
 void protobuf_RegisterTypes(const ::std::string&) {
   protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+    Cube_descriptor_, &Cube::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     Datum_descriptor_, &Datum::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
@@ -938,6 +963,8 @@ void protobuf_RegisterTypes(const ::std::string&) {
 }  // namespace
 
 void protobuf_ShutdownFile_cnn_2eproto() {
+  delete Cube::default_instance_;
+  delete Cube_reflection_;
   delete Datum::default_instance_;
   delete Datum_reflection_;
   delete FillerParameter::default_instance_;
@@ -1020,9 +1047,12 @@ void protobuf_AddDesc_cnn_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-    "\n\tcnn.proto\022\003cnn\"U\n\005Datum\022\020\n\010channels\030\001 "
-    "\001(\005\022\016\n\006height\030\002 \001(\005\022\r\n\005width\030\003 \001(\005\022\014\n\004da"
-    "ta\030\004 \001(\014\022\r\n\005label\030\005 \001(\005\"\220\001\n\017FillerParame"
+    "\n\tcnn.proto\022\003cnn\"b\n\004Cube\022\016\n\003num\030\001 \001(\005:\0010"
+    "\022\023\n\010channels\030\002 \001(\005:\0010\022\021\n\006height\030\003 \001(\005:\0010"
+    "\022\020\n\005width\030\004 \001(\005:\0010\022\020\n\004data\030\005 \003(\002B\002\020\001\"i\n\005"
+    "Datum\022\020\n\010channels\030\001 \001(\005\022\016\n\006height\030\002 \001(\005\022"
+    "\r\n\005width\030\003 \001(\005\022\014\n\004data\030\004 \001(\014\022\r\n\005label\030\005 "
+    "\001(\005\022\022\n\nfloat_data\030\006 \003(\002\"\220\001\n\017FillerParame"
     "ter\022\026\n\004type\030\001 \001(\t:\010constant\022\020\n\005value\030\002 \001"
     "(\002:\0010\022\016\n\003min\030\003 \001(\002:\0010\022\016\n\003max\030\004 \001(\002:\0011\022\017\n"
     "\004mean\030\005 \001(\002:\0010\022\016\n\003std\030\006 \001(\002:\0011\022\022\n\006sparse"
@@ -1204,9 +1234,10 @@ void protobuf_AddDesc_cnn_2eproto() {
     "eshold\030\010 \001(\002:\0030.5\022\031\n\013fg_fraction\030\t \001(\002:\004"
     "0.25\022\026\n\013context_pad\030\n \001(\r:\0010\022\027\n\tcrop_mod"
     "e\030\013 \001(\t:\004warp*\034\n\005Phase\022\t\n\005TRAIN\020\000\022\010\n\004TES"
-    "T\020\001", 7363);
+    "T\020\001", 7483);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "cnn.proto", &protobuf_RegisterTypes);
+  Cube::default_instance_ = new Cube();
   Datum::default_instance_ = new Datum();
   FillerParameter::_default_type_ =
       new ::std::string("constant", 8);
@@ -1248,6 +1279,7 @@ void protobuf_AddDesc_cnn_2eproto() {
   WindowDataParameter::_default_crop_mode_ =
       new ::std::string("warp", 4);
   WindowDataParameter::default_instance_ = new WindowDataParameter();
+  Cube::default_instance_->InitAsDefaultInstance();
   Datum::default_instance_->InitAsDefaultInstance();
   FillerParameter::default_instance_->InitAsDefaultInstance();
   NetParameter::default_instance_->InitAsDefaultInstance();
@@ -1310,11 +1342,422 @@ bool Phase_IsValid(int value) {
 // ===================================================================
 
 #ifndef _MSC_VER
+const int Cube::kNumFieldNumber;
+const int Cube::kChannelsFieldNumber;
+const int Cube::kHeightFieldNumber;
+const int Cube::kWidthFieldNumber;
+const int Cube::kDataFieldNumber;
+#endif  // !_MSC_VER
+
+Cube::Cube()
+  : ::google::protobuf::Message() {
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:cnn.Cube)
+}
+
+void Cube::InitAsDefaultInstance() {
+}
+
+Cube::Cube(const Cube& from)
+  : ::google::protobuf::Message() {
+  SharedCtor();
+  MergeFrom(from);
+  // @@protoc_insertion_point(copy_constructor:cnn.Cube)
+}
+
+void Cube::SharedCtor() {
+  _cached_size_ = 0;
+  num_ = 0;
+  channels_ = 0;
+  height_ = 0;
+  width_ = 0;
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+Cube::~Cube() {
+  // @@protoc_insertion_point(destructor:cnn.Cube)
+  SharedDtor();
+}
+
+void Cube::SharedDtor() {
+  if (this != default_instance_) {
+  }
+}
+
+void Cube::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* Cube::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return Cube_descriptor_;
+}
+
+const Cube& Cube::default_instance() {
+  if (default_instance_ == NULL) protobuf_AddDesc_cnn_2eproto();
+  return *default_instance_;
+}
+
+Cube* Cube::default_instance_ = NULL;
+
+Cube* Cube::New() const {
+  return new Cube;
+}
+
+void Cube::Clear() {
+#define OFFSET_OF_FIELD_(f) (reinterpret_cast<char*>(      \
+  &reinterpret_cast<Cube*>(16)->f) - \
+   reinterpret_cast<char*>(16))
+
+#define ZR_(first, last) do {                              \
+    size_t f = OFFSET_OF_FIELD_(first);                    \
+    size_t n = OFFSET_OF_FIELD_(last) - f + sizeof(last);  \
+    ::memset(&first, 0, n);                                \
+  } while (0)
+
+  ZR_(num_, width_);
+
+#undef OFFSET_OF_FIELD_
+#undef ZR_
+
+  data_.Clear();
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  mutable_unknown_fields()->Clear();
+}
+
+bool Cube::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) goto failure
+  ::google::protobuf::uint32 tag;
+  // @@protoc_insertion_point(parse_start:cnn.Cube)
+  for (;;) {
+    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
+    tag = p.first;
+    if (!p.second) goto handle_unusual;
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // optional int32 num = 1 [default = 0];
+      case 1: {
+        if (tag == 8) {
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                 input, &num_)));
+          set_has_num();
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(16)) goto parse_channels;
+        break;
+      }
+
+      // optional int32 channels = 2 [default = 0];
+      case 2: {
+        if (tag == 16) {
+         parse_channels:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                 input, &channels_)));
+          set_has_channels();
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(24)) goto parse_height;
+        break;
+      }
+
+      // optional int32 height = 3 [default = 0];
+      case 3: {
+        if (tag == 24) {
+         parse_height:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                 input, &height_)));
+          set_has_height();
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(32)) goto parse_width;
+        break;
+      }
+
+      // optional int32 width = 4 [default = 0];
+      case 4: {
+        if (tag == 32) {
+         parse_width:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                 input, &width_)));
+          set_has_width();
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(42)) goto parse_data;
+        break;
+      }
+
+      // repeated float data = 5 [packed = true];
+      case 5: {
+        if (tag == 42) {
+         parse_data:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPackedPrimitive<
+                   float, ::google::protobuf::internal::WireFormatLite::TYPE_FLOAT>(
+                 input, this->mutable_data())));
+        } else if (tag == 45) {
+          DO_((::google::protobuf::internal::WireFormatLite::ReadRepeatedPrimitiveNoInline<
+                   float, ::google::protobuf::internal::WireFormatLite::TYPE_FLOAT>(
+                 1, 42, input, this->mutable_data())));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectAtEnd()) goto success;
+        break;
+      }
+
+      default: {
+      handle_unusual:
+        if (tag == 0 ||
+            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          goto success;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+success:
+  // @@protoc_insertion_point(parse_success:cnn.Cube)
+  return true;
+failure:
+  // @@protoc_insertion_point(parse_failure:cnn.Cube)
+  return false;
+#undef DO_
+}
+
+void Cube::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // @@protoc_insertion_point(serialize_start:cnn.Cube)
+  // optional int32 num = 1 [default = 0];
+  if (has_num()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(1, this->num(), output);
+  }
+
+  // optional int32 channels = 2 [default = 0];
+  if (has_channels()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(2, this->channels(), output);
+  }
+
+  // optional int32 height = 3 [default = 0];
+  if (has_height()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(3, this->height(), output);
+  }
+
+  // optional int32 width = 4 [default = 0];
+  if (has_width()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(4, this->width(), output);
+  }
+
+  // repeated float data = 5 [packed = true];
+  if (this->data_size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteTag(5, ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED, output);
+    output->WriteVarint32(_data_cached_byte_size_);
+  }
+  for (int i = 0; i < this->data_size(); i++) {
+    ::google::protobuf::internal::WireFormatLite::WriteFloatNoTag(
+      this->data(i), output);
+  }
+
+  if (!unknown_fields().empty()) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        unknown_fields(), output);
+  }
+  // @@protoc_insertion_point(serialize_end:cnn.Cube)
+}
+
+::google::protobuf::uint8* Cube::SerializeWithCachedSizesToArray(
+    ::google::protobuf::uint8* target) const {
+  // @@protoc_insertion_point(serialize_to_array_start:cnn.Cube)
+  // optional int32 num = 1 [default = 0];
+  if (has_num()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(1, this->num(), target);
+  }
+
+  // optional int32 channels = 2 [default = 0];
+  if (has_channels()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(2, this->channels(), target);
+  }
+
+  // optional int32 height = 3 [default = 0];
+  if (has_height()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(3, this->height(), target);
+  }
+
+  // optional int32 width = 4 [default = 0];
+  if (has_width()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(4, this->width(), target);
+  }
+
+  // repeated float data = 5 [packed = true];
+  if (this->data_size() > 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteTagToArray(
+      5,
+      ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED,
+      target);
+    target = ::google::protobuf::io::CodedOutputStream::WriteVarint32ToArray(
+      _data_cached_byte_size_, target);
+  }
+  for (int i = 0; i < this->data_size(); i++) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      WriteFloatNoTagToArray(this->data(i), target);
+  }
+
+  if (!unknown_fields().empty()) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        unknown_fields(), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:cnn.Cube)
+  return target;
+}
+
+int Cube::ByteSize() const {
+  int total_size = 0;
+
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    // optional int32 num = 1 [default = 0];
+    if (has_num()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int32Size(
+          this->num());
+    }
+
+    // optional int32 channels = 2 [default = 0];
+    if (has_channels()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int32Size(
+          this->channels());
+    }
+
+    // optional int32 height = 3 [default = 0];
+    if (has_height()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int32Size(
+          this->height());
+    }
+
+    // optional int32 width = 4 [default = 0];
+    if (has_width()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int32Size(
+          this->width());
+    }
+
+  }
+  // repeated float data = 5 [packed = true];
+  {
+    int data_size = 0;
+    data_size = 4 * this->data_size();
+    if (data_size > 0) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int32Size(data_size);
+    }
+    GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+    _data_cached_byte_size_ = data_size;
+    GOOGLE_SAFE_CONCURRENT_WRITES_END();
+    total_size += data_size;
+  }
+
+  if (!unknown_fields().empty()) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        unknown_fields());
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void Cube::MergeFrom(const ::google::protobuf::Message& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  const Cube* source =
+    ::google::protobuf::internal::dynamic_cast_if_available<const Cube*>(
+      &from);
+  if (source == NULL) {
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+    MergeFrom(*source);
+  }
+}
+
+void Cube::MergeFrom(const Cube& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  data_.MergeFrom(from.data_);
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_num()) {
+      set_num(from.num());
+    }
+    if (from.has_channels()) {
+      set_channels(from.channels());
+    }
+    if (from.has_height()) {
+      set_height(from.height());
+    }
+    if (from.has_width()) {
+      set_width(from.width());
+    }
+  }
+  mutable_unknown_fields()->MergeFrom(from.unknown_fields());
+}
+
+void Cube::CopyFrom(const ::google::protobuf::Message& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void Cube::CopyFrom(const Cube& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool Cube::IsInitialized() const {
+
+  return true;
+}
+
+void Cube::Swap(Cube* other) {
+  if (other != this) {
+    std::swap(num_, other->num_);
+    std::swap(channels_, other->channels_);
+    std::swap(height_, other->height_);
+    std::swap(width_, other->width_);
+    data_.Swap(&other->data_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    _unknown_fields_.Swap(&other->_unknown_fields_);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::google::protobuf::Metadata Cube::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = Cube_descriptor_;
+  metadata.reflection = Cube_reflection_;
+  return metadata;
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
 const int Datum::kChannelsFieldNumber;
 const int Datum::kHeightFieldNumber;
 const int Datum::kWidthFieldNumber;
 const int Datum::kDataFieldNumber;
 const int Datum::kLabelFieldNumber;
+const int Datum::kFloatDataFieldNumber;
 #endif  // !_MSC_VER
 
 Datum::Datum()
@@ -1402,6 +1845,7 @@ void Datum::Clear() {
 #undef OFFSET_OF_FIELD_
 #undef ZR_
 
+  float_data_.Clear();
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
 }
@@ -1484,6 +1928,25 @@ bool Datum::MergePartialFromCodedStream(
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(53)) goto parse_float_data;
+        break;
+      }
+
+      // repeated float float_data = 6;
+      case 6: {
+        if (tag == 53) {
+         parse_float_data:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadRepeatedPrimitive<
+                   float, ::google::protobuf::internal::WireFormatLite::TYPE_FLOAT>(
+                 1, 53, input, this->mutable_float_data())));
+        } else if (tag == 50) {
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPackedPrimitiveNoInline<
+                   float, ::google::protobuf::internal::WireFormatLite::TYPE_FLOAT>(
+                 input, this->mutable_float_data())));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(53)) goto parse_float_data;
         if (input->ExpectAtEnd()) goto success;
         break;
       }
@@ -1539,6 +2002,12 @@ void Datum::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteInt32(5, this->label(), output);
   }
 
+  // repeated float float_data = 6;
+  for (int i = 0; i < this->float_data_size(); i++) {
+    ::google::protobuf::internal::WireFormatLite::WriteFloat(
+      6, this->float_data(i), output);
+  }
+
   if (!unknown_fields().empty()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
@@ -1574,6 +2043,12 @@ void Datum::SerializeWithCachedSizes(
   // optional int32 label = 5;
   if (has_label()) {
     target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(5, this->label(), target);
+  }
+
+  // repeated float float_data = 6;
+  for (int i = 0; i < this->float_data_size(); i++) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      WriteFloatToArray(6, this->float_data(i), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -1624,6 +2099,13 @@ int Datum::ByteSize() const {
     }
 
   }
+  // repeated float float_data = 6;
+  {
+    int data_size = 0;
+    data_size = 4 * this->float_data_size();
+    total_size += 1 * this->float_data_size() + data_size;
+  }
+
   if (!unknown_fields().empty()) {
     total_size +=
       ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
@@ -1649,6 +2131,7 @@ void Datum::MergeFrom(const ::google::protobuf::Message& from) {
 
 void Datum::MergeFrom(const Datum& from) {
   GOOGLE_CHECK_NE(&from, this);
+  float_data_.MergeFrom(from.float_data_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from.has_channels()) {
       set_channels(from.channels());
@@ -1693,6 +2176,7 @@ void Datum::Swap(Datum* other) {
     std::swap(width_, other->width_);
     std::swap(data_, other->data_);
     std::swap(label_, other->label_);
+    float_data_.Swap(&other->float_data_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);

@@ -16,6 +16,7 @@
 #include <fstream>
 
 #include <google/protobuf/text_format.h>
+#include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/message_lite.h>
 
@@ -39,6 +40,15 @@ bool Parser::ReadProtoFromTextFile(const char* filename, Message* proto) {
 
 void Parser::ReadNetParamsFromTextFile(const string& param_file, Message* param) {
   ReadProtoFromTextFile(param_file.c_str(), param);
+}
+
+bool Parser::ReadProtoFromBinaryFile(const char* filename, Message* proto) {
+  int fd = open(filename, O_RDONLY);
+  google::protobuf::io::ZeroCopyInputStream* raw_input = new FileInputStream(fd);
+  google::protobuf::io::CodedInputStream* coded_input = new CodedInputStream(raw_input);
+  coded_input->SetTotalBytesLimit(1073741824, 536870912);
+  bool success = proto->ParseFromCodedStream(coded_input);
+  return success;
 }
 
 void Parser::DataSetup(cnn::LayerParameter& layer_param, cnn::Datum& datum){

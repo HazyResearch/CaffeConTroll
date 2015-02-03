@@ -34,6 +34,7 @@ void  protobuf_AddDesc_cnn_2eproto();
 void protobuf_AssignDesc_cnn_2eproto();
 void protobuf_ShutdownFile_cnn_2eproto();
 
+class Cube;
 class Datum;
 class FillerParameter;
 class NetParameter;
@@ -402,6 +403,129 @@ inline bool Phase_Parse(
 }
 // ===================================================================
 
+class Cube : public ::google::protobuf::Message {
+ public:
+  Cube();
+  virtual ~Cube();
+
+  Cube(const Cube& from);
+
+  inline Cube& operator=(const Cube& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const Cube& default_instance();
+
+  void Swap(Cube* other);
+
+  // implements Message ----------------------------------------------
+
+  Cube* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const Cube& from);
+  void MergeFrom(const Cube& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional int32 num = 1 [default = 0];
+  inline bool has_num() const;
+  inline void clear_num();
+  static const int kNumFieldNumber = 1;
+  inline ::google::protobuf::int32 num() const;
+  inline void set_num(::google::protobuf::int32 value);
+
+  // optional int32 channels = 2 [default = 0];
+  inline bool has_channels() const;
+  inline void clear_channels();
+  static const int kChannelsFieldNumber = 2;
+  inline ::google::protobuf::int32 channels() const;
+  inline void set_channels(::google::protobuf::int32 value);
+
+  // optional int32 height = 3 [default = 0];
+  inline bool has_height() const;
+  inline void clear_height();
+  static const int kHeightFieldNumber = 3;
+  inline ::google::protobuf::int32 height() const;
+  inline void set_height(::google::protobuf::int32 value);
+
+  // optional int32 width = 4 [default = 0];
+  inline bool has_width() const;
+  inline void clear_width();
+  static const int kWidthFieldNumber = 4;
+  inline ::google::protobuf::int32 width() const;
+  inline void set_width(::google::protobuf::int32 value);
+
+  // repeated float data = 5 [packed = true];
+  inline int data_size() const;
+  inline void clear_data();
+  static const int kDataFieldNumber = 5;
+  inline float data(int index) const;
+  inline void set_data(int index, float value);
+  inline void add_data(float value);
+  inline const ::google::protobuf::RepeatedField< float >&
+      data() const;
+  inline ::google::protobuf::RepeatedField< float >*
+      mutable_data();
+
+  // @@protoc_insertion_point(class_scope:cnn.Cube)
+ private:
+  inline void set_has_num();
+  inline void clear_has_num();
+  inline void set_has_channels();
+  inline void clear_has_channels();
+  inline void set_has_height();
+  inline void clear_has_height();
+  inline void set_has_width();
+  inline void clear_has_width();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::google::protobuf::uint32 _has_bits_[1];
+  mutable int _cached_size_;
+  ::google::protobuf::int32 num_;
+  ::google::protobuf::int32 channels_;
+  ::google::protobuf::int32 height_;
+  ::google::protobuf::int32 width_;
+  ::google::protobuf::RepeatedField< float > data_;
+  mutable int _data_cached_byte_size_;
+  friend void  protobuf_AddDesc_cnn_2eproto();
+  friend void protobuf_AssignDesc_cnn_2eproto();
+  friend void protobuf_ShutdownFile_cnn_2eproto();
+
+  void InitAsDefaultInstance();
+  static Cube* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class Datum : public ::google::protobuf::Message {
  public:
   Datum();
@@ -495,6 +619,18 @@ class Datum : public ::google::protobuf::Message {
   inline ::google::protobuf::int32 label() const;
   inline void set_label(::google::protobuf::int32 value);
 
+  // repeated float float_data = 6;
+  inline int float_data_size() const;
+  inline void clear_float_data();
+  static const int kFloatDataFieldNumber = 6;
+  inline float float_data(int index) const;
+  inline void set_float_data(int index, float value);
+  inline void add_float_data(float value);
+  inline const ::google::protobuf::RepeatedField< float >&
+      float_data() const;
+  inline ::google::protobuf::RepeatedField< float >*
+      mutable_float_data();
+
   // @@protoc_insertion_point(class_scope:cnn.Datum)
  private:
   inline void set_has_channels();
@@ -517,6 +653,7 @@ class Datum : public ::google::protobuf::Message {
   ::std::string* data_;
   ::google::protobuf::int32 width_;
   ::google::protobuf::int32 label_;
+  ::google::protobuf::RepeatedField< float > float_data_;
   friend void  protobuf_AddDesc_cnn_2eproto();
   friend void protobuf_AssignDesc_cnn_2eproto();
   friend void protobuf_ShutdownFile_cnn_2eproto();
@@ -5431,6 +5568,136 @@ class WindowDataParameter : public ::google::protobuf::Message {
 
 // ===================================================================
 
+// Cube
+
+// optional int32 num = 1 [default = 0];
+inline bool Cube::has_num() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void Cube::set_has_num() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void Cube::clear_has_num() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void Cube::clear_num() {
+  num_ = 0;
+  clear_has_num();
+}
+inline ::google::protobuf::int32 Cube::num() const {
+  // @@protoc_insertion_point(field_get:cnn.Cube.num)
+  return num_;
+}
+inline void Cube::set_num(::google::protobuf::int32 value) {
+  set_has_num();
+  num_ = value;
+  // @@protoc_insertion_point(field_set:cnn.Cube.num)
+}
+
+// optional int32 channels = 2 [default = 0];
+inline bool Cube::has_channels() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void Cube::set_has_channels() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void Cube::clear_has_channels() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void Cube::clear_channels() {
+  channels_ = 0;
+  clear_has_channels();
+}
+inline ::google::protobuf::int32 Cube::channels() const {
+  // @@protoc_insertion_point(field_get:cnn.Cube.channels)
+  return channels_;
+}
+inline void Cube::set_channels(::google::protobuf::int32 value) {
+  set_has_channels();
+  channels_ = value;
+  // @@protoc_insertion_point(field_set:cnn.Cube.channels)
+}
+
+// optional int32 height = 3 [default = 0];
+inline bool Cube::has_height() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void Cube::set_has_height() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void Cube::clear_has_height() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void Cube::clear_height() {
+  height_ = 0;
+  clear_has_height();
+}
+inline ::google::protobuf::int32 Cube::height() const {
+  // @@protoc_insertion_point(field_get:cnn.Cube.height)
+  return height_;
+}
+inline void Cube::set_height(::google::protobuf::int32 value) {
+  set_has_height();
+  height_ = value;
+  // @@protoc_insertion_point(field_set:cnn.Cube.height)
+}
+
+// optional int32 width = 4 [default = 0];
+inline bool Cube::has_width() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void Cube::set_has_width() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void Cube::clear_has_width() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void Cube::clear_width() {
+  width_ = 0;
+  clear_has_width();
+}
+inline ::google::protobuf::int32 Cube::width() const {
+  // @@protoc_insertion_point(field_get:cnn.Cube.width)
+  return width_;
+}
+inline void Cube::set_width(::google::protobuf::int32 value) {
+  set_has_width();
+  width_ = value;
+  // @@protoc_insertion_point(field_set:cnn.Cube.width)
+}
+
+// repeated float data = 5 [packed = true];
+inline int Cube::data_size() const {
+  return data_.size();
+}
+inline void Cube::clear_data() {
+  data_.Clear();
+}
+inline float Cube::data(int index) const {
+  // @@protoc_insertion_point(field_get:cnn.Cube.data)
+  return data_.Get(index);
+}
+inline void Cube::set_data(int index, float value) {
+  data_.Set(index, value);
+  // @@protoc_insertion_point(field_set:cnn.Cube.data)
+}
+inline void Cube::add_data(float value) {
+  data_.Add(value);
+  // @@protoc_insertion_point(field_add:cnn.Cube.data)
+}
+inline const ::google::protobuf::RepeatedField< float >&
+Cube::data() const {
+  // @@protoc_insertion_point(field_list:cnn.Cube.data)
+  return data_;
+}
+inline ::google::protobuf::RepeatedField< float >*
+Cube::mutable_data() {
+  // @@protoc_insertion_point(field_mutable_list:cnn.Cube.data)
+  return &data_;
+}
+
+// -------------------------------------------------------------------
+
 // Datum
 
 // optional int32 channels = 1;
@@ -5603,6 +5870,36 @@ inline void Datum::set_label(::google::protobuf::int32 value) {
   set_has_label();
   label_ = value;
   // @@protoc_insertion_point(field_set:cnn.Datum.label)
+}
+
+// repeated float float_data = 6;
+inline int Datum::float_data_size() const {
+  return float_data_.size();
+}
+inline void Datum::clear_float_data() {
+  float_data_.Clear();
+}
+inline float Datum::float_data(int index) const {
+  // @@protoc_insertion_point(field_get:cnn.Datum.float_data)
+  return float_data_.Get(index);
+}
+inline void Datum::set_float_data(int index, float value) {
+  float_data_.Set(index, value);
+  // @@protoc_insertion_point(field_set:cnn.Datum.float_data)
+}
+inline void Datum::add_float_data(float value) {
+  float_data_.Add(value);
+  // @@protoc_insertion_point(field_add:cnn.Datum.float_data)
+}
+inline const ::google::protobuf::RepeatedField< float >&
+Datum::float_data() const {
+  // @@protoc_insertion_point(field_list:cnn.Datum.float_data)
+  return float_data_;
+}
+inline ::google::protobuf::RepeatedField< float >*
+Datum::mutable_float_data() {
+  // @@protoc_insertion_point(field_mutable_list:cnn.Datum.float_data)
+  return &float_data_;
 }
 
 // -------------------------------------------------------------------
