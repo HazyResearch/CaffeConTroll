@@ -21,6 +21,7 @@ using std::random_device;
 using std::mt19937;
 using std::uniform_real_distribution;
 using std::bernoulli_distribution;
+using std::normal_distribution;
 
 #define NOT_IMPLEMENTED std::cerr << "ERROR: Using a bridge with unsupported Layout or DataType." << std::endl; assert(false)
 
@@ -63,6 +64,16 @@ class Util {
       bernoulli_distribution bern(p);
       for (size_t i = 0; i < n_arr_elements; ++i) {
         arr[i] = bern(gen);
+      }
+    }
+
+    template <typename T>
+    static inline void gaussian_initialize(unsigned int * const arr, const size_t n_arr_elements, const T mean, const T std_dev) {
+      mt19937 gen(rd());
+
+      normal_distribution<T> gaussian(mean, std_dev);
+      for (size_t i = 0; i < n_arr_elements; ++i) {
+        arr[i] = gaussian(gen);
       }
     }
 
