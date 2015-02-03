@@ -14,12 +14,11 @@
 template<typename DataType, LayoutType InputLayout>
 Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1>::
 Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
-    const void * const _p_config) :
+    const BridgeConfig * const _p_config) :
   iR(p_input_cube->R), iC(p_input_cube->C), iD(p_input_cube->D), iB(p_input_cube->B),
   oR(p_output_cube->R), oC(p_output_cube->C), oD(p_output_cube->D), oB(p_output_cube->B),
-  p_config((BridgeConfig*)_p_config)
+  p_config(_p_config), kernel_size(p_config->kernel_size), padding(p_config->padding), stride(p_config->stride)
 {
-
   report_constructor.reset();
   report_last_lowering.reset();
   report_history.reset();
@@ -27,14 +26,10 @@ Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCu
   report_inverse_history.reset();
 
 #ifdef _DO_ASSERT
-  const size_t ksize = p_config->kernel_size;
-  const size_t padding = p_config->padding;
-  const size_t stride = p_config->stride;
-  //const size_t height_dst = (height + 2 * padding - kernel_size) / stride + 1;
   assert(oD==1);
   assert(oB==1);
-  assert(oR==ksize*ksize*iD);
-  assert(oC==((iR + 2 * padding - ksize) / stride + 1)*((iC + 2 * padding - ksize) / stride + 1)*iB);
+  assert(oR==kernel_size*kernel_size*iD);
+  assert(oC==((iR + 2 * padding - kernel_size) / stride + 1)*((iC + 2 * padding - kernel_size) / stride + 1)*iB);
 #endif
   report_constructor.end(0, 0, 0);
 }
@@ -61,11 +56,11 @@ lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeTyp
       const LogicalMatrix<DataType> m = p_input_cube->get_logical_matrix(i_d, i_b);
       // TODO: instead of evaluating this if check iB*iD times,
       // we should use a function pointer instead
-      if (p_config->stride == 1 && p_config->padding == 0) {
-        p_output_cube->template lower_logical_matrix<LOWERING_TYPE1>(&m, i_b, i_d, p_config->kernel_size);
+      if (stride == 1 && padding == 0) {
+        p_output_cube->template lower_logical_matrix<LOWERING_TYPE1>(&m, i_b, i_d, kernel_size);
       } else {
-        p_output_cube->template lower_logical_matrix<LOWERING_TYPE1>(&m, i_b, i_d, p_config->kernel_size,
-            p_config->stride, p_config->padding);
+        p_output_cube->template lower_logical_matrix<LOWERING_TYPE1>(&m, i_b, i_d, kernel_size,
+            stride, padding);
       }
     }
   }
@@ -98,18 +93,17 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
   p_input_cube->reset_cube();
 
   // TODO: rewrite this using get_logical_matrix
-  const size_t & ksize = p_config->kernel_size;
   size_t outr = 0, outc = 0;
 
-  for(size_t kd=0;kd<iD;kd++) {
-    for(size_t kr=0;kr<ksize;kr++) {
-      for(size_t kc=0;kc<ksize;kc++) {
+  for (size_t kd = 0; kd < iD; kd++) {
+    for (size_t kr = 0; kr < kernel_size; kr++) {
+      for (size_t kc = 0; kc < kernel_size; kc++) {
 
         outc = 0;
-        for(size_t ib=0;ib<iB;ib++) {
-          for(size_t cr=0;cr<iR-ksize+1;cr++) {
-            for(size_t cc=0;cc<iC-ksize+1;cc++) {
-              *p_input_cube->logical_get(cr+kr, cc+kc, kd, ib) +=
+        for (size_t ib = 0; ib < iB; ib++) {
+          for (size_t cr = 0; cr < iR - kernel_size + 1; cr++) {
+            for (size_t cc = 0; cc < iC - kernel_size + 1; cc++) {
+              *p_input_cube->logical_get(cr + kr, cc + kc, kd, ib) +=
                 *p_output_cube->logical_get(outr, outc, 0, 0);
               outc ++;
             }

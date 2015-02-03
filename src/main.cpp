@@ -60,20 +60,17 @@ using namespace std;
  **/
 void TEST_LOWERING() {
   const size_t N = 5;
-  const size_t K = 3; // size of the kernel/convolution window (K x K)
+  const size_t K = 1; // size of the kernel/convolution window (K x K)
   const size_t D = 1;
   const size_t B = 1;
-  const size_t stride = 3;
-  const size_t padding = 1;
+  const size_t stride = 1;
+  const size_t padding = 0;
 
   LogicalCube<DataType_FPFloat, Layout_CRDB> cube1(N, N, D, B);
   LogicalCube<DataType_FPFloat, Layout_CRDB> cube2(K*K*D, ((N + 2 * padding - K) / stride + 1)*((N + 2 * padding - K) / stride + 1)*B, 1, 1);
   cube2.reset_cube();
 
-  BridgeConfig bconfig;
-  bconfig.kernel_size = K;
-  bconfig.stride = stride;
-  bconfig.padding = padding;
+  BridgeConfig bconfig(K, D, stride, padding);
 
   for (size_t ct = 0, val = 1; ct < N*N*D*B; ct++, val++) {
     cube1.p_data[ct] = val;
@@ -146,7 +143,7 @@ void TEST_CONVOLUTION_BRIDGE() {
   Layer<DataType_SFFloat, Layout_CRDB> layer1(&data1, &grad1);
   Layer<DataType_SFFloat, Layout_CRDB> layer2(&data2, &grad2);
 
-  ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> forward(&layer1, &layer2, &kernel1, &bias);
+  //ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> forward(&layer1, &layer2, &kernel1, &bias);
 
   cout << "\nINPUT DATA=" << endl;
   layer1.p_data_cube->logical_print();
@@ -157,7 +154,7 @@ void TEST_CONVOLUTION_BRIDGE() {
   cout << "\nINPUT BIAS=" << endl;
   bias.logical_print();
 
-  forward.forward();
+  //forward.forward();
 
   LogicalCube<DataType_SFFloat, Layout_CRDB> out_expected(N-K+1, N-K+1, O, B);
   out_expected.reset_cube();
@@ -168,8 +165,8 @@ void TEST_CONVOLUTION_BRIDGE() {
 
   cout << "\nEXPECTED RESULT=" << endl;
   out_expected.logical_print();
-  forward.report_forward_last_transfer.print();
-  forward.report_forward_history.print();
+  //forward.report_forward_last_transfer.print();
+  //forward.report_forward_history.print();
 }
 
 void TEST_SOFTMAX() {
@@ -269,7 +266,7 @@ void LeNet(const char * file) {
   const size_t C1 = corpus->n_cols;
   const size_t D = corpus->dim;
   const size_t B = corpus->mini_batch_size;
-  const size_t last_B = corpus->last_batch_size;
+  //const size_t last_B = corpus->last_batch_size;
   const size_t conv_O1 = 20;
   const size_t conv_O2 = 50;
   const size_t conv_O3 = 500;
@@ -287,25 +284,6 @@ void LeNet(const char * file) {
   // relu1,
   // ip2 (O: 10, K: 1),
   // softmax
-  // LogicalCube<DataType_SFFloat, Layout_CRDB> kernel1(conv_K, conv_K, D, conv_O1);
-  // LogicalCube<DataType_SFFloat, Layout_CRDB> bias1(1, 1, conv_O1, 1);
-  // Util::xavier_initialize(kernel1.p_data, conv_K*conv_K*D*conv_O1, conv_O1);
-  // Util::constant_initialize<float>(bias1.p_data, 0.0, conv_O1);
-
-  // LogicalCube<DataType_SFFloat, Layout_CRDB> kernel2(conv_K, conv_K, conv_O1, conv_O2);
-  // LogicalCube<DataType_SFFloat, Layout_CRDB> bias2(1, 1, conv_O2, 1);
-  // Util::xavier_initialize(kernel2.p_data, conv_K*conv_K*conv_O1*conv_O2, conv_O2);
-  // Util::constant_initialize<float>(bias2.p_data, 0.0, conv_O2);
-
-  // LogicalCube<DataType_SFFloat, Layout_CRDB> kernel3(1, 1, conv_O2, conv_O3);
-  // LogicalCube<DataType_SFFloat, Layout_CRDB> bias3(1, 1, conv_O3, 1);
-  // Util::xavier_initialize(kernel3.p_data, 1*1*conv_O2*conv_O3, conv_O3);
-  // Util::constant_initialize<float>(bias3.p_data, 0.0, conv_O3);
-
-  // LogicalCube<DataType_SFFloat, Layout_CRDB> kernel4(1, 1, conv_O3, conv_O4);
-  // LogicalCube<DataType_SFFloat, Layout_CRDB> bias4(1, 1, conv_O4, 1);
-  // Util::xavier_initialize(kernel4.p_data, 1*1*conv_O3*conv_O4, conv_O4);
-  // Util::constant_initialize<float>(bias4.p_data, 0.0, conv_O4);
 
   LogicalCube<DataType_SFFloat, Layout_CRDB> data1(NULL, R1, C1, D, B); // must be initialized to point to next mini batch
   LogicalCube<DataType_SFFloat, Layout_CRDB> grad1(R1, C1, D, B);
@@ -339,25 +317,10 @@ void LeNet(const char * file) {
   LogicalCube<DataType_SFFloat, Layout_CRDB> grad9(1, 1, conv_O4, B);
   LogicalCube<DataType_SFFloat, Layout_CRDB> labels(NULL, 1, 1, 1, B); // must be initialized to point to next mini batch
 
-  LogicalCube<DataType_SFFloat, Layout_CRDB> kernel1(conv_K, conv_K, D, conv_O1);
-  LogicalCube<DataType_SFFloat, Layout_CRDB> bias1(1, 1, conv_O1, 1);
-  Util::xavier_initialize(kernel1.p_data, conv_K*conv_K*D*conv_O1, conv_O1);
-  Util::constant_initialize<float>(bias1.p_data, 0.0, conv_O1);
-
-  LogicalCube<DataType_SFFloat, Layout_CRDB> kernel2(conv_K, conv_K, conv_O1, conv_O2);
-  LogicalCube<DataType_SFFloat, Layout_CRDB> bias2(1, 1, conv_O2, 1);
-  Util::xavier_initialize(kernel2.p_data, conv_K*conv_K*conv_O1*conv_O2, conv_O2);
-  Util::constant_initialize<float>(bias2.p_data, 0.0, conv_O2);
-
-  LogicalCube<DataType_SFFloat, Layout_CRDB> kernel3(R5, C5, conv_O2, conv_O3);
-  LogicalCube<DataType_SFFloat, Layout_CRDB> bias3(1, 1, conv_O3, 1);
-  Util::xavier_initialize(kernel3.p_data, R5*C5*conv_O2*conv_O3, conv_O3);
-  Util::constant_initialize<float>(bias3.p_data, 0.0, conv_O3);
-
-  LogicalCube<DataType_SFFloat, Layout_CRDB> kernel4(1, 1, conv_O3, conv_O4);
-  LogicalCube<DataType_SFFloat, Layout_CRDB> bias4(1, 1, conv_O4, 1);
-  Util::xavier_initialize(kernel4.p_data, 1*1*conv_O3*conv_O4, conv_O4);
-  Util::constant_initialize<float>(bias4.p_data, 0.0, conv_O4);
+  const BridgeConfig config1(conv_K, conv_O1);
+  const BridgeConfig config2(conv_K, conv_O2);
+  const BridgeConfig config3(R5, conv_O3);
+  const BridgeConfig config4(1, conv_O4);
 
   Layer<DataType_SFFloat, Layout_CRDB> layer1(&data1, &grad1);
   Layer<DataType_SFFloat, Layout_CRDB> layer2(&data2, &grad2);
@@ -370,19 +333,19 @@ void LeNet(const char * file) {
   Layer<DataType_SFFloat, Layout_CRDB> layer9(&data9, &grad9);
 
   ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>
-    conv1(&layer1, &layer2, &kernel1, &bias1);
+    conv1(&layer1, &layer2, &config1);
   MaxPoolingBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>
     pool1(&layer2, &layer3, new BridgeConfig(pool_K, pool_stride));
   ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>
-    conv2(&layer3, &layer4, &kernel2, &bias2);
+    conv2(&layer3, &layer4, &config2);
   MaxPoolingBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>
     pool2(&layer4, &layer5, new BridgeConfig(pool_K, pool_stride));
   ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>
-    ip1(&layer5, &layer6, &kernel3, &bias3);
+    ip1(&layer5, &layer6, &config3);
   ReLUBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>
     relu1(&layer6, &layer7);
   ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>
-    ip2(&layer7, &layer8, &kernel4, &bias4);
+    ip2(&layer7, &layer8, &config4);
   SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>
     softmax(&layer8, &layer9, &labels);
 
@@ -394,13 +357,12 @@ void LeNet(const char * file) {
     size_t corpus_batch_index = 0;
     for (size_t batch = 0; batch < 500; ++batch) {
       // if( batch % 100 == 0){
-      //   cout << "BATCH: " << batch << endl;  
+      //   cout << "BATCH: " << batch << endl;
       // }
       cout << "BATCH: " << batch << endl;
       // initialize data1 for this mini batch
       float * const mini_batch = corpus->images->physical_get_RCDslice(corpus_batch_index);
       data1.p_data = mini_batch;
-      //data1.logical_print();
       // reset loss
       softmax.loss = 0.0;
 
@@ -414,44 +376,28 @@ void LeNet(const char * file) {
       grad6.reset_cube(); data7.reset_cube(); grad7.reset_cube(); data8.reset_cube(); grad8.reset_cube();
       //Util::constant_initialize<float>(grad9.p_data, 1.0, 1*1*conv_O4*B); //initialize to 1 for backprop
 
-      //cout << "FORWARD PASS" << endl;
       // forward pass
       conv1.forward();
-      //cout << "conv1" << endl;
       pool1.forward();
-      //cout << "pool1" << endl;
       conv2.forward();
-      //cout << "conv2" << endl;
       pool2.forward();
-      //cout << "pool2" << endl;
       ip1.forward();
-      //cout << "ip1" << endl;
       relu1.forward();
-      //cout << "relu1" << endl;
       ip2.forward();
-      //cout << "ip2" << endl;
       softmax.forward();
-      //cout << "softmax" << endl;
+
       cout << "LOSS: " << (softmax.loss/B) << endl;
-      //cout << "BACKWARD PASS" << endl;
+      epoch_loss += (softmax.loss/B);
+
       // backward pass
       softmax.backward();
-      //cout << "softmax" << endl;
       ip2.backward();
-      //cout << "ip2" << endl;
       relu1.backward();
-      //cout << "relu" << endl;
       ip1.backward();
-      //cout << "ip1" << endl;
       pool2.backward();
-      //cout << "pool2" << endl;
       conv2.backward();
-      //cout << "conv2" << endl;
       pool1.backward();
-      //cout << "pool1" << endl;
       conv1.backward();
-      
-      //cout << "conv1" << endl;
     }
     //cout << "LOSS:" << epoch_loss/(corpus->num_mini_batches-1) << endl;
     // compute very last batch
@@ -524,18 +470,18 @@ void LeNet(const char * file) {
 }
 
 int main(int argc, const char * argv[]) {
-  //TEST_LOWERING();
+  TEST_LOWERING();
 
   //TEST_CONVOLUTION_BRIDGE();
 
   //TEST_SOFTMAX();
 
-  if (argc != 2) {
-    cout << "Usage: ./deepnet <solver.prototxt>" << endl;
-    exit(1);
-  }
+  //if (argc != 2) {
+  //  cout << "Usage: ./deepnet <solver.prototxt>" << endl;
+  //  exit(1);
+  //}
 
-  LeNet(argv[1]);
+  //LeNet(argv[1]);
 
   return 0;
 }

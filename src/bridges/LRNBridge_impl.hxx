@@ -56,7 +56,7 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
           for (int i = -norm_window; i <= norm_window; ++i) {
             const int channel = i_d + i;
             if (channel < 0 || channel >= iD) {
-              continue; // in the padding region, so we're adding 0
+              continue; // this means we're in the padding region, so we're adding 0
             }
             sum += pow(*p_input_layer->p_data_cube->logical_get(i_r, i_c, channel, i_b), 2);
           }

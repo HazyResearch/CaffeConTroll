@@ -10,20 +10,22 @@
 #define moka_Bridge_Config_h
 
 struct BridgeConfig {
-  // default values for kernel size, stride, and padding
-  BridgeConfig() : kernel_size(1), stride(1), padding(0), bias_term(true) {}
-  BridgeConfig(const size_t _k_size) : kernel_size(_k_size), stride(1), padding(0), bias_term(true) {}
-  BridgeConfig(const size_t _k_size, const size_t _stride)
-    : kernel_size(_k_size), stride(_stride), padding(0), bias_term(true) {}
-  BridgeConfig(const size_t _k_size, const size_t _stride, const size_t _padding)
-    : kernel_size(_k_size), stride(_stride), padding(_padding), bias_term(true) {}
-  BridgeConfig(const size_t _k_size, const size_t _stride, const size_t _padding, const bool _bias_term)
-    : kernel_size(_k_size), stride(_stride), padding(_padding), bias_term(_bias_term) {}
+  // only kernel size and num_output_features don't have default values
+  BridgeConfig(const size_t _k_size, const size_t _num_output_features,
+      const size_t _padding = 0, const size_t _stride = 1,
+      const bool _bias_term = true, const InitializerType _weight_initializer = CONSTANT,
+      const InitializerType _bias_initializer = CONSTANT) : kernel_size(_k_size),
+      num_output_features(_num_output_features), padding(_padding), stride(_stride),
+      bias_term(_bias_term), weight_initializer(_weight_initializer),
+      bias_initializer(_bias_initializer) {}
 
   size_t kernel_size;
-  size_t stride;
+  size_t num_output_features;
   size_t padding;
+  size_t stride;
   bool   bias_term;
+  InitializerType weight_initializer;
+  InitializerType bias_initializer;
 };
 
 #endif

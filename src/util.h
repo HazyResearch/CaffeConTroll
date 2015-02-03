@@ -15,6 +15,13 @@
 #include <float.h>
 #include <limits>
 
+enum InitializerType {
+  CONSTANT = 0, // for now, CONSTANT assumes that it's always initialized to zero
+  BERNOULLI = 1,
+  XAVIER = 2,
+  GAUSSIAN = 3
+};
+
 using std::max;
 using std::min;
 using std::random_device;
