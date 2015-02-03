@@ -30,6 +30,7 @@ LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::LRNBridge(InputLayerTyp
   denoms = new LogicalCube<DataType, Layout_CRDB>(iR, iC, iD, iB);
 
   this->report_forward_constructor.end(0, 0, 0);
+  p_input_layer->p_gradient_cube->reset_cube();
 }
 
 /**
@@ -87,22 +88,35 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
   this->report_backward_updateweight_last_transfer.reset();
 
   const DataType alpha_over_size = alpha / local_size;
+  const int norm_window = (int) local_size / 2;
 
   for (size_t o_b = 0; o_b < iB; ++o_b) {
     for (int o_d = 0; o_d < iD; ++o_d) {
       for (size_t o_c = 0; o_c < iC; ++o_c) {
         for (size_t o_r = 0; o_r < iR; ++o_r) {
-          const DataType output_grad = *p_output_layer->p_gradient_cube->logical_get(o_r, o_c, o_d, o_b);
           const DataType denom_no_exponent = *denoms->logical_get(o_r, o_c, o_d, o_b);
           const DataType denom = pow(denom_no_exponent, beta);
-          const DataType input_data = *p_input_layer->p_data_cube->logical_get(o_r, o_c, o_d, o_b);
-          const DataType input_grad = (denom - 2*pow(input_data,2) * beta * alpha_over_size * pow(denom_no_exponent, beta - 1)) / pow(denom, 2);
-          *p_input_layer->p_gradient_cube->logical_get(o_r, o_c, o_d, o_b) = input_grad * output_grad;
+          const DataType input_data = *p_input_layer->p_data_cube->logical_get(o_r, o_c, o_d, o_b); 
+          for (int i = -norm_window; i <= norm_window; ++i) {  
+            const int channel = o_d + i;
+            if (channel < 0 || channel >= iD) {
+              continue; // in the padding region, so we're adding 0
+            }
+            const DataType output_grad = *p_output_layer->p_gradient_cube->logical_get(o_r, o_c, channel, o_b);
+            const DataType window_data = *p_input_layer->p_data_cube->logical_get(o_r, o_c, channel, o_b);
+            DataType input_grad;
+            if(i == 0)
+              input_grad = (denom - 2 * input_data * window_data * beta * alpha_over_size * pow(denom_no_exponent, beta - 1)) / pow(denom, 2);  
+            else
+              input_grad = (- 2 * input_data * window_data * beta * alpha_over_size * pow(denom_no_exponent, beta - 1)) / pow(denom, 2);
+            
+            *p_input_layer->p_gradient_cube->logical_get(o_r, o_c, o_d, o_b) += input_grad * output_grad;  
+          }
         }
       }
     }
   }
-
+    
   this->report_backward_updateweight_last_transfer.end();
   this->report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
 }
