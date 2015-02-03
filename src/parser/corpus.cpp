@@ -45,9 +45,20 @@ void Corpus::initialize_input_data_and_labels(cnn::LayerParameter& layer_param) 
   }
 
   dim = datum.channels();
-  n_rows = datum.height();
-  n_cols = datum.width();
   mini_batch_size = layer_param.data_param().batch_size();
+  const int crop_size = layer_param.transform_param().crop_size();
+  const int height = datum.height();
+  const int width = datum.width();
+  const float scale = layer_param.transform_param().scale();
+  const bool mirror = layer_param.transform_param().mirror();
+
+  if (layer_param.transform_param().has_crop_size()) {
+    n_rows = crop_size;
+    n_cols = crop_size;
+  } else {
+    n_rows = datum.height();
+    n_cols = datum.width();
+  }
 
   mdb_env_stat (mdb_env_, &stat);
   n_images = stat.ms_entries;
@@ -57,21 +68,18 @@ void Corpus::initialize_input_data_and_labels(cnn::LayerParameter& layer_param) 
   images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, n_images);
   labels = new LogicalCube<DataType_SFFloat, Layout_CRDB>(1, 1, 1, n_images);
   mean = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, 1);
-  
-  if (layer_param.transform_param().has_mean_file()){
+
+  if (layer_param.transform_param().has_mean_file()) {
     const string& mean_file = layer_param.transform_param().mean_file();
     Parser::ReadProtoFromBinaryFile(mean_file.c_str(), &cube);
     const int count_ = n_rows* n_cols* dim;
     for (int i = 0; i < count_; ++i) {
       mean->p_data[i] = cube.data(i);
     }
-  }
-  else{
+  } else {
     mean->reset_cube();
   }
-  
 
-  
   MDB_cursor_op op = MDB_FIRST;
 
   for (size_t b = 0; b < n_images; b++) {
@@ -81,20 +89,55 @@ void Corpus::initialize_input_data_and_labels(cnn::LayerParameter& layer_param) 
     int img_label = datum.label();
     labels->p_data[b] = img_label;
     float * const single_input_batch = images->physical_get_RCDslice(b);
-    for (size_t d = 0; d < dim; ++d) {
-      for (size_t r = 0; r < n_rows; ++r) {
-        for (size_t c = 0; c < n_cols; ++c) {
-          //float datum_element = static_cast<float>(static_cast<uint8_t>(data[d*n_rows*n_cols+r*n_cols+c]));
-          const int data_index = d*n_rows*n_cols+r*n_cols+c;
-          float datum_element = static_cast<float>(static_cast<uint8_t>(data[d*n_rows*n_cols+r*n_cols+c]));
-          single_input_batch[data_index] = (datum_element - mean->p_data[data_index])*0.00390625;
-          //single_input_batch[d*n_rows*n_cols+r*n_cols+c] = rand()%10;
+    if (crop_size > 0) {
+      int h_off, w_off;
+      if (layer_param.include(0).phase() == 0) {         // Training Phase
+        h_off = rand() % (height - crop_size);
+        w_off = rand() % (width - crop_size);
+      } else {
+        h_off = (height - crop_size) / 2;
+        w_off = (width - crop_size) / 2;
+      }
+      if (mirror && rand() % 2) {
+        // Copy mirrored version
+        for (size_t c = 0; c < dim; ++c) {
+          for (int h = 0; h < crop_size; ++h) {
+            for (int w = 0; w < crop_size; ++w) {
+              int data_index = (c * height + h + h_off) * width + w + w_off;
+              int top_index = (c * crop_size + h) * crop_size + (crop_size - 1 - w);
+
+              float datum_element = static_cast<float>(static_cast<uint8_t>(data[data_index]));
+              single_input_batch[top_index] = (datum_element - mean->p_data[data_index])*scale;
+            }
+          }
+        }
+      } else {
+      // Normal copy
+        for (size_t c = 0; c < dim; ++c) {
+          for (int h = 0; h < crop_size; ++h) {
+            for (int w = 0; w < crop_size; ++w) {
+              int top_index = (c * crop_size + h) * crop_size + w;
+              int data_index = (c * height + h + h_off) * width + w + w_off;
+
+              float datum_element = static_cast<float>(static_cast<uint8_t>(data[data_index]));
+              single_input_batch[top_index] = (datum_element - mean->p_data[data_index])*scale;
+            }
+          }
+        }
+      }
+    } else {
+      for (size_t d = 0; d < dim; ++d) {
+        for (size_t r = 0; r < n_rows; ++r) {
+          for (size_t c = 0; c < n_cols; ++c) {
+            const size_t data_index = d * n_rows * n_cols + r * n_cols + c;
+            float datum_element = static_cast<float>(static_cast<uint8_t>(data[data_index]));
+            single_input_batch[data_index] = (datum_element - mean->p_data[data_index])*scale;
+          }
         }
       }
     }
     op = MDB_NEXT;
   }
-
 }
 
 Corpus::~Corpus() {
