@@ -26,10 +26,10 @@ Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCu
   report_inverse_history.reset();
 
 #ifdef _DO_ASSERT
-  assert(oD==1);
-  assert(oB==1);
-  assert(oR==kernel_size*kernel_size*iD);
-  assert(oC==((iR + 2 * padding - kernel_size) / stride + 1)*((iC + 2 * padding - kernel_size) / stride + 1)*iB);
+  assert(oD == 1);
+  assert(oB == 1);
+  assert(oR == kernel_size * kernel_size * iD);
+  assert(oC == ((iR + 2 * padding - kernel_size) / stride + 1) * ((iC + 2 * padding - kernel_size) / stride + 1) * iB);
 #endif
   report_constructor.end(0, 0, 0);
 }
@@ -76,7 +76,7 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
   report_last_inverse_lowering.reset();
 
 #ifdef _DO_WARNING
-  std::cerr << "WARNING: " << "You are using the most general version of the lowering function. " << "This might be slow!" << std::endl;
+  cerr << "WARNING: " << "You are using the most general version of the lowering function. " << "This might be slow!" << endl;
 #endif
 
 #ifdef _DO_ASSERT
@@ -92,24 +92,45 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
 
   p_input_cube->reset_cube();
 
-  // TODO: rewrite this using get_logical_matrix
-  size_t outr = 0, outc = 0;
+  size_t out_index = 0;
+  const DataType * const output_data = p_output_cube->p_data;
 
-  for (size_t kd = 0; kd < iD; kd++) {
-    for (size_t kr = 0; kr < kernel_size; kr++) {
-      for (size_t kc = 0; kc < kernel_size; kc++) {
+  const size_t data_output_width = (iR + 2 * padding - kernel_size) / stride + 1;  // the number of rows in the output gradient cube
+  const size_t data_output_height = (iC + 2 * padding - kernel_size) / stride + 1; // the number of cols in the output gradient cube
 
-        outc = 0;
-        for (size_t ib = 0; ib < iB; ib++) {
-          for (size_t cr = 0; cr < iR - kernel_size + 1; cr++) {
-            for (size_t cc = 0; cc < iC - kernel_size + 1; cc++) {
-              *p_input_cube->logical_get(cr + kr, cc + kc, kd, ib) +=
-                *p_output_cube->logical_get(outr, outc, 0, 0);
-              outc ++;
+  // First, we iterate over K * K * iD , which is the number of rows in the output gradient
+  // cube. (Remember: the output gradient cube has dimensions K * K * iD x oR * oC * iB x 1 x 1,
+  // where oR and oC do NOT refer the variables above. TODO: We REALLY need to standardize this!)
+  for (size_t kd = 0; kd < iD; ++kd) {
+    for (size_t kr = 0; kr < kernel_size; ++kr) {
+      for (size_t kc = 0; kc < kernel_size; ++kc) {
+
+        // Then, we iterate over oR * oC * iB, the number of columns in the output gradient
+        for (size_t ib = 0; ib < iB; ++ib) {
+          // cr and cc represent the row index and column index of the convolutional "window"
+          // in the input gradient cube, which means that they must be incremented by stride
+          for (size_t cr = 0; cr < stride * data_output_width; cr += stride) {
+            const int input_row_index = cr + kr - padding;
+
+            for (size_t cc = 0; cc < stride * data_output_height; cc += stride) {
+              const int input_col_index = cc + kc - padding;
+
+              // (cr + kr - padding, cc + kc - padding) represents the index into
+              // the input gradient cube. If we aren't within [0, iR) and [0, iC)
+              // then we shouldn't update, because we are in the padded area
+              if (input_row_index >= 0 &&
+                  input_row_index < iR  &&
+                  input_col_index >= 0 &&
+                  input_col_index < iC) {
+                *p_input_cube->logical_get(input_row_index, input_col_index, kd, ib) += output_data[out_index];
+              }
+              // increment out_index regardless, a single cell from the output gradient cube
+              // can only make a single contribution to the input gradient cube (Remember: this
+              // is the *lowered* output gradient cube!)
+              ++out_index;
             }
           }
         }
-        outr ++;
       }
     }
   }

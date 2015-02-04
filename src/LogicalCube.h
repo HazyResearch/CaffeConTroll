@@ -115,11 +115,11 @@ public:
     LogicalMatrix<T> get_logical_matrix(size_t depth_index, size_t batch_index) const;
 
     template<LoweringType LOWERING>
-    void lower_logical_matrix(const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i,
+    void lower_logical_matrix(const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i,
         const size_t kernel_size);
 
     template<LoweringType LOWERING>
-    void lower_logical_matrix(const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i,
+    void lower_logical_matrix(const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i,
         const size_t kernel_size, const size_t stride, const size_t padding);
 
     template<LoweringType LOWERING>
@@ -176,10 +176,10 @@ private:
     template<typename DUMMY>
     struct LoweringHelper<LOWERING_TYPE1, DUMMY> {
       inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
-          const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i, const size_t kernel_size);
+          const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const size_t kernel_size);
 
       inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
-          const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i, const int kernel_size,
+          const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const int kernel_size,
           const int stride, const int padding);
 
       inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size);
@@ -188,10 +188,10 @@ private:
     template<typename DUMMY>
     struct LoweringHelper<LOWERING_TYPE2, DUMMY> {
       inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
-          const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i, const size_t kernel_size);
+          const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const size_t kernel_size);
 
       inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
-          const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i, const int kernel_size,
+          const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const int kernel_size,
           const int stride, const int padding);
 
       inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size);
@@ -200,10 +200,10 @@ private:
     template<typename DUMMY>
     struct LoweringHelper<LOWERING_TYPE3, DUMMY> {
       inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
-          const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i, const size_t kernel_size);
+          const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const size_t kernel_size);
 
       inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
-          const LogicalMatrix<T> * const m, const size_t b_i, const size_t d_i, const int kernel_size,
+          const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const int kernel_size,
           const int stride, const int padding);
 
       inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size);

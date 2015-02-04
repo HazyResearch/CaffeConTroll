@@ -13,7 +13,7 @@ struct BridgeConfig {
   // only kernel size and num_output_features don't have default values
   BridgeConfig(const size_t _k_size, const size_t _num_output_features,
       const size_t _padding = 0, const size_t _stride = 1,
-      const bool _bias_term = true, const InitializerType _weight_initializer = CONSTANT,
+      const bool _bias_term = true, const InitializerType _weight_initializer = XAVIER,
       const InitializerType _bias_initializer = CONSTANT) : kernel_size(_k_size),
       num_output_features(_num_output_features), padding(_padding), stride(_stride),
       bias_term(_bias_term), weight_initializer(_weight_initializer),
