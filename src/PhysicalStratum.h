@@ -6,12 +6,12 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
+#ifndef moka_PhysicalStratum_h
+#define moka_PhysicalStratum_h
+
 #include "PhysicalOperator.h"
 #include <thread>
 #include <vector>
-
-#ifndef moka_PhysicalStratum_h
-#define moka_PhysicalStratum_h
 
 /**
  * Wrapper of calling the forward() function -- only

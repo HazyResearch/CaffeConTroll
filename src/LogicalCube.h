@@ -6,12 +6,12 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
+#ifndef moka_LogicalCube_h
+#define moka_LogicalCube_h
+
 #include "LogicalMatrix.h"
 #include "LoweringType.h"
 #include "util.h"
-
-#ifndef moka_LogicalCube_h
-#define moka_LogicalCube_h
 
 enum LayoutType {
     Layout_CRDB = 0,

@@ -6,12 +6,13 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
+#ifndef moka_Soft_Max_Loss_Bridge_h
+#define moka_Soft_Max_Loss_Bridge_h
+
 #include "../PhysicalOperator.h"
 #include "AbstractBridge.h"
 #include "../util.h"
 
-#ifndef moka_Soft_Max_Loss_Bridge_h
-#define moka_Soft_Max_Loss_Bridge_h
 template
 <typename InputLayerDataType, LayoutType InputLayerLayout, typename OutputLayerDataType, LayoutType OutputLayerLayout>
 class SoftmaxLossBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType, OutputLayerLayout> {

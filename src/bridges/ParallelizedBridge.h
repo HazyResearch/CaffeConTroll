@@ -6,13 +6,13 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
+#ifndef moka_ParallelizedBridge_h
+#define moka_ParallelizedBridge_h
+
 #include "../PhysicalOperator.h"
 #include "../PhysicalStratum.h"
 #include <thread>
 #include <vector>
-
-#ifndef moka_ParallelizedBridge_h
-#define moka_ParallelizedBridge_h
 
 template<typename DATATYPE, LayoutType LAYOUTTYPE, BridgeType BRIDGETYPE, NonLinearFunction FUNC>
 class ParallelizedBridge : public PhysicalOperator {

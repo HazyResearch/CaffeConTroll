@@ -17,7 +17,7 @@
 #include "Scanner.h"
 #include "Bridge.h"
 
-enum ParallelBridgeType{
+enum ParallelBridgeType {
     ParallelBridge_ParallelizeBy_DataBatch = 0,
     ParallelBridge_ParallelizeBy_ModelBatch = 1,
 };

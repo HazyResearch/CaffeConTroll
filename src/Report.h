@@ -6,10 +6,10 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#include "timer.h"
-
 #ifndef moka_Report_h
 #define moka_Report_h
+
+#include "timer.h"
 
 class Report {
 public:

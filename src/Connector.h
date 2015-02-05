@@ -6,14 +6,14 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
+#ifndef moka_Connector_h
+#define moka_Connector_h
+
 #include "LogicalCube.h"
 #include "Report.h"
 #include "LogicalMatrix.h"
 #include "LoweringType.h"
 #include "bridges/BridgeConfig.h"
-
-#ifndef moka_Connector_h
-#define moka_Connector_h
 
 template <typename InputDataType,LayoutType InputLayout,
          typename OutputDataType, LayoutType OutputLayout,

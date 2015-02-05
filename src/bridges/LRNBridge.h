@@ -6,12 +6,12 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
+#ifndef moka_LRN_Bridge_h
+#define moka_LRN_Bridge_h
+
 #include "../PhysicalOperator.h"
 #include "AbstractBridge.h"
 #include "../util.h"
-
-#ifndef moka_LRN_Bridge_h
-#define moka_LRN_Bridge_h
 
 template
 <typename InputLayerDataType, LayoutType InputLayerLayout, typename OutputLayerDataType, LayoutType OutputLayerLayout>

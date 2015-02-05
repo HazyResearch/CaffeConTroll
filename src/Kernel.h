@@ -6,19 +6,19 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#include "LogicalCube.h"
-#include "Report.h"
-
 #ifndef moka_Kernel_h
 #define moka_Kernel_h
 
-enum KernelType{
+#include "LogicalCube.h"
+#include "Report.h"
+
+enum KernelType {
     Kernel_GEMM_OpenBlas = 0,
     Kernel_GEMM_Magma = 1,
     Kernel_ELEMENTWISEMUL_CPU = 2
 };
 
-enum KernelConfig{
+enum KernelConfig {
     KernelConfig_NONE = 0,
     KernelConfig_GEMM_NOTRANS_NOTRANS = 1,
     KernelConfig_GEMM_NOTRANS_TRANS = 2,
@@ -31,7 +31,7 @@ template
 typename Input2DataType, LayoutType Input2Layout,
 typename OutputDataType, LayoutType OutputLayout,
 KernelType KERNELTYPE, KernelConfig KERNELCONFIG>
-class Kernel{
+class Kernel {
 public:
 
     typedef LogicalCube<Input1DataType, Input1Layout> Input1LogicalCubeType;
@@ -65,12 +65,11 @@ public:
 
 };
 
-
 /******
  * Specializations
  */
 template <typename DataType, KernelConfig KERNELCONFIG>
-class Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_GEMM_OpenBlas, KERNELCONFIG>{
+class Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_GEMM_OpenBlas, KERNELCONFIG> {
 public:
 
     typedef LogicalCube<DataType, Layout_CRDB> Input1LogicalCubeType;
@@ -100,7 +99,7 @@ public:
 };
 
 template <typename DataType, KernelConfig KERNELCONFIG>
-class Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KERNELCONFIG>{
+class Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KERNELCONFIG> {
 public:
 
     typedef LogicalCube<DataType, Layout_CRDB> Input1LogicalCubeType;

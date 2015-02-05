@@ -6,6 +6,9 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
+#ifndef moka_timer_h
+#define moka_timer_h
+
 #if defined __MACH__ && __APPLE__
 #include <mach/clock.h>
 #include <mach/mach.h>
@@ -13,9 +16,6 @@
 #else
 #include <time.h>
 #endif
-
-#ifndef moka_timer_h
-#define moka_timer_h
 
 #if defined __MACH__ && __APPLE__
 //clock_gettime is not implemented on OSX

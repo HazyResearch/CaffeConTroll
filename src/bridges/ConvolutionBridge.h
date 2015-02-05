@@ -6,12 +6,12 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
+#ifndef moka_Convolution_Bridge_h
+#define moka_Convolution_Bridge_h
+
 #include "../PhysicalOperator.h"
 #include "AbstractBridge.h"
 #include "../util.h"
-
-#ifndef moka_Convolution_Bridge_h
-#define moka_Convolution_Bridge_h
 
 enum ConvolutionBridgeType {
   CPU_CONV_LOWERINGTYPE1 = 0,

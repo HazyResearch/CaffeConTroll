@@ -6,13 +6,13 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
+#ifndef moka_Layer_h
+#define moka_Layer_h
+
 #include "LogicalCube.h"
 #include "Connector.h"
 #include "Kernel.h"
 #include "Report.h"
-
-#ifndef moka_Layer_h
-#define moka_Layer_h
 
 /**
  * One Layer contains three things:
