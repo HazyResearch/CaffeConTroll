@@ -20,7 +20,6 @@
 #include "bridges/LRNBridge.h"
 #include "Layer.h"
 //#include "bridges/ParallelizedBridge.h"
-//#include "parser/parser.h"
 #include "parser/corpus.h"
 #include "util.h"
 
@@ -133,7 +132,7 @@ void TEST_CONVOLUTION_BRIDGE() {
   LogicalCube<DataType_SFFloat, Layout_CRDB> grad2(N-K+1, N-K+1, O, B);
 
   Util::xavier_initialize(data1.p_data, N*N*D*B, B);
-  Util::constant_initialize<float>(bias.p_data, 0.0, O);
+  Util::constant_initialize<DataType_SFFloat>(bias.p_data, 0., O);
 
   kernel1.reset_cube();
   for (size_t i = 0; i < K*K*D*O; i++) {
@@ -371,10 +370,10 @@ void LeNet(const char * file) {
       //labels.logical_print();
       corpus_batch_index += B;
       // clear data and grad outputs for this batch (but not the weights and biases!)
-      grad1.reset_cube(); data2.reset_cube(); grad2.reset_cube(); data3.reset_cube(-1000.0); grad3.reset_cube();
-      data4.reset_cube(); grad4.reset_cube(); data5.reset_cube(-1000.0); grad5.reset_cube(); data6.reset_cube();
+      grad1.reset_cube(); data2.reset_cube(); grad2.reset_cube(); data3.reset_cube(-FLT_MAX); grad3.reset_cube();
+      data4.reset_cube(); grad4.reset_cube(); data5.reset_cube(-FLT_MAX); grad5.reset_cube(); data6.reset_cube();
       grad6.reset_cube(); data7.reset_cube(); grad7.reset_cube(); data8.reset_cube(); grad8.reset_cube();
-      //Util::constant_initialize<float>(grad9.p_data, 1.0, 1*1*conv_O4*B); //initialize to 1 for backprop
+      //Util::constant_initialize<DataType_SFFloat>(grad9.p_data, 1.0, 1*1*conv_O4*B); //initialize to 1 for backprop
 
       // forward pass
       conv1.forward();
@@ -423,7 +422,7 @@ void LeNet(const char * file) {
     // grad1.reset_cube(); data2.reset_cube(); grad2.reset_cube(); data3.reset_cube(); grad3.reset_cube();
     // data4.reset_cube(); grad4.reset_cube(); data5.reset_cube(); grad5.reset_cube(); data6.reset_cube();
     // grad6.reset_cube(); data7.reset_cube(); grad7.reset_cube(); data8.reset_cube(); grad8.reset_cube();
-    // Util::constant_initialize<float>(grad9.p_data, 1.0, R5*C5*conv_O4*B); //initialize to 1 for backprop
+    // Util::constant_initialize<DataType_SFFloat>(grad9.p_data, 1.0, R5*C5*conv_O4*B); //initialize to 1 for backprop
 
     // //cout << "FORWARD PASS" << endl;
     // // forward pass

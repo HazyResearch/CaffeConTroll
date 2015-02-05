@@ -64,7 +64,7 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
     p_backward_outputgrad = new LogicalCube<DataType, Layout_CRDB>(oR, oC, oD, oB);
   }
 
-  cout << "Allocating " << (1.0*K*K*iD*oR*oC*iB* \
+  cout << "Allocating " << (1.*K*K*iD*oR*oC*iB* \
       sizeof(DataType))/1024/1024/1024 << " GB data for the lowering matrix" << endl;
 
   p_backward_inputgrad = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*iB, 1, 1);
@@ -83,7 +83,7 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
                                       KernelConfig_GEMM_NOTRANS_TRANS>(&lowered_forward_output,
                                           p_forward_lowered_data, &lowered_forward_model);
   p_backward_gemm_updateweight_kernel->alpha = -stepsize;
-  p_backward_gemm_updateweight_kernel->beta = 1.0;
+  p_backward_gemm_updateweight_kernel->beta = 1.;
 
   p_backward_gemm_updategrad_kernel = new Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB,
                                     DataType_SFFloat, Layout_CRDB, Kernel_GEMM_OpenBlas,
@@ -98,7 +98,7 @@ void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Data
 initialize_logical_cube(const LogicalCubeType * cube, const InitializerType initializer) {
   switch (initializer) {
     case CONSTANT:
-      Util::constant_initialize<float>(cube->p_data, 0.0, cube->n_elements);
+      Util::constant_initialize<DataType>(cube->p_data, 0., cube->n_elements);
       break;
     case XAVIER:
       Util::xavier_initialize(cube->p_data, cube->n_elements, cube->B);

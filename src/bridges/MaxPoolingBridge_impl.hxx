@@ -38,7 +38,7 @@ MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::MaxPoolingBridge
 
   // create Logical Cube to keep track of indices for max values
   max_index = new LogicalCube<size_t, Layout_CRDB>(pooled_height, pooled_width, iD, iB);
-  p_output_layer->p_data_cube->reset_cube(-1000.0);
+  p_output_layer->p_data_cube->reset_cube(-FLT_MAX);
   p_input_layer->p_gradient_cube->reset_cube();
 
   report_forward_constructor.end(0, 0, 0);

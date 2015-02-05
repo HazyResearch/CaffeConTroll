@@ -29,6 +29,12 @@ using std::mt19937;
 using std::uniform_real_distribution;
 using std::bernoulli_distribution;
 using std::normal_distribution;
+using std::string;
+
+typedef float  DataType_SFFloat; /*< Single-precision Floating Point. */
+typedef short  DataType_FPFloat; /*< 16-bit Fixed Point. */
+typedef int    DataType_Int; /*< 32-bit integer. */
+typedef string DataType_String; /*< String-type data only for deubgging/unit testing. */
 
 #define NOT_IMPLEMENTED std::cerr << "ERROR: Using a bridge with unsupported Layout or DataType." << std::endl; assert(false)
 
@@ -46,11 +52,18 @@ class Util {
 
     // Same as above: memset doesn't inline with g++, so we use this instead
     static inline void * _our_memset(void *b, const int value, size_t n) {
-      char *s1 = (char*) b;
+#ifdef _DO_ASSERT
+      assert(value >= -1); // memset will not work correctly if the value is less than -1
+#endif
+      char * s1 = (char *) b;
       const unsigned char val = (const unsigned char) value;
       for(; 0<n; --n)*s1++ = val;
       return b;
     }
+
+    // Same as above: memset doesn't inline with g++, so we use this instead
+    //static inline void * _our_memset(void *b, const float value, size_t n) {
+    //}
 
     template <typename T>
     static inline void xavier_initialize(T * const arr, const size_t n_arr_elements, const size_t n_batch) {
@@ -84,9 +97,11 @@ class Util {
       }
     }
 
+    // Note: this is only used for shorts and floats, since _our_memset will only work for ints
     template <typename T>
-    static inline void constant_initialize(T * const arr, const T value, const size_t n_elements) {
-      _our_memset(arr, value, n_elements*sizeof(float));
+    static inline void constant_initialize(T * const arr, const T value, const size_t n_arr_elements) {
+      for(size_t i = 0; i < n_arr_elements; ++i)
+        arr[i] = value;
     }
 
   private:
