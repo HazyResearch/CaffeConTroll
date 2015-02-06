@@ -1,5 +1,10 @@
 notifications:
-email: false
+email: 
+recipients:
+- shubhamg@stanford.edu
+- chrismre@stanford.edu
+- fabuzaid@stanford.edu
+on_failure: change
 
 language: cpp
 compiler:
