@@ -20,7 +20,7 @@ class softmaxBridgeTest : public ::testing::Test {
   	data1 = new LogicalCube<T, Layout_CRDB>(1, 1, iD, mB);
     grad1 = new LogicalCube<T, Layout_CRDB>(1, 1, iD, mB);
     
-    data2 = new LogicalCube<T, Layout_CRDB>(1, 1, 1, mB);
+    data2 = new LogicalCube<T, Layout_CRDB>(1, 1, iD, mB);
     grad2 = new LogicalCube<T, Layout_CRDB> (1, 1, iD, mB);
 
     label = new LogicalCube<T, Layout_CRDB> (1, 1, 1, mB);
@@ -48,7 +48,7 @@ class softmaxBridgeTest : public ::testing::Test {
     static const int mB = 5;
     static const int iD = 100;
 };
-
+    
 typedef ::testing::Types<FloatCRDB> DataTypes;
 
 TYPED_TEST_CASE(softmaxBridgeTest, DataTypes);
@@ -73,8 +73,6 @@ TYPED_TEST(softmaxBridgeTest, TestForward){
     for(int n=0;n<this->mB;n++){
         this->label->p_data[n] = rand()%10;
     }
-
-    
     this->softmaxBridge_->forward();
     std::fstream expected_output("softmax_forward.txt", std::ios_base::in);
     
@@ -92,11 +90,6 @@ TYPED_TEST(softmaxBridgeTest, TestForward){
 TYPED_TEST(softmaxBridgeTest, TestBackward){
     typedef typename TypeParam::T T;
     
-    srand(1);
-    for(int i=0;i<this->iD*this->mB;i++){
-        this->grad2->p_data[i] = (rand()%5)*0.1;
-    }
-    
     srand(0);
     for(int n=0;n<this->mB;n++){
         this->label->p_data[n] = rand()%10;
@@ -104,7 +97,10 @@ TYPED_TEST(softmaxBridgeTest, TestBackward){
 
 
     this->softmaxBridge_->forward();
-    
+    srand(1);
+    for(int i=0;i<this->iD*this->mB;i++){
+        this->data2->p_data[i] = (rand()%5)*0.1;
+    }
     this->softmaxBridge_->backward();
 
     std::fstream expected_output("softmax_backward.txt", std::ios_base::in);

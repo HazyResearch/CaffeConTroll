@@ -46,19 +46,21 @@ class ConvolutionBridgeTest : public ::testing::Test {
   	data1 = new LogicalCube<T, Layout_CRDB>(iR, iC, iD, mB);
     grad1 = new LogicalCube<T, Layout_CRDB>(iR, iC, iD, mB);
     
-    data2 = new LogicalCube<T, Layout_CRDB>(iR-k+1, iC-k+1, oD, mB);
-    grad2 = new LogicalCube<T, Layout_CRDB> (iR-k+1, iC-k+1, oD, mB);
+    data2 = new LogicalCube<T, Layout_CRDB>(oR, oC, oD, mB);
+    grad2 = new LogicalCube<T, Layout_CRDB> (oR, oC, oD, mB);
 
-    kernel = new LogicalCube<T, Layout_CRDB> (k, k, iD, oD);
-    bias = new LogicalCube<T, Layout_CRDB> (1, 1, oD, 1);
+    // kernel = new LogicalCube<T, Layout_CRDB> (k, k, iD, oD);
+    // bias = new LogicalCube<T, Layout_CRDB> (1, 1, oD, 1);
 
     layer1 = new Layer<T, Layout_CRDB>(data1, grad1);
     layer2 = new Layer<T, Layout_CRDB>(data2, grad2);
-    
-    ConvolutionBridge_ = new ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>(layer1, layer2, kernel, bias);
+
+    bconfig = new BridgeConfig(k, oD, p, s, weight_initializer, bias_initializer);
+
+    ConvolutionBridge_ = new ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>(layer1, layer2, bconfig);
    } 
 
-  	virtual ~ConvolutionBridgeTest() { delete ConvolutionBridge_; delete layer1; delete layer2;}
+  	virtual ~ConvolutionBridgeTest() { delete ConvolutionBridge_; delete layer1; delete layer2; delete bconfig;}
     ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>* ConvolutionBridge_;
 
   	LogicalCube<T, Layout_CRDB>* data1;
@@ -67,24 +69,26 @@ class ConvolutionBridgeTest : public ::testing::Test {
     LogicalCube<T, Layout_CRDB>* data2;
     LogicalCube<T, Layout_CRDB>* grad2;
 
-    LogicalCube<T, Layout_CRDB>* kernel;
-    LogicalCube<T, Layout_CRDB>* bias;
+    // LogicalCube<T, Layout_CRDB>* kernel;
+    // LogicalCube<T, Layout_CRDB>* bias;
 
     Layer<T, Layout_CRDB>* layer1;
     Layer<T, Layout_CRDB>* layer2;
 
     BridgeConfig * bconfig;
 
-    static const int mB = 6;
+    static const int mB = 4;
     static const int iD = 3;
     static const int oD = 10;
-    static const int iR = 10;
-    static const int iC = 10;
-    static const int k = 3;
-    static const int s = 2;
-    static const int p = 0;
-    static const int oR = static_cast<int>(ceil(static_cast<float>(iR - k) / s)) + 1;
-    static const int oC = static_cast<int>(ceil(static_cast<float>(iC - k) / s)) + 1;
+    static const int iR = 20;
+    static const int iC = 20;
+    static const int k = 5;
+    static const int s = 4;
+    static const int p = 2;
+    static const int oR = static_cast<int>(floor(static_cast<float>(iR + 2*p - k) / s)) + 1;
+    static const int oC = static_cast<int>(floor(static_cast<float>(iC + 2*p - k) / s)) + 1;
+    static const InitializerType weight_initializer = XAVIER;
+    static const InitializerType bias_initializer = CONSTANT;
 };
 
 typedef ::testing::Types<FloatNOFUNC> DataTypes;
@@ -105,19 +109,18 @@ TYPED_TEST(ConvolutionBridgeTest, TestForward){
     }
     srand(0);
     for(int i=0;i<this->k*this->k*this->iD*this->oD;i++){
-        this->kernel->p_data[i] = rand()%10;
+        this->ConvolutionBridge_->model_cube()->p_data[i] = rand()%10;
     }
     srand(0);
     for(int i=0;i<this->oD;i++){
-        this->bias->p_data[i] = 0.1*(rand()%10);
+        this->ConvolutionBridge_->bias_cube()->p_data[i] = 0.1*(rand()%10);
     }
 
-    int oR = this->iR - this->k + 1;
-    int oC = this->iC - this->k + 1;
-    LogicalCube<T, Layout_CRDB>* out_expected = new LogicalCube<T, Layout_CRDB>(oR, oC, this->oD, this->mB);
+    int oR = this->oR;
+    int oC = this->oC;
+    
     this->ConvolutionBridge_->forward();
-    simple_conv<T>(this->data1, this->kernel, out_expected);
-
+    
     std::fstream expected_output("conv_forward.txt", std::ios_base::in);
     if(TypeParam::FUNC == FUNC_NOFUNC){
         T output;
@@ -131,15 +134,7 @@ TYPED_TEST(ConvolutionBridgeTest, TestForward){
             }
         }
         expected_output.close(); 
-        // for(int i=0; i<oR*oC*this->oD*this->mB;i++){
-        //     EXPECT_NEAR(out_expected->p_data[i], this->data2->p_data[i],EPS);              
-        // }
     }
-    else if(TypeParam::FUNC == FUNC_TANH){
-        for(int i=0; i<oR*oC*this->oD*this->mB;i++){
-            EXPECT_NEAR(tanh(out_expected->p_data[i]), this->data2->p_data[i],EPS);             
-        }
-    } 
 }
 
 
@@ -151,13 +146,13 @@ TYPED_TEST(ConvolutionBridgeTest, TestBackward){
         this->grad1->p_data[i] = 0;
     }
     
-    srand(1);
+    srand(0);
     for(int i=0;i<this->k*this->k*this->iD*this->oD;i++){
-        this->kernel->p_data[i] = rand()%2;
+        this->ConvolutionBridge_->model_cube()->p_data[i] = rand()%2;
     }
     
-    int oR = this->iR - this->k + 1;
-    int oC = this->iC - this->k + 1;
+    int oR = this->oR;
+    int oC = this->oC;
 
     for(int i=0;i<oR*oC*this->oD*this->mB;i++){
         this->data2->p_data[i] = 0;
@@ -165,13 +160,12 @@ TYPED_TEST(ConvolutionBridgeTest, TestBackward){
     }
 
     for(int i=0;i<this->oD;i++){
-        this->bias->p_data[i] = 0.0;
+        this->ConvolutionBridge_->bias_cube()->p_data[i] = 0.0;
     }
 
     this->ConvolutionBridge_->forward();
-    
+
     this->ConvolutionBridge_->backward();
-    
     //this->bias->logical_print();
     std::fstream expected_output("conv_backward.txt", std::ios_base::in);
     T output;
@@ -185,19 +179,18 @@ TYPED_TEST(ConvolutionBridgeTest, TestBackward){
         }
     }
     expected_output.close(); 
-    //this->grad1->logical_print();
 
     std::fstream expected_weights("conv_weights.txt", std::ios_base::in);
     idx = 0;
     if (expected_weights.is_open()) {
         expected_weights >> output;
         while (!expected_weights.eof()) {
-            //EXPECT_NEAR(this->kernel->p_data[idx], output, 0.9);
+            EXPECT_NEAR(this->ConvolutionBridge_->model_cube()->p_data[idx], output, 0.9);
             expected_weights >> output;
             idx++;
         }
     }
-    //this->kernel->logical_print();
     expected_weights.close(); 
+
 }
 

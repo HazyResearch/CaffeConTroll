@@ -41,10 +41,10 @@ class dropoutBridgeTest : public ::testing::Test {
     Layer<T, Layout_CRDB>* layer1;
     Layer<T, Layout_CRDB>* layer2;
 
-    static const int mB = 5;
+    static const int mB = 4;
     static const int iD = 3;
-    static const int iR = 10;
-    static const int iC = 10;
+    static const int iR = 6;
+    static const int iC = 6;
     static constexpr float ratio = 0.5;
 };
 

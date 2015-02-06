@@ -43,8 +43,8 @@ class ReLUBridgeTest : public ::testing::Test {
 
     static const int mB = 5;
     static const int iD = 3;
-    static const int iR = 50;
-    static const int iC = 50;
+    static const int iR = 20;
+    static const int iC = 20;
 };
 
 typedef ::testing::Types<FloatCRDB> DataTypes;

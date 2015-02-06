@@ -31,7 +31,7 @@ class MaxPoolingBridgeTest : public ::testing::Test {
     layer1 = new Layer<T, Layout_CRDB>(data1, grad1);
     layer2 = new Layer<T, Layout_CRDB>(data2, grad2);
 
-    bconfig = new BridgeConfig(k,s,p);
+    bconfig = new BridgeConfig(k, iD, p ,s);
     
     MaxPoolingBridge_ = new MaxPoolingBridge<T, Layout_CRDB, T, Layout_CRDB>(layer1, layer2, bconfig);
    } 
@@ -50,10 +50,10 @@ class MaxPoolingBridgeTest : public ::testing::Test {
 
     BridgeConfig * bconfig;
 
-    static const int mB = 10;
+    static const int mB = 2;
     static const int iD = 3;
-    static const int iR = 10;
-    static const int iC = 10;
+    static const int iR = 28;
+    static const int iC = 21;
     static const int k = 2;
     static const int s = 2;
     static const int p = 0;
@@ -79,9 +79,9 @@ TYPED_TEST(MaxPoolingBridgeTest, TestForward){
 	for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
         this->data1->p_data[i] = rand()%9;
     }
-
+    
     this->MaxPoolingBridge_->forward();
-
+    
     std::fstream expected_output("pooling_forward.txt", std::ios_base::in);
     
     T output;
@@ -100,7 +100,6 @@ TYPED_TEST(MaxPoolingBridgeTest, TestForward){
 
 
 TYPED_TEST(MaxPoolingBridgeTest, TestBackward){
-    cout << numeric_limits<float>::lowest() << endl;
     typedef typename TypeParam::T T;
     srand(1);
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
@@ -116,9 +115,9 @@ TYPED_TEST(MaxPoolingBridgeTest, TestBackward){
     }
 
     this->MaxPoolingBridge_->forward();
-    //this->data2->logical_print();
+    
     this->MaxPoolingBridge_->backward();
-
+    
     std::fstream expected_output("pooling_backward.txt", std::ios_base::in);
     
     T output;
@@ -132,7 +131,7 @@ TYPED_TEST(MaxPoolingBridgeTest, TestBackward){
             idx++;
         }
     }
-    expected_output.close();   
+    expected_output.close();  
     //this->grad1->logical_print();
 }
 
