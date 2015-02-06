@@ -34,7 +34,7 @@ TEST_CFLAGS=-O2 -std=c++11
 
 TEST_LDFLAGS= -lrt -I./lib/gtest-1.7.0/include/ -L./lib/gtest/ -lgtest -lpthread -L ./externals/OpenBLAS/ -lopenblas
 TEST_BLASFLAGS= -lm -I ./externals/OpenBLAS/
-TEST_SOURCES = test_main.cpp test_MaxPooling_bridge.cpp test_softmax_bridge.cpp test_convolution_bridge.cpp test_ReLU_bridge.cpp test_dropout_bridge.cpp test_lrn_bridge.cpp src/util.cpp 
+TEST_SOURCES = tests/test_main.cpp tests/test_MaxPooling_bridge.cpp tests/test_softmax_bridge.cpp tests/test_convolution_bridge.cpp tests/test_ReLU_bridge.cpp tests/test_dropout_bridge.cpp tests/test_lrn_bridge.cpp src/util.cpp 
 #tests/test_convolution_bridge.cpp tests/test_MaxPooling_bridge.cpp tests/test_ReLU_bridge.cpp
 TEST_EXECUTABLE=test
 
