@@ -72,9 +72,9 @@ class DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Abstr
     void backward();
 
     const float dropout_ratio;
-
-  private:
     LogicalCube<unsigned int, Layout_CRDB> * mask_cube;
+    
+  private:
     float scale;
 };
 

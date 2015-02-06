@@ -29,7 +29,7 @@ WARNING_FLAGS = -Wextra
 
 PRODUCT_FLAGS = -O3
 
-TEST_CC=clang++
+TEST_CC= g++-4.8
 TEST_CFLAGS=-O2 -std=c++11
 
 TEST_LDFLAGS= -lrt -I./lib/gtest-1.7.0/include/ -L./lib/gtest/ -lgtest -lpthread -L ./externals/OpenBLAS/ -lopenblas
