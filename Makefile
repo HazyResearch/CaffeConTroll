@@ -13,8 +13,15 @@ else ifeq ($(UNAME), Linux)
   LDFLAGS = -llmdb -lopenblas -lrt
   DIRS=./externals/OpenBLAS/
 endif
+
+# Protobuf variables
+PROTO_SRC_DIR=src/parser/
+PROTO_CC=protoc --cpp_out=.
+PROTO_SRC=cnn.proto
+PROTO_COMPILED_SRC=$(PROTO_SRC_DIR)cnn.pb.cc
+
 TARGET = deepnet
-SRC = src/main.cpp src/parser/parser.cpp src/parser/cnn.pb.cc src/parser/corpus.cpp src/util.cpp
+SRC = src/main.cpp src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp $(PROTO_COMPILED_SRC)
 DIR_PARAMS=$(foreach d, $(DIRS), -I$d -L$d)
 PROTOBUF = `pkg-config --cflags --libs protobuf`
 
@@ -40,14 +47,15 @@ TEST_EXECUTABLE=test
 
 .PHONY: all assembly clean product test warning
 
-all: 
+all: $(PROTO_COMPILED_SRC)
 	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF) $(SRC) -o $(TARGET)
 
 assembly:
 	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(ASSEMBLY_FLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF) $(SRC)
 
 clean:
-	rm $(TARGET)
+	rm -f $(TARGET)
+	rm -f $(PROTO_SRC_DIR)*.pb.*
 
 product:
 	$(CC) $(CFLAGS) $(PRODUCT_FLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF) $(SRC) -o $(TARGET)
@@ -57,3 +65,6 @@ test:
 
 warning:
 	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(WARNING_FLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF) $(SRC) -o $(TARGET)
+
+$(PROTO_COMPILED_SRC): $(PROTO_SRC_DIR)$(PROTO_SRC)
+	cd $(PROTO_SRC_DIR); $(PROTO_CC) $(PROTO_SRC); cd -
