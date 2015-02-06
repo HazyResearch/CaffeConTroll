@@ -5,4 +5,6 @@ deepnet
 test
 tests/test
 *.swp
+*.pb.cc
+*.pb.h
 lib/
