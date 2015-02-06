@@ -30,7 +30,7 @@ using google::protobuf::io::ZeroCopyOutputStream;
 using google::protobuf::io::CodedOutputStream;
 using google::protobuf::Message;
 
-bool Parser::ReadProtoFromTextFile(const char* filename, Message* proto) {
+bool Parser::read_proto_from_text_file(const char * filename, Message * proto) {
   int fd = open(filename, O_RDONLY);
   google::protobuf::io::FileInputStream fileInput(fd);
   fileInput.SetCloseOnDelete( true );
@@ -38,11 +38,11 @@ bool Parser::ReadProtoFromTextFile(const char* filename, Message* proto) {
   return success;
 }
 
-void Parser::ReadNetParamsFromTextFile(const string& param_file, Message* param) {
-  ReadProtoFromTextFile(param_file.c_str(), param);
+void Parser::read_net_params_from_text_file(const string & param_file, Message * param) {
+  read_proto_from_text_file(param_file.c_str(), param);
 }
 
-bool Parser::ReadProtoFromBinaryFile(const char* filename, Message* proto) {
+bool Parser::read_proto_from_binary_file(const char * filename, Message * proto) {
   int fd = open(filename, O_RDONLY);
   google::protobuf::io::ZeroCopyInputStream* raw_input = new FileInputStream(fd);
   google::protobuf::io::CodedInputStream* coded_input = new CodedInputStream(raw_input);
@@ -51,7 +51,7 @@ bool Parser::ReadProtoFromBinaryFile(const char* filename, Message* proto) {
   return success;
 }
 
-void Parser::DataSetup(cnn::LayerParameter& layer_param, cnn::Datum& datum){
+void Parser::data_setup(cnn::LayerParameter & layer_param, cnn::Datum & datum){
   MDB_env* mdb_env_ = NULL;
   MDB_dbi mdb_dbi_;
   MDB_txn* mdb_txn_;

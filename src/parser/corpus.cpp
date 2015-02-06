@@ -8,11 +8,11 @@
 
 #include "corpus.h"
 
-Corpus::Corpus(cnn::LayerParameter& layer_param) {
+Corpus::Corpus(const cnn::LayerParameter & layer_param) {
   initialize_input_data_and_labels(layer_param);
 }
 
-void Corpus::initialize_input_data_and_labels(cnn::LayerParameter& layer_param) {
+void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_param) {
   cnn::Datum datum;
   cnn::Cube cube;
   MDB_env* mdb_env_ = NULL;
@@ -70,8 +70,8 @@ void Corpus::initialize_input_data_and_labels(cnn::LayerParameter& layer_param) 
   mean = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, 1);
 
   if (layer_param.transform_param().has_mean_file()) {
-    const string& mean_file = layer_param.transform_param().mean_file();
-    Parser::ReadProtoFromBinaryFile(mean_file.c_str(), &cube);
+    const string & mean_file = layer_param.transform_param().mean_file();
+    Parser::read_proto_from_binary_file(mean_file.c_str(), &cube);
     const int count_ = n_rows* n_cols* dim;
     for (int i = 0; i < count_; ++i) {
       mean->p_data[i] = cube.data(i);

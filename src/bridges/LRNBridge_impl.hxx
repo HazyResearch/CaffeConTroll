@@ -10,15 +10,15 @@
 #define moka_LRNBridge_impl_hxx
 
 template <typename DataType>
-LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::LRNBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-    const float _alpha, const float _beta, const size_t _local_size)
+LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::LRNBridge(InputLayerType * const _p_input_layer,
+    OutputLayerType * const _p_output_layer, const float _alpha, const float _beta, const size_t _local_size)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer),
  alpha(_alpha),
  beta(_beta),
  local_size(_local_size) {
-  this->report_forward_constructor.reset();
-  this->report_forward_last_transfer.reset();
-  this->report_forward_history.reset();
+  report_forward_constructor.reset();
+  report_forward_last_transfer.reset();
+  report_forward_history.reset();
 #ifdef _DO_ASSERT
   assert(oR == iR); assert(oC == iC);
   assert(oB == iB); assert(oD == iD);
@@ -29,7 +29,7 @@ LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::LRNBridge(InputLayerTyp
 
   denoms = new LogicalCube<DataType, Layout_CRDB>(iR, iC, iD, iB);
 
-  this->report_forward_constructor.end(0, 0, 0);
+  report_forward_constructor.end(0, 0, 0);
   p_input_layer->p_gradient_cube->reset_cube();
 }
 
@@ -41,8 +41,7 @@ LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::LRNBridge(InputLayerTyp
  **/
 template <typename DataType>
 void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
-
-  this->report_forward_last_transfer.reset();
+  report_forward_last_transfer.reset();
 
   const DataType alpha_over_size = alpha / local_size;
 
@@ -71,8 +70,8 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
     }
   }
 
-  this->report_forward_last_transfer.end();
-  this->report_forward_history.aggregate(report_forward_last_transfer);
+  report_forward_last_transfer.end();
+  report_forward_history.aggregate(report_forward_last_transfer);
 }
 
 
@@ -84,8 +83,7 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
  **/
 template <typename DataType>
 void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
-
-  this->report_backward_updateweight_last_transfer.reset();
+  report_backward_updateweight_last_transfer.reset();
 
   const DataType alpha_over_size = alpha / local_size;
   const int norm_window = (int) local_size / 2;
@@ -96,8 +94,8 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
         for (size_t o_r = 0; o_r < iR; ++o_r) {
           const DataType denom_no_exponent = *denoms->logical_get(o_r, o_c, o_d, o_b);
           const DataType denom = pow(denom_no_exponent, beta);
-          const DataType input_data = *p_input_layer->p_data_cube->logical_get(o_r, o_c, o_d, o_b); 
-          for (int i = -norm_window; i <= norm_window; ++i) {  
+          const DataType input_data = *p_input_layer->p_data_cube->logical_get(o_r, o_c, o_d, o_b);
+          for (int i = -norm_window; i <= norm_window; ++i) {
             const int channel = o_d + i;
             if (channel < 0 || channel >= iD) {
               continue; // in the padding region, so we're adding 0
@@ -106,19 +104,19 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
             const DataType window_data = *p_input_layer->p_data_cube->logical_get(o_r, o_c, channel, o_b);
             DataType input_grad;
             if(i == 0)
-              input_grad = (denom - 2 * input_data * window_data * beta * alpha_over_size * pow(denom_no_exponent, beta - 1)) / pow(denom, 2);  
+              input_grad = (denom - 2 * input_data * window_data * beta * alpha_over_size * pow(denom_no_exponent, beta - 1)) / pow(denom, 2);
             else
               input_grad = (- 2 * input_data * window_data * beta * alpha_over_size * pow(denom_no_exponent, beta - 1)) / pow(denom, 2);
-            
-            *p_input_layer->p_gradient_cube->logical_get(o_r, o_c, o_d, o_b) += input_grad * output_grad;  
+
+            *p_input_layer->p_gradient_cube->logical_get(o_r, o_c, o_d, o_b) += input_grad * output_grad;
           }
         }
       }
     }
   }
-    
-  this->report_backward_updateweight_last_transfer.end();
-  this->report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
+
+  report_backward_updateweight_last_transfer.end();
+  report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
 }
 
 template <typename DataType>

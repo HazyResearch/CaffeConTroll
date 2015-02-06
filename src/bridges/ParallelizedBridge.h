@@ -11,10 +11,11 @@
 
 #include "../PhysicalOperator.h"
 #include "../PhysicalStratum.h"
+#include "AbstractBridge.h"
 #include <thread>
 #include <vector>
 
-template<typename DATATYPE, LayoutType LAYOUTTYPE, BridgeType BRIDGETYPE, NonLinearFunction FUNC>
+template<typename DATATYPE, LayoutType LAYOUTTYPE>
 class ParallelizedBridge : public PhysicalOperator {
 public:
 
@@ -22,7 +23,7 @@ public:
 
     typedef Layer<DATATYPE, LAYOUTTYPE> LayerType;
 
-    typedef Bridge<DATATYPE, LAYOUTTYPE, DATATYPE, LAYOUTTYPE, BRIDGETYPE, FUNC> BridgeType;
+    typedef AbstractBridge<DATATYPE, LAYOUTTYPE, DATATYPE, LAYOUTTYPE> BridgeType;
 
     LayerType * const layer_lower;
     LayerType * const layer_higher;
@@ -42,13 +43,13 @@ public:
 
     PhysicalStratum stratum;
 
-    const int n_partition;
-    const int n_batch;
-    const int n_thread_per_partition;
+    const size_t n_partition;
+    const size_t n_batch;
+    const size_t n_thread_per_partition;
 
     ParallelizedBridge(Layer<DATATYPE, Layout_CRDB> * const _layer_lower,
                        Layer<DATATYPE, Layout_CRDB> * const _layer_higher,
-                       int _n_partition, int _n_thread_per_partition);
+                       size_t _n_partition, size_t _n_thread_per_partition);
 
     void forward();
 

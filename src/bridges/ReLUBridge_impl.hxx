@@ -30,7 +30,6 @@ ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::ReLUBridge(InputLayerT
  **/
 template <typename DataType>
 void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
-
   report_forward_last_transfer.reset();
 
   const size_t num_elements = p_input_layer->p_data_cube->n_elements;
@@ -52,7 +51,6 @@ void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
  **/
 template <typename DataType>
 void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
-
   report_backward_updateweight_last_transfer.reset();
 
   const size_t num_elements = p_input_layer->p_data_cube->n_elements;

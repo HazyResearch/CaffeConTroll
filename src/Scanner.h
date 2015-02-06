@@ -22,7 +22,7 @@ enum NonLinearFunction {
  **/
 template
 <typename DataType, LayoutType Layout, NonLinearFunction SCANNER>
-class Scanner{
+class Scanner {
 public:
 
     typedef LogicalCube<DataType, Layout> LogicalCubeType;

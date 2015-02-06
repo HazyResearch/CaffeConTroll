@@ -22,7 +22,7 @@ class MaxPoolingBridge : public AbstractBridge<InputLayerDataType, InputLayerLay
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
 
     MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-        const BridgeConfig * const _bconfig) {
+        const BridgeConfig * const _config) {
       NOT_IMPLEMENTED;
     }
 
@@ -66,19 +66,22 @@ class MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Ab
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
 
     MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-        const BridgeConfig * const _bconfig);
+        const BridgeConfig * const _config);
     ~MaxPoolingBridge();
 
-    const BridgeConfig * const bconfig;
-
-    size_t pooled_height;
-    size_t pooled_width;
+    const BridgeConfig * const config;
 
     void forward();
+
     void backward();
 
   private:
     LogicalCube<size_t, Layout_CRDB> * max_index;
+
+    size_t pooled_height;
+    size_t pooled_width;
+    size_t kernel_size;
+    size_t stride;
 };
 
 #include "MaxPoolingBridge_impl.hxx"
