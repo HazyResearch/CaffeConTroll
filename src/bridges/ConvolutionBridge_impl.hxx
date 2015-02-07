@@ -29,6 +29,7 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   p_model_cube = new LogicalCubeType(K, K, iD, num_output_features);
   initialize_logical_cube(p_model_cube, config->weight_initializer);
 
+  
   if (config->bias_term) {
     p_bias_cube = new LogicalCubeType(1, 1, num_output_features, 1);
     initialize_logical_cube(p_bias_cube, config->bias_initializer);
@@ -138,6 +139,10 @@ forward() {
   openblas_set_num_threads(run_with_n_threads);
 
   report_forward_last_transfer.reset();
+  
+  p_model_cube->logical_print();
+  // cout << "bias" << endl;
+  // p_bias_cube->logical_print();
 
   // (0) cast input model and output to matrix
   // This one should be refactored with the matrix interface
@@ -290,14 +295,14 @@ bias_cube() {
   return p_bias_cube;
 }
 
-template <typename DataType, NonLinearFunction FUNC>
-ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
-~ConvolutionBridge() {
-  delete p_model_cube; delete p_bias_cube; delete p_forward_lowered_data;
-  delete p_backward_gemm_updategrad_kernel; delete p_backward_gemm_updateweight_kernel;
-  delete p_backward_element_mul_kernel; delete p_backward_inputgrad;
-  delete p_backward_outputgrad; delete p_forward_gemm_kernel;
-  delete p_forward_lower_connector;
-}
+// template <typename DataType, NonLinearFunction FUNC>
+// ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
+// ~ConvolutionBridge() {
+//   delete p_model_cube; delete p_bias_cube; delete p_forward_lowered_data;
+//   delete p_backward_gemm_updategrad_kernel; delete p_backward_gemm_updateweight_kernel;
+//   //delete p_backward_element_mul_kernel; //delete p_backward_inputgrad;
+//   delete p_backward_outputgrad; delete p_forward_gemm_kernel;
+//   delete p_forward_lower_connector;
+// }
 
 #endif

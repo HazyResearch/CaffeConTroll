@@ -131,7 +131,8 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
           for (size_t c = 0; c < n_cols; ++c) {
             const size_t data_index = d * n_rows * n_cols + r * n_cols + c;
             float datum_element = static_cast<float>(static_cast<uint8_t>(data[data_index]));
-            single_input_batch[data_index] = (datum_element - mean->p_data[data_index])*scale;
+            //single_input_batch[data_index] = (datum_element - mean->p_data[data_index])*scale;
+            single_input_batch[data_index] = 0.5;
           }
         }
       }

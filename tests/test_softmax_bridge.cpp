@@ -84,6 +84,16 @@ TYPED_TEST(softmaxBridgeTest, TestForward){
         expected_output >> output;
     }
     expected_output.close();
+
+    std::fstream expected_output1("softmax_forward_output.txt", std::ios_base::in);
+    
+    idx = 0;
+    if (expected_output1.is_open()) {
+        expected_output1 >> output;
+        EXPECT_NEAR(this->data2->p_data[idx], output, EPS);
+        expected_output1 >> output;
+    }
+    expected_output1.close();
 }
 
 

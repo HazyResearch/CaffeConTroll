@@ -42,7 +42,7 @@ class Timer {
       clock_gettime(CLOCK_MONOTONIC, &_start);
     }
 
-    virtual ~Timer(){}
+    ~Timer(){}
 
     inline void restart(){
       clock_gettime(CLOCK_MONOTONIC, &_start);

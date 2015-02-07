@@ -102,7 +102,7 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     ConvolutionBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
         const BridgeConfig * const _config);
-    ~ConvolutionBridge();
+   // ~ConvolutionBridge();
 
     void forward();
 

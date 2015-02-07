@@ -60,7 +60,7 @@ class ConvolutionBridgeTest : public ::testing::Test {
     ConvolutionBridge_ = new ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>(layer1, layer2, bconfig);
    } 
 
-  	virtual ~ConvolutionBridgeTest() { delete ConvolutionBridge_; delete layer1; delete layer2; delete bconfig;}
+  	//virtual ~ConvolutionBridgeTest() { delete ConvolutionBridge_; delete layer1; delete layer2; delete bconfig;}
     ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>* ConvolutionBridge_;
 
   	LogicalCube<T, Layout_CRDB>* data1;
@@ -164,9 +164,9 @@ TYPED_TEST(ConvolutionBridgeTest, TestBackward){
     }
 
     this->ConvolutionBridge_->forward();
-
+    
     this->ConvolutionBridge_->backward();
-    //this->bias->logical_print();
+    this->ConvolutionBridge_->bias_cube()->logical_print();
     std::fstream expected_output("conv_backward.txt", std::ios_base::in);
     T output;
     int idx = 0;
@@ -185,12 +185,11 @@ TYPED_TEST(ConvolutionBridgeTest, TestBackward){
     if (expected_weights.is_open()) {
         expected_weights >> output;
         while (!expected_weights.eof()) {
-            EXPECT_NEAR(this->ConvolutionBridge_->model_cube()->p_data[idx], output, 0.9);
+            EXPECT_NEAR(this->ConvolutionBridge_->model_cube()->p_data[idx], output, 0.1);
             expected_weights >> output;
             idx++;
         }
     }
     expected_weights.close(); 
-
 }
 
