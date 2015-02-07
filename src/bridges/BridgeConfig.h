@@ -26,6 +26,11 @@ struct BridgeConfig {
   bool   bias_term;
   InitializerType weight_initializer;
   InitializerType bias_initializer;
+  float value;  // the value in constant filler
+  float min;    // the min value in uniform filler
+  float max;    // the max value in uniform filler
+  float mean;   // the mean value in Gaussian filler
+  float std;    // the std value in Gaussian filler
 };
 
 #endif

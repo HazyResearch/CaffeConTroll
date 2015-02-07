@@ -20,8 +20,15 @@ class LRNBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, Ou
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
 
+    // Testing constructor
     LRNBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer, const float _alpha,
         const float _beta, const size_t _local_size) {
+      NOT_IMPLEMENTED;
+    }
+
+    // Network initialization constructor
+    LRNBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
+        const cnn::LayerParameter * const _layer_param) {
       NOT_IMPLEMENTED;
     }
 
@@ -57,6 +64,8 @@ class LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public AbstractB
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oD;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oB;
 
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::layer_param;
+
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_input_layer;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_output_layer;
 
@@ -64,8 +73,12 @@ class LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public AbstractB
     typedef Layer<DataType, Layout_CRDB> InputLayerType;
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
 
+    // Testing constructor
     LRNBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer, const float _alpha,
         const float _beta, const size_t _local_size);
+    // Network initialization constructor
+    LRNBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
+        const cnn::LayerParameter * const _layer_param);
     ~LRNBridge();
 
     void forward();
@@ -78,6 +91,7 @@ class LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public AbstractB
   private:
     LogicalCube<DataType, Layout_CRDB> * denoms;
 
+    void initialize();
 };
 
 #include "LRNBridge_impl.hxx"

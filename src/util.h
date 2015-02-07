@@ -61,10 +61,6 @@ class Util {
       return b;
     }
 
-    // Same as above: memset doesn't inline with g++, so we use this instead
-    //static inline void * _our_memset(void *b, const float value, size_t n) {
-    //}
-
     template <typename T>
     static inline void xavier_initialize(T * const arr, const size_t n_arr_elements, const size_t n_batch) {
       mt19937 gen(rd());
@@ -78,7 +74,7 @@ class Util {
     }
 
     template <typename T>
-    static inline void bernoulli_initialize(unsigned int * const arr, const size_t n_arr_elements, const T p) {
+    static inline void bernoulli_initialize(T * const arr, const size_t n_arr_elements, const float p) {
       mt19937 gen(rd());
 
       bernoulli_distribution bern(p);
@@ -88,7 +84,7 @@ class Util {
     }
 
     template <typename T>
-    static inline void gaussian_initialize(unsigned int * const arr, const size_t n_arr_elements, const T mean, const T std_dev) {
+    static inline void gaussian_initialize(T * const arr, const size_t n_arr_elements, const T mean, const T std_dev) {
       mt19937 gen(rd());
 
       normal_distribution<T> gaussian(mean, std_dev);

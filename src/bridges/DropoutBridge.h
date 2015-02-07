@@ -20,8 +20,15 @@ class DropoutBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
 
+    // Testing constructor
     DropoutBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
         const float _dropout_ratio) {
+      NOT_IMPLEMENTED;
+    }
+
+    // Network initialization constructor
+    DropoutBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
+        const cnn::LayerParameter * const _layer_param) {
       NOT_IMPLEMENTED;
     }
 
@@ -57,6 +64,8 @@ class DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Abstr
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oD;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oB;
 
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::layer_param;
+
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_input_layer;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_output_layer;
 
@@ -66,16 +75,22 @@ class DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Abstr
 
     DropoutBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
         const float _dropout_ratio);
+    DropoutBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
+        const cnn::LayerParameter * const _layer_param);
     ~DropoutBridge();
 
     void forward();
+
     void backward();
 
     const float dropout_ratio;
+
     LogicalCube<unsigned int, Layout_CRDB> * mask_cube;
-    
+
   private:
     float scale;
+
+    void initialize();
 };
 
 #include "DropoutBridge_impl.hxx"

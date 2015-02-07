@@ -8,9 +8,10 @@
 
 #ifndef moka_ReLUBridge_impl_hxx
 #define moka_ReLUBridge_impl_hxx
+
+// common initialization code, called by both constructors
 template <typename DataType>
-ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::ReLUBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer)
-: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer) {
+void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::initialize() {
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();
   report_forward_history.reset();
@@ -18,10 +19,23 @@ ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::ReLUBridge(InputLayerT
   assert(oR==iR); assert(oC==iC);
   assert(oB==iB); assert(oD==iD);
 #endif
-
   // no-op
-
   report_forward_constructor.end(0, 0, 0);
+}
+
+// Network initialization constructor
+template <typename DataType>
+ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::ReLUBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
+    const cnn::LayerParameter * _layer_param)
+: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer, _layer_param) {
+  initialize();
+}
+
+// Testing constructor
+template <typename DataType>
+ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::ReLUBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer)
+: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer) {
+  initialize();
 }
 
 /**

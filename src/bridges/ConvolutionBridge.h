@@ -41,9 +41,17 @@ class ConvolutionBridge : public AbstractBridge<InputLayerDataType, InputLayerLa
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
     typedef LogicalCube<InputLayerDataType, InputLayerLayout> LogicalCubeType;
 
+    // Testing constructor
     ConvolutionBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
         const BridgeConfig * const _config) {
+      NOT_IMPLEMENTED;
+    }
+
+    // Network initialization constructor
+    ConvolutionBridge(InputLayerType * const _p_input_layer,
+        OutputLayerType * const _p_output_layer,
+        const cnn::LayerParameter * const _layer_param) {
       NOT_IMPLEMENTED;
     }
 
@@ -85,6 +93,8 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oD;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oB;
 
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::layer_param;
+
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_input_layer;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_output_layer;
 
@@ -94,14 +104,24 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     typedef LogicalCube<DataType, Layout_CRDB> LogicalCubeType;
 
     const BridgeConfig * const config;
+
     const size_t K;
     const size_t num_output_features;
     const size_t stride;
     const size_t padding;
 
+    const bool bias_term;
+
+    // Testing constructor
     ConvolutionBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
         const BridgeConfig * const _config);
+
+    // Network initialization constructor
+    ConvolutionBridge(InputLayerType * const _p_input_layer,
+        OutputLayerType * const _p_output_layer,
+        const cnn::LayerParameter * const _layer_param);
+
     ~ConvolutionBridge();
 
     void forward();
@@ -142,7 +162,10 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
       Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_TRANS_NOTRANS> * p_backward_gemm_updategrad_kernel;
 
+    void initialize();
+
     void initialize_logical_cube(const LogicalCubeType * cube, const InitializerType initializer);
+    void initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter filler_param);
 };
 
 #include "ConvolutionBridge_impl.hxx"

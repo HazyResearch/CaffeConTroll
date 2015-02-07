@@ -21,8 +21,15 @@ class MaxPoolingBridge : public AbstractBridge<InputLayerDataType, InputLayerLay
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
 
+    // Testing constructor
     MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
         const BridgeConfig * const _config) {
+      NOT_IMPLEMENTED;
+    }
+
+    // Network initialization constructor
+    MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
+        const cnn::LayerParameter * const _layer_param) {
       NOT_IMPLEMENTED;
     }
 
@@ -58,6 +65,8 @@ class MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Ab
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oD;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oB;
 
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::layer_param;
+
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_input_layer;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_output_layer;
 
@@ -65,8 +74,12 @@ class MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Ab
     typedef Layer<DataType, Layout_CRDB> InputLayerType;
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
 
+    // Testing constructor
     MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
         const BridgeConfig * const _config);
+    // Network initialization constructor
+    MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
+        const cnn::LayerParameter * const _layer_param);
     ~MaxPoolingBridge();
 
     const BridgeConfig * const config;
@@ -82,6 +95,8 @@ class MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Ab
     size_t pooled_width;
     size_t kernel_size;
     size_t stride;
+
+    void initialize();
 };
 
 #include "MaxPoolingBridge_impl.hxx"
