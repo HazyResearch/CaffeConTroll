@@ -16,7 +16,7 @@
 #include <limits>
 
 enum InitializerType {
-  CONSTANT = 0, // for now, CONSTANT assumes that it's always initialized to zero
+  CONSTANT = 0,
   BERNOULLI = 1,
   XAVIER = 2,
   GAUSSIAN = 3

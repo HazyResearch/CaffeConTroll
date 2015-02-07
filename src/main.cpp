@@ -231,8 +231,6 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       float * const mini_batch = corpus.images->physical_get_RCDslice(corpus_batch_index);
       input_data->p_data = mini_batch;
 
-      // reset loss (TODO: right now, we're not resetting the data and gradient cubes,
-      // because I don't think it's necessary. But we should test that to make sure.)
       softmax->loss = 0.0;
 
       // initialize labels for this mini batch
@@ -240,7 +238,10 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 
       // forward pass
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
-        cout << "forward" << endl;
+        // Reset gradient and data cubes for backward and forward passes, respectively,
+        // since we don't want any leftover values from the previous iteration
+        (*bridge)->p_input_layer->p_gradient_cube->reset_cube();
+        (*bridge)->p_output_layer->p_data_cube->reset_cube();
         (*bridge)->forward();
       }
 

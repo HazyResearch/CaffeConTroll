@@ -84,12 +84,9 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::lower_logica
   const size_t matrix_R = input_matrix->R;
   const T * const input_data = input_matrix->p_data;
 
-  // if K == 1 or K == N (a fully connected layer)
-  // then we should simply copy over the original data into the lowered cube
-  if (kernel_size == input_matrix->C || kernel_size == 1) {
-    Util::_our_memcpy(cube.p_data, input_data, matrix_C * matrix_R * sizeof(T));
-    return;
-  }
+  // TODO: if K == 1 or K == N (a fully connected layer)
+  // then we should simply copy over the original data into the lowered cube.
+  // Right now, though, it doesn't converge when put in this optimization.
 
   const size_t single_lowering_height = matrix_R - kernel_size + 1;
   const size_t single_lowering_width = matrix_C - kernel_size + 1;
