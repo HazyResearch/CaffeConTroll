@@ -1,0 +1,40 @@
+Input = 64 x 64  Kernel = 5 x 5  Channels: Input: 96 Output: 256  BatchSize = 1
+Forward Report - 
+ Time Elapsed    = 0.0379581 seconds
+ Data Throughput = 0.545476 GBytes/s
+ Flops           = 27.1344 GBytes/s
+Backward Report - 
+ Time Elapsed    = 0.110767 seconds
+ Data Throughput = 0.287981 GBytes/s
+ Flops           = 18.5969 GBytes/s
+
+Input = 64 x 64  Kernel = 5 x 5  Channels: Input: 96 Output: 256  BatchSize = 8
+Forward Report - 
+ Time Elapsed    = 0.826717 seconds
+ Data Throughput = 0.180981 GBytes/s
+ Flops           = 9.96683 GBytes/s
+Backward Report - 
+ Time Elapsed    = 1.18199 seconds
+ Data Throughput = 0.18879 GBytes/s
+ Flops           = 13.9421 GBytes/s
+
+Input = 64 x 64  Kernel = 5 x 5  Channels: Input: 96 Output: 256  BatchSize = 32
+Forward Report - 
+ Time Elapsed    = 1.79722 seconds
+ Data Throughput = 0.329182 GBytes/s
+ Flops           = 18.3389 GBytes/s
+Backward Report - 
+ Time Elapsed    = 3.63214 seconds
+ Data Throughput = 0.241967 GBytes/s
+ Flops           = 18.1485 GBytes/s
+
+Input = 64 x 64  Kernel = 5 x 5  Channels: Input: 96 Output: 256  BatchSize = 128
+Forward Report - 
+ Time Elapsed    = 15.439 seconds
+ Data Throughput = 0.152833 GBytes/s
+ Flops           = 8.53914 GBytes/s
+Backward Report - 
+ Time Elapsed    = 142.552 seconds
+ Data Throughput = 0.0245645 GBytes/s
+ Flops           = 1.84966 GBytes/s
+

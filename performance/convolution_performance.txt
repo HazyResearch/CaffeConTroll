@@ -1,0 +1,34 @@
+[==========] Running 3 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 3 tests from ConvolutionBridgeTest/0, where TypeParam = FloatNOFUNC
+[ RUN      ] ConvolutionBridgeTest/0.TestInitialization
+Allocating 2.79397e-05 GB data for the lowering matrix
+Allocating 2.79397e-05 GB data for the lowering matrix
+[       OK ] ConvolutionBridgeTest/0.TestInitialization (0 ms)
+[ RUN      ] ConvolutionBridgeTest/0.TestForward
+Allocating 2.79397e-05 GB data for the lowering matrix
+Allocating 2.79397e-05 GB data for the lowering matrix
+[       OK ] ConvolutionBridgeTest/0.TestForward (101 ms)
+[ RUN      ] ConvolutionBridgeTest/0.TestBackward
+Allocating 2.79397e-05 GB data for the lowering matrix
+Allocating 2.79397e-05 GB data for the lowering matrix
+############REPORT#############
+ Data Read+Write = 8.028e-05 GBytes
+ Float Point Ops = 0.000139698 G
+ Time Elapsed    = 0.000248944 seconds
+ Data Throughput = 0.322482 GBytes/s
+ Flops           = 0.561164 GBytes/s
+###############################
+############REPORT#############
+ Data Read+Write = 8.028e-05 GBytes
+ Float Point Ops = 0.000139698 G
+ Time Elapsed    = 0.000248944 seconds
+ Data Throughput = 0.322482 GBytes/s
+ Flops           = 0.561164 GBytes/s
+###############################
+[       OK ] ConvolutionBridgeTest/0.TestBackward (1 ms)
+[----------] 3 tests from ConvolutionBridgeTest/0 (102 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test case ran. (102 ms total)
+[  PASSED  ] 3 tests.
