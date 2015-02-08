@@ -1,6 +1,6 @@
 CC=g++-4.8
 CFLAGS=-O0 -std=c++11 -Wl,--no-as-needed -g
-LDFLAGS=-lpthread -L ../externals/OpenBLAS/ -lopenblas
+LDFLAGS=-lrt -lpthread -L ../externals/OpenBLAS/ -lopenblas
 BLASFLAGS= -lm -I ../externals/OpenBLAS/
 PROTOBUF = `pkg-config --cflags --libs protobuf`
 SOURCES = perf_conv.cpp ../src/util.cpp ../src/parser/cnn.pb.cc
