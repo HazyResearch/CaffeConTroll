@@ -1,5 +1,5 @@
 //
-//  RELUBridge.h
+//  DropoutBridge.h
 //  moka
 //
 //  Created by Firas Abuzaid on 1/22/15.
@@ -9,7 +9,6 @@
 #ifndef moka_Dropout_Bridge_h
 #define moka_Dropout_Bridge_h
 
-#include "../PhysicalOperator.h"
 #include "AbstractBridge.h"
 #include "../util.h"
 

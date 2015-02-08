@@ -9,7 +9,6 @@
 #ifndef moka_Max_Pooling_Bridge_h
 #define moka_Max_Pooling_Bridge_h
 
-#include "../PhysicalOperator.h"
 #include "AbstractBridge.h"
 #include "../util.h"
 #include "BridgeConfig.h"

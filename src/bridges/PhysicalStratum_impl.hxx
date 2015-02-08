@@ -23,12 +23,13 @@ PhysicalStratum::PhysicalStratum() {
 
 void PhysicalStratum::forward() {
   report_forward_last_transfer.reset();
-  std::vector<std::thread> threads; // We could build a thread pool, however,
-  // we are talking about at most 20 threads / 10 seconds etc.
+  // We could build a thread pool; however, we are talking about
+  // at most 20 threads / 10 seconds etc.
   // TODO: benchmark to see whether we want more sophisticated
   //       thread pool.
+  vector<thread> threads;
   for (int i = 0; i < executors.size(); i++) {
-    threads.push_back(std::thread(_forward, executors[i]));
+    threads.push_back(thread(_forward, executors[i]));
   }
   for (int i = 0; i < executors.size(); i++) {
     threads[i].join();
@@ -42,9 +43,9 @@ void PhysicalStratum::forward() {
 
 void PhysicalStratum::backward() {
   report_backward_updateweight_last_transfer.reset();
-  std::vector<std::thread> threads;
+  vector<thread> threads;
   for (int i = 0; i < executors.size(); i++) {
-    threads.push_back(std::thread(_backward, executors[i]));
+    threads.push_back(thread(_backward, executors[i]));
   }
   for (int i = 0; i < executors.size(); i++) {
     threads[i].join();

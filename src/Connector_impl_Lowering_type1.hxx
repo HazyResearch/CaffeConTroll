@@ -14,10 +14,10 @@
 template<typename DataType, LayoutType InputLayout>
 Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1>::
 Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
-    const BridgeConfig * const _p_config) :
+    const size_t _kernel_size, const size_t _padding, const size_t _stride) :
   iR(p_input_cube->R), iC(p_input_cube->C), iD(p_input_cube->D), iB(p_input_cube->B),
   oR(p_output_cube->R), oC(p_output_cube->C), oD(p_output_cube->D), oB(p_output_cube->B),
-  p_config(_p_config), kernel_size(p_config->kernel_size), padding(p_config->padding), stride(p_config->stride)
+  kernel_size(_kernel_size), padding(_padding), stride(_stride)
 {
   report_constructor.reset();
   report_last_lowering.reset();

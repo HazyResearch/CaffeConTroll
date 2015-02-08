@@ -41,7 +41,8 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::initialize(
 template <typename DataType>
 MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::MaxPoolingBridge(InputLayerType * const _p_input_layer,
     OutputLayerType * const _p_output_layer, const cnn::LayerParameter * const _layer_param)
-: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer, _layer_param) {
+: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer, _layer_param),
+config(NULL) {
 
   kernel_size = layer_param->pooling_param().kernel_size();
   stride = layer_param->pooling_param().stride();

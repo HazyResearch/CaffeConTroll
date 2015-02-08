@@ -26,7 +26,7 @@ void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::initialize() {
 // Network initialization constructor
 template <typename DataType>
 ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::ReLUBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-    const cnn::LayerParameter * _layer_param)
+    const cnn::LayerParameter * const _layer_param)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer, _layer_param) {
   initialize();
 }

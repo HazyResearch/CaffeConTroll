@@ -34,7 +34,7 @@ template <typename DataType>
 DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::DropoutBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
     const cnn::LayerParameter * const _layer_param)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer, _layer_param),
- dropout_ratio(layer_param->dropout_parameter().dropout_ratio()) {
+ dropout_ratio(layer_param->dropout_param().dropout_ratio()) {
 }
 
 // Testing constructor
