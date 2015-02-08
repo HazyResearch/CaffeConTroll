@@ -15,7 +15,12 @@ void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Data
 initialize() {
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();
+  report_forward_kernel.reset();
   report_forward_history.reset();
+  report_forward_lowering.reset();
+  report_backward_inverse_lowering.reset();
+  report_backward_grad_kernel.reset();
+  report_backward_weight_kernel.reset();
 
 #ifdef _DO_ASSERT
   assert(oR == (iR + 2 * padding - K) / stride + 1);
@@ -56,8 +61,8 @@ initialize() {
   LogicalCube<DataType, Layout_CRDB> lowered_forward_output(p_output_layer->p_data_cube->p_data,
       num_output_features, oR*oC*iB, 1, 1);
 
-  cout << "Allocating " << (1.0*K*K*iD*oR*oC*iB* \
-      sizeof(DataType))/1024/1024/1024 << " GB data for the lowering matrix" << endl;
+  //cout << "Allocating " << (1.0*K*K*iD*oR*oC*iB* \
+  //    sizeof(DataType))/1024/1024/1024 << " GB data for the lowering matrix" << endl;
 
   p_forward_lower_connector = new Connector<DataType, Layout_CRDB, DataType, Layout_CRDB,
                             LOWERING_TYPE1>(p_input_layer->p_data_cube, p_forward_lowered_data, config);
@@ -75,8 +80,8 @@ initialize() {
     p_backward_outputgrad = new LogicalCube<DataType, Layout_CRDB>(oR, oC, oD, oB);
   }
 
-  cout << "Allocating " << (1.*K*K*iD*oR*oC*iB* \
-      sizeof(DataType))/1024/1024/1024 << " GB data for the lowering matrix" << endl;
+  //cout << "Allocating " << (1.*K*K*iD*oR*oC*iB* \
+  //    sizeof(DataType))/1024/1024/1024 << " GB data for the lowering matrix" << endl;
 
   p_backward_inputgrad = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*iB, 1, 1);
 
@@ -258,6 +263,8 @@ forward() {
   }
 
   report_forward_history.aggregate(report_forward_last_transfer);
+  report_forward_kernel.aggregate(p_forward_gemm_kernel->report_last_lowering);
+  report_forward_lowering.aggregate(p_forward_lower_connector->report_last_lowering);
 }
 
 
@@ -283,18 +290,16 @@ forward() {
 template <typename DataType, NonLinearFunction FUNC>
 void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 backward() {
-
+  Timer t;
   openblas_set_num_threads(run_with_n_threads);
 
   report_backward_updateweight_last_transfer.reset();
-
   // (1) calculate the gradient of output and store in the buffer
   if (FUNC != FUNC_NOFUNC) {
     p_backward_element_mul_kernel->compute(p_output_layer->p_data_cube, p_output_layer->p_gradient_cube, p_backward_outputgrad);
   } else {
     p_backward_outputgrad = p_output_layer->p_gradient_cube;
   }
-
   // (2) calculate the GEMM between the gradient of output and old kernel to calc the update on grad
   LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->p_data, num_output_features, K*K*iD, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(p_backward_outputgrad->p_data, num_output_features, oR*oC*iB, 1, 1);
@@ -314,20 +319,17 @@ backward() {
       }
     }
   }
-
   // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
   p_backward_outputgrad->template remap_output<LOWERING_TYPE1>(oB, num_output_features, oR*oC );
-
   //    - 2.1 GEMM between the gradient of output and old kernel
   p_backward_gemm_updategrad_kernel->compute(&lowered_model, &lowered_outputgrad, p_backward_inputgrad);
-
   //    - 2.2 undo the lowering (i.e., sum together all grad corresponding to the same unlowered position)
   p_forward_lower_connector->inverse_lower_cube(p_backward_inputgrad, p_input_layer->p_gradient_cube);
-
   // (4) calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
   p_backward_gemm_updateweight_kernel->alpha = -stepsize;
   p_backward_gemm_updateweight_kernel->beta = 1.0;
   p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
+  
   report_backward_updateweight_last_transfer.end();
 
   if (FUNC != FUNC_NOFUNC) {
@@ -335,9 +337,12 @@ backward() {
   }
 
   report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updategrad_kernel->report_last_lowering);
-  report_backward_updateweight_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);
+  report_backward_updateweight_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_inverse_lowering);
   report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updateweight_kernel->report_last_lowering);
 
+  report_backward_inverse_lowering.aggregate(p_forward_lower_connector->report_last_inverse_lowering);
+  report_backward_weight_kernel.aggregate(p_backward_gemm_updateweight_kernel->report_last_lowering);
+  report_backward_grad_kernel.aggregate(p_backward_gemm_updategrad_kernel->report_last_lowering);
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
 }
 

@@ -60,6 +60,12 @@ void PERF_CONVOLUTION_BRIDGE(int iR, int iC, int iD, int oD, int k, int mB) {
 
     ConvolutionBridge_->forward();
     cout << "Forward Report - " << endl;   
+
+    cout << "Lowering Report - " << endl;
+    ConvolutionBridge_->report_forward_lowering.print();
+    cout << "GEMM Kernel Report - " << endl;
+    ConvolutionBridge_->report_forward_kernel.print();
+    cout << "Total Report - " << endl;
     ConvolutionBridge_->report_forward_history.print();
 
     for(int i=0;i<oR*oC*oD*mB;i++){
@@ -69,10 +75,23 @@ void PERF_CONVOLUTION_BRIDGE(int iR, int iC, int iD, int oD, int k, int mB) {
     for(int i=0;i<iR*iC*iD*mB;i++){
         grad1->p_data[i] = 0;
     }
+    
+    ConvolutionBridge_->backward();
 
     cout << "Backward Report - " << endl;
-    ConvolutionBridge_->backward();
+
+    cout << "Inverse Lowering Report - " << endl;
+    ConvolutionBridge_->report_backward_inverse_lowering.print();
+    cout << "Weight Update Report - " << endl;
+    ConvolutionBridge_->report_backward_weight_kernel.print();
+    cout << "Gradient Update Report - " << endl;
+    ConvolutionBridge_->report_backward_grad_kernel.print();
+    cout << "Total Report - " << endl;
     ConvolutionBridge_->report_backward_updateweight_history.print();
+    cout << endl;
+    
+    delete layer1; delete layer2; delete bconfig;
+    delete data1; delete data2; delete grad1; delete grad2;
 }
 
 int main(int argc, const char * argv[]) {
@@ -80,14 +99,14 @@ int main(int argc, const char * argv[]) {
   PRINT_CONFIG(16,16,32,96,5,64);
   PERF_CONVOLUTION_BRIDGE(16,16,32,96,5,64);
 
-  PRINT_CONFIG(32,32,32,96,5,64);
-  PERF_CONVOLUTION_BRIDGE(32,32,32,96,5,64);
+  // PRINT_CONFIG(32,32,32,96,5,64);
+  // PERF_CONVOLUTION_BRIDGE(32,32,32,96,5,64);
 
-  PRINT_CONFIG(64,64,32,96,5,64);
-  PERF_CONVOLUTION_BRIDGE(64,64,32,96,5,64);
+  // PRINT_CONFIG(64,64,32,96,5,64);
+  // PERF_CONVOLUTION_BRIDGE(64,64,32,96,5,64);
 
-  PRINT_CONFIG(128,128,32,96,5,64);
-  PERF_CONVOLUTION_BRIDGE(128,128,32,96,5,64);
+  // PRINT_CONFIG(128,128,32,96,5,64);
+  // PERF_CONVOLUTION_BRIDGE(128,128,32,96,5,64);
 
   //PRINT_CONFIG(64,64,32,96,5,64);
   //PERF_CONVOLUTION_BRIDGE(64,64,32,96,5,64);

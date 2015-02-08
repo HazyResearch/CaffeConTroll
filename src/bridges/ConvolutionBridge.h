@@ -98,6 +98,13 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_input_layer;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_output_layer;
 
+    Report report_forward_kernel;
+    Report report_backward_kernel;
+    Report report_forward_lowering;
+    Report report_backward_inverse_lowering;
+    Report report_backward_grad_kernel;
+    Report report_backward_weight_kernel;
+
     /* Re-declare these typedefs */
     typedef Layer<DataType, Layout_CRDB> InputLayerType;
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
