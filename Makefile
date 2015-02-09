@@ -21,7 +21,7 @@ PROTO_SRC=cnn.proto
 PROTO_COMPILED_SRC=$(PROTO_SRC_DIR)cnn.pb.cc
 
 TARGET = deepnet
-SRC = src/main.cpp src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp $(PROTO_COMPILED_SRC)
+SRC = src/main.cpp src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp $(PROTO_COMPILED_SRC)
 DIR_PARAMS=$(foreach d, $(DIRS), -I$d -L$d)
 PROTOBUF = `pkg-config --cflags --libs protobuf`
 
