@@ -54,7 +54,7 @@ class MaxPoolingBridgeTest : public ::testing::Test {
     static const int iD = 3;
     static const int iR = 10;
     static const int iC = 10;
-    static const int k = 2;
+    static const int k = 4;
     static const int s = 2;
     static const int p = 0;
     static const int oR = static_cast<int>(0.5+(static_cast<float>(iR - k) / s)) + 1;
@@ -95,7 +95,7 @@ TYPED_TEST(MaxPoolingBridgeTest, TestForward){
         }
     }
     expected_output.close();
-    //this->data1->logical_print();
+    //this->data2->logical_print();
 }
 
 
