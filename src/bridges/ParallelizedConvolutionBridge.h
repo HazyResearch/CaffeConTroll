@@ -49,6 +49,11 @@ class ParallelizedConvolutionBridge : public AbstractBridge<DataType, Layout_CRD
     std::vector<LayerType *> _partitioned_layers_lower;
     std::vector<LayerType *> _partitioned_layers_higher;
 
+    LogicalCubeType * p_model_cube; /**< A ParallelizedConvolutionBridge should have a _single_
+                                        copy of the model. Copy this model to different worker (or
+                                        add optimization to share without copying) is the job
+                                        of ParallelizedConvolutionBridge not its caller. **/
+
     std::vector<ConvolutionBridgeType *> _bridges;
 
     PhysicalStratum stratum;
@@ -83,3 +88,4 @@ class ParallelizedConvolutionBridge : public AbstractBridge<DataType, Layout_CRD
 #include "ParallelizedConvolutionBridge_impl.hxx"
 
 #endif
+

@@ -57,7 +57,7 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
 
     bconfig = new BridgeConfig(k, oD, p, s, weight_initializer, bias_initializer);
 
-    ParallelizedConvolutionBridge_ = new ParallelizedConvolutionBridge<DataType_SFFloat>(layer1, layer2, bconfig,2,1);
+    ParallelizedConvolutionBridge_ = new ParallelizedConvolutionBridge<DataType_SFFloat>(layer1, layer2, bconfig,4,1); // TODO: set #partition to 8 does not halt
    } 
 
 //  	virtual ~ParallelizedConvolutionBridgeTest() { delete ParallelizedConvolutionBridge_; delete layer1; delete layer2; delete bconfig;}
@@ -101,6 +101,7 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestInitialization){
   EXPECT_TRUE(this->layer2);
 }
 
+
 TYPED_TEST(ParallelizedConvolutionBridgeTest, TestForward){
 	typedef typename TypeParam::T T;
     srand(1);
@@ -110,8 +111,7 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestForward){
     srand(0);
     for(int i=0;i<this->k*this->k*this->iD*this->oD;i++){
         float weight = rand()%10;
-        for(auto it = this->ParallelizedConvolutionBridge_->_bridges.begin(); it != this->ParallelizedConvolutionBridge_->_bridges.end(); ++it)
-            (*it)->model_cube()->p_data[i] = weight;
+	this->ParallelizedConvolutionBridge_->p_model_cube->p_data[i] = weight;
     }
     srand(0);
     for(int i=0;i<this->oD;i++){
@@ -147,15 +147,14 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
     typedef typename TypeParam::T T;
     srand(1);
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
-        this->data1->p_data[i] = rand()%10;
-        this->grad1->p_data[i] = 0;
+      this->data1->p_data[i] = rand()%10;
+      this->grad1->p_data[i] = 0;
     }
     
     srand(0);
     for(int i=0;i<this->k*this->k*this->iD*this->oD;i++){
-        const int weight = rand()%2;
-        for(auto it = this->ParallelizedConvolutionBridge_->_bridges.begin(); it != this->ParallelizedConvolutionBridge_->_bridges.end(); ++it)
-            (*it)->model_cube()->p_data[i] = weight;
+      const int weight = rand()%2;
+      this->ParallelizedConvolutionBridge_->p_model_cube->p_data[i] = weight;
     }
     
     int oR = this->oR;
@@ -176,9 +175,11 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
 
     this->ParallelizedConvolutionBridge_->backward();
     //this->bias->logical_print();
+    
     std::fstream expected_output("conv_backward.txt", std::ios_base::in);
     T output;
     int idx = 0;
+    
     if (expected_output.is_open()) {
         expected_output >> output;
         while (!expected_output.eof()) {
@@ -193,6 +194,8 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
     
     idx = 0;
 
+    // TODO: I feel like this test is trivial -- please add some
+    // non-trivial test case for bias term such that I can debug the bias term...
     if (expected_bias.is_open()) {
         expected_bias >> output;
         while (!expected_bias.eof()) {
@@ -213,13 +216,9 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
     if (expected_weights.is_open()) {
         expected_weights >> output;
         while (!expected_weights.eof()) {
-            float actual_weight = 0.0;
-            for(auto it = this->ParallelizedConvolutionBridge_->_bridges.begin(); it != this->ParallelizedConvolutionBridge_->_bridges.end(); ++it)
-            {    actual_weight += (*it)->model_cube()->p_data[idx];
-                 //(*it)->model_cube()->logical_print();
-            }    
+            float actual_weight = this->ParallelizedConvolutionBridge_->p_model_cube->p_data[idx];
             EXPECT_NEAR(actual_weight, output, EPS);
-            expected_weights >> output;
+	    expected_weights >> output;
             idx++;
         }
     }

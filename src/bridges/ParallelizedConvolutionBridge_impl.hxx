@@ -79,6 +79,16 @@ void ParallelizedConvolutionBridge<DataType>::initialize() {
     stratum.executors.push_back((PhysicalOperator *)_bridges[ib]);
   }
 
+
+  // create the master model for this parallel bridge
+  assert(_bridges.size() >= 1); // we need at least one partition. 
+  ConvolutionBridgeType * const example_bridge = _bridges[0]; // get one convbrdige as example
+  // TODO: p_model_cube should be T * __const__ -- but this involes changing the
+  // constructor, need to discuss with Firas in detials
+  p_model_cube = new LogicalCubeType(example_bridge->K, example_bridge->K, 
+      example_bridge->iD, example_bridge->num_output_features);
+  memcpy(p_model_cube->p_data, example_bridge->model_cube()->p_data, p_model_cube->n_elements*sizeof(DataType));
+
   report_backward_updateweight_constructor.end(0, 0, 0);
   report_forward_constructor.end(0, 0, 0);
 }
@@ -108,6 +118,13 @@ void ParallelizedConvolutionBridge<DataType>::forward() {
   report_forward_last_transfer.reset();
   for (size_t i = 0; i < _data_cubes_lower.size(); ++i) {
     _data_cubes_lower[i]->p_data = p_input_layer->p_data_cube->physical_get_RCDslice(i*n_batch_per_partition);
+    // we also need to copy the mode around
+    // TODO: this could be optimized by sharing model pointer across all worker -- this is
+    // not implemented for now because it involves changing single-partition ConvBridge's interface.
+    // so need more careful review with Firas before changing.
+    //    Also, given GEMM reads the model once anyway and is still CPU bound, the current performance
+    // should not be terrible
+    memcpy(_bridges[i]->model_cube()->p_data, p_model_cube->p_data, p_model_cube->n_elements*sizeof(DataType));
   }
   stratum.forward();
   report_forward_last_transfer.end();
@@ -119,9 +136,28 @@ template<typename DataType>
 void ParallelizedConvolutionBridge<DataType>::backward() {
   report_backward_updateweight_last_transfer.reset();
   stratum.backward();
+
+  // After backward, it is the responsibility of ParallelizedConvolutionBridge to merge
+  // result back. 
+  // TODO: each bridge can hold their gradient, in this way, we can save the first for
+  // loop. But I do not really so how this could be a bottleneck...
+  const size_t n_element = p_model_cube->n_elements;
+  DataType * const p_model_data = p_model_cube->p_data;
+  const size_t n_partition = _data_cubes_lower.size();
+  for(size_t i=0;i<n_element;i++){
+    p_model_data[i] = (-p_model_data[i]) * (n_partition - 1);
+  }
+  for (size_t i = 0; i < n_partition; ++i) {
+    DataType * const p_submodel_data = _bridges[i]->model_cube()->p_data;
+    for(size_t j=0;j<n_element;j++){
+      p_model_data[j] += p_submodel_data[j];
+    }
+  }
+
   report_backward_updateweight_last_transfer.end();
   report_backward_updateweight_last_transfer.aggregate_onlystat(stratum.report_backward_updateweight_last_transfer);
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
 }
 
 #endif
+
