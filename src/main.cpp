@@ -15,12 +15,12 @@
 #include "bridges/AbstractBridge.h"
 #include "bridges/MaxPoolingBridge.h"
 #include "bridges/ReLUBridge.h"
-#include "bridges/ConvolutionBridge.h"
+//#include "bridges/ConvolutionBridge.h"
+#include "bridges/ParallelizedConvolutionBridge.h"
 #include "bridges/SoftmaxLossBridge.h"
 #include "bridges/DropoutBridge.h"
 #include "bridges/LRNBridge.h"
 #include "Layer.h"
-//#include "bridges/ParallelizedBridge.h"
 #include "parser/corpus.h"
 #include "util.h"
 
@@ -58,7 +58,7 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
          last_B = corpus.last_batch_size;
 
   // Create the Logical Cubes for the initial data layer
-  LogicalCubeFloat * prev_data = new LogicalCubeFloat(NULL, input_R, input_C, input_D, B);
+  LogicalCubeFloat * prev_data = new LogicalCubeFloat(corpus.images->physical_get_RCDslice(0), input_R, input_C, input_D, B);
   LogicalCubeFloat * prev_grad = new LogicalCubeFloat(input_R, input_C, input_D, B);
 
   Layer<DataType_SFFloat, Layout_CRDB> * prev_layer = new Layer<DataType_SFFloat, Layout_CRDB>(prev_data, prev_grad);
@@ -93,24 +93,18 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
                      output_C = compute_conv_next_layer_dimension(input_C, K, padding, stride),
                      output_D = layer_param.convolution_param().num_output();
 
-            const BridgeConfig * const config = new BridgeConfig(K, output_D, padding, stride);
-
             next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
             next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
             next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
-            bridge = new ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC,
-                   DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, config);
+            //bridge = new ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC,
+            //       DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, &layer_param);
+            bridge = new ParallelizedConvolutionBridge<DataType_SFFloat>(prev_layer, next_layer, &layer_param, 1, 1);
         }
         break;
         {
           case cnn::LayerParameter_LayerType_INNER_PRODUCT:
             output_D = layer_param.inner_product_param().num_output();
-
-            // padding (the 3rd argument) is set to 0, and stride (the 4th argument) is
-            // set to 1. input_C would also work as the first argument (we assert that
-            // they are equal in the constructor)
-            const BridgeConfig * const config = new BridgeConfig(input_R, output_D, 0, 1);
 
             // The R and C dimensions for a fully connected layer are always 1 x 1
             output_R = output_C = 1;
@@ -119,15 +113,12 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
             next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
             bridge = new ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC,
-                   DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, config);
+                   DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, &layer_param, true);
         }
         break;
         {
           case cnn::LayerParameter_LayerType_POOLING:
             const size_t K = layer_param.pooling_param().kernel_size(), stride = layer_param.pooling_param().stride();
-
-            // num_outputs and padding aren't used in Max Pooling
-            const BridgeConfig * const config = new BridgeConfig(K, 0, 0, stride);
 
             output_R = compute_conv_next_layer_dimension(input_R, K, 0, stride),
                      output_C = compute_conv_next_layer_dimension(input_C, K, 0, stride);
@@ -138,7 +129,7 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
             next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
             bridge = new MaxPoolingBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layer,
-                next_layer, config);
+                next_layer, &layer_param);
         }
         break;
         {
@@ -148,7 +139,7 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
             next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
             next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
             bridge = new ReLUBridge<DataType_SFFloat, Layout_CRDB,
-                   DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer);
+                   DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, &layer_param);
         }
         break;
         {
@@ -158,8 +149,7 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
             next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
             next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
             bridge = new LRNBridge<DataType_SFFloat, Layout_CRDB,
-                   DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, layer_param.lrn_param().alpha(),
-                       layer_param.lrn_param().beta(), layer_param.lrn_param().local_size());
+                   DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, &layer_param);
         }
         break;
         {
@@ -169,7 +159,7 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
             next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
             next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
             bridge = new DropoutBridge<DataType_SFFloat, Layout_CRDB,
-                   DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, layer_param.dropout_param().dropout_ratio());
+                   DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, &layer_param);
         }
         break;
         {
@@ -267,6 +257,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 // the network configuration file itself.
 //
 // There are three steps involved in training the network:
+//
 // 1) Load the necessary training data into a Corpus object,
 //    which will contain both the data itself, and the correct
 //    labels.
@@ -314,6 +305,9 @@ void load_and_train_network(const char * file) {
   // Step 3:
   // Now, the bridges vector is fully populated
   train_network(bridges, corpus, net_param, solver_param);
+
+  // Step 4:
+  // Clean up! TODO: free the allocated bridges, layers, and cubes
 }
 
 int main(int argc, const char * argv[]) {

@@ -45,7 +45,7 @@ class Connector {
      *
      **/
     Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
-        const BridgeConfig * const p_config) {
+        const size_t _kernel_size, const size_t _padding, const size_t _stride) {
       std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
       assert(false);
     }
@@ -96,13 +96,12 @@ class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1> {
     Report report_last_inverse_lowering;
     Report report_inverse_history;
 
-    const BridgeConfig * const p_config;
     const size_t kernel_size;
     const size_t padding;
     const size_t stride;
 
     Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
-        const BridgeConfig * const _p_config);
+        const size_t _kernel_size, const size_t _padding, const size_t _stride);
 
     void lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
 
@@ -127,13 +126,12 @@ class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE2> {
     Report report_last_inverse_lowering;
     Report report_inverse_history;
 
-    const BridgeConfig * const p_config;
     const size_t kernel_size;
     const size_t padding;
     const size_t stride;
 
     Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
-        const BridgeConfig * const _p_config);
+        const size_t _kernel_size, const size_t _padding, const size_t _stride);
 
     void lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
 

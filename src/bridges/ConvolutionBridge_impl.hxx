@@ -30,7 +30,7 @@ initialize() {
 
   p_model_cube = new LogicalCubeType(K, K, iD, num_output_features);
   if (layer_param) {
-    initialize_logical_cube(p_model_cube, layer_param->convolution_param().weight_filler());
+    initialize_logical_cube(p_model_cube, weight_filler);
   } else if (config) {
     initialize_logical_cube(p_model_cube, config->weight_initializer);
   } else {
@@ -41,7 +41,7 @@ initialize() {
   if (bias_term) {
     p_bias_cube = new LogicalCubeType(1, 1, num_output_features, 1);
     if (layer_param) {
-      initialize_logical_cube(p_bias_cube, layer_param->convolution_param().bias_filler());
+      initialize_logical_cube(p_bias_cube, bias_filler);
     } else if (config) {
       initialize_logical_cube(p_bias_cube, config->bias_initializer);
     } else {
@@ -65,7 +65,8 @@ initialize() {
   //    sizeof(DataType))/1024/1024/1024 << " GB data for the lowering matrix" << endl;
 
   p_forward_lower_connector = new Connector<DataType, Layout_CRDB, DataType, Layout_CRDB,
-                            LOWERING_TYPE1>(p_input_layer->p_data_cube, p_forward_lowered_data, config);
+                            LOWERING_TYPE1>(p_input_layer->p_data_cube, p_forward_lowered_data, K,
+                                padding, stride);
 
   p_forward_gemm_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
                         Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS>(&lowered_forward_model,
@@ -109,18 +110,39 @@ initialize() {
   report_forward_constructor.end(0, 0, 0);
 }
 
-// Network initialization constructor
+// Network initialization constructor for convolution layer (no 4th argument)
 template <typename DataType, NonLinearFunction FUNC>
 ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
     const cnn::LayerParameter * const _layer_param)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer,
-    _p_output_layer, _layer_param), K(layer_param->convolution_param().kernel_size()),
+    _p_output_layer, _layer_param), config(NULL),
+  K(layer_param->convolution_param().kernel_size()),
   num_output_features(layer_param->convolution_param().num_output()),
   stride(layer_param->convolution_param().stride()),
   padding(layer_param->convolution_param().pad()),
   bias_term(layer_param->convolution_param().bias_term()),
-  stepsize(_DEFAULT_STEPSIZE) {
+  stepsize(_DEFAULT_STEPSIZE),
+  weight_filler(layer_param->convolution_param().weight_filler()),
+  bias_filler(layer_param->convolution_param().bias_filler()) {
+
+  initialize();
+}
+
+// Network initialization constructor for fully connected layer (4th argument present)
+template <typename DataType, NonLinearFunction FUNC>
+ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
+ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
+    const cnn::LayerParameter * const _layer_param, const bool inner_product)
+: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer,
+    _p_output_layer, _layer_param), config(NULL),
+  // padding is set to 0, and stride is set to 1. iC would also work as the
+  // value set to K. (We assert that they are equal in initialize.)
+  K(iR), num_output_features(layer_param->inner_product_param().num_output()),
+  stride(1), padding(0), bias_term(layer_param->inner_product_param().bias_term()),
+  stepsize(_DEFAULT_STEPSIZE),
+  weight_filler(layer_param->inner_product_param().weight_filler()),
+  bias_filler(layer_param->inner_product_param().bias_filler()) {
 
   initialize();
 }
@@ -365,7 +387,10 @@ bias_cube() {
 template <typename DataType, NonLinearFunction FUNC>
 ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 ~ConvolutionBridge() {
-  delete p_model_cube; delete p_bias_cube; delete p_forward_lowered_data;
+  if (bias_term) {
+    delete p_bias_cube;
+  }
+  delete p_model_cube; delete p_forward_lowered_data;
   delete p_backward_gemm_updategrad_kernel; delete p_backward_gemm_updateweight_kernel;
   delete p_backward_element_mul_kernel; delete p_backward_inputgrad;
   delete p_backward_outputgrad; delete p_forward_gemm_kernel;

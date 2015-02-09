@@ -9,20 +9,24 @@
 #ifndef moka_PhysicalStratum_h
 #define moka_PhysicalStratum_h
 
+#include "AbstractBridge.h"
 #include "PhysicalOperator.h"
 #include <thread>
 #include <vector>
 
+using std::thread;
+using std::vector;
+
 /**
  * Wrapper of calling the forward() function -- only
- * used when we call std::thread
+ * used when we call thread
  **/
-void _forward(PhysicalOperator * physical_executor){
-  physical_executor->forward();
+void _forward(PhysicalOperator * const bridge) {
+  bridge->forward();
 }
 
-void _backward(PhysicalOperator * physical_executor){
-  physical_executor->backward();
+void _backward(PhysicalOperator * const bridge) {
+  bridge->backward();
 }
 
 /**
@@ -30,11 +34,10 @@ void _backward(PhysicalOperator * physical_executor){
  * be run in parallel. A Stratum itself is also
  * an PhysicalOperator.
  **/
-class PhysicalStratum : public PhysicalOperator{
+class PhysicalStratum : public PhysicalOperator {
   public:
-    std::vector<PhysicalOperator*> executors; // STL overhead is not that crucial here, so
-                                              // we just use a vector
-
+    vector<PhysicalOperator *> executors; // STL overhead is not that crucial here,
+                                          // so we just use a vector
     PhysicalStratum();
 
     void forward();

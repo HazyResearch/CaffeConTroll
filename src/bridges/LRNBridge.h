@@ -9,7 +9,6 @@
 #ifndef moka_LRN_Bridge_h
 #define moka_LRN_Bridge_h
 
-#include "../PhysicalOperator.h"
 #include "AbstractBridge.h"
 #include "../util.h"
 

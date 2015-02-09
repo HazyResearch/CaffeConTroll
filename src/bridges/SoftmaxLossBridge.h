@@ -9,7 +9,6 @@
 #ifndef moka_Soft_Max_Loss_Bridge_h
 #define moka_Soft_Max_Loss_Bridge_h
 
-#include "../PhysicalOperator.h"
 #include "AbstractBridge.h"
 #include "../util.h"
 

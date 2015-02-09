@@ -14,7 +14,7 @@
 #include "../Kernel.h"
 #include "../Report.h"
 #include "../Scanner.h"
-#include "../PhysicalOperator.h"
+#include "PhysicalOperator.h"
 #include "../Layer.h"
 #include "../parser/cnn.pb.h"
 

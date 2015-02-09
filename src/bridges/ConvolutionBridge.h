@@ -9,7 +9,7 @@
 #ifndef moka_Convolution_Bridge_h
 #define moka_Convolution_Bridge_h
 
-#include "../PhysicalOperator.h"
+#include "PhysicalOperator.h"
 #include "AbstractBridge.h"
 #include "../util.h"
 
@@ -118,16 +118,25 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     const size_t padding;
 
     const bool bias_term;
+    const float stepsize;
 
     // Testing constructor
     ConvolutionBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
         const BridgeConfig * const _config);
 
-    // Network initialization constructor
+    // Network initialization constructor for convolution
     ConvolutionBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param);
+
+    // Network initialization constructor
+    // (Note: The presence of the 4th argument, inner_product,
+    // let's us distinguish between this constructor and the
+    // previous one. TODO: This is a terrible hack -- fix this!)
+    ConvolutionBridge(InputLayerType * const _p_input_layer,
+        OutputLayerType * const _p_output_layer,
+        const cnn::LayerParameter * const _layer_param, const bool inner_product);
 
     ~ConvolutionBridge();
 
@@ -142,10 +151,10 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
   private:
     LogicalCubeType * p_model_cube;
     LogicalCubeType * p_bias_cube;
-
     LogicalCubeType * p_forward_lowered_data;
 
-    float stepsize;
+    cnn::FillerParameter weight_filler;
+    cnn::FillerParameter bias_filler;
 
     size_t mR, mC, mD, mB; /*< Size of the model LogicalCube */
 
