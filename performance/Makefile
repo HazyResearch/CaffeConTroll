@@ -1,5 +1,5 @@
 CC=g++-4.8
-CFLAGS=-O0 -std=c++11 -Wl,--no-as-needed -g
+CFLAGS=-O3 -std=c++11 -Wl,--no-as-needed -g
 LDFLAGS=-lrt -lpthread -L ../externals/OpenBLAS/ -lopenblas
 BLASFLAGS= -lm -I ../externals/OpenBLAS/
 PROTOBUF = `pkg-config --cflags --libs protobuf`
