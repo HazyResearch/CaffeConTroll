@@ -1,170 +1,160 @@
-Input = 128 x 128  Kernel = 5 x 5  Channels: Input: 32 Output: 96  BatchSize = 1
-0.0101889
+Input = 64 x 64  Kernel = 5 x 5  Channels: Input: 96 Output: 256  BatchSize = 1
 Forward Report - 
 Lowering Report - 
- Time Elapsed    = 0.0349909 seconds
- Data Throughput = 0.383218 GBytes/s
+ Time Elapsed    = 0.0204795 seconds
+ Data Throughput = 0.464438 GBytes/s
  Flops           = 0 GBytes/s
 GEMM Kernel Report - 
- Time Elapsed    = 0.043011 seconds
- Data Throughput = 0.304965 GBytes/s
- Flops           = 12.7849 GBytes/s
+ Time Elapsed    = 0.0309288 seconds
+ Data Throughput = 0.36192 GBytes/s
+ Flops           = 33.3013 GBytes/s
 Total Report - 
- Time Elapsed    = 0.0894452 seconds
- Data Throughput = 0.296561 GBytes/s
- Flops           = 6.14777 GBytes/s
-0.00995722
+ Time Elapsed    = 0.0600843 seconds
+ Data Throughput = 0.344603 GBytes/s
+ Flops           = 17.1421 GBytes/s
 Backward Report - 
 Inverse Lowering Report - 
- Time Elapsed    = 0.063613 seconds
- Data Throughput = 0.210792 GBytes/s
+ Time Elapsed    = 0.0625058 seconds
+ Data Throughput = 0.152169 GBytes/s
  Flops           = 0 GBytes/s
 Weight Update Report - 
- Time Elapsed    = 0.0427215 seconds
- Data Throughput = 0.307031 GBytes/s
- Flops           = 12.8715 GBytes/s
+ Time Elapsed    = 0.00590018 seconds
+ Data Throughput = 1.89719 GBytes/s
+ Flops           = 174.566 GBytes/s
 Gradient Update Report - 
- Time Elapsed    = 0.0802595 seconds
- Data Throughput = 0.16343 GBytes/s
- Flops           = 6.85138 GBytes/s
+ Time Elapsed    = 0.221599 seconds
+ Data Throughput = 0.0505135 GBytes/s
+ Flops           = 4.64788 GBytes/s
 Total Report - 
- Time Elapsed    = 0.197952 seconds
- Data Throughput = 0.200265 GBytes/s
- Flops           = 5.55578 GBytes/s
+ Time Elapsed    = 0.298317 seconds
+ Data Throughput = 0.10693 GBytes/s
+ Flops           = 6.90519 GBytes/s
 
-Input = 128 x 128  Kernel = 5 x 5  Channels: Input: 32 Output: 96  BatchSize = 8
-0.0836051
+Input = 64 x 64  Kernel = 5 x 5  Channels: Input: 96 Output: 256  BatchSize = 8
 Forward Report - 
 Lowering Report - 
- Time Elapsed    = 0.256443 seconds
- Data Throughput = 0.418311 GBytes/s
+ Time Elapsed    = 0.17189 seconds
+ Data Throughput = 0.442677 GBytes/s
  Flops           = 0 GBytes/s
 GEMM Kernel Report - 
- Time Elapsed    = 0.371296 seconds
- Data Throughput = 0.277223 GBytes/s
- Flops           = 11.848 GBytes/s
+ Time Elapsed    = 0.0417395 seconds
+ Data Throughput = 1.7616 GBytes/s
+ Flops           = 197.409 GBytes/s
 Total Report - 
- Time Elapsed    = 0.721071 seconds
- Data Throughput = 0.291518 GBytes/s
- Flops           = 6.10079 GBytes/s
-0.0814328
+ Time Elapsed    = 0.282353 seconds
+ Data Throughput = 0.529904 GBytes/s
+ Flops           = 29.1824 GBytes/s
 Backward Report - 
 Inverse Lowering Report - 
- Time Elapsed    = 0.507978 seconds
- Data Throughput = 0.211177 GBytes/s
+ Time Elapsed    = 0.392041 seconds
+ Data Throughput = 0.194091 GBytes/s
  Flops           = 0 GBytes/s
 Weight Update Report - 
- Time Elapsed    = 0.366857 seconds
- Data Throughput = 0.280578 GBytes/s
- Flops           = 11.9913 GBytes/s
+ Time Elapsed    = 0.0486755 seconds
+ Data Throughput = 1.51058 GBytes/s
+ Flops           = 169.279 GBytes/s
 Gradient Update Report - 
- Time Elapsed    = 0.0264792 seconds
- Data Throughput = 3.88728 GBytes/s
- Flops           = 166.135 GBytes/s
+ Time Elapsed    = 0.215034 seconds
+ Data Throughput = 0.341938 GBytes/s
+ Flops           = 38.3183 GBytes/s
 Total Report - 
- Time Elapsed    = 0.993967 seconds
- Data Throughput = 0.315038 GBytes/s
- Flops           = 8.85162 GBytes/s
+ Time Elapsed    = 0.711772 seconds
+ Data Throughput = 0.313511 GBytes/s
+ Flops           = 23.1528 GBytes/s
 
-Input = 128 x 128  Kernel = 5 x 5  Channels: Input: 32 Output: 96  BatchSize = 32
-0.332606
+Input = 64 x 64  Kernel = 5 x 5  Channels: Input: 96 Output: 256  BatchSize = 32
 Forward Report - 
 Lowering Report - 
- Time Elapsed    = 1.00589 seconds
- Data Throughput = 0.42658 GBytes/s
+ Time Elapsed    = 0.67185 seconds
+ Data Throughput = 0.453028 GBytes/s
  Flops           = 0 GBytes/s
 GEMM Kernel Report - 
- Time Elapsed    = 1.49152 seconds
- Data Throughput = 0.275471 GBytes/s
- Flops           = 11.7977 GBytes/s
+ Time Elapsed    = 0.0859722 seconds
+ Data Throughput = 3.34116 GBytes/s
+ Flops           = 383.368 GBytes/s
 Total Report - 
- Time Elapsed    = 2.86818 seconds
- Data Throughput = 0.292856 GBytes/s
- Flops           = 6.13506 GBytes/s
-0.332982
+ Time Elapsed    = 1.0022 seconds
+ Data Throughput = 0.590314 GBytes/s
+ Flops           = 32.8866 GBytes/s
 Backward Report - 
 Inverse Lowering Report - 
- Time Elapsed    = 1.99829 seconds
- Data Throughput = 0.21473 GBytes/s
+ Time Elapsed    = 1.47593 seconds
+ Data Throughput = 0.206221 GBytes/s
  Flops           = 0 GBytes/s
 Weight Update Report - 
- Time Elapsed    = 1.49841 seconds
- Data Throughput = 0.274205 GBytes/s
- Flops           = 11.7434 GBytes/s
+ Time Elapsed    = 0.172383 seconds
+ Data Throughput = 1.66633 GBytes/s
+ Flops           = 191.197 GBytes/s
 Gradient Update Report - 
- Time Elapsed    = 0.084105 seconds
- Data Throughput = 4.8852 GBytes/s
- Flops           = 209.22 GBytes/s
+ Time Elapsed    = 0.127861 seconds
+ Data Throughput = 2.24655 GBytes/s
+ Flops           = 257.772 GBytes/s
 Total Report - 
- Time Elapsed    = 3.95845 seconds
- Data Throughput = 0.31599 GBytes/s
- Flops           = 8.89057 GBytes/s
+ Time Elapsed    = 1.99987 seconds
+ Data Throughput = 0.43946 GBytes/s
+ Flops           = 32.9612 GBytes/s
 
-Input = 128 x 128  Kernel = 5 x 5  Channels: Input: 32 Output: 96  BatchSize = 128
-1.33014
+Input = 64 x 64  Kernel = 5 x 5  Channels: Input: 96 Output: 256  BatchSize = 128
 Forward Report - 
 Lowering Report - 
- Time Elapsed    = 4.81005 seconds
- Data Throughput = 0.35683 GBytes/s
+ Time Elapsed    = 3.15909 seconds
+ Data Throughput = 0.385386 GBytes/s
  Flops           = 0 GBytes/s
 GEMM Kernel Report - 
- Time Elapsed    = 5.93394 seconds
- Data Throughput = 0.276818 GBytes/s
- Flops           = 11.8615 GBytes/s
+ Time Elapsed    = 0.323056 seconds
+ Data Throughput = 3.53536 GBytes/s
+ Flops           = 408.09 GBytes/s
 Total Report - 
- Time Elapsed    = 12.2265 seconds
- Data Throughput = 0.274731 GBytes/s
- Flops           = 5.75683 GBytes/s
-1.33085
+ Time Elapsed    = 4.40148 seconds
+ Data Throughput = 0.53609 GBytes/s
+ Flops           = 29.9527 GBytes/s
 Backward Report - 
 Inverse Lowering Report - 
- Time Elapsed    = 8.12539 seconds
- Data Throughput = 0.211235 GBytes/s
+ Time Elapsed    = 5.84931 seconds
+ Data Throughput = 0.208139 GBytes/s
  Flops           = 0 GBytes/s
 Weight Update Report - 
- Time Elapsed    = 6.07878 seconds
- Data Throughput = 0.270222 GBytes/s
- Flops           = 11.5789 GBytes/s
+ Time Elapsed    = 0.688945 seconds
+ Data Throughput = 1.65778 GBytes/s
+ Flops           = 191.359 GBytes/s
 Gradient Update Report - 
- Time Elapsed    = 0.309845 seconds
- Data Throughput = 5.30142 GBytes/s
- Flops           = 227.164 GBytes/s
+ Time Elapsed    = 0.42743 seconds
+ Data Throughput = 2.67206 GBytes/s
+ Flops           = 308.438 GBytes/s
 Total Report - 
- Time Elapsed    = 16.0234 seconds
- Data Throughput = 0.312144 GBytes/s
- Flops           = 8.78536 GBytes/s
+ Time Elapsed    = 7.87456 seconds
+ Data Throughput = 0.444686 GBytes/s
+ Flops           = 33.484 GBytes/s
 
-Input = 128 x 128  Kernel = 5 x 5  Channels: Input: 32 Output: 96  BatchSize = 256
-2.66066
+Input = 64 x 64  Kernel = 5 x 5  Channels: Input: 96 Output: 256  BatchSize = 256
 Forward Report - 
 Lowering Report - 
- Time Elapsed    = 12.7249 seconds
- Data Throughput = 0.269765 GBytes/s
+ Time Elapsed    = 8.45904 seconds
+ Data Throughput = 0.28785 GBytes/s
  Flops           = 0 GBytes/s
 GEMM Kernel Report - 
- Time Elapsed    = 11.5293 seconds
- Data Throughput = 0.284922 GBytes/s
- Flops           = 12.2099 GBytes/s
+ Time Elapsed    = 0.639719 seconds
+ Data Throughput = 3.56711 GBytes/s
+ Flops           = 412.168 GBytes/s
 Total Report - 
- Time Elapsed    = 27.2196 seconds
- Data Throughput = 0.246796 GBytes/s
- Flops           = 5.1717 GBytes/s
-2.66212
+ Time Elapsed    = 10.9175 seconds
+ Data Throughput = 0.432047 GBytes/s
+ Flops           = 24.1512 GBytes/s
 Backward Report - 
 Inverse Lowering Report - 
- Time Elapsed    = 16.4268 seconds
- Data Throughput = 0.208971 GBytes/s
+ Time Elapsed    = 11.8627 seconds
+ Data Throughput = 0.205261 GBytes/s
  Flops           = 0 GBytes/s
 Weight Update Report - 
- Time Elapsed    = 11.8349 seconds
- Data Throughput = 0.277566 GBytes/s
- Flops           = 11.8946 GBytes/s
+ Time Elapsed    = 1.55825 seconds
+ Data Throughput = 1.46443 GBytes/s
+ Flops           = 169.21 GBytes/s
 Gradient Update Report - 
- Time Elapsed    = 0.619402 seconds
- Data Throughput = 5.30343 GBytes/s
- Flops           = 227.27 GBytes/s
+ Time Elapsed    = 0.825976 seconds
+ Data Throughput = 2.76273 GBytes/s
+ Flops           = 319.225 GBytes/s
 Total Report - 
- Time Elapsed    = 31.9003 seconds
- Data Throughput = 0.31356 GBytes/s
- Flops           = 8.82573 GBytes/s
+ Time Elapsed    = 16.0696 seconds
+ Data Throughput = 0.435533 GBytes/s
+ Flops           = 32.8162 GBytes/s
 
