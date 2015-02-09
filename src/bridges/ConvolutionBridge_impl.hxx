@@ -258,9 +258,11 @@ forward() {
   if (FUNC != FUNC_NOFUNC) {
      p_forward_applyfunc_scanner->apply(&lowered_output);
   }
-
+  
+  Timer t;	
+  t.restart();
   p_output_layer->p_data_cube->template remap_output<LOWERING_TYPE1>(num_output_features, iB, oR*oC);
-
+  cout << t.elapsed() << endl;
   // add bias
   if (bias_term) {
     const size_t output_feature_size = oR*oC;
@@ -312,7 +314,6 @@ forward() {
 template <typename DataType, NonLinearFunction FUNC>
 void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 backward() {
-  Timer t;
   openblas_set_num_threads(run_with_n_threads);
 
   report_backward_updateweight_last_transfer.reset();
@@ -342,7 +343,10 @@ backward() {
     }
   }
   // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
+  Timer t;
+  t.restart();
   p_backward_outputgrad->template remap_output<LOWERING_TYPE1>(oB, num_output_features, oR*oC );
+  cout << t.elapsed() << endl;
   //    - 2.1 GEMM between the gradient of output and old kernel
   p_backward_gemm_updategrad_kernel->compute(&lowered_model, &lowered_outputgrad, p_backward_inputgrad);
   //    - 2.2 undo the lowering (i.e., sum together all grad corresponding to the same unlowered position)

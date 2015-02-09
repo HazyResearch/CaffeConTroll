@@ -19,13 +19,7 @@ void PRINT_CONFIG(int iR, int iC, int iD, int oD, int k, int mB){
 }
 
 void PERF_CONVOLUTION_BRIDGE(int iR, int iC, int iD, int oD, int k, int mB) {
-    // const int mB = 10;
-    // const int iD = 5;
-    // const int oD = 5;
-    // const int iR = 22;
-    // const int iC = 22;
-    // const int k = 2;
-    const int s = 2;
+    const int s = 4;
     const int p = 0;
     const int oR = static_cast<int>(floor(static_cast<float>(iR + 2*p - k) / s)) + 1;
     const int oC = static_cast<int>(floor(static_cast<float>(iC + 2*p - k) / s)) + 1;
@@ -96,23 +90,23 @@ void PERF_CONVOLUTION_BRIDGE(int iR, int iC, int iD, int oD, int k, int mB) {
 
 int main(int argc, const char * argv[]) {
   
-  PRINT_CONFIG(16,16,32,96,5,64);
-  PERF_CONVOLUTION_BRIDGE(16,16,32,96,5,64);
+  PRINT_CONFIG(227,227,3,96,11,256);
+  PERF_CONVOLUTION_BRIDGE(227,227,3,96,11,256);
 
-  // PRINT_CONFIG(32,32,32,96,5,64);
-  // PERF_CONVOLUTION_BRIDGE(32,32,32,96,5,64);
+  //PRINT_CONFIG(128,128,32,96,5,8);
+  //PERF_CONVOLUTION_BRIDGE(128,128,32,96,5,8);
 
-  // PRINT_CONFIG(64,64,32,96,5,64);
-  // PERF_CONVOLUTION_BRIDGE(64,64,32,96,5,64);
+  //PRINT_CONFIG(128,128,32,96,5,32);
+  //PERF_CONVOLUTION_BRIDGE(128,128,32,96,5,32);
 
-  // PRINT_CONFIG(128,128,32,96,5,64);
-  // PERF_CONVOLUTION_BRIDGE(128,128,32,96,5,64);
+  //PRINT_CONFIG(128,128,32,96,5,128);
+  //PERF_CONVOLUTION_BRIDGE(128,128,32,96,5,128);
 
-  //PRINT_CONFIG(64,64,32,96,5,64);
-  //PERF_CONVOLUTION_BRIDGE(64,64,32,96,5,64);
+  //PRINT_CONFIG(128,128,32,96,5,256);
+  //PERF_CONVOLUTION_BRIDGE(128,128,32,96,5,256);
 
-  // PRINT_CONFIG(64,64,32,96,5,96);
-  // PERF_CONVOLUTION_BRIDGE(64,64,32,96,5,96);
+  //PRINT_CONFIG(64,64,32,96,5,96);
+  //PERF_CONVOLUTION_BRIDGE(64,64,32,96,5,96);
 
   // PRINT_CONFIG(64,64,32,96,5,96);
   // PERF_CONVOLUTION_BRIDGE(64,64,32,96,5,96);
