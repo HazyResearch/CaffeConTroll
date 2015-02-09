@@ -1,9 +1,9 @@
 CC=g++-4.8
-CFLAGS=-O0 -std=c++11 -Wl,--no-as-needed -g
-LDFLAGS=-lgtest -lpthread -lrt -L ../externals/OpenBLAS/ -lopenblas
-BLASFLAGS= -lm -I ../externals/OpenBLAS/
+CFLAGS=-O0 -std=c++11 -g
+LDFLAGS=-lgtest -lpthread  -L ../externals/OpenBLAS/ -lopenblas
+BLASFLAGS= -lm -I ../externals/OpenBLAS/ -I/Users/czhang/Desktop/deepnet/lib/gtest-1.7.0/include/ -L/Users/czhang/Desktop/deepnet/lib/gtest/
 PROTOBUF = `pkg-config --cflags --libs protobuf`
-SOURCES = test_main.cpp test_MaxPooling_bridge.cpp test_softmax_bridge.cpp test_convolution_bridge.cpp test_ReLU_bridge.cpp test_dropout_bridge.cpp test_lrn_bridge.cpp test_parallelized_convolution.cpp ../src/util.cpp ../src/parser/cnn.pb.cc
+SOURCES = test_main.cpp test_MaxPooling_bridge.cpp test_softmax_bridge.cpp test_convolution_bridge.cpp test_ReLU_bridge.cpp test_dropout_bridge.cpp test_lrn_bridge.cpp test_parallelized_convolution.cpp ../src/util.cpp ../src/parser/cnn.pb.cc ../src/timer.cpp
 #test_MaxPooling_bridge.cpp test_softmax_bridge.cpp test_convolution_bridge.cpp test_ReLU_bridge.cpp test_dropout_bridge.cpp test_lrn_bridge.cpp
 # test_convolution_bridge.cpp test_ReLU_bridge.cpp test_dropout_bridge.cpp test_lrn_bridge.cpp  
 #test_softmax_bridge.cpp 

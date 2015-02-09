@@ -57,8 +57,8 @@ class MaxPoolingBridgeTest : public ::testing::Test {
     static const int k = 2;
     static const int s = 2;
     static const int p = 0;
-    static const int oR = static_cast<int>(ceil(static_cast<float>(iR - k) / s)) + 1;
-    static const int oC = static_cast<int>(ceil(static_cast<float>(iC - k) / s)) + 1;
+    static const int oR = static_cast<int>(0.5+(static_cast<float>(iR - k) / s)) + 1;
+    static const int oC = static_cast<int>(0.5+(static_cast<float>(iC - k) / s)) + 1;
 };
 
 typedef ::testing::Types<FloatCRDB> DataTypes;
