@@ -1,0 +1,6 @@
+Just run
+
+python py/<exp_name>.py
+
+This generates binary files for each parameter setting in the folder `bin`.
+All results are logged in the folder `rs`.
