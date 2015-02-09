@@ -165,10 +165,10 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
         this->grad2->p_data[i] = i*0.1;
     }
 
+    srand(0);
     for(int i=0;i<this->oD;i++){
-        //this->ParallelizedConvolutionBridge_->bias_cube()->p_data[i] = 0.0;
         for(auto it = this->ParallelizedConvolutionBridge_->_bridges.begin(); it != this->ParallelizedConvolutionBridge_->_bridges.end(); ++it)
-            (*it)->bias_cube()->p_data[i] = 0.0;
+            (*it)->bias_cube()->p_data[i] = 0.1*(rand()%10);
     }
 
     this->ParallelizedConvolutionBridge_->forward();
@@ -202,7 +202,7 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
             float actual_bias = 0.0;
             for(auto it = this->ParallelizedConvolutionBridge_->_bridges.begin(); it != this->ParallelizedConvolutionBridge_->_bridges.end(); ++it)
                 actual_bias += (*it)->bias_cube()->p_data[idx];
-            EXPECT_NEAR(actual_bias*-100.0, output, EPS);
+            EXPECT_NEAR(actual_bias, output, EPS);
             expected_bias >> output;
             idx++;
         }

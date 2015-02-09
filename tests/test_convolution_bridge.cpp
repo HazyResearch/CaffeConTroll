@@ -158,8 +158,9 @@ TYPED_TEST(ConvolutionBridgeTest, TestBackward){
         this->grad2->p_data[i] = i*0.1;
     }
 
+    srand(0);
     for(int i=0;i<this->oD;i++){
-        this->ConvolutionBridge_->bias_cube()->p_data[i] = 0.0;
+        this->ConvolutionBridge_->bias_cube()->p_data[i] = 0.1*(rand()%10);
     }
 
     this->ConvolutionBridge_->forward();
@@ -178,6 +179,19 @@ TYPED_TEST(ConvolutionBridgeTest, TestBackward){
         }
     }
     expected_output.close(); 
+
+    std::fstream expected_bias("conv_bias.txt", std::ios_base::in);
+    
+    idx = 0;
+    if (expected_bias.is_open()) {
+        expected_bias >> output;
+        while (!expected_bias.eof()) {
+            EXPECT_NEAR(this->ConvolutionBridge_->bias_cube()->p_data[idx], output, EPS);
+            expected_bias >> output;
+            idx++;
+        }
+    }
+    expected_bias.close(); 
 
     std::fstream expected_weights("conv_weights.txt", std::ios_base::in);
     idx = 0;
