@@ -117,8 +117,9 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestForward){
     for(int i=0;i<this->oD;i++){
         //this->ConvolutionBridge_->bias_cube()->p_data[i] = 0.0;
         float bias = 0.1*(rand()%10);
-        for(auto it = this->ParallelizedConvolutionBridge_->_bridges.begin(); it != this->ParallelizedConvolutionBridge_->_bridges.end(); ++it)
-            (*it)->bias_cube()->p_data[i] = bias;
+	this->ParallelizedConvolutionBridge_->p_bias_cube->p_data[i] = bias;
+        //for(auto it = this->ParallelizedConvolutionBridge_->_bridges.begin(); it != this->ParallelizedConvolutionBridge_->_bridges.end(); ++it)
+        //    (*it)->bias_cube()->p_data[i] = bias;
     }
 
     int oR = this->oR;
@@ -167,8 +168,9 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
 
     srand(0);
     for(int i=0;i<this->oD;i++){
-        for(auto it = this->ParallelizedConvolutionBridge_->_bridges.begin(); it != this->ParallelizedConvolutionBridge_->_bridges.end(); ++it)
-            (*it)->bias_cube()->p_data[i] = 0.1*(rand()%10);
+      this->ParallelizedConvolutionBridge_->p_bias_cube->p_data[i] = 0.1*(rand()%10);
+      //for(auto it = this->ParallelizedConvolutionBridge_->_bridges.begin(); it != this->ParallelizedConvolutionBridge_->_bridges.end(); ++it)
+      //      (*it)->bias_cube()->p_data[i] = 0.1*(rand()%10);
     }
 
     this->ParallelizedConvolutionBridge_->forward();
@@ -199,9 +201,7 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
     if (expected_bias.is_open()) {
         expected_bias >> output;
         while (!expected_bias.eof()) {
-            float actual_bias = 0.0;
-            for(auto it = this->ParallelizedConvolutionBridge_->_bridges.begin(); it != this->ParallelizedConvolutionBridge_->_bridges.end(); ++it)
-                actual_bias += (*it)->bias_cube()->p_data[idx];
+	  float actual_bias = this->ParallelizedConvolutionBridge_->p_bias_cube->p_data[idx];
             EXPECT_NEAR(actual_bias, output, EPS);
             expected_bias >> output;
             idx++;

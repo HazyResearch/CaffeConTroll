@@ -89,6 +89,11 @@ void ParallelizedConvolutionBridge<DataType>::initialize() {
       example_bridge->iD, example_bridge->num_output_features);
   memcpy(p_model_cube->p_data, example_bridge->model_cube()->p_data, p_model_cube->n_elements*sizeof(DataType));
 
+  if(example_bridge->bias_term){
+    p_bias_cube = new LogicalCubeType(1, 1, example_bridge->num_output_features, 1);
+    memcpy(p_bias_cube->p_data, example_bridge->bias_cube()->p_data, p_bias_cube->n_elements*sizeof(DataType));
+  }
+
   report_backward_updateweight_constructor.end(0, 0, 0);
   report_forward_constructor.end(0, 0, 0);
 }
@@ -125,6 +130,7 @@ void ParallelizedConvolutionBridge<DataType>::forward() {
     //    Also, given GEMM reads the model once anyway and is still CPU bound, the current performance
     // should not be terrible
     memcpy(_bridges[i]->model_cube()->p_data, p_model_cube->p_data, p_model_cube->n_elements*sizeof(DataType));
+    memcpy(_bridges[i]->bias_cube()->p_data, p_bias_cube->p_data, p_bias_cube->n_elements*sizeof(DataType));
   }
   stratum.forward();
   report_forward_last_transfer.end();
@@ -151,6 +157,20 @@ void ParallelizedConvolutionBridge<DataType>::backward() {
     DataType * const p_submodel_data = _bridges[i]->model_cube()->p_data;
     for(size_t j=0;j<n_element;j++){
       p_model_data[j] += p_submodel_data[j];
+    }
+  }
+
+  // do similarthings for bias term... Might be better to 
+  // refactor this to be in the same function as the previous one
+  const size_t bias_n_element = p_bias_cube->n_elements;
+  DataType * const p_bias_data = p_bias_cube->p_data;
+  for(size_t i=0;i<bias_n_element;i++){
+    p_bias_data[i] = (-p_bias_data[i]) * (n_partition - 1);
+  }
+  for (size_t i = 0; i < n_partition; ++i) {
+    DataType * const p_subbias_data = _bridges[i]->bias_cube()->p_data;
+    for(size_t j=0;j<bias_n_element;j++){
+      p_bias_data[j] += p_subbias_data[j];
     }
   }
 

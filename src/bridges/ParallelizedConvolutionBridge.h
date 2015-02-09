@@ -54,6 +54,8 @@ class ParallelizedConvolutionBridge : public AbstractBridge<DataType, Layout_CRD
                                         add optimization to share without copying) is the job
                                         of ParallelizedConvolutionBridge not its caller. **/
 
+    LogicalCubeType * p_bias_cube;
+
     std::vector<ConvolutionBridgeType *> _bridges;
 
     PhysicalStratum stratum;
