@@ -60,7 +60,6 @@ class ConvolutionBridgeTest : public ::testing::Test {
     ConvolutionBridge_ = new ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>(layer1, layer2, bconfig);
    } 
 
-  	virtual ~ConvolutionBridgeTest() { delete ConvolutionBridge_; delete layer1; delete layer2; delete bconfig;}
     ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>* ConvolutionBridge_;
 
   	LogicalCube<T, Layout_CRDB>* data1;

@@ -85,8 +85,8 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
     static const int k = 5;
     static const int s = 4;
     static const int p = 2;
-    static const int oR = static_cast<int>(floor(static_cast<float>(iR + 2*p - k) / s)) + 1;
-    static const int oC = static_cast<int>(floor(static_cast<float>(iC + 2*p - k) / s)) + 1;
+    static const int oR = (iR + 2*p - k) / s + 1;
+    static const int oC = (iC + 2*p - k) / s + 1;
     static const InitializerType weight_initializer = XAVIER;
     static const InitializerType bias_initializer = CONSTANT;
 };
