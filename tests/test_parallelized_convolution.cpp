@@ -215,8 +215,10 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
         while (!expected_weights.eof()) {
             float actual_weight = 0.0;
             for(auto it = this->ParallelizedConvolutionBridge_->_bridges.begin(); it != this->ParallelizedConvolutionBridge_->_bridges.end(); ++it)
-                actual_weight += (*it)->model_cube()->p_data[idx];
-            EXPECT_NEAR(actual_weight, output, 1.1);
+            {    actual_weight += (*it)->model_cube()->p_data[idx];
+                 //(*it)->model_cube()->logical_print();
+            }    
+            EXPECT_NEAR(actual_weight, output, EPS);
             expected_weights >> output;
             idx++;
         }
