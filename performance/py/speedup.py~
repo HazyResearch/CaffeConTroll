@@ -1,0 +1,7 @@
+
+import os
+
+os.system('mkdir -p bin')
+for p in [1,2,4,8,16,32]:
+    for t in [1,]:
+        os.system('NPARTITION=%d NTHREADPERPARTITION=%d make speedup')
