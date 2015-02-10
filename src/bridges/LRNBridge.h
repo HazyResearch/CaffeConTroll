@@ -81,6 +81,7 @@ class LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public AbstractB
     ~LRNBridge();
 
     void forward();
+    void old_forward();
     void backward();
 
     const float alpha;

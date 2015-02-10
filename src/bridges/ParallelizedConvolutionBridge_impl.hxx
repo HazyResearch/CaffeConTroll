@@ -81,15 +81,15 @@ void ParallelizedConvolutionBridge<DataType>::initialize() {
 
 
   // create the master model for this parallel bridge
-  assert(_bridges.size() >= 1); // we need at least one partition. 
+  assert(_bridges.size() >= 1); // we need at least one partition.
   ConvolutionBridgeType * const example_bridge = _bridges[0]; // get one convbrdige as example
   // TODO: p_model_cube should be T * __const__ -- but this involes changing the
   // constructor, need to discuss with Firas in detials
-  p_model_cube = new LogicalCubeType(example_bridge->K, example_bridge->K, 
+  p_model_cube = new LogicalCubeType(example_bridge->K, example_bridge->K,
       example_bridge->iD, example_bridge->num_output_features);
   memcpy(p_model_cube->p_data, example_bridge->model_cube()->p_data, p_model_cube->n_elements*sizeof(DataType));
 
-  if(example_bridge->bias_term){
+  if(example_bridge->bias_term) {
     p_bias_cube = new LogicalCubeType(1, 1, example_bridge->num_output_features, 1);
     memcpy(p_bias_cube->p_data, example_bridge->bias_cube()->p_data, p_bias_cube->n_elements*sizeof(DataType));
   }
@@ -144,32 +144,32 @@ void ParallelizedConvolutionBridge<DataType>::backward() {
   stratum.backward();
 
   // After backward, it is the responsibility of ParallelizedConvolutionBridge to merge
-  // result back. 
+  // result back.
   // TODO: each bridge can hold their gradient, in this way, we can save the first for
   // loop. But I do not really so how this could be a bottleneck...
   const size_t n_element = p_model_cube->n_elements;
   DataType * const p_model_data = p_model_cube->p_data;
   const size_t n_partition = _data_cubes_lower.size();
-  for(size_t i=0;i<n_element;i++){
+  for (size_t i=0;i<n_element;i++) {
     p_model_data[i] = (-p_model_data[i]) * (n_partition - 1);
   }
   for (size_t i = 0; i < n_partition; ++i) {
     DataType * const p_submodel_data = _bridges[i]->model_cube()->p_data;
-    for(size_t j=0;j<n_element;j++){
+    for (size_t j=0;j<n_element;j++) {
       p_model_data[j] += p_submodel_data[j];
     }
   }
 
-  // do similarthings for bias term... Might be better to 
+  // do similar things for bias term... Might be better to
   // refactor this to be in the same function as the previous one
   const size_t bias_n_element = p_bias_cube->n_elements;
   DataType * const p_bias_data = p_bias_cube->p_data;
-  for(size_t i=0;i<bias_n_element;i++){
+  for (size_t i=0;i<bias_n_element;i++) {
     p_bias_data[i] = (-p_bias_data[i]) * (n_partition - 1);
   }
   for (size_t i = 0; i < n_partition; ++i) {
     DataType * const p_subbias_data = _bridges[i]->bias_cube()->p_data;
-    for(size_t j=0;j<bias_n_element;j++){
+    for (size_t j=0;j<bias_n_element;j++) {
       p_bias_data[j] += p_subbias_data[j];
     }
   }

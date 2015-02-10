@@ -5,12 +5,14 @@ ifeq ($(UNAME), Darwin)
   CC = clang++
   CFLAGS = -Wall -std=c++11
   LDFLAGS = -llmdb -lopenblas
+  TEST_LDFLAGS= -I./lib/gtest-1.7.0/include/ -L./lib/gtest/ -lgtest -lpthread -L ./externals/OpenBLAS/ -lopenblas
   DIRS=./externals/OpenBLAS/ ./lib/lmdb/
 # For Ubuntu 12.04 x86_64 (raiders3 machine)
 else ifeq ($(UNAME), Linux)
   CC = g++-4.8
   CFLAGS = -Wall -std=c++11 -Wl,--no-as-needed
   LDFLAGS = -llmdb -lopenblas -lrt
+  TEST_LDFLAGS= -lrt -I./lib/gtest-1.7.0/include/ -L./lib/gtest/ -lgtest -lpthread -L ./externals/OpenBLAS/ -lopenblas
   DIRS=./externals/OpenBLAS/
 endif
 
@@ -39,7 +41,6 @@ PRODUCT_FLAGS = -O3
 TEST_CC= clang++
 TEST_CFLAGS=-O0 -std=c++11
 
-TEST_LDFLAGS= -lrt -I./lib/gtest-1.7.0/include/ -L./lib/gtest/ -lgtest -lpthread -L ./externals/OpenBLAS/ -lopenblas
 TEST_BLASFLAGS= -lm -I ./externals/OpenBLAS/
 TEST_SOURCES = tests/test_main.cpp tests/test_parallelized_convolution.cpp tests/test_MaxPooling_bridge.cpp tests/test_softmax_bridge.cpp tests/test_convolution_bridge.cpp tests/test_ReLU_bridge.cpp tests/test_dropout_bridge.cpp tests/test_lrn_bridge.cpp src/util.cpp src/parser/cnn.pb.cc src/timer.cpp
 #tests/test_convolution_bridge.cpp tests/test_MaxPooling_bridge.cpp tests/test_ReLU_bridge.cpp
