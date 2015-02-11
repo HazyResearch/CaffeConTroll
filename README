@@ -1,0 +1,5 @@
+To setup:
+
+1. Copy config.sample to .config
+2. Fill it out with your correct paths
+3. make

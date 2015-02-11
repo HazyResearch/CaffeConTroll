@@ -1,17 +1,15 @@
+include .config
 UNAME := $(shell uname)
+DIRS=$(OPENBLAS_DIR) $(LMDB_DIR) 
 
 # For Mac OS X 10.10 x86_64 Yosemite
 ifeq ($(UNAME), Darwin)
-  CC = clang++
   CFLAGS = -Wall -std=c++11
   LDFLAGS = -llmdb -lopenblas
-  DIRS=./externals/OpenBLAS/ ./lib/lmdb/
 # For Ubuntu 12.04 x86_64 (raiders3 machine)
 else ifeq ($(UNAME), Linux)
-  CC = g++-4.8
   CFLAGS = -Wall -std=c++11 -Wl,--no-as-needed
   LDFLAGS = -llmdb -lopenblas -lrt
-  DIRS=./externals/OpenBLAS/
 endif
 
 # Protobuf variables
@@ -39,9 +37,13 @@ PRODUCT_FLAGS = -O3
 TEST_CC= clang++
 TEST_CFLAGS=-O0 -std=c++11
 
-TEST_LDFLAGS= -lrt -I./lib/gtest-1.7.0/include/ -L./lib/gtest/ -lgtest -lpthread -L ./externals/OpenBLAS/ -lopenblas
-TEST_BLASFLAGS= -lm -I ./externals/OpenBLAS/
-TEST_SOURCES = tests/test_main.cpp tests/test_parallelized_convolution.cpp tests/test_MaxPooling_bridge.cpp tests/test_softmax_bridge.cpp tests/test_convolution_bridge.cpp tests/test_ReLU_bridge.cpp tests/test_dropout_bridge.cpp tests/test_lrn_bridge.cpp src/util.cpp src/parser/cnn.pb.cc src/timer.cpp
+TEST_LDFLAGS= $(LDFLAGS)  -I -L$(GTEST_LIB_DIR) -lgtest -lpthread -L $(OPENBLAS_DIR) -lopenblas
+TEST_BLASFLAGS= -lm -I $(OPENBLAS_DIR)
+TEST_SOURCES = tests/test_main.cpp tests/test_parallelized_convolution.cpp\
+	tests/test_MaxPooling_bridge.cpp tests/test_softmax_bridge.cpp\
+	tests/test_convolution_bridge.cpp tests/test_ReLU_bridge.cpp \
+	tests/test_dropout_bridge.cpp tests/test_lrn_bridge.cpp \
+	src/util.cpp src/parser/cnn.pb.cc src/timer.cpp
 #tests/test_convolution_bridge.cpp tests/test_MaxPooling_bridge.cpp tests/test_ReLU_bridge.cpp
 TEST_EXECUTABLE=test
 
