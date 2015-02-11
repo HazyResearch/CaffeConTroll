@@ -130,8 +130,6 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
 template<typename DataType, typename BridgeType>
 void ParallelizedBridge<DataType, BridgeType>::forward() {
 
-  std::cout << "You are using the new one!" << std::endl;
-
   report_forward_last_transfer.reset();
   for (size_t i = 0; i < _data_cubes_lower.size(); ++i) {
     _data_cubes_lower[i]->p_data = p_input_layer->p_data_cube->physical_get_RCDslice(i*n_batch_per_partition);
