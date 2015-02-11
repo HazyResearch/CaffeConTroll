@@ -24,8 +24,7 @@ void PRINT_CONFIG(int iR, int iC, int iD, int oD, int k, int mB){
 }
 
 void PERF_CONVOLUTION_BRIDGE(int iR, int iC, int iD, int oD, int k, int mB) {
-    openblas_set_num_threads(8);
-    const int s = 2;
+    const int s = 1;
     const int p = 0;
     const int oR = static_cast<int>(floor(static_cast<float>(iR + 2*p - k) / s)) + 1;
     const int oC = static_cast<int>(floor(static_cast<float>(iC + 2*p - k) / s)) + 1;

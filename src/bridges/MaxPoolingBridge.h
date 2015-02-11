@@ -39,6 +39,19 @@ class MaxPoolingBridge : public AbstractBridge<InputLayerDataType, InputLayerLay
     void backward() {
       NOT_IMPLEMENTED;
     }
+
+    void set_model_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * model) {}
+
+    LogicalCube<InputLayerDataType, InputLayerLayout> * get_model_cube(){
+        return NULL;
+    }
+
+    void set_bias_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * bias) {}    
+
+    virtual LogicalCube<InputLayerDataType, InputLayerLayout> * get_bias_cube() {
+        return NULL;
+    }
+
 };
 
 /******
@@ -86,6 +99,19 @@ class MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Ab
     void forward();
 
     void backward();
+
+    void set_model_cube(LogicalCube<DataType, Layout_CRDB> * model) {}
+
+    LogicalCube<DataType, Layout_CRDB> * get_model_cube(){
+        return NULL;
+    }
+
+    void set_bias_cube(LogicalCube<DataType, Layout_CRDB> * bias) {}    
+
+    virtual LogicalCube<DataType, Layout_CRDB> * get_bias_cube() {
+        return NULL;
+    }
+
 
   private:
     LogicalCube<size_t, Layout_CRDB> * max_index;

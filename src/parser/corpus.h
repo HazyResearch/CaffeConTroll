@@ -47,6 +47,8 @@ class Corpus {
     // n_rows x n_cols x dim x 1
     LogicalCube<DataType_SFFloat, Layout_CRDB>* mean;
 
+    std::string filename;
+
     explicit Corpus(const cnn::LayerParameter & layer_param);
     ~Corpus();
 
