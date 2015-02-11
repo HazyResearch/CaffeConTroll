@@ -15,7 +15,6 @@ before_install:
 - sudo apt-get install libgtest-dev
 - sudo apt-get install gfortran
 - "cd /usr/src/gtest && sudo cmake . && sudo cmake --build . && sudo mv libg* /usr/local/lib/ ; cd -"
-- "cd /usr/src/gtest && ls"
 - git submodule update
 - "cd ./externals/OpenBLAS && sudo make -Wno- -s > /dev/null && sudo make install PREFIX= ./externals/OpenBLAS; cd -"
 install:
