@@ -20,7 +20,8 @@ class ReLUBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, O
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
 
     // Testing constructor
-    ReLUBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer) {
+    ReLUBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer, 
+        const BridgeConfig * const _config) {
       NOT_IMPLEMENTED;
     }
 
@@ -84,7 +85,8 @@ class ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Abstract
     typedef Layer<DataType, Layout_CRDB> InputLayerType;
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
 
-    ReLUBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer);
+    ReLUBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
+        const BridgeConfig * const _config);
     ReLUBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param);
 
