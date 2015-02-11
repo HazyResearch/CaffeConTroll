@@ -39,6 +39,18 @@ class AbstractBridge : public PhysicalOperator {
     Report report_last_lowering;
     Report report_history;
 
+    void set_model_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * model) {}
+
+    LogicalCube<InputLayerDataType, InputLayerLayout> * get_model_cube(){
+        return NULL;
+    }
+
+    void set_bias_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * bias) {}    
+
+    virtual LogicalCube<InputLayerDataType, InputLayerLayout> * get_bias_cube() {
+        return NULL;
+    }
+
     // First constructor, which takes in a cnn::LayerParameter as a third argument. This will
     // be used when initializing from a *.prototxt file
     AbstractBridge<InputLayerDataType, InputLayerLayout,

@@ -37,6 +37,19 @@ class ReLUBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, O
     void backward() {
       NOT_IMPLEMENTED;
     }
+
+    void set_model_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * model) {}
+
+    LogicalCube<InputLayerDataType, InputLayerLayout> * get_model_cube(){
+        return NULL;
+    }
+
+    void set_bias_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * bias) {}    
+
+    virtual LogicalCube<InputLayerDataType, InputLayerLayout> * get_bias_cube() {
+        return NULL;
+    }
+
 };
 
 /******
@@ -77,6 +90,19 @@ class ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Abstract
 
     void forward();
     void backward();
+
+    void set_model_cube(LogicalCube<DataType, Layout_CRDB> * model) {}
+
+    LogicalCube<DataType, Layout_CRDB> * get_model_cube(){
+        return NULL;
+    }
+
+    void set_bias_cube(LogicalCube<DataType, Layout_CRDB> * bias) {}    
+
+    virtual LogicalCube<DataType, Layout_CRDB> * get_bias_cube() {
+        return NULL;
+    }
+
 
   private:
     void initialize();

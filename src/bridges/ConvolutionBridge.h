@@ -41,6 +41,11 @@ class ConvolutionBridge : public AbstractBridge<InputLayerDataType, InputLayerLa
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
     typedef LogicalCube<InputLayerDataType, InputLayerLayout> LogicalCubeType;
 
+    virtual void set_model_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * model) = 0;
+    virtual LogicalCube<InputLayerDataType, InputLayerLayout> * get_model_cube() = 0;
+    virtual void set_bias_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * bias) = 0;
+    virtual LogicalCube<InputLayerDataType, InputLayerLayout> * get_bias_cube() = 0;
+
     // Testing constructor
     ConvolutionBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
@@ -119,6 +124,22 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
 
     const bool bias_term;
     const float stepsize;
+
+    void set_model_cube(LogicalCube<DataType, Layout_CRDB> * model) {
+        memcpy(p_model_cube->p_data, model->p_data, p_model_cube->n_elements*sizeof(DataType));
+    }
+
+    LogicalCube<DataType, Layout_CRDB> * get_model_cube(){
+        return model_cube();
+    }
+
+    void set_bias_cube(LogicalCube<DataType, Layout_CRDB> * bias) {
+        memcpy(p_bias_cube->p_data, bias->p_data, p_bias_cube->n_elements*sizeof(DataType));        
+    }    
+
+    virtual LogicalCube<DataType, Layout_CRDB> * get_bias_cube() {
+        return bias_cube();
+    }
 
     // Testing constructor
     ConvolutionBridge(InputLayerType * const _p_input_layer,
