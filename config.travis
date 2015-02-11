@@ -1,7 +1,8 @@
 # This is the setup code. Rename to .config
 # Use absolute paths
 # C compiler
-CC=g++
+# CC=g++ # inexplicably
+CC=clang++x
 
 # use absolute paths
 # directory where lmbd library is installed.
