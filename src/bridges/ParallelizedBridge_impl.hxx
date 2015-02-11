@@ -60,13 +60,11 @@ void ParallelizedBridge<DataType, BridgeType>::initialize() {
   for (size_t ib = 0; ib < _data_cubes_lower.size(); ib++) {
     if (layer_param) {
       _bridges.push_back(
-          new BridgeType(_partitioned_layers_lower[ib], _partitioned_layers_higher[ib],
-            layer_param)
+          new BridgeType(_partitioned_layers_lower[ib], _partitioned_layers_higher[ib], layer_param)
           );
     } else if (config) {
       _bridges.push_back(
-          new BridgeType(_partitioned_layers_lower[ib], _partitioned_layers_higher[ib],
-            config)
+          new BridgeType(_partitioned_layers_lower[ib], _partitioned_layers_higher[ib], config)
           );
     } else {
       cout << "ERROR! Both layer_param and config are NULL" << endl;
