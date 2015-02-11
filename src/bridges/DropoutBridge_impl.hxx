@@ -35,6 +35,7 @@ DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::DropoutBridge(Input
     const cnn::LayerParameter * const _layer_param)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer, _layer_param),
  dropout_ratio(layer_param->dropout_param().dropout_ratio()) {
+  initialize();
 }
 
 // Testing constructor
