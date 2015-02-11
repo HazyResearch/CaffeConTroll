@@ -4,14 +4,14 @@ UNAME := $(shell uname)
 ifeq ($(UNAME), Darwin)
   CC = clang++
   CFLAGS = -Wall -std=c++11
-  LDFLAGS = -llmdb -lopenblas
+  LDFLAGS = -llmdb -lopenblas -lglog
   TEST_LDFLAGS= -I./lib/gtest-1.7.0/include/ -L./lib/gtest/ -lgtest -lpthread -L ./externals/OpenBLAS/ -lopenblas
   DIRS=./externals/OpenBLAS/ ./lib/lmdb/
 # For Ubuntu 12.04 x86_64 (raiders3 machine)
 else ifeq ($(UNAME), Linux)
   CC = g++-4.8
   CFLAGS = -Wall -std=c++11 -Wl,--no-as-needed
-  LDFLAGS = -llmdb -lopenblas -lrt
+  LDFLAGS = -llmdb -lopenblas -lrt -lglog
   TEST_LDFLAGS= -lrt -I./lib/gtest-1.7.0/include/ -L./lib/gtest/ -lgtest -lpthread -L ./externals/OpenBLAS/ -lopenblas
   DIRS=./externals/OpenBLAS/
 endif
