@@ -18,7 +18,7 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::initialize(
 
 #ifdef _DO_ASSERT
   assert(iD == oD); assert(iB == oB);
-  assert(stride >= kernel_size); // for now, we assume that the K x K patches for
+  //assert(stride >= kernel_size); // for now, we assume that the K x K patches for
                                  // max pooling never overlap
 #endif
 
