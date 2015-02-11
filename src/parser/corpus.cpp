@@ -8,6 +8,10 @@
 
 #include "corpus.h"
 
+#ifndef MDB_NOTLS
+#define 	MDB_NOTLS   0x200000
+#endif
+
 Corpus::Corpus(const cnn::LayerParameter & layer_param) {
   initialize_input_data_and_labels(layer_param);
 }

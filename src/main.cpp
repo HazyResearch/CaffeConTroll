@@ -16,7 +16,8 @@
 #include "bridges/MaxPoolingBridge.h"
 #include "bridges/ReLUBridge.h"
 //#include "bridges/ConvolutionBridge.h"
-#include "bridges/ParallelizedConvolutionBridge.h"
+//#include "bridges/ParallelizedConvolutionBridge.h"
+#include "bridges/ParallelizedBridge.h"
 #include "bridges/ParallelizedLRNBridge.h"
 #include "bridges/SoftmaxLossBridge.h"
 #include "bridges/DropoutBridge.h"
@@ -100,7 +101,12 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
 
             //bridge = new ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC,
             //       DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, &layer_param);
-            bridge = new ParallelizedConvolutionBridge<DataType_SFFloat>(prev_layer, next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+            //bridge = new ParallelizedConvolutionBridge<DataType_SFFloat>(prev_layer, next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+        
+            bridge = new ParallelizedBridge<DataType_SFFloat,
+              ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
+              (prev_layer, next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+        
         }
         break;
         {

@@ -20,6 +20,10 @@
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/message_lite.h>
 
+#ifndef NDB_NOTLS
+#define 	MDB_NOTLS   0x200000
+#endif
+
 using namespace std;
 
 using google::protobuf::io::FileInputStream;
