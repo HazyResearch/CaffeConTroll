@@ -35,9 +35,9 @@ WARNING_FLAGS = -Wextra
 PRODUCT_FLAGS = -O3
 
 TEST_CC= clang++
-TEST_CFLAGS=-O0 -std=c++11
+TEST_CFLAGS=-O0 -std=c++11 -I $(GTEST_INCLUDE)
+TEST_LDFLAGS= $(LDFLAGS)   -L$(GTEST_LIB_DIR) -lgtest -lpthread -L $(OPENBLAS_DIR) -lopenblas
 
-TEST_LDFLAGS= $(LDFLAGS)  -I -L$(GTEST_LIB_DIR) -lgtest -lpthread -L $(OPENBLAS_DIR) -lopenblas
 TEST_BLASFLAGS= -lm -I $(OPENBLAS_DIR)
 TEST_SOURCES = tests/test_main.cpp tests/test_parallelized_convolution.cpp\
 	tests/test_MaxPooling_bridge.cpp tests/test_softmax_bridge.cpp\
