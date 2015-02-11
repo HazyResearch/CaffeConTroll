@@ -29,5 +29,6 @@ directories:
 - /usr/local/lib
 
 script:
+- "cp config.travis .config"
 - make test
 - ./test

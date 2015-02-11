@@ -1,0 +1,12 @@
+# This is the setup code. Rename to .config
+# Use absolute paths
+# C compiler
+CC=g++
+
+# use absolute paths
+# directory where lmbd library is installed.
+LMDB_DIR=/usr/local/lib
+OPENBLAS_DIR=$PWD/externals/OpenBLAS/
+GTEST_LIB_DIR=/usr/local/lib
+GTEST_INCLUDE=/usr/src/gtest/include/
+  
