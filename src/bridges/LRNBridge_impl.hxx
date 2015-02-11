@@ -33,8 +33,7 @@ template <typename DataType>
 LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::LRNBridge(InputLayerType * const _p_input_layer,
     OutputLayerType * const _p_output_layer, const cnn::LayerParameter * const _layer_param)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer, _layer_param),
- alpha(layer_param->lrn_param().alpha()),
- beta(layer_param->lrn_param().beta()),
+ alpha(layer_param->lrn_param().alpha()), beta(layer_param->lrn_param().beta()),
  local_size(layer_param->lrn_param().local_size()) {
    initialize();
  }
@@ -44,9 +43,7 @@ template <typename DataType>
 LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::LRNBridge(InputLayerType * const _p_input_layer,
     OutputLayerType * const _p_output_layer, const float _alpha, const float _beta, const size_t _local_size)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer),
- alpha(_alpha),
- beta(_beta),
- local_size(_local_size) {
+ alpha(_alpha), beta(_beta), local_size(_local_size) {
    initialize();
 }
 
@@ -58,6 +55,21 @@ LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::LRNBridge(InputLayerTyp
  **/
 template <typename DataType>
 void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
+  report_forward_last_transfer.reset();
+
+  report_forward_last_transfer.end();
+  report_forward_history.aggregate(report_forward_last_transfer);
+}
+
+
+/**
+ * Implements LRN in the forward direction. (Note: we only support ACROSS
+ * CHANNEL normalization.)
+ * This is implemented very differently from Caffe, but it should still
+ * produce the same result.
+ **/
+template <typename DataType>
+void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::old_forward() {
   report_forward_last_transfer.reset();
 
   p_input_layer->p_gradient_cube->reset_cube();
@@ -92,7 +104,6 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
   report_forward_last_transfer.end();
   report_forward_history.aggregate(report_forward_last_transfer);
 }
-
 
 /**
  * Implements LRN in the backward direction. (Note: we only support ACROSS

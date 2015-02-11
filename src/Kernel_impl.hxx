@@ -104,7 +104,6 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
 
 }
 
-
 template <typename DataType, KernelConfig KERNELCONFIG>
 Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KERNELCONFIG>::
 Kernel(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
