@@ -8,5 +8,5 @@ CC=g++
 LMDB_DIR=/usr/local/lib
 OPENBLAS_DIR=./externals/OpenBLAS/
 GTEST_LIB_DIR=/usr/local/lib
-GTEST_INCLUDE=/usr/src/gtest/include/
+GTEST_INCLUDE=/usr/include/
   
