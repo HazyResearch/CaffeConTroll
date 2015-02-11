@@ -221,9 +221,11 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
         corpus_batch_index += corpus.mini_batch_size) {
       cout << "BATCH: " << batch << endl;
 
-      //Timer t;
+      Timer t;
 
       int rs = fread(corpus.images->p_data, sizeof(DataType_SFFloat), corpus.images->n_elements, pFile); // this loading appears to take just ~ 0.1 s for each batch, so double-buffering seems an overkill here because the following operations took seconds...
+      std::cout << "loading elpased " << t.elapsed() << std::endl;
+      t.restart();
 
       // initialize input_data for this mini batch
       float * const mini_batch = corpus.images->physical_get_RCDslice(0);  //Ce: Notice the change here compared with the master branch -- this needs to be refactored to make the switching between this and the master branch (that load everything in memory) dynamically and improve code reuse.
@@ -242,10 +244,10 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
         (*bridge)->p_input_layer->p_gradient_cube->reset_cube();
         (*bridge)->p_output_layer->p_data_cube->reset_cube();
         (*bridge)->forward();
-        //(*bridge)->report_forward_last_transfer.print();
-        //i++;
+        (*bridge)->report_forward_last_transfer.print();
+        i++;
       }
-      //std::cout << "fwd elpased " << t.elapsed() << std::endl;
+      std::cout << "fwd elpased " << t.elapsed() << std::endl;
       t.restart();
 
       cout << "LOSS: " << (softmax->loss / corpus.mini_batch_size) << endl;
@@ -256,6 +258,9 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
         (*bridge)->backward();
       }
     }
+
+    fclose(pFile);
+
     // TODO: handle the very last batch, which may not have the same
     // batch size as the rest of the batches
     cout << "Time Elapsed for a single epoch: " << t.elapsed() << endl;
