@@ -39,6 +39,8 @@ class AbstractBridge : public PhysicalOperator {
     Report report_last_lowering;
     Report report_history;
 
+    bool bias_term;
+
     void set_model_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * model) {}
 
     LogicalCube<InputLayerDataType, InputLayerLayout> * get_model_cube(){
@@ -59,7 +61,8 @@ class AbstractBridge : public PhysicalOperator {
         iR(_p_input_layer->p_data_cube->R), iC(_p_input_layer->p_data_cube->C), iD(_p_input_layer->p_data_cube->D),
         iB(_p_input_layer->p_data_cube->B), oR(_p_output_layer->p_data_cube->R), oC(_p_output_layer->p_data_cube->C),
         oD(_p_output_layer->p_data_cube->D), oB(_p_output_layer->p_data_cube->B),
-        p_input_layer(_p_input_layer), p_output_layer(_p_output_layer), layer_param(_layer_param) {} // no-op, initialize only
+        p_input_layer(_p_input_layer), p_output_layer(_p_output_layer), layer_param(_layer_param),
+        bias_term(false) {} // no-op, initialize only
 
     // Second constructor, which does NOT take in a cnn::LayerParameter as a third argument.
     // (Used primarily for testing)
@@ -69,7 +72,8 @@ class AbstractBridge : public PhysicalOperator {
         iR(_p_input_layer->p_data_cube->R), iC(_p_input_layer->p_data_cube->C), iD(_p_input_layer->p_data_cube->D),
         iB(_p_input_layer->p_data_cube->B), oR(_p_output_layer->p_data_cube->R), oC(_p_output_layer->p_data_cube->C),
         oD(_p_output_layer->p_data_cube->D), oB(_p_output_layer->p_data_cube->B),
-        p_input_layer(_p_input_layer), p_output_layer(_p_output_layer), layer_param(NULL) {} // no-op, initialize only
+        p_input_layer(_p_input_layer), p_output_layer(_p_output_layer), layer_param(NULL),
+        bias_term(false) {} // no-op, initialize only
 };
 
 #endif
