@@ -63,9 +63,11 @@ void ParallelizedBridge<DataType, BridgeType>::initialize() {
           new BridgeType(_partitioned_layers_lower[ib], _partitioned_layers_higher[ib], layer_param)
           );
     } else if (config) {
-      _bridges.push_back(
-          new BridgeType(_partitioned_layers_lower[ib], _partitioned_layers_higher[ib], config)
-          );
+      cout << "ERROR! Cannot call testing constructor!" << std::endl;
+      assert(false);
+      //_bridges.push_back(
+      //    new BridgeType(_partitioned_layers_lower[ib], _partitioned_layers_higher[ib], config)
+      //    );
     } else {
       cout << "ERROR! Both layer_param and config are NULL" << endl;
       assert(false);

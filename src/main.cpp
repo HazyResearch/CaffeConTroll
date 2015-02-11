@@ -167,9 +167,13 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
             next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
             next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
             next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
-            bridge = new ParallelizedLRNBridge<DataType_SFFloat>(prev_layer, next_layer, &layer_param, 4, 2);
+            //bridge = new ParallelizedLRNBridge<DataType_SFFloat>(prev_layer, next_layer, &layer_param, 4, 2);
             //bridge = new LRNBridge<DataType_SFFloat, Layout_CRDB,
             //       DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, &layer_param);
+            bridge = new ParallelizedBridge<DataType_SFFloat,
+              LRNBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
+              (prev_layer, next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+
         }
         break;
         {
