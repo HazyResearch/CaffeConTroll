@@ -11,6 +11,9 @@
 #include <cmath>
 #include <cstring>
 
+//#define NBATCH 1
+//#define NTHREAD 1
+
 void PRINT_CONFIG(int iR, int iC, int iD, int oD, int k, int mB){
     std::cout << "Input = " << iR << " x " << iC <<" ";
     std::cout << " Kernel = " << k << " x " << k << " ";
@@ -19,8 +22,7 @@ void PRINT_CONFIG(int iR, int iC, int iD, int oD, int k, int mB){
 }
 
 void PERF_CONVOLUTION_BRIDGE(int iR, int iC, int iD, int oD, int k, int mB) {
-    openblas_set_num_threads(1);
-    const int s = 2;
+    const int s = 1;
     const int p = 0;
     const int oR = static_cast<int>(floor(static_cast<float>(iR + 2*p - k) / s)) + 1;
     const int oC = static_cast<int>(floor(static_cast<float>(iC + 2*p - k) / s)) + 1;
@@ -40,6 +42,7 @@ void PERF_CONVOLUTION_BRIDGE(int iR, int iC, int iD, int oD, int k, int mB) {
 
     ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, float, Layout_CRDB, float, Layout_CRDB>* ConvolutionBridge_;
     ConvolutionBridge_ = new ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, float, Layout_CRDB, float, Layout_CRDB>(layer1, layer2, bconfig); 
+    ConvolutionBridge_->run_with_n_threads = NTHREAD;
 
     for(int i=0;i<iR*iC*iD*mB;i++){
         data1->p_data[i] = 0.1*(rand()%10);
@@ -91,9 +94,12 @@ void PERF_CONVOLUTION_BRIDGE(int iR, int iC, int iD, int oD, int k, int mB) {
 
 int main(int argc, const char * argv[]) {
  
-  PRINT_CONFIG(64,64,96,256,5,1);
-  PERF_CONVOLUTION_BRIDGE(64,64,96,256,5,1);
 
+  PRINT_CONFIG(64,64,96,256,5,NBATCH);
+  PERF_CONVOLUTION_BRIDGE(64,64,96,256,5,NBATCH);
+
+
+  /*
   PRINT_CONFIG(64,64,96,256,5,8);
   PERF_CONVOLUTION_BRIDGE(64,64,96,256,5,8);
 
@@ -105,6 +111,7 @@ int main(int argc, const char * argv[]) {
 
   PRINT_CONFIG(64,64,96,256,5,256);
   PERF_CONVOLUTION_BRIDGE(64,64,96,256,5,256);
+  */
 
   //PRINT_CONFIG(64,64,32,96,5,96);
   //PERF_CONVOLUTION_BRIDGE(64,64,32,96,5,96);

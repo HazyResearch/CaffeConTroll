@@ -6,8 +6,8 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#ifndef moka_ParallelizedConvolutionBridge_h
-#define moka_ParallelizedConvolutionBridge_h
+#ifndef moka_ParallelizedBridge_h
+#define moka_ParallelizedBridge_h
 
 #include "AbstractBridge.h"
 #include "PhysicalStratum.h"
@@ -16,8 +16,8 @@
 #include <vector>
 
 // For now, we only support Layout_CRDB
-template<typename DataType>
-class ParallelizedConvolutionBridge : public AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> {
+template<typename DataType, typename BridgeType> 
+class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> {
   public:
 
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_forward_constructor;
@@ -37,9 +37,6 @@ class ParallelizedConvolutionBridge : public AbstractBridge<DataType, Layout_CRD
 
     typedef Layer<DataType, Layout_CRDB> LayerType;
 
-    typedef ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType,
-            Layout_CRDB, DataType, Layout_CRDB> ConvolutionBridgeType;
-
     // These are public for now, just so that we can right tests
     LogicalCubeType * p_model_cube; /**< A ParallelizedConvolutionBridge should have a _single_
                                         copy of the model. Copy this model to different worker (or
@@ -56,13 +53,13 @@ class ParallelizedConvolutionBridge : public AbstractBridge<DataType, Layout_CRD
     const size_t n_batch_per_partition;
 
     // Network initialization constructor
-    ParallelizedConvolutionBridge(Layer<DataType, Layout_CRDB> * const _input_layer,
+    ParallelizedBridge(Layer<DataType, Layout_CRDB> * const _input_layer,
         Layer<DataType, Layout_CRDB> * const _output_layer,
         const cnn::LayerParameter * const _layer_param, size_t _n_partition,
         size_t _n_thread_per_partition);
 
     // Testing constructor
-    ParallelizedConvolutionBridge(Layer<DataType, Layout_CRDB> * const _input_layer,
+    ParallelizedBridge(Layer<DataType, Layout_CRDB> * const _input_layer,
         Layer<DataType, Layout_CRDB> * const _output_layer,
         const BridgeConfig * const _config, size_t _n_partition,
         size_t _n_thread_per_partition);
@@ -81,13 +78,13 @@ class ParallelizedConvolutionBridge : public AbstractBridge<DataType, Layout_CRD
     std::vector<LayerType *> _partitioned_layers_lower;
     std::vector<LayerType *> _partitioned_layers_higher;
 
-    std::vector<ConvolutionBridgeType *> _bridges;
+    std::vector<BridgeType *> _bridges;
 
     PhysicalStratum stratum;
 
     void initialize();
 };
 
-#include "ParallelizedConvolutionBridge_impl.hxx"
+#include "ParallelizedBridge_impl.hxx"
 
 #endif
