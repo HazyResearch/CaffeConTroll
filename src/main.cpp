@@ -40,11 +40,11 @@ inline size_t compute_conv_next_layer_dimension(const size_t R_i, const size_t K
 // Note: we assume that the very first layer in the .protoxt
 // file specifies the data layer
 // TODO: also read in test set
-Corpus read_corpus_from_lmdb(const cnn::NetParameter & net_param) {
+Corpus read_corpus_from_lmdb(const cnn::NetParameter & net_param, const char * data_file) {
   const cnn::LayerParameter layer_param = net_param.layers(0);
   if (layer_param.type() == cnn::LayerParameter_LayerType_DATA) {
     if (layer_param.include(0).phase() == 0) { // training phase
-      return Corpus(layer_param);
+      return Corpus(layer_param, data_file);
     }
   }
   cout << "No data layer present in prototxt file!" << endl;
@@ -196,7 +196,7 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
 // Right now, we do this in a single-thread fashion. TODO: Create a Scheduler class, that schedules workers
 // for each batch size, so that we can perform these forward and backward passes in parallel.
 void train_network(const BridgeVector & bridges, const Corpus & corpus, const cnn::NetParameter & net_param,
-    const cnn::SolverParameter & solver_param) {
+    const cnn::SolverParameter & solver_param, const char * data_file) {
 
   // TODO: we need a more general AbstractLossBridge
   SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> * const softmax =
@@ -215,7 +215,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
     float epoch_loss = 0.0;
 
     FILE * pFile;
-    pFile = fopen (corpus.filename.c_str(), "rb");
+    pFile = fopen (data_file, "rb");
 
     // num_mini_batches - 1, because we need one more iteration for the final mini batch
     // (the last mini batch may not be the same size as the rest of the mini batches)
@@ -298,14 +298,14 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 //      Compute backward pass for last batch (again, might not have the same
 //                                            size as the rest of batches)
 //
-void load_and_train_network(const char * file) {
+void load_and_train_network(const char * file, const char * data_file) {
   // Step 1:
   cnn::SolverParameter solver_param;
   Parser::read_proto_from_text_file(file, &solver_param);
 
   cnn::NetParameter net_param;
   Parser::read_net_params_from_text_file(solver_param.net(), &net_param);
-  const Corpus corpus = read_corpus_from_lmdb(net_param);
+  const Corpus corpus = read_corpus_from_lmdb(net_param, data_file);
 
 #ifdef _DO_WARNING
   cout << "Corpus train loaded" << endl;
@@ -324,18 +324,18 @@ void load_and_train_network(const char * file) {
 
   // Step 3:
   // Now, the bridges vector is fully populated
-  train_network(bridges, corpus, net_param, solver_param);
+  train_network(bridges, corpus, net_param, solver_param, data_file);
 
   // Step 4:
   // Clean up! TODO: free the allocated bridges, layers, and cubes
 }
 
 int main(int argc, const char * argv[]) {
-  if (argc != 2) {
-    cout << "Usage: ./deepnet <solver.prototxt>" << endl;
+  if (argc != 3) {
+    cout << "Usage: ./deepnet <solver.prototxt> <transformed_data path>" << endl;
     exit(1);
   }
-  load_and_train_network(argv[1]);
+  load_and_train_network(argv[1], argv[2]);
 
   return 0;
 }

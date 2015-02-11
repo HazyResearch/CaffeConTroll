@@ -8,14 +8,14 @@
 
 #include "corpus.h"
 
-Corpus::Corpus(const cnn::LayerParameter & layer_param) {
-  initialize_input_data_and_labels(layer_param);
+Corpus::Corpus(const cnn::LayerParameter & layer_param, const char * filename) {
+  initialize_input_data_and_labels(layer_param, filename);
 }
 
 /**
  * This is 
  */
-void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_param) {
+void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_param, const char * filename) {
   cnn::Datum datum;
   cnn::Cube cube;
   MDB_env* mdb_env_ = NULL;
@@ -29,23 +29,22 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
   //  - This needs refactoring to make this an option 
   //  - Need help from either Firas or Shubham because this requires
   //    changing the cmd input parsing part
-  filename = std::string("toprocess.bin"); 
+  //filename = std::string("toprocess.bin"); 
 
   FILE * pFile;
-  pFile = fopen (filename.c_str(), "wb");
+  pFile = fopen (filename, "wb");
 
   std::cout << mdb_version(NULL, NULL, NULL) << std::endl;
   std::cout << layer_param.data_param().source().c_str() << std::endl;
 
   switch (layer_param.data_param().backend()) {
     case 1:
-      int rs;
-      rs = mdb_env_create(&mdb_env_);
-      rs = mdb_env_set_mapsize(mdb_env_, 1099511627776);
-      rs = mdb_env_open(mdb_env_, layer_param.data_param().source().c_str(), MDB_RDONLY|MDB_NOTLS, 777);
-      rs = mdb_txn_begin(mdb_env_, NULL, MDB_RDONLY, &mdb_txn_);
-      rs = mdb_open(mdb_txn_, NULL, 0, &mdb_dbi_);
-      rs = mdb_cursor_open(mdb_txn_, mdb_dbi_, &mdb_cursor_);
+      CHECK_EQ(mdb_env_create(&mdb_env_),MDB_SUCCESS) << "Error in mdb_env_create";
+      CHECK_EQ(mdb_env_set_mapsize(mdb_env_, 1099511627776)) << "Error in mdb_env_set_mapsize";
+      CHECK_EQ(mdb_env_open(mdb_env_, layer_param.data_param().source().c_str(), MDB_RDONLY|MDB_NOTLS, 777), MDB_SUCCESS) << "Error in mdb_env_open";
+      CHECK_EQ(mdb_txn_begin(mdb_env_, NULL, MDB_RDONLY, &mdb_txn_), MDB_SUCCESS) << "Transaction could not be started";
+      CHECK_EQ(mdb_open(mdb_txn_, NULL, 0, &mdb_dbi_), MDB_SUCCESS) << "Error in mdb_open";
+      CHECK_EQ(mdb_cursor_open(mdb_txn_, mdb_dbi_, &mdb_cursor_), MDB_SUCCESS) << "Error in mdb_cursor_open";
       mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, MDB_FIRST);
       break;
     default:
@@ -84,7 +83,7 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
   LogicalCube<DataType_SFFloat, Layout_CRDB> * tmpimg = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, 1);
 
   images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, mini_batch_size);  // Ce: only one batch in memory
-  labels = new LogicalCube<DataType_SFFloat, Layout_CRDB>(1, 1, 1, n_images);
+  labels = new LogicalCube<DataType_SFFloat, Layout_CRDB>(1, 1, 1, n_images); // Shubham: Shouldn't this be mini_batch_size instead of n_images
   mean = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, 1);
 
   if (layer_param.transform_param().has_mean_file()) {
@@ -98,7 +97,7 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
     mean->reset_cube();
   }
 
-  std::cout << "Start writing images to " << filename.c_str() << "..." << std::endl;
+  std::cout << "Start writing images to " << filename << "..." << std::endl;
 
   MDB_cursor_op op = MDB_FIRST;
   for (size_t b = 0; b < n_images; b++) {
@@ -161,7 +160,7 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
     op = MDB_NEXT;
   }
 
-  std::cout << "Finished writing images to " << filename.c_str() << "..." << std::endl;
+  std::cout << "Finished writing images to " << filename << "..." << std::endl;
 
   fclose(pFile);
 }

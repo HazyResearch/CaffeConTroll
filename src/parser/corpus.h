@@ -22,6 +22,7 @@
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/message_lite.h>
+#include <glog/logging.h>
 #include "parser.h"
 #include "lmdb.h"
 #include "cnn.pb.h"
@@ -47,13 +48,11 @@ class Corpus {
     // n_rows x n_cols x dim x 1
     LogicalCube<DataType_SFFloat, Layout_CRDB>* mean;
 
-    std::string filename;
-
-    explicit Corpus(const cnn::LayerParameter & layer_param);
+    explicit Corpus(const cnn::LayerParameter & layer_param, const char * filename);
     ~Corpus();
 
   private:
-    void initialize_input_data_and_labels(const cnn::LayerParameter & layer_param);
+    void initialize_input_data_and_labels(const cnn::LayerParameter & layer_param, const char * filename);
 };
 
 #endif
