@@ -11,6 +11,8 @@
 #include <string.h>
 #include "util.h"
 
+
+
 using namespace std;
 
 /**************************************/
@@ -217,7 +219,8 @@ LogicalCube<T, LAYOUT>::LogicalCube(void * _p_data, size_t _R, size_t _C, size_t
 
 template<typename T, LayoutType LAYOUT>
 LogicalCube<T, LAYOUT>::LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B) :
-  p_data((T*) malloc(sizeof(T)*_R*_C*_D*_B)), // TODO: change to 32byte align
+  //p_data((T*) malloc(sizeof(T)*_R*_C*_D*_B)), // TODO: change to 32byte align
+  cuda_error(cudaMallocHost((void**)&p_data, sizeof(T)*_R*_C*_D*_B)), // Give a flag for GPU
   n_elements(_R*_C*_D*_B),
   R(_R), C(_C), D(_D), B(_B),
   own_data(true) {}

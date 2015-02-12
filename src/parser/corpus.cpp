@@ -33,7 +33,7 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
   //  - This needs refactoring to make this an option 
   //  - Need help from either Firas or Shubham because this requires
   //    changing the cmd input parsing part
-  filename = std::string("toprocess.bin"); 
+  filename = std::string("data/toprocess.bin"); 
 
   FILE * pFile;
   pFile = fopen (filename.c_str(), "wb");
@@ -106,6 +106,7 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
 
   MDB_cursor_op op = MDB_FIRST;
   for (size_t b = 0; b < n_images; b++) {
+    if (b%1000 == 0){std::cout << b << std::endl;}
     mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
     datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
     const string& data = datum.data();

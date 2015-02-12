@@ -69,7 +69,7 @@ initialize() {
                                 padding, stride);
 
   p_forward_gemm_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
-                        Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS>(&lowered_forward_model,
+                        Kernel_GEMM_GPU_CuBLAS, KernelConfig_GEMM_NOTRANS_NOTRANS>(&lowered_forward_model,
                             p_forward_lowered_data, &lowered_forward_output);
 
   p_forward_applyfunc_scanner = new Scanner<DataType, Layout_CRDB, FUNC>(p_output_layer->p_data_cube);
@@ -96,14 +96,14 @@ initialize() {
   }
 
   p_backward_gemm_updateweight_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType,
-                                      Layout_CRDB, Kernel_GEMM_OpenBlas,
+                                      Layout_CRDB, Kernel_GEMM_GPU_CuBLAS,
                                       KernelConfig_GEMM_NOTRANS_TRANS>(&lowered_forward_output,
                                           p_forward_lowered_data, &lowered_forward_model);
   p_backward_gemm_updateweight_kernel->alpha = -stepsize;
   p_backward_gemm_updateweight_kernel->beta = 1.;
 
   p_backward_gemm_updategrad_kernel = new Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB,
-                                    DataType_SFFloat, Layout_CRDB, Kernel_GEMM_OpenBlas,
+                                    DataType_SFFloat, Layout_CRDB, Kernel_GEMM_GPU_CuBLAS,
                                     KernelConfig_GEMM_TRANS_NOTRANS>(&lowered_forward_model,
                                         &lowered_forward_output, p_backward_inputgrad);
 

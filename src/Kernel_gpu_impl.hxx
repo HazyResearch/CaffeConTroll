@@ -77,7 +77,7 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
   cublasCreate(&handle);
 
   t.restart();
-  std::cout << "Allocating Device Memory..." << std::endl;
+  std::cout << "\nAllocating Device Memory..." << std::endl;
   float * M1, * M2, * M3;
   cudaMalloc((void**)&M1, p_input1_cube->n_elements * sizeof(DataType));
   cudaMalloc((void**)&M2, p_input2_cube->n_elements * sizeof(DataType));
@@ -85,9 +85,11 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
   std::cout << "Allocation Done..." << t.elapsed() << std::endl;
 
   t.restart();
-  std::cout << "Copy through PCIe..." << std::endl;
-  cublasSetVector(p_input1_cube->n_elements, sizeof(DataType), p_input1_cube->p_data, 1, M1, 1);
-  cublasSetVector(p_input2_cube->n_elements, sizeof(DataType), p_input2_cube->p_data, 1, M2, 1);
+  std::cout << "\nCopy through PCIe..." << std::endl;
+  cudaMemcpy(M1, p_input1_cube->p_data, p_input1_cube->n_elements*sizeof(DataType), cudaMemcpyHostToDevice);
+  cudaMemcpy(M2, p_input2_cube->p_data, p_input2_cube->n_elements*sizeof(DataType), cudaMemcpyHostToDevice);
+  //cublasSetVector(p_input1_cube->n_elements, sizeof(DataType), p_input1_cube->p_data, 1, M1, 1);
+  //cublasSetVector(p_input2_cube->n_elements, sizeof(DataType), p_input2_cube->p_data, 1, M2, 1);
   std::cout << "Copy Done..." << t.elapsed() << std::endl;
   std::cout << "Size = " << 1.0*(p_input1_cube->n_elements+p_input2_cube->n_elements)*sizeof(DataType)/1024/1024 << " MB" << std::endl;
 
@@ -126,7 +128,7 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
   }
 
   t.restart();
-  std::cout << "Executing Kernel..." << std::endl;
+  std::cout << "\nExecuting Kernel..." << std::endl;
   cudaStream_t stream1;
   cudaStreamCreate ( &stream1) ;
   cublasSetStream(handle, stream1);
@@ -135,12 +137,12 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
   std::cout << "Kernel Exec Done..." << t.elapsed() << std::endl;
 
   t.restart();
-  std::cout << "Copy result back..." << std::endl;
+  std::cout << "\nCopy result back..." << std::endl;
   cublasGetVector(p_output_cube->n_elements, sizeof(DataType), M3, 1, p_output_cube->p_data, 1);
   std::cout << "Copy done..." << t.elapsed() << std::endl;
 
   t.restart();
-  std::cout << "Free GPU memory..." << std::endl;
+  std::cout << "\nFree GPU memory..." << std::endl;
   cudaFree(M1); cudaFree(M2); cudaFree(M3);
   std::cout << "Free done..." << t.elapsed() << std::endl;
 

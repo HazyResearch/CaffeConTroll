@@ -13,6 +13,9 @@
 #include "LoweringType.h"
 #include "util.h"
 
+#include <cuda_runtime.h>
+#include <cublas_v2.h>
+
 enum LayoutType {
     Layout_CRDB = 0,
     Layout_BDRC = 1
@@ -128,6 +131,8 @@ public:
     }
 
 private:
+
+    cudaError_t cuda_error;
 
     /**
      * Functions used for logical_get for different Layout.

@@ -105,7 +105,7 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
         
             bridge = new ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
-              (prev_layer, next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+              (prev_layer, next_layer, &layer_param, 1, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
         
         }
         break;
@@ -278,9 +278,11 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       epoch_loss += (softmax->loss / corpus.mini_batch_size);
 
       // backward pass
+      t.restart();
       for (auto bridge = bridges.rbegin(); bridge != bridges.rend(); ++bridge) {
         (*bridge)->backward();
       }
+      std::cout << "bkw elpased " << t.elapsed() << std::endl;
     }
 
     fclose(pFile);
