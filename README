@@ -1,4 +1,6 @@
-To setup:
+REPLACE THIS WITH REAL INSTALL INSTRUCTIONS
+
+For us internally, here is how we setup the paths to all our fun stuff.
 
 1. Copy config.sample to .config
 2. Fill it out with your correct paths
