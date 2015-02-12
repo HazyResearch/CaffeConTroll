@@ -15,7 +15,8 @@
 enum KernelType {
     Kernel_GEMM_OpenBlas = 0,
     Kernel_GEMM_Magma = 1,
-    Kernel_ELEMENTWISEMUL_CPU = 2
+    Kernel_ELEMENTWISEMUL_CPU = 2,
+    Kernel_GEMM_GPU_CuBLAS = 3
 };
 
 enum KernelConfig {
@@ -98,6 +99,7 @@ public:
 
 };
 
+
 template <typename DataType, KernelConfig KERNELCONFIG>
 class Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KERNELCONFIG> {
 public:
@@ -125,6 +127,39 @@ public:
 };
 
 
+template <typename DataType, KernelConfig KERNELCONFIG>
+class Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_GEMM_GPU_CuBLAS, KERNELCONFIG> {
+public:
+
+    typedef LogicalCube<DataType, Layout_CRDB> Input1LogicalCubeType;
+    typedef LogicalCube<DataType, Layout_CRDB> Input2LogicalCubeType;
+    typedef LogicalCube<DataType, Layout_CRDB> OutputLogicalCubeType;
+
+    char transA;
+    char transB;
+
+    const size_t i1R, i1C, i1D, i1B;
+    const size_t i2R, i2C, i2D, i2B;
+    const size_t oR, oC, oD, oB;
+
+    float alpha;
+    float beta;
+
+    Report report_constructor;
+    Report report_last_lowering;
+    Report report_history;
+
+    Kernel(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
+           const OutputLogicalCubeType * const p_output_cube);
+
+    void compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
+                  OutputLogicalCubeType * const p_output_cube);
+
+};
+
+
+
 #include "Kernel_impl.hxx"
+#include "Kernel_gpu_impl.hxx"
 
 #endif
