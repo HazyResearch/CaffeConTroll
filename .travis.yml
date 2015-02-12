@@ -19,6 +19,8 @@ before_install:
 - "git clone git://gitorious.org/mdb/mdb.git && cd mdb/libraries/liblmdb && make && sudo make install; cd -"
 - sudo apt-get install gfortran
 - "cd /usr/src/gtest && sudo cmake . && sudo cmake --build . && sudo mv libg* /usr/local/lib/ ; cd -"
+- "wget https://google-glog.googlecode.com/files/glog-0.3.3.tar.gz && tar zxvf glog-0.3.3.tar.gz && cd glog-0.3.3 &&  ./configure && make && sudo make install; cd -"
+- "wget https://github.com/schuhschuh/gflags/archive/master.zip && unzip master.zip && cd gflags-master && mkdir build && cd build && export CXXFLAGS="-fPIC" && cmake .. && make VERBOSE=1 && make && sudo make install; cd -"
 - git submodule update
 - "cd ./externals/OpenBLAS && sudo make -Wno- -s > /dev/null && sudo make install PREFIX= ./externals/OpenBLAS; cd -"
 install:
