@@ -19,13 +19,6 @@ class LRNBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, Ou
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
 
-    // Testing constructor
-    LRNBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer, const float _alpha,
-        const float _beta, const size_t _local_size) {
-      NOT_IMPLEMENTED;
-    }
-
-    // Network initialization constructor
     LRNBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param) {
       NOT_IMPLEMENTED;
@@ -38,19 +31,6 @@ class LRNBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, Ou
     void backward() {
       NOT_IMPLEMENTED;
     }
-
-    void set_model_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * model) {}
-
-    LogicalCube<InputLayerDataType, InputLayerLayout> * get_model_cube(){
-        return NULL;
-    }
-
-    void set_bias_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * bias) {}    
-
-    virtual LogicalCube<InputLayerDataType, InputLayerLayout> * get_bias_cube() {
-        return NULL;
-    }
-
 };
 
 /******
@@ -85,39 +65,21 @@ class LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public AbstractB
     typedef Layer<DataType, Layout_CRDB> InputLayerType;
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
 
-    // Testing constructor
-    LRNBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer, const float _alpha,
-        const float _beta, const size_t _local_size);
-    // Network initialization constructor
     LRNBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param);
+
     ~LRNBridge();
 
     void forward();
-    void old_forward();
+
     void backward();
 
     const float alpha;
     const float beta;
     const size_t local_size;
 
-    void set_model_cube(LogicalCube<DataType, Layout_CRDB> * model) {}
-
-    LogicalCube<DataType, Layout_CRDB> * get_model_cube(){
-        return NULL;
-    }
-
-    void set_bias_cube(LogicalCube<DataType, Layout_CRDB> * bias) {}    
-
-    virtual LogicalCube<DataType, Layout_CRDB> * get_bias_cube() {
-        return NULL;
-    }
-
-
   private:
     LogicalCube<DataType, Layout_CRDB> * denoms;
-
-    void initialize();
 };
 
 #include "LRNBridge_impl.hxx"

@@ -11,7 +11,6 @@
 
 #include "AbstractBridge.h"
 #include "../util.h"
-#include "BridgeConfig.h"
 
 template
 <typename InputLayerDataType, LayoutType InputLayerLayout, typename OutputLayerDataType, LayoutType OutputLayerLayout>
@@ -20,13 +19,6 @@ class MaxPoolingBridge : public AbstractBridge<InputLayerDataType, InputLayerLay
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
 
-    // Testing constructor
-    MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-        const BridgeConfig * const _config) {
-      NOT_IMPLEMENTED;
-    }
-
-    // Network initialization constructor
     MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param) {
       NOT_IMPLEMENTED;
@@ -39,19 +31,6 @@ class MaxPoolingBridge : public AbstractBridge<InputLayerDataType, InputLayerLay
     void backward() {
       NOT_IMPLEMENTED;
     }
-
-    void set_model_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * model) {}
-
-    LogicalCube<InputLayerDataType, InputLayerLayout> * get_model_cube(){
-        return NULL;
-    }
-
-    void set_bias_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * bias) {}    
-
-    virtual LogicalCube<InputLayerDataType, InputLayerLayout> * get_bias_cube() {
-        return NULL;
-    }
-
 };
 
 /******
@@ -86,32 +65,14 @@ class MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Ab
     typedef Layer<DataType, Layout_CRDB> InputLayerType;
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
 
-    // Testing constructor
-    MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-        const BridgeConfig * const _config);
-    // Network initialization constructor
     MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param);
-    ~MaxPoolingBridge();
 
-    const BridgeConfig * const config;
+    ~MaxPoolingBridge();
 
     void forward();
 
     void backward();
-
-    void set_model_cube(LogicalCube<DataType, Layout_CRDB> * model) {}
-
-    LogicalCube<DataType, Layout_CRDB> * get_model_cube(){
-        return NULL;
-    }
-
-    void set_bias_cube(LogicalCube<DataType, Layout_CRDB> * bias) {}    
-
-    virtual LogicalCube<DataType, Layout_CRDB> * get_bias_cube() {
-        return NULL;
-    }
-
 
   private:
     LogicalCube<size_t, Layout_CRDB> * max_index;
@@ -120,8 +81,6 @@ class MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Ab
     size_t pooled_width;
     size_t kernel_size;
     size_t stride;
-
-    void initialize();
 };
 
 #include "MaxPoolingBridge_impl.hxx"

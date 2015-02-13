@@ -10,6 +10,7 @@
 #define moka_PhysicalStratum_impl_hxx
 
 PhysicalStratum::PhysicalStratum() {
+
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();
   report_forward_history.reset();

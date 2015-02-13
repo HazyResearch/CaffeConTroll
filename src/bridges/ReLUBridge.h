@@ -19,13 +19,6 @@ class ReLUBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, O
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
 
-    // Testing constructor
-    ReLUBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer, 
-        const BridgeConfig * const _config) {
-      NOT_IMPLEMENTED;
-    }
-
-    // Network initialization constructor
     ReLUBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param) {
       NOT_IMPLEMENTED;
@@ -38,19 +31,6 @@ class ReLUBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, O
     void backward() {
       NOT_IMPLEMENTED;
     }
-
-    void set_model_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * model) {}
-
-    LogicalCube<InputLayerDataType, InputLayerLayout> * get_model_cube(){
-        return NULL;
-    }
-
-    void set_bias_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * bias) {}    
-
-    virtual LogicalCube<InputLayerDataType, InputLayerLayout> * get_bias_cube() {
-        return NULL;
-    }
-
 };
 
 /******
@@ -86,28 +66,11 @@ class ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Abstract
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
 
     ReLUBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-        const BridgeConfig * const _config);
-    ReLUBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param);
 
     void forward();
+
     void backward();
-
-    void set_model_cube(LogicalCube<DataType, Layout_CRDB> * model) {}
-
-    LogicalCube<DataType, Layout_CRDB> * get_model_cube(){
-        return NULL;
-    }
-
-    void set_bias_cube(LogicalCube<DataType, Layout_CRDB> * bias) {}    
-
-    virtual LogicalCube<DataType, Layout_CRDB> * get_bias_cube() {
-        return NULL;
-    }
-
-
-  private:
-    void initialize();
 };
 
 #include "ReLUBridge_impl.hxx"

@@ -13,7 +13,6 @@
 #include "Report.h"
 #include "LogicalMatrix.h"
 #include "LoweringType.h"
-#include "bridges/BridgeConfig.h"
 
 template <typename InputDataType,LayoutType InputLayout,
          typename OutputDataType, LayoutType OutputLayout,

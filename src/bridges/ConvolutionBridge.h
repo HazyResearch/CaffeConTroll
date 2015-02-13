@@ -46,14 +46,6 @@ class ConvolutionBridge : public AbstractBridge<InputLayerDataType, InputLayerLa
     virtual void set_bias_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * bias) = 0;
     virtual LogicalCube<InputLayerDataType, InputLayerLayout> * get_bias_cube() = 0;
 
-    // Testing constructor
-    ConvolutionBridge(InputLayerType * const _p_input_layer,
-        OutputLayerType * const _p_output_layer,
-        const BridgeConfig * const _config) {
-      NOT_IMPLEMENTED;
-    }
-
-    // Network initialization constructor
     ConvolutionBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param) {
@@ -115,8 +107,6 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
     typedef LogicalCube<DataType, Layout_CRDB> LogicalCubeType;
 
-    const BridgeConfig * const config;
-
     const size_t K;
     const size_t num_output_features;
     const size_t stride;
@@ -126,32 +116,25 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     const float stepsize;
 
     void set_model_cube(LogicalCube<DataType, Layout_CRDB> * model) {
-        memcpy(p_model_cube->p_data, model->p_data, p_model_cube->n_elements*sizeof(DataType));
+      Util::_our_memcpy(p_model_cube->p_data, model->p_data, p_model_cube->n_elements*sizeof(DataType));
     }
 
-    virtual LogicalCube<DataType, Layout_CRDB> * get_model_cube(){
-        return model_cube();
+    LogicalCube<DataType, Layout_CRDB> * const get_model_cube() {
+      return p_model_cube;
     }
 
     void set_bias_cube(LogicalCube<DataType, Layout_CRDB> * bias) {
-        memcpy(p_bias_cube->p_data, bias->p_data, p_bias_cube->n_elements*sizeof(DataType));        
-    }    
-
-    virtual LogicalCube<DataType, Layout_CRDB> * get_bias_cube() {
-        return bias_cube();
+      Util::_our_memcpy(p_bias_cube->p_data, bias->p_data, p_bias_cube->n_elements*sizeof(DataType));
     }
 
-    // Testing constructor
-    ConvolutionBridge(InputLayerType * const _p_input_layer,
-        OutputLayerType * const _p_output_layer,
-        const BridgeConfig * const _config);
+    LogicalCube<DataType, Layout_CRDB> * const get_bias_cube() {
+      return p_bias_cube;
+    }
 
-    // Network initialization constructor for convolution
     ConvolutionBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param);
 
-    // Network initialization constructor
     // (Note: The presence of the 4th argument, inner_product,
     // let's us distinguish between this constructor and the
     // previous one. TODO: This is a terrible hack -- fix this!)
@@ -164,10 +147,6 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     void forward();
 
     void backward();
-
-    LogicalCubeType * const model_cube();
-
-    LogicalCubeType * const bias_cube();
 
   private:
     LogicalCubeType * p_model_cube;
@@ -199,10 +178,9 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
       Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_TRANS_NOTRANS> * p_backward_gemm_updategrad_kernel;
 
-    void initialize();
-
-    void initialize_logical_cube(const LogicalCubeType * cube, const InitializerType initializer);
     void initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter filler_param);
+
+    void initialize();
 };
 
 #include "ConvolutionBridge_impl.hxx"

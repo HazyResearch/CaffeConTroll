@@ -19,13 +19,6 @@ class DropoutBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
 
-    // Testing constructor
-    DropoutBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-        const float _dropout_ratio) {
-      NOT_IMPLEMENTED;
-    }
-
-    // Network initialization constructor
     DropoutBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param) {
       NOT_IMPLEMENTED;
@@ -38,19 +31,6 @@ class DropoutBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout
     void backward() {
       NOT_IMPLEMENTED;
     }
-
-    void set_model_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * model) {}
-
-    LogicalCube<InputLayerDataType, InputLayerLayout> * get_model_cube(){
-        return NULL;
-    }
-
-    void set_bias_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * bias) {}    
-
-    virtual LogicalCube<InputLayerDataType, InputLayerLayout> * get_bias_cube() {
-        return NULL;
-    }
-
 };
 
 /******
@@ -86,9 +66,8 @@ class DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Abstr
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
 
     DropoutBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-        const float _dropout_ratio);
-    DropoutBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param);
+
     ~DropoutBridge();
 
     void forward();
@@ -99,23 +78,8 @@ class DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Abstr
 
     LogicalCube<unsigned int, Layout_CRDB> * mask_cube;
 
-    void set_model_cube(LogicalCube<DataType, Layout_CRDB> * model) {}
-
-    LogicalCube<DataType, Layout_CRDB> * get_model_cube(){
-        return NULL;
-    }
-
-    void set_bias_cube(LogicalCube<DataType, Layout_CRDB> * bias) {}    
-
-    virtual LogicalCube<DataType, Layout_CRDB> * get_bias_cube() {
-        return NULL;
-    }
-
-
   private:
     float scale;
-
-    void initialize();
 };
 
 #include "DropoutBridge_impl.hxx"

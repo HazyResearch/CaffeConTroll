@@ -41,15 +41,18 @@ class AbstractBridge : public PhysicalOperator {
 
     bool bias_term;
 
-    void set_model_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * model) {}
+    // Bridges which subclass AbstractBridge may override these four methods later
+    // (e.g. ConvolutionBridge). Most, however, won't, since only ConvolutionBridge
+    // and FullyConnected Bridge have weights that need to be updated
+    virtual void set_model_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * model) {}
 
-    virtual LogicalCube<InputLayerDataType, InputLayerLayout> * get_model_cube(){
+    virtual LogicalCube<InputLayerDataType, InputLayerLayout> * const get_model_cube() {
         return NULL;
     }
 
-    void set_bias_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * bias) {}    
+    virtual void set_bias_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * bias) {}
 
-    virtual LogicalCube<InputLayerDataType, InputLayerLayout> * get_bias_cube() {
+    virtual LogicalCube<InputLayerDataType, InputLayerLayout> * const get_bias_cube() {
         return NULL;
     }
 
@@ -65,7 +68,7 @@ class AbstractBridge : public PhysicalOperator {
         bias_term(false) {} // no-op, initialize only
 
     // Second constructor, which does NOT take in a cnn::LayerParameter as a third argument.
-    // (Used primarily for testing)
+    // (Used only for Softmax)
     AbstractBridge<InputLayerDataType, InputLayerLayout,
       OutputLayerDataType, OutputLayerLayout>(InputLayerType * const _p_input_layer,
           OutputLayerType * const _p_output_layer) :
