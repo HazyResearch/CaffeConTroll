@@ -10,6 +10,7 @@
 #define moka_LogicalCube_impl_hxx
 #include <string.h>
 #include "util.h"
+#include "timer.h"
 
 using namespace std;
 
@@ -80,37 +81,10 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::lower_logica
     LAYOUT>& cube, const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i,
     const size_t kernel_size) {
 
-  const size_t matrix_C = input_matrix->C;
-  const size_t matrix_R = input_matrix->R;
-  const T * const input_data = input_matrix->p_data;
+  // In the current way of doing lowering, I do not see why strid and padding are special.
+  LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::lower_logical_matrix(cube, input_matrix, b_i, d_i,
+    kernel_size, 1, 0);
 
-  // TODO: if K == 1 or K == N (a fully connected layer)
-  // then we should simply copy over the original data into the lowered cube.
-  // Right now, though, it doesn't converge when put in this optimization.
-
-  const size_t single_lowering_height = matrix_R - kernel_size + 1;
-  const size_t single_lowering_width = matrix_C - kernel_size + 1;
-
-  const size_t dst_row_base = d_i * kernel_size * kernel_size;
-  const size_t dst_col_base = b_i * single_lowering_height * single_lowering_width;
-
-  for (size_t src_i = 0, dst_row_i = dst_row_base; src_i < kernel_size * matrix_C;
-      dst_row_i += kernel_size, src_i += matrix_C) {
-    for (size_t src_i_j = src_i, dst_row = dst_row_i; src_i_j < kernel_size + src_i;
-        ++dst_row, ++src_i_j) {
-      // Same as: size_t dst_row = dst_row_base + i*kernel_size + j, where 0 <= i < kernel_size
-      // and 0 <= j < kernel_size
-
-      for (size_t src = src_i_j, dst_col = dst_col_base; src < src_i_j + single_lowering_height * matrix_C;
-          dst_col += single_lowering_width, src += matrix_C) {
-        // Same as: size_t dst_col = dst_col_base + k_r*single_lowering_width,
-        //          size_t src = j + (i + k_r)*input_matrix->C,
-        //          where 0 <= k_r < single_lowering_height
-        Util::_our_memcpy(&cube.p_data[dst_col + dst_row*cube.C], &input_data[src],
-            single_lowering_width*sizeof(T));
-      }
-    }
-  }
 }
 
 template<typename T, LayoutType LAYOUT>
@@ -119,39 +93,39 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::lower_logica
     LAYOUT>& cube, const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i,
     const int kernel_size, const int stride, const int padding) {
 
-  const int height = input_matrix->R;
-  const int width = input_matrix->C;
+  const size_t matrix_C = input_matrix->C;
+  const size_t matrix_R = input_matrix->R;
+
   const T * const input_data = input_matrix->p_data;
 
-  const size_t single_lowering_width = (width + 2 * padding - kernel_size) / stride + 1;
-  const size_t single_lowering_height = (height + 2 * padding - kernel_size) / stride + 1;
+  const size_t single_lowering_height = (matrix_C + 2 * padding - kernel_size) / stride + 1;
+  const size_t single_lowering_width = (matrix_R + 2 * padding - kernel_size) / stride + 1;
 
   const size_t dst_row_base = d_i * kernel_size * kernel_size;
   const size_t dst_col_base = b_i * single_lowering_height * single_lowering_width;
 
-  const int num_height_windows = (height + 2 * padding - kernel_size) / stride + 1; // number of convolution "windows" row-wise
-  const int num_width_windows = (width + 2 * padding - kernel_size) / stride + 1; // number of convolution "windows" column-wise
+  T * p_current_write = &cube.p_data[dst_row_base*cube.C + dst_col_base];
+  T * p_current_write2 = p_current_write;
 
-  // i & j keep track of which "window" we're currently calculating. Incremented by 1 each time.
-  // src_row_base and src_col_base indicate the starting indices for the window. Incremented by stride each time.
-  // dst_col increases every time we calculate a new windo. Incremented by 1 each time.
-  for (int src_row_base = -padding, i = 0, dst_col = dst_col_base; i < num_height_windows; src_row_base += stride, ++i) {
-    for (int src_col_base = -padding, j = 0; j < num_width_windows; src_col_base += stride, ++dst_col, ++j) {
-      // src_row and src_col start at src_row_base and src_col_base, respectively, and iterate a total of kernel_size times. Incremented by 1 each time.
-      // dst_row_i starts at dst_row_base. Incremented by kernel_size each time.
-      // dst_row starts at dst_row_i. Incremented by 1 each time.
-      for (int src_row = src_row_base, dst_row_i = dst_row_base; src_row < kernel_size + src_row_base; ++src_row, dst_row_i += kernel_size) {
-        for (int src_col = src_col_base, dst_row = dst_row_i; src_col < kernel_size + src_col_base; ++src_col, ++dst_row) {
-          const size_t dst = dst_col + dst_row*cube.C;
-          if (src_row < 0 || src_row >= width || src_col < 0 || src_col >= height) {
-            cube.p_data[dst] = 0;
-          } else {
-            cube.p_data[dst] = input_data[src_row*width + src_col];
-          }
+  const T * const p_current_read = &input_matrix->p_data[0];
+
+  const int input_size_r = matrix_R+padding-kernel_size+1;
+  const int input_size_c = matrix_C+padding-kernel_size+1;
+
+  for(size_t kr = 0; kr < kernel_size; kr++){
+    for(size_t kc = 0; kc < kernel_size; kc++){
+      for(int dr = -padding; dr < input_size_r; dr+=stride){
+        for(int dc = -padding; dc < input_size_c; dc+=stride){
+          *(p_current_write2++) = 
+            ((dr+kr < 0 || dc+kc < 0 || dr+kr >= matrix_R || dc+kc >= matrix_C) ? 0 :
+            p_current_read[(dr+kr)*matrix_C+(dc+kc)]);
         }
       }
+      p_current_write += cube.C;
+      p_current_write2 = p_current_write;
     }
   }
+
 }
 
 template<typename T, LayoutType LAYOUT>
