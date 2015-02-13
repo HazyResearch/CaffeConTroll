@@ -34,7 +34,7 @@ WARNING_FLAGS = -Wextra
 
 PRODUCT_FLAGS = -O3
 
-TEST_CC= g++
+TEST_CC= clang++
 TEST_CFLAGS=-O0 -std=c++11 -I $(GTEST_INCLUDE)
 TEST_LDFLAGS= $(LDFLAGS)   -L$(GTEST_LIB_DIR) -lgtest -lpthread -L $(OPENBLAS_DIR) -lopenblas
 
