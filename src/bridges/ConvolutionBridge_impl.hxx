@@ -9,10 +9,10 @@
 #ifndef moka_ConvolutionBridge_impl_hxx
 #define moka_ConvolutionBridge_impl_hxx
 
-// common initialization code, called by both constructors
 template <typename DataType, NonLinearFunction FUNC>
 void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 initialize() {
+
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();
   report_forward_kernel.reset();
@@ -29,25 +29,11 @@ initialize() {
 #endif
 
   p_model_cube = new LogicalCubeType(K, K, iD, num_output_features);
-  if (layer_param) {
-    initialize_logical_cube(p_model_cube, weight_filler);
-  } else if (config) {
-    initialize_logical_cube(p_model_cube, config->weight_initializer);
-  } else {
-    cout << "ERROR! Both layer_param and config are NULL" << endl;
-    assert(false);
-  }
+  initialize_logical_cube(p_model_cube, weight_filler);
 
   if (bias_term) {
     p_bias_cube = new LogicalCubeType(1, 1, num_output_features, 1);
-    if (layer_param) {
-      initialize_logical_cube(p_bias_cube, bias_filler);
-    } else if (config) {
-      initialize_logical_cube(p_bias_cube, config->bias_initializer);
-    } else {
-      cout << "ERROR! Both layer_param and config are NULL" << endl;
-      assert(false);
-    }
+    initialize_logical_cube(p_bias_cube, bias_filler);
   }
 
   // First, allocate the space we need for lowering
@@ -108,15 +94,16 @@ initialize() {
                                         &lowered_forward_output, p_backward_inputgrad);
 
   report_forward_constructor.end(0, 0, 0);
+
 }
 
-// Network initialization constructor for convolution layer (no 4th argument)
+// Constructor for convolution layer, no 4th argument
 template <typename DataType, NonLinearFunction FUNC>
 ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
     const cnn::LayerParameter * const _layer_param)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer,
-    _p_output_layer, _layer_param), config(NULL),
+    _p_output_layer, _layer_param),
   K(layer_param->convolution_param().kernel_size()),
   num_output_features(layer_param->convolution_param().num_output()),
   stride(layer_param->convolution_param().stride()),
@@ -125,17 +112,16 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   stepsize(_DEFAULT_STEPSIZE),
   weight_filler(layer_param->convolution_param().weight_filler()),
   bias_filler(layer_param->convolution_param().bias_filler()) {
-
-  initialize();
+    initialize();
 }
 
-// Network initialization constructor for fully connected layer (4th argument present)
+// Constructor for fully connected layer (4th argument present)
 template <typename DataType, NonLinearFunction FUNC>
 ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
     const cnn::LayerParameter * const _layer_param, const bool inner_product)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer,
-    _p_output_layer, _layer_param), config(NULL),
+    _p_output_layer, _layer_param),
   // padding is set to 0, and stride is set to 1. iC would also work as the
   // value set to K. (We assert that they are equal in initialize.)
   K(iR), num_output_features(layer_param->inner_product_param().num_output()),
@@ -143,21 +129,7 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   stepsize(_DEFAULT_STEPSIZE),
   weight_filler(layer_param->inner_product_param().weight_filler()),
   bias_filler(layer_param->inner_product_param().bias_filler()) {
-
-  initialize();
-}
-
-// Testing contstructor
-template <typename DataType, NonLinearFunction FUNC>
-ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
-ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-    const BridgeConfig * const _config)
-: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer),
-  config(_config), K(_config->kernel_size), num_output_features(config->num_output_features),
-  stride(config->stride), padding(config->padding), bias_term(config->bias_term),
-  stepsize(_DEFAULT_STEPSIZE) {
-
-  initialize();
+    initialize();
 }
 
 // Intiailize a Logical Cube using a FillerParameter. This is only called if layer_param is
@@ -178,31 +150,6 @@ initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter
   } else {
     cout << "ERROR! INITIALIZATION TYPE NOT SUPPORTED!" << endl;
     assert(false);
-  }
-}
-
-// Intiailize a Logical Cube using an InitializerType enum. This is only called if config is
-// non-NULL.
-template <typename DataType, NonLinearFunction FUNC>
-void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
-initialize_logical_cube(const LogicalCubeType * cube, const InitializerType initializer) {
-  switch (initializer) {
-    case CONSTANT:
-      Util::constant_initialize<DataType>(cube->p_data, (DataType) config->value, cube->n_elements);
-      break;
-    case XAVIER:
-      Util::xavier_initialize(cube->p_data, cube->n_elements, cube->B);
-      break;
-    case BERNOULLI:
-      Util::bernoulli_initialize(cube->p_data, cube->n_elements, config->value);
-      break;
-    case GAUSSIAN:
-      Util::gaussian_initialize(cube->p_data, cube->n_elements, (DataType) config->mean,
-          (DataType) config->std);
-      break;
-    default:
-      cout << "ERROR! INITIALIZATION TYPE NOT SUPPORTED!" << endl;
-      assert(false);
   }
 }
 
@@ -258,8 +205,8 @@ forward() {
   if (FUNC != FUNC_NOFUNC) {
      p_forward_applyfunc_scanner->apply(&lowered_output);
   }
-  
-//  Timer t;	
+
+//  Timer t;
 //  t.restart();
   p_output_layer->p_data_cube->template remap_output<LOWERING_TYPE1>(num_output_features, iB, oR*oC);
 //  cout << t.elapsed() << endl;
@@ -355,7 +302,7 @@ backward() {
   p_backward_gemm_updateweight_kernel->alpha = -stepsize;
   p_backward_gemm_updateweight_kernel->beta = 1.0;
   p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
-  
+
   report_backward_updateweight_last_transfer.end();
 
   if (FUNC != FUNC_NOFUNC) {
@@ -370,18 +317,6 @@ backward() {
   report_backward_weight_kernel.aggregate(p_backward_gemm_updateweight_kernel->report_last_lowering);
   report_backward_grad_kernel.aggregate(p_backward_gemm_updategrad_kernel->report_last_lowering);
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
-}
-
-template <typename DataType, NonLinearFunction FUNC>
-LogicalCube<DataType, Layout_CRDB> * const ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
-model_cube() {
-  return p_model_cube;
-}
-
-template <typename DataType, NonLinearFunction FUNC>
-LogicalCube<DataType, Layout_CRDB> * const ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
-bias_cube() {
-  return p_bias_cube;
 }
 
 template <typename DataType, NonLinearFunction FUNC>

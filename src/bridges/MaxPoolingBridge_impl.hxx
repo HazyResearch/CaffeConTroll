@@ -9,17 +9,20 @@
 #ifndef moka_MaxPoolingBridge_impl_hxx
 #define moka_MaxPoolingBridge_impl_hxx
 
-// common initialization code, called by both constructors
 template <typename DataType>
-void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::initialize() {
+MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::MaxPoolingBridge(InputLayerType * const _p_input_layer,
+    OutputLayerType * const _p_output_layer, const cnn::LayerParameter * const _layer_param)
+: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer, _layer_param) {
+
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();
   report_forward_history.reset();
 
+  kernel_size = layer_param->pooling_param().kernel_size();
+  stride = layer_param->pooling_param().stride();
+
 #ifdef _DO_ASSERT
   assert(iD == oD); assert(iB == oB);
-  //assert(stride >= kernel_size); // for now, we assume that the K x K patches for
-                                 // max pooling never overlap
 #endif
 
   pooled_height = static_cast<size_t>(ceil(static_cast<float>(
@@ -35,30 +38,6 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::initialize(
   max_index = new LogicalCube<size_t, Layout_CRDB>(pooled_height, pooled_width, iD, iB);
 
   report_forward_constructor.end(0, 0, 0);
-}
-
-// Network initialization constructor
-template <typename DataType>
-MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::MaxPoolingBridge(InputLayerType * const _p_input_layer,
-    OutputLayerType * const _p_output_layer, const cnn::LayerParameter * const _layer_param)
-: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer, _layer_param),
-config(NULL) {
-
-  kernel_size = layer_param->pooling_param().kernel_size();
-  stride = layer_param->pooling_param().stride();
-
-  initialize();
-}
-
-// Testing constructor
-template <typename DataType>
-MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::MaxPoolingBridge(InputLayerType * const _p_input_layer,
-    OutputLayerType * const _p_output_layer, const BridgeConfig * const _config)
-: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer), config(_config) {
-  kernel_size = config->kernel_size;
-  stride = config->stride;
-
-  initialize();
 }
 
 /**

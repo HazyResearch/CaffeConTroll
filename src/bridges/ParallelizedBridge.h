@@ -1,5 +1,5 @@
 //
-//  ParallelizedConvolutionBridge.h
+//  ParallelizedBridge.h
 //  moka
 //
 //  Created by Firas Abuzaid on 2/8/15.
@@ -15,8 +15,10 @@
 #include <thread>
 #include <vector>
 
+using std::vector;
+
 // For now, we only support Layout_CRDB
-template<typename DataType, typename BridgeType> 
+template<typename DataType, typename BridgeType>
 class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> {
   public:
 
@@ -37,7 +39,7 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
 
     typedef Layer<DataType, Layout_CRDB> LayerType;
 
-    // These are public for now, just so that we can right tests
+    // These are public for now, just so that we can write tests
     LogicalCubeType * p_model_cube; /**< A ParallelizedConvolutionBridge should have a _single_
                                         copy of the model. Copy this model to different worker (or
                                         add optimization to share without copying) is the job
@@ -45,23 +47,14 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
 
     LogicalCubeType * p_bias_cube;
 
-    const BridgeConfig * const config;
-
     const size_t n_partition;
     const size_t n_batch;
     const size_t n_thread_per_partition;
     const size_t n_batch_per_partition;
 
-    // Network initialization constructor
     ParallelizedBridge(Layer<DataType, Layout_CRDB> * const _input_layer,
         Layer<DataType, Layout_CRDB> * const _output_layer,
         const cnn::LayerParameter * const _layer_param, size_t _n_partition,
-        size_t _n_thread_per_partition);
-
-    // Testing constructor
-    ParallelizedBridge(Layer<DataType, Layout_CRDB> * const _input_layer,
-        Layer<DataType, Layout_CRDB> * const _output_layer,
-        const BridgeConfig * const _config, size_t _n_partition,
         size_t _n_thread_per_partition);
 
     void forward();
@@ -69,20 +62,18 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     void backward();
 
   protected:
-    std::vector<LogicalCubeType *> _data_cubes_lower;
-    std::vector<LogicalCubeType *> _grad_cubes_lower;
+    vector<LogicalCubeType *> _data_cubes_lower;
+    vector<LogicalCubeType *> _grad_cubes_lower;
 
-    std::vector<LogicalCubeType *> _data_cubes_higher;
-    std::vector<LogicalCubeType *> _grad_cubes_higher;
+    vector<LogicalCubeType *> _data_cubes_higher;
+    vector<LogicalCubeType *> _grad_cubes_higher;
 
-    std::vector<LayerType *> _partitioned_layers_lower;
-    std::vector<LayerType *> _partitioned_layers_higher;
+    vector<LayerType *> _partitioned_layers_lower;
+    vector<LayerType *> _partitioned_layers_higher;
 
-    std::vector<BridgeType *> _bridges;
+    vector<BridgeType *> _bridges;
 
     PhysicalStratum stratum;
-
-    void initialize();
 };
 
 #include "ParallelizedBridge_impl.hxx"

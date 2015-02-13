@@ -16,6 +16,7 @@ SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::SoftmaxLossBrid
 p_data_labels(_p_data_labels),
 ldR(p_data_labels->R), ldC(p_data_labels->C),
 ldD(p_data_labels->D), ldB(p_data_labels->B) {
+
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();
   report_forward_history.reset();

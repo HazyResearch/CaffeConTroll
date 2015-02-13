@@ -9,9 +9,12 @@
 #ifndef moka_DropoutBridge_impl_hxx
 #define moka_DropoutBridge_impl_hxx
 
-// common initialization code, called by both constructors
 template <typename DataType>
-void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::initialize() {
+DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::DropoutBridge(InputLayerType * const _p_input_layer,
+    OutputLayerType * const _p_output_layer, const cnn::LayerParameter * const _layer_param)
+: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer, _layer_param),
+ dropout_ratio(layer_param->dropout_param().dropout_ratio()) {
+
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();
   report_forward_history.reset();
@@ -27,24 +30,6 @@ void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::initialize() {
   Util::bernoulli_initialize(mask_cube->p_data, iR*iC*iD*iB, 1. - dropout_ratio);
 
   report_forward_constructor.end(0, 0, 0);
-}
-
-// Network initialization constructor
-template <typename DataType>
-DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::DropoutBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-    const cnn::LayerParameter * const _layer_param)
-: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer, _layer_param),
- dropout_ratio(layer_param->dropout_param().dropout_ratio()) {
-   initialize();
-}
-
-// Testing constructor
-template <typename DataType>
-DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::DropoutBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-    const float _dropout_ratio)
-: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer),
- dropout_ratio(_dropout_ratio) {
-   initialize();
 }
 
 /**
