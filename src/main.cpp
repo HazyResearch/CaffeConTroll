@@ -113,8 +113,12 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
             next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
             next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
+            //bridge = new ParallelizedBridge<DataType_SFFloat,
+            //  FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
+            //  (prev_layer, next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+
             bridge = new FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layer,
-            next_layer, &layer_param);
+              next_layer, &layer_param);
         }
         break;
         {
