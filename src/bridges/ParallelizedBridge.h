@@ -61,11 +61,11 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
 
     void backward();
 
-    LogicalCube<DataType, Layout_CRDB> * get_model_cube(){
+    LogicalCube<DataType, Layout_CRDB> * const get_model_cube(){
         return p_model_cube;
     }
 
-    LogicalCube<DataType, Layout_CRDB> * get_bias_cube(){
+    LogicalCube<DataType, Layout_CRDB> * const get_bias_cube(){
         return p_bias_cube;
     }
 

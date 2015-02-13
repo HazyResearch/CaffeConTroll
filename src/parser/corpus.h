@@ -50,11 +50,11 @@ class Corpus {
 
     std::string filename;
 
-    explicit Corpus(const cnn::LayerParameter & layer_param);
+    explicit Corpus(const cnn::LayerParameter & layer_param, const string data_binary);
     ~Corpus();
 
   private:
-    void initialize_input_data_and_labels(const cnn::LayerParameter & layer_param);
+    void initialize_input_data_and_labels(const cnn::LayerParameter & layer_param, const string data_binary);
     void process_image(const cnn::LayerParameter & layer_param, float * const &single_input_batch, cnn::Datum datum);
 
 };
