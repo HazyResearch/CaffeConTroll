@@ -22,6 +22,7 @@
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/message_lite.h>
+#include <glog/logging.h>
 #include "parser.h"
 #include "lmdb.h"
 #include "cnn.pb.h"
@@ -54,6 +55,8 @@ class Corpus {
 
   private:
     void initialize_input_data_and_labels(const cnn::LayerParameter & layer_param);
+    void process_image(const cnn::LayerParameter & layer_param, float * const &single_input_batch, cnn::Datum datum);
+
 };
 
 #endif

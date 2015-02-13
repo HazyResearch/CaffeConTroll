@@ -43,7 +43,7 @@ class AbstractBridge : public PhysicalOperator {
 
     void set_model_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * model) {}
 
-    LogicalCube<InputLayerDataType, InputLayerLayout> * get_model_cube(){
+    virtual LogicalCube<InputLayerDataType, InputLayerLayout> * get_model_cube(){
         return NULL;
     }
 

@@ -68,6 +68,14 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
 
     void backward();
 
+    LogicalCube<DataType, Layout_CRDB> * get_model_cube(){
+        return p_model_cube;
+    }
+
+    LogicalCube<DataType, Layout_CRDB> * get_bias_cube(){
+        return p_bias_cube;
+    }
+
   protected:
     std::vector<LogicalCubeType *> _data_cubes_lower;
     std::vector<LogicalCubeType *> _grad_cubes_lower;

@@ -12,6 +12,71 @@
 #define 	MDB_NOTLS   0x200000
 #endif
 
+void Corpus::process_image(const cnn::LayerParameter & layer_param, float * const &single_input_batch, cnn::Datum datum){
+  const string& data = datum.data();
+  const int crop_size = layer_param.transform_param().crop_size();
+  const int height = datum.height();
+  const int width = datum.width();
+  const float scale = layer_param.transform_param().scale();
+  const bool mirror = layer_param.transform_param().mirror();
+
+  if (layer_param.transform_param().has_crop_size()) {
+    n_rows = crop_size;
+    n_cols = crop_size;
+  } else {
+    n_rows = datum.height();
+    n_cols = datum.width();
+  }
+
+  if (crop_size > 0) {
+    int h_off, w_off;
+    if (layer_param.include(0).phase() == 0) {         // Training Phase
+      h_off = rand() % (height - crop_size);
+      w_off = rand() % (width - crop_size);
+    } else {
+      h_off = (height - crop_size) / 2;
+      w_off = (width - crop_size) / 2;
+    }
+    if (mirror && rand() % 2) {
+      // Copy mirrored version
+      for (size_t c = 0; c < dim; ++c) {
+        for (int h = 0; h < crop_size; ++h) {
+          for (int w = 0; w < crop_size; ++w) {
+            int data_index = (c * height + h + h_off) * width + w + w_off;
+            int top_index = (c * crop_size + h) * crop_size + (crop_size - 1 - w);
+
+            float datum_element = static_cast<float>(static_cast<uint8_t>(data[data_index]));
+            single_input_batch[top_index] = (datum_element - mean->p_data[data_index])*scale;
+          }
+        }
+      }
+    } else {
+    // Normal copy
+      for (size_t c = 0; c < dim; ++c) {
+        for (int h = 0; h < crop_size; ++h) {
+          for (int w = 0; w < crop_size; ++w) {
+            int top_index = (c * crop_size + h) * crop_size + w;
+            int data_index = (c * height + h + h_off) * width + w + w_off;
+
+            float datum_element = static_cast<float>(static_cast<uint8_t>(data[data_index]));
+            single_input_batch[top_index] = (datum_element - mean->p_data[data_index])*scale;
+          }
+        }
+      }
+    }
+  } else {
+    for (size_t d = 0; d < dim; ++d) {
+      for (size_t r = 0; r < n_rows; ++r) {
+        for (size_t c = 0; c < n_cols; ++c) {
+          const size_t data_index = d * n_rows * n_cols + r * n_cols + c;
+          float datum_element = static_cast<float>(static_cast<uint8_t>(data[data_index]));
+          single_input_batch[data_index] = (datum_element - mean->p_data[data_index])*scale;
+        }
+      }
+    }
+  }
+}
+
 Corpus::Corpus(const cnn::LayerParameter & layer_param) {
   initialize_input_data_and_labels(layer_param);
 }
@@ -43,13 +108,12 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
 
   switch (layer_param.data_param().backend()) {
     case 1:
-      int rs;
-      rs = mdb_env_create(&mdb_env_);
-      rs = mdb_env_set_mapsize(mdb_env_, 1099511627776);
-      rs = mdb_env_open(mdb_env_, layer_param.data_param().source().c_str(), MDB_RDONLY|MDB_NOTLS, 777);
-      rs = mdb_txn_begin(mdb_env_, NULL, MDB_RDONLY, &mdb_txn_);
-      rs = mdb_open(mdb_txn_, NULL, 0, &mdb_dbi_);
-      rs = mdb_cursor_open(mdb_txn_, mdb_dbi_, &mdb_cursor_);
+      CHECK_EQ(mdb_env_create(&mdb_env_),MDB_SUCCESS) << "Error in mdb_env_create";
+      CHECK_EQ(mdb_env_set_mapsize(mdb_env_, 1099511627776), MDB_SUCCESS) << "Error in mdb_env_set_mapsize";
+      CHECK_EQ(mdb_env_open(mdb_env_, layer_param.data_param().source().c_str(), MDB_RDONLY|MDB_NOTLS, 777), MDB_SUCCESS) << "Error in mdb_env_open";
+      CHECK_EQ(mdb_txn_begin(mdb_env_, NULL, MDB_RDONLY, &mdb_txn_), MDB_SUCCESS) << "Transaction could not be started";
+      CHECK_EQ(mdb_open(mdb_txn_, NULL, 0, &mdb_dbi_), MDB_SUCCESS) << "Error in mdb_open";
+      CHECK_EQ(mdb_cursor_open(mdb_txn_, mdb_dbi_, &mdb_cursor_), MDB_SUCCESS) << "Error in mdb_cursor_open";
       mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, MDB_FIRST);
       break;
     default:
@@ -67,11 +131,7 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
   dim = datum.channels();
   mini_batch_size = layer_param.data_param().batch_size();
   const int crop_size = layer_param.transform_param().crop_size();
-  const int height = datum.height();
-  const int width = datum.width();
-  const float scale = layer_param.transform_param().scale();
-  const bool mirror = layer_param.transform_param().mirror();
-
+  
   if (layer_param.transform_param().has_crop_size()) {
     n_rows = crop_size;
     n_cols = crop_size;
@@ -108,60 +168,11 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
   for (size_t b = 0; b < n_images; b++) {
     mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
     datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
-    const string& data = datum.data();
     int img_label = datum.label();
     labels->p_data[b] = img_label;
     float * const single_input_batch = tmpimg->physical_get_RCDslice(0);  // Ce: only one batch
-    if (crop_size > 0) {
-      int h_off, w_off;
-      if (layer_param.include(0).phase() == 0) {         // Training Phase
-        h_off = rand() % (height - crop_size);
-        w_off = rand() % (width - crop_size);
-      } else {
-        h_off = (height - crop_size) / 2;
-        w_off = (width - crop_size) / 2;
-      }
-      if (mirror && rand() % 2) {
-        // Copy mirrored version
-        for (size_t c = 0; c < dim; ++c) {
-          for (int h = 0; h < crop_size; ++h) {
-            for (int w = 0; w < crop_size; ++w) {
-              int data_index = (c * height + h + h_off) * width + w + w_off;
-              int top_index = (c * crop_size + h) * crop_size + (crop_size - 1 - w);
-
-              float datum_element = static_cast<float>(static_cast<uint8_t>(data[data_index]));
-              single_input_batch[top_index] = (datum_element - mean->p_data[data_index])*scale;
-            }
-          }
-        }
-      } else {
-      // Normal copy
-        for (size_t c = 0; c < dim; ++c) {
-          for (int h = 0; h < crop_size; ++h) {
-            for (int w = 0; w < crop_size; ++w) {
-              int top_index = (c * crop_size + h) * crop_size + w;
-              int data_index = (c * height + h + h_off) * width + w + w_off;
-
-              float datum_element = static_cast<float>(static_cast<uint8_t>(data[data_index]));
-              single_input_batch[top_index] = (datum_element - mean->p_data[data_index])*scale;
-            }
-          }
-        }
-      }
-    } else {
-      for (size_t d = 0; d < dim; ++d) {
-        for (size_t r = 0; r < n_rows; ++r) {
-          for (size_t c = 0; c < n_cols; ++c) {
-            const size_t data_index = d * n_rows * n_cols + r * n_cols + c;
-            float datum_element = static_cast<float>(static_cast<uint8_t>(data[data_index]));
-            single_input_batch[data_index] = (datum_element - mean->p_data[data_index])*scale;
-          }
-        }
-      }
-    }
-
+    process_image(layer_param, single_input_batch, datum);
     fwrite (tmpimg->p_data , sizeof(DataType_SFFloat), tmpimg->n_elements, pFile);
-
     op = MDB_NEXT;
   }
 

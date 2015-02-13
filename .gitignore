@@ -10,3 +10,4 @@ tags
 *.pb.h
 lib/
 .config
+*.bin

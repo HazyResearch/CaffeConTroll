@@ -129,7 +129,7 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
         memcpy(p_model_cube->p_data, model->p_data, p_model_cube->n_elements*sizeof(DataType));
     }
 
-    LogicalCube<DataType, Layout_CRDB> * get_model_cube(){
+    virtual LogicalCube<DataType, Layout_CRDB> * get_model_cube(){
         return model_cube();
     }
 

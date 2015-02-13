@@ -23,6 +23,7 @@
 #include "Layer.h"
 #include "parser/corpus.h"
 #include "util.h"
+#include <algorithm>
 
 using namespace std;
 
@@ -48,6 +49,77 @@ Corpus read_corpus_from_lmdb(const cnn::NetParameter & net_param) {
   }
   cout << "No data layer present in prototxt file!" << endl;
   assert(false);
+}
+
+//// Shubham: Need to be refactored a bit on the basis of how these features would actually be used.
+/// Should we have a separate test function?
+void WriteModelToFile(const BridgeVector bridges){
+  std::string filename = std::string("deepnetmodel.bin"); 
+  FILE * pFile;
+  pFile = fopen (filename.c_str(), "wb");
+  LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
+  LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
+  for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
+    model = (*bridge)->get_model_cube();
+    if(model){
+      fwrite (model->p_data , sizeof(DataType_SFFloat), model->n_elements, pFile);  
+    }
+    bias = (*bridge)->get_bias_cube();
+    if(bias){
+      fwrite (bias->p_data , sizeof(DataType_SFFloat), bias->n_elements, pFile); 
+    }
+  }
+  fclose(pFile);
+}
+
+void ReadModelFromFile(BridgeVector & bridges){
+  std::string filename = std::string("deepnetmodel.bin"); 
+  FILE * pFile;
+  pFile = fopen (filename.c_str(), "rb");
+  LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
+  LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
+  for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
+    model = (*bridge)->get_model_cube();
+    if(model){
+      fread(model->p_data , sizeof(DataType_SFFloat), model->n_elements, pFile);  
+    }
+    bias = (*bridge)->get_bias_cube();
+    if(bias){
+      fread(bias->p_data , sizeof(DataType_SFFloat), bias->n_elements, pFile); 
+    }
+  }
+  fclose(pFile);
+}
+
+void find_accuracy(const LogicalCubeFloat * const labels, const LogicalCubeFloat * output) {
+  const float* actual_data = output->p_data;
+  const float* expected_label = labels->p_data;
+  int top_k = 1;
+  float accuracy = 0;
+  int num = output->n_elements;
+  int dim = output->D;
+  vector<float> maxval(top_k+1);
+  vector<int> max_id(top_k+1);
+  for (int i = 0; i < num; ++i) {
+    // Top-k accuracy
+    std::vector<std::pair<float, int> > data_vector;
+    for (int j = 0; j < dim; ++j) {
+      data_vector.push_back(
+          std::make_pair(actual_data[i * dim + j], j));
+    }
+    std::partial_sort(
+        data_vector.begin(), data_vector.begin() + top_k,
+        data_vector.end(), std::greater<std::pair<float, int> >());
+    // check if true label is in top k predictions
+    for (int k = 0; k < top_k; k++) {
+      if (data_vector[k].second == static_cast<int>(expected_label[i])) {
+        ++accuracy;
+        break;
+      }
+    }
+  }
+
+  cout << "Accuracy: " << (accuracy / num) << endl;
 }
 
 // This takes in the bridge vector (which has been initialized to be empty in load_and_train_network)
@@ -208,6 +280,7 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
       input_R = output_R, input_C = output_C, input_D = output_D;
       prev_data = next_data, prev_grad = next_grad;
       prev_layer = next_layer;
+      //ReadModelFromFile(bridges);
     }
   }
 }
@@ -230,7 +303,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 
   const size_t num_epochs = solver_param.max_iter();
   Timer t = Timer();
-  for (size_t epoch = 0; epoch < num_epochs; ++epoch) {
+  for (size_t epoch = 0; epoch < 1; ++epoch) {
     cout << "EPOCH: " << epoch << endl;
     float epoch_loss = 0.0;
 
@@ -239,7 +312,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 
     // num_mini_batches - 1, because we need one more iteration for the final mini batch
     // (the last mini batch may not be the same size as the rest of the mini batches)
-    for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches - 1; ++batch,
+    for (size_t batch = 0, corpus_batch_index = 0; batch < 100 - 1; ++batch,
         corpus_batch_index += corpus.mini_batch_size) {
       cout << "BATCH: " << batch << endl;
 
@@ -277,8 +350,9 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 
       cout << "LOSS: " << (softmax->loss / corpus.mini_batch_size) << endl;
       epoch_loss += (softmax->loss / corpus.mini_batch_size);
-
+      find_accuracy(labels, (*--bridges.end())->p_output_layer->p_data_cube);
       // backward pass
+      int count = 0;
       for (auto bridge = bridges.rbegin(); bridge != bridges.rend(); ++bridge) {
         (*bridge)->backward();
       }
@@ -291,6 +365,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
     cout << "Time Elapsed for a single epoch: " << t.elapsed() << endl;
   }
   cout << "Total Time Elapsed: " << t.elapsed() << endl;
+
 }
 
 // We expect this to be called from main,
@@ -348,6 +423,7 @@ void load_and_train_network(const char * file) {
   // Step 3:
   // Now, the bridges vector is fully populated
   train_network(bridges, corpus, net_param, solver_param);
+  WriteModelToFile(bridges);
 
   // Step 4:
   // Clean up! TODO: free the allocated bridges, layers, and cubes

@@ -201,7 +201,7 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
       }
     }
   }
-
+  
   report_backward_updateweight_last_transfer.end();
   report_backward_updateweight_last_transfer.aggregate_onlystat(stratum.report_backward_updateweight_last_transfer);
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
