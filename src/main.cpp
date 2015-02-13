@@ -15,13 +15,11 @@
 #include "bridges/AbstractBridge.h"
 #include "bridges/MaxPoolingBridge.h"
 #include "bridges/ReLUBridge.h"
-//#include "bridges/ConvolutionBridge.h"
-//#include "bridges/ParallelizedConvolutionBridge.h"
-#include "bridges/ParallelizedBridge.h"
-#include "bridges/ParallelizedLRNBridge.h"
+#include "bridges/ConvolutionBridge.h"
 #include "bridges/SoftmaxLossBridge.h"
 #include "bridges/DropoutBridge.h"
-//#include "bridges/LRNBridge.h"
+#include "bridges/LRNBridge.h"
+#include "bridges/ParallelizedBridge.h"
 #include "Layer.h"
 #include "parser/corpus.h"
 #include "util.h"
@@ -102,11 +100,11 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
             //bridge = new ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC,
             //       DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, &layer_param);
             //bridge = new ParallelizedConvolutionBridge<DataType_SFFloat>(prev_layer, next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
-        
+
             bridge = new ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
               (prev_layer, next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
-        
+
         }
         break;
         {
@@ -141,7 +139,7 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
             bridge = new ParallelizedBridge<DataType_SFFloat,
               MaxPoolingBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
               (prev_layer, next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
-        
+
         }
         break;
         {
@@ -247,12 +245,17 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 
       Timer t;
 
-      int rs = fread(corpus.images->p_data, sizeof(DataType_SFFloat), corpus.images->n_elements, pFile); // this loading appears to take just ~ 0.1 s for each batch, so double-buffering seems an overkill here because the following operations took seconds...
+      // this loading appears to take just ~ 0.1 s for each batch,
+      // so double-buffering seems an overkill here because the following operations took seconds...
+      fread(corpus.images->p_data, sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
       std::cout << "loading elpased " << t.elapsed() << std::endl;
       t.restart();
 
       // initialize input_data for this mini batch
-      float * const mini_batch = corpus.images->physical_get_RCDslice(0);  //Ce: Notice the change here compared with the master branch -- this needs to be refactored to make the switching between this and the master branch (that load everything in memory) dynamically and improve code reuse.
+      // Ce: Notice the change here compared with the master branch -- this needs to be refactored
+      // to make the switching between this and the master branch (that load everything in memory)
+      // dynamically and improve code reuse.
+      float * const mini_batch = corpus.images->physical_get_RCDslice(0);
       input_data->p_data = mini_batch;
 
       softmax->loss = 0.0;
@@ -261,15 +264,13 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       labels->p_data = corpus.labels->physical_get_RCDslice(corpus_batch_index);
 
       // forward pass
-      int i = 0;
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
         // Reset gradient and data cubes for backward and forward passes, respectively,
-	      // since we don't want any leftover values from the previous iteration
+        // since we don't want any leftover values from the previous iteration
         (*bridge)->p_input_layer->p_gradient_cube->reset_cube();
         (*bridge)->p_output_layer->p_data_cube->reset_cube();
         (*bridge)->forward();
         (*bridge)->report_forward_last_transfer.print();
-        i++;
       }
       std::cout << "fwd elpased " << t.elapsed() << std::endl;
       t.restart();
