@@ -135,13 +135,6 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
         OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param);
 
-    // (Note: The presence of the 4th argument, inner_product,
-    // let's us distinguish between this constructor and the
-    // previous one. TODO: This is a terrible hack -- fix this!)
-    ConvolutionBridge(InputLayerType * const _p_input_layer,
-        OutputLayerType * const _p_output_layer,
-        const cnn::LayerParameter * const _layer_param, const bool inner_product);
-
     ~ConvolutionBridge();
 
     void forward();
@@ -179,8 +172,6 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
       Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_TRANS_NOTRANS> * p_backward_gemm_updategrad_kernel;
 
     void initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter filler_param);
-
-    void initialize();
 };
 
 #include "ConvolutionBridge_impl.hxx"
