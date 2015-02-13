@@ -9,7 +9,7 @@ ifeq ($(UNAME), Darwin)
 # For Ubuntu 12.04 x86_64 (raiders3 machine)
 else ifeq ($(UNAME), Linux)
   CFLAGS = -Wall -std=c++11 -Wl,--no-as-needed
-  LDFLAGS = -llmdb -lopenblas -lrt -lglog
+  LDFLAGS = -llmdb -lopenblas -lrt -lglog -lboost_program_options
 endif
 
 # Protobuf variables
