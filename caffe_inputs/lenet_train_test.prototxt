@@ -5,7 +5,7 @@ layers {
   top: "data"
   top: "label"
   data_param {
-    source: "../caffe_drop_in/mnist/mnist_train_lmdb"
+    source: "caffe_inputs/mnist_train_lmdb"
     backend: LMDB
     batch_size: 64
   }
@@ -20,7 +20,7 @@ layers {
   top: "data"
   top: "label"
   data_param {
-    source: "mnist_test_lmdb"
+    source: "caffe_inputs/mnist_test_lmdb"
     backend: LMDB
     batch_size: 64
   }
