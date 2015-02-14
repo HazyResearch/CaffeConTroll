@@ -32,7 +32,7 @@ In the near future, we plan to extend CDW in three directions:
 paper](http://arxiv.org/abs/1403.7550) in the context of Deep
 Learning. In particular, we plan to use this framework to study the
 trade off between statistical efficiency (*roughly, the number of
-steps an algorithm take to converge*) versus hardware efficiency
+steps an algorithm take to converge*) and hardware efficiency
 (*roughly, the efficiency of each of those steps*). We'll also play with
 our [Hogwild!](http://i.stanford.edu/hazy/papers/hogwild-nips.pdf) ideas.
 
@@ -48,11 +48,11 @@ If you have feedback let us know!
 A Friendly VM
 -------------
 
-Probably the easiest way to try it out is using a
+Probably the easiest way to try CDW is via a
 [VM](http://deepdive.stanford.edu/cdw/vm_page.html) that comes
 preinstalled have an preinstalled with either MNIST (small and quick)
-or ImageNet (big and fun). These VMs run on Amazon, Google Compute, and
-Azure.
+or ImageNet (big and fun). These VMs run on Amazon, Google Compute,
+and Azure.
 
 Installation from Source
 ------------------------
