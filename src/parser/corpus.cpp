@@ -157,7 +157,7 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
 
   filename = data_binary; 
   
-  if (filename != "NA"){
+  //if (filename != "NA"){
     FILE * pFile;
     pFile = fopen (filename.c_str(), "wb"); 
     LogicalCube<DataType_SFFloat, Layout_CRDB> * tmpimg = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, 1);
@@ -177,20 +177,20 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
     std::cout << "Finished writing images to " << filename.c_str() << "..." << std::endl;
 
     fclose(pFile);
-  }
-  else{
-    images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, n_images); 
-    MDB_cursor_op op = MDB_FIRST;
-    for (size_t b = 0; b < n_images; b++) {
-      mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
-      datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
-      int img_label = datum.label();
-      labels->p_data[b] = img_label;
-      float * const single_input_batch = images->physical_get_RCDslice(b);  // Ce: only one batch
-      process_image(layer_param, single_input_batch, datum);
-      op = MDB_NEXT;
-    }
-  }
+  //}
+  // else{
+  //   images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, n_images); 
+  //   MDB_cursor_op op = MDB_FIRST;
+  //   for (size_t b = 0; b < n_images; b++) {
+  //     mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
+  //     datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
+  //     int img_label = datum.label();
+  //     labels->p_data[b] = img_label;
+  //     float * const single_input_batch = images->physical_get_RCDslice(b);  // Ce: only one batch
+  //     process_image(layer_param, single_input_batch, datum);
+  //     op = MDB_NEXT;
+  //   }
+  // }
 
   
 }

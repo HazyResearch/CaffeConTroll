@@ -510,7 +510,7 @@ void load_and_test_network(const char * file, const string data_binary, const st
     test_network(bridges, corpus, net_param, solver_param); 
   }
   else{
-    cout << "No Model File Provided" << endl;
+    cout << "No valid model file provided" << endl;
   }  
 }
 
@@ -529,7 +529,7 @@ int main(int argc, const char * argv[]) {
       ("data-binary,b", boost::program_options::value<string>(& data_binary)->default_value("toprocess.bin"),
           "Processed data binary")
       // Option 'model' and 'm' are equivalent.
-      ("model,m", boost::program_options::value<string>(& model_file)->default_value(false),
+      ("model,m", boost::program_options::value<string>(& model_file)->default_value("NA"),
           "Model binary")
       ;
 
