@@ -103,7 +103,7 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
     case 1:
       CHECK_EQ(mdb_env_create(&mdb_env_),MDB_SUCCESS) << "Error in mdb_env_create";
       CHECK_EQ(mdb_env_set_mapsize(mdb_env_, 1099511627776), MDB_SUCCESS) << "Error in mdb_env_set_mapsize";
-      CHECK_EQ(mdb_env_open(mdb_env_, layer_param.data_param().source().c_str(), MDB_RDONLY|MDB_NOTLS, 777), MDB_SUCCESS) << "Error in mdb_env_open";
+      CHECK_EQ(mdb_env_open(mdb_env_, layer_param.data_param().source().c_str(), MDB_RDONLY|MDB_NOTLS, 0664), MDB_SUCCESS) << "Error in mdb_env_open for " << layer_param.data_param().source();
       CHECK_EQ(mdb_txn_begin(mdb_env_, NULL, MDB_RDONLY, &mdb_txn_), MDB_SUCCESS) << "Transaction could not be started";
       CHECK_EQ(mdb_open(mdb_txn_, NULL, 0, &mdb_dbi_), MDB_SUCCESS) << "Error in mdb_open";
       CHECK_EQ(mdb_cursor_open(mdb_txn_, mdb_dbi_, &mdb_cursor_), MDB_SUCCESS) << "Error in mdb_cursor_open";
@@ -158,11 +158,14 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
   filename = data_binary; 
   
   //if (filename != "NA"){
-    FILE * pFile;
-    pFile = fopen (filename.c_str(), "wb"); 
+    FILE * pFile = fopen (filename.c_str(), "wb+"); 
+    if(pFile == NULL) {
+      // perror("Error");
+      throw std::runtime_error("File open error: " + filename + " " + strerror(errno)); // TODO: REAL MESSAGE
+    }
     LogicalCube<DataType_SFFloat, Layout_CRDB> * tmpimg = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, 1);
     images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, mini_batch_size);  // Ce: only one batch in memory
-    std::cout << "Start writing files to " << filename.c_str() << "..." << std::endl;
+    std::cout << "Start writing " << n_images << " to " << filename.c_str() << "..." << std::endl;
     MDB_cursor_op op = MDB_FIRST;
     for (size_t b = 0; b < n_images; b++) {
       mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
