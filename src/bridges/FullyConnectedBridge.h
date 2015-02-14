@@ -15,6 +15,8 @@
 
 /**
  * A FullyConnectedBridge implements the typical affine layer found in most CNNs.
+ * TODO: There's WAY too much in common between this bridge and ConvolutionBridge;
+ * we need to refactor the common code into a superclass.
  **/
 template
 <typename InputLayerDataType, LayoutType InputLayerLayout,
@@ -99,6 +101,10 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
 
     const bool bias_term;
     const float stepsize;
+    const float momentum;
+
+    const cnn::FillerParameter weight_filler;
+    const cnn::FillerParameter bias_filler;
 
     void set_model_cube(LogicalCube<DataType, Layout_CRDB> * model) {
       Util::_our_memcpy(p_model_cube->p_data, model->p_data, p_model_cube->n_elements*sizeof(DataType));
@@ -128,11 +134,9 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
 
   protected:
     LogicalCubeType * p_model_cube;
+    LogicalCubeType * p_model_cube_history;
     LogicalCubeType * p_bias_cube;
     LogicalCubeType * p_forward_lowered_data;
-
-    cnn::FillerParameter weight_filler;
-    cnn::FillerParameter bias_filler;
 
     size_t mR, mC, mD, mB; /*< Size of the model LogicalCube */
 

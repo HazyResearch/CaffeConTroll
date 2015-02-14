@@ -20,7 +20,7 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
   // value set to K. (We assert that they are equal in initialize.)
   K(iR), num_output_features(layer_param->inner_product_param().num_output()),
   stride(1), padding(0), bias_term(layer_param->inner_product_param().bias_term()),
-  stepsize(_DEFAULT_STEPSIZE),
+  stepsize(_DEFAULT_STEPSIZE), momentum(_DEFAULT_MOMENTUM),
   weight_filler(layer_param->inner_product_param().weight_filler()),
   bias_filler(layer_param->inner_product_param().bias_filler()) {
 
@@ -41,6 +41,11 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
 
   p_model_cube = new LogicalCubeType(K, K, iD, num_output_features);
   initialize_logical_cube(p_model_cube, weight_filler);
+
+  // We keep a "cache" of the model weights in order to use the momentum
+  // update. The cache is initialized to 0.
+  p_model_cube_history = new LogicalCubeType(K, K, iD, num_output_features);
+  p_model_cube_history->reset_cube();
 
   if (bias_term) {
     p_bias_cube = new LogicalCubeType(1, 1, num_output_features, 1);
@@ -159,10 +164,10 @@ forward() {
   p_output_layer->p_data_cube->template remap_output<LOWERING_TYPE1>(num_output_features, iB, oR*oC);
   if (bias_term) {
 
-    // This can be parallelized better than just using openmp, but this is 
-    // not so slow... we can get (~ 0.05 seconds / 256 images) if we optimize 
+    // This can be parallelized better than just using openmp, but this is
+    // not so slow... we can get (~ 0.05 seconds / 256 images) if we optimize
     // this... Lets wait.
-    DataType * p_output = p_output_layer->p_data_cube->get_logical_matrix(0, 0).p_data;  
+    DataType * p_output = p_output_layer->p_data_cube->get_logical_matrix(0, 0).p_data;
     const size_t output_feature_size = oR*oC;
     #pragma omp for
     for (size_t o_b = 0; o_b < oB; ++o_b) {
@@ -245,6 +250,14 @@ backward() {
   p_backward_gemm_updateweight_kernel->beta = 1.0;
   p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
 
+  // Performing weight update:
+  // Step 1: dW = -lr .* (dout * x)
+  p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
+  // Step 2: dW = momentum .* history + dW
+  Util::math_axpy(p_model_cube->n_elements, momentum, p_model_cube_history->p_data, p_model_cube->p_data);
+  // Step 3: history = dW
+  Util::_our_memcpy(p_model_cube_history->p_data, p_model_cube->p_data, p_model_cube->n_elements);
+
   report_backward_updateweight_last_transfer.end();
 
   report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updategrad_kernel->report_last_lowering);
@@ -263,7 +276,7 @@ FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::
   if (bias_term) {
     delete p_bias_cube;
   }
-  delete p_model_cube; delete p_forward_lowered_data;
+  delete p_model_cube; delete p_model_cube_history; delete p_forward_lowered_data;
   delete p_backward_gemm_updategrad_kernel; delete p_backward_gemm_updateweight_kernel;
   delete p_backward_inputgrad; delete p_forward_gemm_kernel;
   delete p_forward_lower_connector;
