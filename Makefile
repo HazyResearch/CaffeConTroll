@@ -1,15 +1,17 @@
 include .config
 UNAME := $(shell uname)
-DIRS=$(OPENBLAS_DIR) $(LMDB_DIR) 
+DIRS=$(OPENBLAS_DIR) $(LMDB_DIR) $(GTEST_LIB_DIR) $(GLOG_LIB_DIR) $(BOOST_LIB_DIR)
 
+LIBS=lmdb openblas glog
+LD_BASE=$(foreach l, $(LIBS), -l$l)
 # For Mac OS X 10.10 x86_64 Yosemite
 ifeq ($(UNAME), Darwin)
   CFLAGS = -Wall -std=c++11
-  LDFLAGS = -llmdb -lopenblas -lboost_program_options
+  LDFLAGS = $(LD_BASE) -lboost_program_options-mt
 # For Ubuntu 12.04 x86_64 (raiders3 machine)
 else ifeq ($(UNAME), Linux)
   CFLAGS = -Wall -std=c++11 -Wl,--no-as-needed
-  LDFLAGS = -llmdb -lopenblas -lrt -lglog -lboost_program_options
+  LDFLAGS = $(LD_BASE) -lrt -lboost_program_options
 endif
 
 # Protobuf variables
