@@ -37,6 +37,8 @@ class AbstractBridge : public PhysicalOperator {
 
     const cnn::LayerParameter * const layer_param;
 
+    bool needs_to_calc_backward_grad;
+
     Report report_constructor;
     Report report_last_lowering;
     Report report_history;

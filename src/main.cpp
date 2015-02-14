@@ -157,10 +157,11 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
   Layer<DataType_SFFloat, Layout_CRDB> * next_layer = NULL;
 
   size_t output_R = input_R, output_C = input_C, output_D = input_D;
+  bool is_first_conv = true;
 
-  for (size_t i = 1; i < num_layers; ++i) {
+  for (size_t i_layer = 0; i_layer < num_layers; ++i_layer) {
 
-    const cnn::LayerParameter layer_param = net_param.layers(i);
+    const cnn::LayerParameter layer_param = net_param.layers(i_layer);
     const cnn::LayerParameter_LayerType layer_type = layer_param.type();
 
     const size_t n_previous_groups = prev_layers.size();
@@ -204,10 +205,11 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
                   ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
                   (prev_layers[i], next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
                 bridge->name = layer_param.name();
-
+                bridge->needs_to_calc_backward_grad = !is_first_conv; // for the first CONV layer, do not need to calc grad for backward step
                 bridges.push_back(bridge);
                 next_layers.push_back(next_layer);
               }
+              is_first_conv = false;
             }else{
               if(grouping != 1 && n_previous_groups == 1){
                 // in this case, we fork the single input group into multile output groups
@@ -221,10 +223,12 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
                     ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
                     (prev_layers[0], next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
                   bridge->name = layer_param.name();
+                  bridge->needs_to_calc_backward_grad = !is_first_conv; // for the first CONV layer, do not need to calc grad for backward step
 
                   bridges.push_back(bridge);
                   next_layers.push_back(next_layer);
                 }
+                is_first_conv = false;
               }else{
                 std::cout << "ERROR: Currently we do not support the case where input group is " << n_previous_groups
                   << " and output group is " << grouping << " for CONV layer..." << std::endl; 
@@ -445,7 +449,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 
   const size_t num_epochs = solver_param.max_iter();
   Timer t = Timer();
-  for (size_t epoch = 0; epoch < 1; ++epoch) {
+  for (size_t epoch = 0; epoch < num_epochs; ++epoch) {
     cout << "EPOCH: " << epoch << endl;
     float epoch_loss = 0.0;
 

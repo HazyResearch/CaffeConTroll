@@ -130,6 +130,13 @@ template<typename DataType, typename BridgeType>
 void ParallelizedBridge<DataType, BridgeType>::backward() {
 
   report_backward_updateweight_last_transfer.reset();
+
+  // Update the status that whether we should calculat the output gradient
+  // in the backward loop.
+  for (size_t ib = 0; ib < _data_cubes_lower.size(); ib++) {
+    _bridges[ib]->needs_to_calc_backward_grad = needs_to_calc_backward_grad;
+  }
+
   stratum.backward();
 
   /**

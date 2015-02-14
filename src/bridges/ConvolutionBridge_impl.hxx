@@ -266,12 +266,16 @@ backward() {
       }
     }
   }
-  // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
-  p_backward_outputgrad->template remap_output<LOWERING_TYPE1>(oB, num_output_features, oR*oC );
-  //    - 2.1 GEMM between the gradient of output and old kernel
-  p_backward_gemm_updategrad_kernel->compute(&lowered_model, &lowered_outputgrad, p_backward_inputgrad);
-  //    - 2.2 undo the lowering (i.e., sum together all grad corresponding to the same unlowered position)
-  p_forward_lower_connector->inverse_lower_cube(p_backward_inputgrad, p_input_layer->p_gradient_cube);
+
+  if(needs_to_calc_backward_grad){
+    // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
+    p_backward_outputgrad->template remap_output<LOWERING_TYPE1>(oB, num_output_features, oR*oC );
+    //    - 2.1 GEMM between the gradient of output and old kernel
+    p_backward_gemm_updategrad_kernel->compute(&lowered_model, &lowered_outputgrad, p_backward_inputgrad);
+    //    - 2.2 undo the lowering (i.e., sum together all grad corresponding to the same unlowered position)
+    p_forward_lower_connector->inverse_lower_cube(p_backward_inputgrad, p_input_layer->p_gradient_cube);
+  }
+
   // (4) calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
   p_backward_gemm_updateweight_kernel->alpha = -stepsize;
   p_backward_gemm_updateweight_kernel->beta = 1.;
