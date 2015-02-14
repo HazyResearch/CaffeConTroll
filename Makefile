@@ -39,14 +39,6 @@ TEST_CFLAGS=-O0 -std=c++11 -I $(GTEST_INCLUDE)
 TEST_LDFLAGS= $(LDFLAGS)   -L$(GTEST_LIB_DIR) -lgtest -lpthread -L $(OPENBLAS_DIR) -lopenblas
 
 TEST_BLASFLAGS= -lm -I $(OPENBLAS_DIR)
-<<<<<<< HEAD
-TEST_SOURCES = src/util.cpp src/timer.cpp tests/test_main.cpp\
-	tests/test_convolution_bridge.cpp\
-	tests/test_softmax_bridge.cpp\
-	tests/test_dropout_bridge.cpp\
-	# TODO: if any of these other tests are included
-	# a linker error occurs
-=======
 TEST_SOURCES = src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp tests/test_main.cpp\
 	tests/test_accuracy.cpp\
 	tests/test_model_write.cpp\
@@ -56,11 +48,7 @@ TEST_SOURCES = src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/time
 	#TODO: if any of these other tests are included
 	# a linker error occurs
 	#tests/test_lenet_network.cpp
->>>>>>> main.refactor
-	#tests/test_lrn_bridge.cpp\
-	#tests/test_MaxPooling_bridge.cpp\
-	#tests/test_ReLU_bridge.cpp\
-	#tests/test_parallelized_convolution.cpp
+
 TEST_EXECUTABLE=test
 
 .PHONY: all assembly clean product test warning
