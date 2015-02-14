@@ -64,21 +64,17 @@ void Parser::data_setup(cnn::LayerParameter & layer_param, cnn::Datum & datum){
 
   switch (layer_param.data_param().backend()) {
   case 1:
-    mdb_env_create(&mdb_env_);
-    mdb_env_set_mapsize(mdb_env_, 1099511627776);
-    mdb_env_open(mdb_env_, layer_param.data_param().source().c_str(), MDB_RDONLY|MDB_NOTLS, 0664);
-    mdb_txn_begin(mdb_env_, NULL, MDB_RDONLY, &mdb_txn_);
-    mdb_open(mdb_txn_, NULL, 0, &mdb_dbi_);
-    mdb_cursor_open(mdb_txn_, mdb_dbi_, &mdb_cursor_);
+    CHECK_EQ(mdb_env_create(&mdb_env_),MDB_SUCCESS) << "Error in mdb_env_create";
+    CHECK_EQ(mdb_env_set_mapsize(mdb_env_, 1099511627776), MDB_SUCCESS) << "Error in mdb_env_set_mapsize";
+    CHECK_EQ(mdb_env_open(mdb_env_, layer_param.data_param().source().c_str(), MDB_RDONLY|MDB_NOTLS, 777), MDB_SUCCESS) << "Error in mdb_env_open";
+    CHECK_EQ(mdb_txn_begin(mdb_env_, NULL, MDB_RDONLY, &mdb_txn_), MDB_SUCCESS) << "Transaction could not be started";
+    CHECK_EQ(mdb_open(mdb_txn_, NULL, 0, &mdb_dbi_), MDB_SUCCESS) << "Error in mdb_open";
+    CHECK_EQ(mdb_cursor_open(mdb_txn_, mdb_dbi_, &mdb_cursor_), MDB_SUCCESS) << "Error in mdb_cursor_open";
     mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, MDB_FIRST);
     break;
   default:
     break;
   }
-
-#ifdef _DO_ASSERT
-  assert(mdb_env_ != NULL);
-#endif
 
   // Read a data point, and use it to initialize the top blob.
   switch (layer_param.data_param().backend()) {

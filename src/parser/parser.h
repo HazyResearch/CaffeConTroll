@@ -1,7 +1,7 @@
 #include <string>
 
 #include "cnn.pb.h"
-
+#include <glog/logging.h>
 using namespace std;
 using google::protobuf::Message;
 
