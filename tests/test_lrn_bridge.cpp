@@ -88,11 +88,7 @@ TYPED_TEST(LRNBridgeTest, TestForward){
   if (expected_output.is_open()) {
     expected_output >> output;
     while (!expected_output.eof()) {
-<<<<<<< HEAD
       EXPECT_NEAR(this->data2->p_data[idx], output, ESP2);
-=======
-      EXPECT_NEAR(this->data2->p_data[idx], output, EPS);
->>>>>>> main.refactor
       expected_output >> output;
       idx++;
     }
