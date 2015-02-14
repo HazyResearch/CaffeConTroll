@@ -97,11 +97,11 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
   for (int i_b = 0; i_b < _iB; ++i_b) {
 
     // do the first depth in the old way
-    p_input = p_input_layer->p_data_cube->logical_get(0, 0, -norm_window, i_b);
+    p_input = p_input_layer->p_data_cube->logical_get(0, 0, 0, i_b);
     for (int iric = 0; iric < iRiC; iric ++) {
       DataType sum = DataType(0.);
       p_input_tmp = p_input;
-      for (int i = -norm_window; i <= norm_window; ++i) {
+      for (int i = 0; i <= norm_window; ++i) {
         sum += (i < 0 || i >= iD) ? 0 : (*p_input_tmp)*(*p_input_tmp);
         p_input_tmp += iRiC;
       }
