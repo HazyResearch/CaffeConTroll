@@ -41,13 +41,24 @@ inline size_t compute_conv_next_layer_dimension(const size_t R_i, const size_t K
 // Note: we assume that the very first layer in the .protoxt
 // file specifies the data layer
 // TODO: also read in test set
-Corpus read_corpus_from_lmdb(const cnn::NetParameter & net_param, const string data_binary) {
-  const cnn::LayerParameter layer_param = net_param.layers(0);
-  if (layer_param.type() == cnn::LayerParameter_LayerType_DATA) {
-    if (layer_param.include(0).phase() == 0) { // training phase
-      return Corpus(layer_param, data_binary);
-    }
+Corpus read_corpus_from_lmdb(const cnn::NetParameter & net_param, const string data_binary, bool train) {
+  if (train){
+    const cnn::LayerParameter layer_param = net_param.layers(0);
+    if (layer_param.type() == cnn::LayerParameter_LayerType_DATA) {
+      if (layer_param.include(0).phase() == 0) { // training phase
+        return Corpus(layer_param, data_binary);
+      }
+    }  
   }
+  else{
+    const cnn::LayerParameter layer_param = net_param.layers(1);
+    if (layer_param.type() == cnn::LayerParameter_LayerType_DATA) {
+      if (layer_param.include(0).phase() == 1) { // training phase
+        return Corpus(layer_param, data_binary);
+      }
+    }  
+  }
+  
   cout << "No data layer present in prototxt file!" << endl;
   assert(false);
 }
@@ -303,7 +314,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 
     // num_mini_batches - 1, because we need one more iteration for the final mini batch
     // (the last mini batch may not be the same size as the rest of the mini batches)
-    for (size_t batch = 0, corpus_batch_index = 0; batch < 100; ++batch,
+    for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches - 1; ++batch,
         corpus_batch_index += corpus.mini_batch_size) {
       cout << "BATCH: " << batch << endl;
 
@@ -331,8 +342,8 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
         // Reset gradient and data cubes for backward and forward passes, respectively,
         // since we don't want any leftover values from the previous iteration
-        (*bridge)->p_input_layer->p_gradient_cube->reset_cube();
-        (*bridge)->p_output_layer->p_data_cube->reset_cube();
+        //(*bridge)->p_input_layer->p_gradient_cube->reset_cube();
+        //(*bridge)->p_output_layer->p_data_cube->reset_cube();
         (*bridge)->forward();
         (*bridge)->report_forward_last_transfer.print();
       }
@@ -379,7 +390,7 @@ void test_network(const BridgeVector & bridges, const Corpus & corpus, const cnn
   // (the last mini batch may not be the same size as the rest of the mini batches)
   int batch_accuracy;
   int total_accuracy = 0; 
-  for (size_t batch = 0, corpus_batch_index = 0; batch < 100 - 1; ++batch,
+  for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches - 1; ++batch,
       corpus_batch_index += corpus.mini_batch_size) {
     cout << "BATCH: " << batch << endl;
     fread(corpus.images->p_data, sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
@@ -403,7 +414,7 @@ void test_network(const BridgeVector & bridges, const Corpus & corpus, const cnn
     cout << "Batch" << batch << " Accuracy " << batch_accuracy << endl;
     total_accuracy += batch_accuracy;
   }
-  cout << "Total Accuracy" << (1.0*total_accuracy/(99*corpus.mini_batch_size)) << endl;
+  cout << "Total Accuracy" << (1.0*total_accuracy/((corpus.num_mini_batches - 1)*corpus.mini_batch_size)) << endl;
   fclose(pFile);
 }
 
@@ -442,7 +453,7 @@ void load_and_train_network(const char * file, const string data_binary, const s
 
   cnn::NetParameter net_param;
   Parser::read_net_params_from_text_file(solver_param.net(), &net_param);
-  const Corpus corpus = read_corpus_from_lmdb(net_param, data_binary);
+  const Corpus corpus = read_corpus_from_lmdb(net_param, data_binary, true);
 
 #ifdef _DO_WARNING
   cout << "Corpus train loaded" << endl;
@@ -477,7 +488,7 @@ void load_and_test_network(const char * file, const string data_binary, const st
 
   cnn::NetParameter net_param;
   Parser::read_net_params_from_text_file(solver_param.net(), &net_param);
-  const Corpus corpus = read_corpus_from_lmdb(net_param, data_binary);
+  const Corpus corpus = read_corpus_from_lmdb(net_param, data_binary, false);
 
 #ifdef _DO_WARNING
   cout << "Corpus train loaded" << endl;
