@@ -36,6 +36,7 @@ inline double fastPrecisePow(double a, double b) {
 
 
 
+
 template <typename DataType>
 LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::LRNBridge(InputLayerType * const _p_input_layer,
     OutputLayerType * const _p_output_layer, const cnn::LayerParameter * const _layer_param)

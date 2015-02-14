@@ -5,11 +5,11 @@ DIRS=$(OPENBLAS_DIR) $(LMDB_DIR)
 # For Mac OS X 10.10 x86_64 Yosemite
 ifeq ($(UNAME), Darwin)
   CFLAGS = -Wall -std=c++11
-  LDFLAGS = -llmdb -lopenblas
+  LDFLAGS = -llmdb -lopenblas -lboost_program_options
 # For Ubuntu 12.04 x86_64 (raiders3 machine)
 else ifeq ($(UNAME), Linux)
   CFLAGS = -Wall -std=c++11 -Wl,--no-as-needed
-  LDFLAGS = -llmdb -lopenblas -lrt
+  LDFLAGS = -llmdb -lopenblas -lrt -lglog -lboost_program_options
 endif
 
 # Protobuf variables
@@ -39,12 +39,24 @@ TEST_CFLAGS=-O0 -std=c++11 -I $(GTEST_INCLUDE)
 TEST_LDFLAGS= $(LDFLAGS)   -L$(GTEST_LIB_DIR) -lgtest -lpthread -L $(OPENBLAS_DIR) -lopenblas
 
 TEST_BLASFLAGS= -lm -I $(OPENBLAS_DIR)
+<<<<<<< HEAD
 TEST_SOURCES = src/util.cpp src/timer.cpp tests/test_main.cpp\
 	tests/test_convolution_bridge.cpp\
 	tests/test_softmax_bridge.cpp\
 	tests/test_dropout_bridge.cpp\
 	# TODO: if any of these other tests are included
 	# a linker error occurs
+=======
+TEST_SOURCES = src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp tests/test_main.cpp\
+	tests/test_accuracy.cpp\
+	tests/test_model_write.cpp\
+	tests/test_convolution_bridge.cpp\
+	tests/test_softmax_bridge.cpp\
+	tests/test_dropout_bridge.cpp\
+	#TODO: if any of these other tests are included
+	# a linker error occurs
+	#tests/test_lenet_network.cpp
+>>>>>>> main.refactor
 	#tests/test_lrn_bridge.cpp\
 	#tests/test_MaxPooling_bridge.cpp\
 	#tests/test_ReLU_bridge.cpp\

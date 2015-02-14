@@ -174,7 +174,6 @@ forward() {
         }
       }
     }
-
   }
 
   report_forward_last_transfer.end();
