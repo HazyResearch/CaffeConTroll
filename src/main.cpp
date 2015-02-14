@@ -529,7 +529,7 @@ int main(int argc, const char * argv[]) {
       ("data-binary,b", boost::program_options::value<string>(& data_binary)->default_value("toprocess.bin"),
           "Processed data binary")
       // Option 'model' and 'm' are equivalent.
-      ("model,m", boost::program_options::value<string>(& model_file)->default_value("NA"),
+      ("model,m", boost::program_options::value<string>(& model_file)->default_value(false),
           "Model binary")
       ;
 

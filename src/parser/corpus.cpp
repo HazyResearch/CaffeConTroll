@@ -99,14 +99,6 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
   //  - Need help from either Firas or Shubham because this requires
   //    changing the cmd input parsing part
   
-  filename = data_binary; 
-
-  FILE * pFile;
-  pFile = fopen (filename.c_str(), "wb");
-
-  std::cout << mdb_version(NULL, NULL, NULL) << std::endl;
-  std::cout << layer_param.data_param().source().c_str() << std::endl;
-
   switch (layer_param.data_param().backend()) {
     case 1:
       CHECK_EQ(mdb_env_create(&mdb_env_),MDB_SUCCESS) << "Error in mdb_env_create";
@@ -146,10 +138,7 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
   num_mini_batches = ceil(float(n_images) / mini_batch_size);
   last_batch_size = mini_batch_size - (num_mini_batches * mini_batch_size - n_images);
 
-  LogicalCube<DataType_SFFloat, Layout_CRDB> * tmpimg = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, 1);
-
-  images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, mini_batch_size);  // Ce: only one batch in memory
-  labels = new LogicalCube<DataType_SFFloat, Layout_CRDB>(1, 1, 1, n_images);
+  // Define and initialize cube storing the mean image from the database
   mean = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, 1);
 
   if (layer_param.transform_param().has_mean_file()) {
@@ -163,23 +152,47 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
     mean->reset_cube();
   }
 
-  std::cout << "Start writing images to " << filename.c_str() << "..." << std::endl;
+  // Initialize the cube storing the correct labels
+  labels = new LogicalCube<DataType_SFFloat, Layout_CRDB>(1, 1, 1, n_images);
 
-  MDB_cursor_op op = MDB_FIRST;
-  for (size_t b = 0; b < n_images; b++) {
-    mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
-    datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
-    int img_label = datum.label();
-    labels->p_data[b] = img_label;
-    float * const single_input_batch = tmpimg->physical_get_RCDslice(0);  // Ce: only one batch
-    process_image(layer_param, single_input_batch, datum);
-    fwrite (tmpimg->p_data , sizeof(DataType_SFFloat), tmpimg->n_elements, pFile);
-    op = MDB_NEXT;
+  filename = data_binary; 
+  
+  if (filename != "NA"){
+    FILE * pFile;
+    pFile = fopen (filename.c_str(), "wb"); 
+    LogicalCube<DataType_SFFloat, Layout_CRDB> * tmpimg = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, 1);
+    images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, mini_batch_size);  // Ce: only one batch in memory
+    std::cout << "Start writing files to " << filename.c_str() << "..." << std::endl;
+    MDB_cursor_op op = MDB_FIRST;
+    for (size_t b = 0; b < n_images; b++) {
+      mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
+      datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
+      int img_label = datum.label();
+      labels->p_data[b] = img_label;
+      float * const single_input_batch = tmpimg->physical_get_RCDslice(0);  // Ce: only one batch
+      process_image(layer_param, single_input_batch, datum);
+      fwrite (tmpimg->p_data , sizeof(DataType_SFFloat), tmpimg->n_elements, pFile);
+      op = MDB_NEXT;
+    }
+    std::cout << "Finished writing images to " << filename.c_str() << "..." << std::endl;
+
+    fclose(pFile);
+  }
+  else{
+    images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, n_images); 
+    MDB_cursor_op op = MDB_FIRST;
+    for (size_t b = 0; b < n_images; b++) {
+      mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
+      datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
+      int img_label = datum.label();
+      labels->p_data[b] = img_label;
+      float * const single_input_batch = images->physical_get_RCDslice(b);  // Ce: only one batch
+      process_image(layer_param, single_input_batch, datum);
+      op = MDB_NEXT;
+    }
   }
 
-  std::cout << "Finished writing images to " << filename.c_str() << "..." << std::endl;
-
-  fclose(pFile);
+  
 }
 
 
