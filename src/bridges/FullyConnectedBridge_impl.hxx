@@ -49,7 +49,11 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
 
   // First, allocate the space we need for lowering
   // Following code is very messy without the Matrix interface -- TODO
-  p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*iB,
+  //p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*iB,
+  //    1, 1);
+
+  // For fully connected layer, lowered result is the same as the input. So just do the poiner.
+  p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(p_input_layer->p_data_cube->p_data, K*K*iD, oR*oC*iB,
       1, 1);
 
   LogicalCube<DataType, Layout_CRDB> lowered_forward_model(p_model_cube->p_data, num_output_features,
@@ -131,8 +135,10 @@ forward() {
   LogicalCube<DataType, Layout_CRDB> lowered_output(p_output_layer->p_data_cube->p_data,
       num_output_features, oR*oC*iB, 1, 1);
 
-  // (1) do the lowering
-  p_forward_lower_connector->lower_cube(p_input_layer->p_data_cube, p_forward_lowered_data);
+  // (1) do the lowering -- NO LOWERING IS NECESSARY FOR FC
+  //t.restart();
+  //p_forward_lower_connector->lower_cube(p_input_layer->p_data_cube, p_forward_lowered_data);
+  //std::cout << "lower: " << t.elapsed() << std::endl;
 
   // (2) call GEMM kernel
   p_forward_gemm_kernel->compute(&lowered_model, p_forward_lowered_data, &lowered_output);
@@ -151,19 +157,24 @@ forward() {
   //  needing to call remap
 
   p_output_layer->p_data_cube->template remap_output<LOWERING_TYPE1>(num_output_features, iB, oR*oC);
-  // add bias
   if (bias_term) {
+
+    // This can be parallelized better than just using openmp, but this is 
+    // not so slow... we can get (~ 0.05 seconds / 256 images) if we optimize 
+    // this... Lets wait.
+    DataType * p_output = p_output_layer->p_data_cube->get_logical_matrix(0, 0).p_data;  
     const size_t output_feature_size = oR*oC;
+    #pragma omp for
     for (size_t o_b = 0; o_b < oB; ++o_b) {
+      DataType * p_output_b = &p_output[o_b*oR*oC*oD];
       for (size_t o_d = 0; o_d < oD; ++o_d) {
-        const LogicalMatrix<DataType> output_data_slice =
-          p_output_layer->p_data_cube->get_logical_matrix(o_d, o_b);
         DataType bias = p_bias_cube->p_data[o_d];
         for (size_t i = 0; i < output_feature_size; ++i) {
-          output_data_slice.p_data[i] += bias;
+          *(p_output_b++) += bias;
         }
       }
     }
+
   }
 
   report_forward_last_transfer.end();

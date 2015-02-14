@@ -119,6 +119,7 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
 
             bridge = new FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layer,
               next_layer, &layer_param);
+            bridge->run_with_n_threads = 16;  // TODO: Add a better abstraction here.
         }
         break;
         {
@@ -264,8 +265,10 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
         // Reset gradient and data cubes for backward and forward passes, respectively,
         // since we don't want any leftover values from the previous iteration
-        (*bridge)->p_input_layer->p_gradient_cube->reset_cube();
-        (*bridge)->p_output_layer->p_data_cube->reset_cube();
+        
+        //(*bridge)->p_input_layer->p_gradient_cube->reset_cube();
+        //(*bridge)->p_output_layer->p_data_cube->reset_cube();
+        
         (*bridge)->forward();
         (*bridge)->report_forward_last_transfer.print();
       }
