@@ -51,34 +51,52 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
 
   const LogicalCube<DataType, Layout_CRDB> * const input_data = p_input_layer->p_data_cube;
   LogicalCube<DataType, Layout_CRDB> * const output_data = p_output_layer->p_data_cube;
+
+  const int _pooled_height = pooled_height;
+  const int _pooled_width = pooled_width;
+  const int _stride = stride;
+  const int _kernel_size = kernel_size;
+  const int _iR = iR, _iC = iC;
+
+  const DataType * input_data_pdata = input_data->get_logical_matrix(0, 0).p_data;
+  DataType * output_data_pdata = output_data->get_logical_matrix(0, 0).p_data;
+  size_t * max_index_slice_pdata = max_index->get_logical_matrix(0, 0).p_data;
+
+  const int inc_input = input_data->R*input_data->C;
+  const int inc_output = output_data->R*output_data->C;
+  const int inc_max = max_index->R*max_index->C;
+
   for (size_t b_i = 0; b_i < iB; ++b_i) {
     for (size_t d_i = 0; d_i < iD; ++d_i) {
-      const LogicalMatrix<DataType> input_data_slice = input_data->get_logical_matrix(d_i, b_i);
-      LogicalMatrix<size_t> max_index_slice = max_index->get_logical_matrix(d_i, b_i);
-      LogicalMatrix<DataType> output_data_slice = output_data->get_logical_matrix(d_i, b_i);
 
-      for (size_t ph = 0; ph < pooled_height; ++ph) {
-        const size_t h_start = ph * stride;
-        const size_t h_end = min(h_start + kernel_size, iR);
-        for (size_t pw = 0; pw < pooled_width; ++pw) {
-          const size_t w_start = pw * stride;
-          const size_t w_end = min(w_start + kernel_size, iC);
-          const size_t pool_index = ph * pooled_width + pw;
-          for (size_t h = h_start; h < h_end; ++h) {
-            for (size_t w = w_start; w < w_end; ++w) {
-              const size_t index = h * iC + w;
-              if (input_data_slice.p_data[index] > output_data_slice.p_data[pool_index]) {
-                output_data_slice.p_data[pool_index] = input_data_slice.p_data[index];
-                max_index_slice.p_data[pool_index] = index;
-              }
+      for (int ph = 0; ph < _pooled_height; ++ph) {
+        const int h_start = ph * _stride;
+        const int h_end = min(h_start + _kernel_size, _iR);
+        for (int pw = 0; pw < _pooled_width; ++pw) {
+          const int w_start = pw * _stride;
+          const int w_end = min(w_start + _kernel_size, _iC);
+          const int pool_index = ph * _pooled_width + pw;
+          for (int h = h_start; h < h_end; ++h) {
+            for (int w = w_start; w < w_end; ++w) {
+              const int index = h * _iC + w;
+
+              max_index_slice_pdata[pool_index] = input_data_pdata[index] > output_data_pdata[pool_index] ?
+                                              index : max_index_slice_pdata[pool_index];
+              output_data_pdata[pool_index] = input_data_pdata[index] > output_data_pdata[pool_index] ? 
+                                              input_data_pdata[index] : output_data_pdata[pool_index];
             }
           }
         }
       }
+
+      input_data_pdata += inc_input;
+      output_data_pdata += inc_output;
+      max_index_slice_pdata += inc_max;
     }
   }
 
-  report_forward_last_transfer.end();
+  report_forward_last_transfer.end(1.0*iB*iD*iR*iC*sizeof(DataType), 
+          iB*iD*pooled_height*pooled_width*(sizeof(DataType)+sizeof(size_t)), 0);
   report_forward_history.aggregate(report_forward_last_transfer);
 }
 
@@ -88,6 +106,7 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
  **/
 template <typename DataType>
 void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
+
   report_backward_updateweight_last_transfer.reset();
 
   p_input_layer->p_gradient_cube->reset_cube();

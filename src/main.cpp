@@ -113,8 +113,13 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
             next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
             next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
+            //bridge = new ParallelizedBridge<DataType_SFFloat,
+            //  FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
+            //  (prev_layer, next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+
             bridge = new FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layer,
-            next_layer, &layer_param);
+              next_layer, &layer_param);
+            bridge->run_with_n_threads = 16;  // TODO: Add a better abstraction here.
         }
         break;
         {
@@ -260,21 +265,25 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
         // Reset gradient and data cubes for backward and forward passes, respectively,
         // since we don't want any leftover values from the previous iteration
-        (*bridge)->p_input_layer->p_gradient_cube->reset_cube();
-        (*bridge)->p_output_layer->p_data_cube->reset_cube();
+        
+        //(*bridge)->p_input_layer->p_gradient_cube->reset_cube();
+        //(*bridge)->p_output_layer->p_data_cube->reset_cube();
+        
         (*bridge)->forward();
-        (*bridge)->report_forward_last_transfer.print();
+        //(*bridge)->report_forward_last_transfer.print();
       }
       std::cout << "fwd elpased " << t.elapsed() << std::endl;
-      t.restart();
 
       cout << "LOSS: " << (softmax->loss / corpus.mini_batch_size) << endl;
       epoch_loss += (softmax->loss / corpus.mini_batch_size);
 
       // backward pass
+      t.restart();
       for (auto bridge = bridges.rbegin(); bridge != bridges.rend(); ++bridge) {
         (*bridge)->backward();
+        (*bridge)->report_backward_updateweight_last_transfer.print();
       }
+      std::cout << "bwd elpased " << t.elapsed() << std::endl;
     }
 
     fclose(pFile);

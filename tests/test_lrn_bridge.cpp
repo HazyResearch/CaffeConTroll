@@ -13,6 +13,9 @@
 #include <cmath>
 #include <cstring>
 
+const double ESP2 = 0.1;  // We increase this threshold becasue 
+                          // of the fastPrecisePow function that we are using.
+
 template <typename TypeParam>
 class LRNBridgeTest : public ::testing::Test {
   public:
@@ -34,7 +37,7 @@ class LRNBridgeTest : public ::testing::Test {
       lrn_param->set_local_size(local_size);
 
       LRNBridge_ = new ParallelizedBridge<DataType_SFFloat, LRNBridge<T, Layout_CRDB, T, Layout_CRDB> >(layer1, layer2,
-          &layer_param, 4, 1);
+          &layer_param, 1, 1);
     }
 
     virtual ~LRNBridgeTest() { delete LRNBridge_; delete layer1; delete layer2;}
@@ -85,7 +88,7 @@ TYPED_TEST(LRNBridgeTest, TestForward){
   if (expected_output.is_open()) {
     expected_output >> output;
     while (!expected_output.eof()) {
-      EXPECT_NEAR(this->data2->p_data[idx], output, EPS);
+      EXPECT_NEAR(this->data2->p_data[idx], output, ESP2);
       expected_output >> output;
       idx++;
     }
@@ -120,7 +123,7 @@ TYPED_TEST(LRNBridgeTest, TestBackward){
   if (expected_output.is_open()) {
     expected_output >> output;
     while (!expected_output.eof()) {
-      EXPECT_NEAR(this->grad1->p_data[idx], output, EPS);
+      EXPECT_NEAR(this->grad1->p_data[idx], output, ESP2);
       expected_output >> output;
       idx++;
     }
