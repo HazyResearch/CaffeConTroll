@@ -1,7 +1,7 @@
 # This is the setup code. Rename to .config
 # Use absolute paths
 # C compiler
-CC=g++ # inexplicably
+CC=g++-4.8 # inexplicably
 
 
 # use absolute paths
