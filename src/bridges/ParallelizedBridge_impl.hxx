@@ -30,8 +30,8 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
       >= n_batch ? n_batch - b : n_batch_per_partition;
 
     _data_cubes_lower.push_back(
-        new LogicalCubeType(NULL, //p_input_layer->p_data_cube->physical_get_RCDslice(b),
-          p_input_layer->dR, p_input_layer->dC, p_input_layer->dD, n_batch_this_partition)
+        new LogicalCubeType(NULL, p_input_layer->dR, p_input_layer->dC,
+          p_input_layer->dD, n_batch_this_partition)
         );
 
     _grad_cubes_lower.push_back(
@@ -128,6 +128,7 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
 
 template<typename DataType, typename BridgeType>
 void ParallelizedBridge<DataType, BridgeType>::backward() {
+
   report_backward_updateweight_last_transfer.reset();
   stratum.backward();
 

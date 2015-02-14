@@ -14,6 +14,8 @@
 //#define _DO_WARNING
 #endif
 
-#define _DEFAULT_STEPSIZE 0.01	
+// TODO: THESE SHOULD NOT BE #defined!
+#define _DEFAULT_STEPSIZE 0.01
+#define _DEFAULT_MOMENTUM 0.90
 
 #endif

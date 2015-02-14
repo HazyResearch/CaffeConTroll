@@ -126,7 +126,7 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
 
     void backward();
 
-  private:
+  protected:
     LogicalCubeType * p_model_cube;
     LogicalCubeType * p_bias_cube;
     LogicalCubeType * p_forward_lowered_data;

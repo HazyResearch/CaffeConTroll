@@ -78,7 +78,7 @@ class LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public AbstractB
     const float beta;
     const size_t local_size;
 
-  private:
+  protected:
     LogicalCube<DataType, Layout_CRDB> * denoms;
 };
 

@@ -74,7 +74,7 @@ class MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Ab
 
     void backward();
 
-  private:
+  protected:
     LogicalCube<size_t, Layout_CRDB> * max_index;
 
     size_t pooled_height;

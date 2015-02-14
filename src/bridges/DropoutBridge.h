@@ -78,7 +78,7 @@ class DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Abstr
 
     LogicalCube<unsigned int, Layout_CRDB> * mask_cube;
 
-  private:
+  protected:
     float scale;
 };
 

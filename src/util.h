@@ -14,6 +14,9 @@
 #include <random>
 #include <float.h>
 #include <limits>
+// These two includes are from OpenBlas
+#include "common.h"
+#include "cblas.h"
 
 enum InitializerType {
   CONSTANT = 0,
@@ -91,6 +94,14 @@ class Util {
       for (size_t i = 0; i < n_arr_elements; ++i) {
         arr[i] = gaussian(gen);
       }
+    }
+
+    static inline void math_axpy(const int N, const double alpha, const float * X, float * Y) {
+      cblas_saxpby(N, alpha, X, 1, 1., Y, 1);
+    }
+
+    static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) {
+      cblas_daxpby(N, alpha, X, 1, 1., Y, 1);
     }
 
     // Note: this is only used for shorts and floats, since _our_memset will only work for ints
