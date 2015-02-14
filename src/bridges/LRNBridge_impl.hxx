@@ -178,9 +178,9 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
       for (size_t o_c = 0; o_c < iC; ++o_c) {
         for (size_t o_r = 0; o_r < iR; ++o_r) {
           const DataType denom_no_exponent = *denoms->logical_get(o_r, o_c, o_d, o_b);
-          const DataType denom = fastPrecisePow(denom_no_exponent, beta);
-          const DataType denom_m1 = fastPrecisePow(denom_no_exponent, beta - 1);
-          const DataType denom2 = denom2 * denom2;
+          const DataType denom = pow(denom_no_exponent, beta);
+          const DataType denom_m1 = pow(denom_no_exponent, beta - 1);
+          const DataType denom2 = denom * denom;
           const DataType input_data = *p_input_layer->p_data_cube->logical_get(o_r, o_c, o_d, o_b);
           for (int i = -norm_window; i <= norm_window; ++i) {
             const int channel = o_d + i;
