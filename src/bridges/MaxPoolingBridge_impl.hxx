@@ -106,6 +106,7 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
  **/
 template <typename DataType>
 void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
+
   report_backward_updateweight_last_transfer.reset();
 
   p_input_layer->p_gradient_cube->reset_cube();
