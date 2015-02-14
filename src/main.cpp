@@ -164,7 +164,6 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
     const cnn::LayerParameter_LayerType layer_type = layer_param.type();
 
     const size_t n_previous_groups = prev_layers.size();
-    std::cout << "n_previous_groups = " << n_previous_groups << std::endl;
 
     if (layer_type != cnn::LayerParameter_LayerType_DATA) {
       switch (layer_type) {
@@ -179,7 +178,8 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
                   stride = layer_param.convolution_param().stride(),
                   grouping = layer_param.convolution_param().group();
 
-            std::cout << "Constructing CONV layer with Grouping = " << grouping << std::endl;
+            std::cout << "Constructing CONV layer with Grouping = " << grouping << 
+              " (# Input Grouping=" << n_previous_groups << ")" << std::endl;
 
             output_R = compute_conv_next_layer_dimension(input_R, K, padding, stride),
             output_C = compute_conv_next_layer_dimension(input_C, K, padding, stride),
@@ -235,10 +235,12 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
         break;
         {
           case cnn::LayerParameter_LayerType_INNER_PRODUCT:
+
             if(n_previous_groups != 1){
               // if the previous group of this fully-connected layer contains multiple
               // groups, then it's the time to unify them! To do this, we introduce a 
               // bridge whose only role is a funnel 
+              std::cout << "Constructing FUNNEL layer with grouping 1 (# Input Grouping=" << n_previous_groups << ")" << std::endl;
               output_R = input_R; output_C = input_C; output_D = input_D * n_previous_groups;
               next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
               next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
@@ -254,6 +256,9 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
               prev_layers.clear();
               prev_layers.push_back(next_layer);
             }
+
+            std::cout << "Constructing FC layer " << "(# Input Grouping=" << 1 << ")" << std::endl;
+
             // The R and C dimensions for a fully connected layer are always 1 x 1
             output_R = output_C = 1;
             output_D = layer_param.inner_product_param().num_output();
@@ -275,6 +280,9 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
         break;
         {
           case cnn::LayerParameter_LayerType_POOLING:
+
+            std::cout << "Constructing MAXPOOLING " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
+
             const size_t K = layer_param.pooling_param().kernel_size(), stride = layer_param.pooling_param().stride();
 
             output_R = compute_conv_next_layer_dimension(input_R, K, 0, stride),
@@ -300,6 +308,8 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
           case cnn::LayerParameter_LayerType_RELU:
             // input_[R,C,D] is the same as output_[R,C,D]
 
+            std::cout << "Constructing RELU layer " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
+
             for(size_t i=0;i<n_previous_groups;i++){
 
               next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
@@ -324,6 +334,8 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
           case cnn::LayerParameter_LayerType_LRN:
             // input_[R,C,D] is the same as output_[R,C,D]
 
+            std::cout << "Constructing LRN layer " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
+
             for(size_t i=0;i<n_previous_groups;i++){
 
               next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
@@ -345,6 +357,9 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
         break;
         {
           case cnn::LayerParameter_LayerType_DROPOUT:
+
+            std::cout << "Constructing DROPOUT layer " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
+
             // input_[R,C,D] is the same as output_[R,C,D]
             for(size_t i=0;i<n_previous_groups;i++){
 
@@ -362,6 +377,9 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
         break;
         {
           case cnn::LayerParameter_LayerType_SOFTMAX_LOSS:
+
+            std::cout << "Constructing SOFTMAX layer " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
+
             // input_[R,C,D] is the same as output_[R,C,D]
             if(n_previous_groups != 1){
               std::cout << "ERROR: Currently, we only support FC layer to connect " <<
