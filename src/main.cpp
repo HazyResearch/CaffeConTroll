@@ -21,6 +21,7 @@
 #include "bridges/DropoutBridge.h"
 #include "bridges/LRNBridge.h"
 #include "bridges/ParallelizedBridge.h"
+#include "bridges/FunnelBridge.h"
 #include "Layer.h"
 #include "parser/corpus.h"
 #include "util.h"
@@ -143,7 +144,10 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
   LogicalCubeFloat * prev_data = new LogicalCubeFloat(corpus.images->physical_get_RCDslice(0), input_R, input_C, input_D, B);
   LogicalCubeFloat * prev_grad = new LogicalCubeFloat(input_R, input_C, input_D, B);
 
-  Layer<DataType_SFFloat, Layout_CRDB> * prev_layer = new Layer<DataType_SFFloat, Layout_CRDB>(prev_data, prev_grad);
+  std::vector<Layer<DataType_SFFloat, Layout_CRDB> *> prev_layers, next_layers;
+  prev_layers.push_back(new Layer<DataType_SFFloat, Layout_CRDB>(prev_data, prev_grad));
+
+  //Layer<DataType_SFFloat, Layout_CRDB> * prev_layer = new Layer<DataType_SFFloat, Layout_CRDB>(prev_data, prev_grad);
 
   const size_t num_layers = net_param.layers_size();
 
@@ -159,6 +163,9 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
     const cnn::LayerParameter layer_param = net_param.layers(i);
     const cnn::LayerParameter_LayerType layer_type = layer_param.type();
 
+    const size_t n_previous_groups = prev_layers.size();
+    std::cout << "n_previous_groups = " << n_previous_groups << std::endl;
+
     if (layer_type != cnn::LayerParameter_LayerType_DATA) {
       switch (layer_type) {
         // Note: These braces surrounding each case statement are necessary
@@ -167,29 +174,89 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
         // scope" error.)
         {
           case cnn::LayerParameter_LayerType_CONVOLUTION:
-            const size_t K = layer_param.convolution_param().kernel_size(),
+          const size_t K = layer_param.convolution_param().kernel_size(),
                   padding = layer_param.convolution_param().pad(),
-                  stride = layer_param.convolution_param().stride();
+                  stride = layer_param.convolution_param().stride(),
+                  grouping = layer_param.convolution_param().group();
+
+            std::cout << "Constructing CONV layer with Grouping = " << grouping << std::endl;
 
             output_R = compute_conv_next_layer_dimension(input_R, K, padding, stride),
-                     output_C = compute_conv_next_layer_dimension(input_C, K, padding, stride),
-                     output_D = layer_param.convolution_param().num_output();
+            output_C = compute_conv_next_layer_dimension(input_C, K, padding, stride),
+            output_D = layer_param.convolution_param().num_output();
+            if(output_D % grouping != 0){
+              std::cout << "ERROR: Currently we only support the input depth \% grouping == 0." << std::endl;
+              assert(false);
+            }
+            output_D /= grouping;
 
-            next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
-            next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
-            next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
+            if(grouping == n_previous_groups){
+              // if input group == output group, then for each 
+              // input group, create a separate bridge and a 
+              // seperate output bridge
+              for(size_t i=0;i<n_previous_groups;i++){
+                // for each group, create bridges
+                next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
+                next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
+                next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
-            bridge = new ParallelizedBridge<DataType_SFFloat,
-              ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
-              (prev_layer, next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+                bridge = new ParallelizedBridge<DataType_SFFloat,
+                  ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
+                  (prev_layers[i], next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+                bridge->name = layer_param.name();
+
+                bridges.push_back(bridge);
+                next_layers.push_back(next_layer);
+              }
+            }else{
+              if(grouping != 1 && n_previous_groups == 1){
+                // in this case, we fork the single input group into multile output groups
+                for(size_t i=0;i<grouping;i++){
+                  // for each group, create bridges
+                  next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
+                  next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
+                  next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
+
+                  bridge = new ParallelizedBridge<DataType_SFFloat,
+                    ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
+                    (prev_layers[0], next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+                  bridge->name = layer_param.name();
+
+                  bridges.push_back(bridge);
+                  next_layers.push_back(next_layer);
+                }
+              }else{
+                std::cout << "ERROR: Currently we do not support the case where input group is " << n_previous_groups
+                  << " and output group is " << grouping << " for CONV layer..." << std::endl; 
+                assert(false);
+              }
+            }
         }
         break;
         {
           case cnn::LayerParameter_LayerType_INNER_PRODUCT:
-            output_D = layer_param.inner_product_param().num_output();
-
+            if(n_previous_groups != 1){
+              // if the previous group of this fully-connected layer contains multiple
+              // groups, then it's the time to unify them! To do this, we introduce a 
+              // bridge whose only role is a funnel 
+              output_R = input_R; output_C = input_C; output_D = input_D * n_previous_groups;
+              next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
+              next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
+              next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
+              bridge = new FunnelBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layers[0],
+                next_layer, &layer_param);
+              for(int i=0;i<n_previous_groups;i++){
+                ((FunnelBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>*)bridge)->p_input_layers.push_back(prev_layers[i]);
+              }
+              bridge->name = "FUNNEL";
+              bridges.push_back(bridge);
+              input_D = output_D;
+              prev_layers.clear();
+              prev_layers.push_back(next_layer);
+            }
             // The R and C dimensions for a fully connected layer are always 1 x 1
             output_R = output_C = 1;
+            output_D = layer_param.inner_product_param().num_output();
             next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
             next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
             next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
@@ -198,10 +265,12 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
             //  FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
             //  (prev_layer, next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
 
-            bridge = new FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layer,
+            bridge = new FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layers[0],
               next_layer, &layer_param);
+            bridge->name = layer_param.name();
             bridge->run_with_n_threads = 16;  // TODO: Add a better abstraction here.
-
+            bridges.push_back(bridge);
+            next_layers.push_back(next_layer);
         }
         break;
         {
@@ -211,28 +280,40 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
             output_R = compute_conv_next_layer_dimension(input_R, K, 0, stride),
                      output_C = compute_conv_next_layer_dimension(input_C, K, 0, stride);
 
-            // input_D same as output_D
-            next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, input_D, B);
-            next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, input_D, B);
-            next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
+            for(size_t i=0;i<n_previous_groups;i++){
+              // input_D same as output_D
+              next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, input_D, B);
+              next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, input_D, B);
+              next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
-            bridge = new ParallelizedBridge<DataType_SFFloat,
-              MaxPoolingBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >(prev_layer,
-                  next_layer, &layer_param, 16, 1);
+              bridge = new ParallelizedBridge<DataType_SFFloat,
+                MaxPoolingBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >(prev_layers[i],
+                    next_layer, &layer_param, 16, 1);
+              bridge->name = layer_param.name();
+              bridges.push_back(bridge);
+              next_layers.push_back(next_layer);
+            }
 
         }
         break;
         {
           case cnn::LayerParameter_LayerType_RELU:
             // input_[R,C,D] is the same as output_[R,C,D]
-            next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
-            next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
-            next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
-            bridge = new ParallelizedBridge<DataType_SFFloat,
-              ReLUBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
-              (prev_layer, next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+            for(size_t i=0;i<n_previous_groups;i++){
 
+              next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
+              next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
+              next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
+
+              bridge = new ParallelizedBridge<DataType_SFFloat,
+                ReLUBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
+                (prev_layers[i], next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+              bridge->name = layer_param.name();
+
+              bridges.push_back(bridge);
+              next_layers.push_back(next_layer);
+            }
             /*
             bridge = new ReLUBridge<DataType_SFFloat, Layout_CRDB,
                    DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, &layer_param);
@@ -242,31 +323,52 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
         {
           case cnn::LayerParameter_LayerType_LRN:
             // input_[R,C,D] is the same as output_[R,C,D]
-            next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
-            next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
-            next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
-            //bridge = new ParallelizedLRNBridge<DataType_SFFloat>(prev_layer, next_layer, &layer_param, 4, 2);
-            //bridge = new LRNBridge<DataType_SFFloat, Layout_CRDB,
-            //       DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, &layer_param);
-            bridge = new ParallelizedBridge<DataType_SFFloat,
-              LRNBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
-              (prev_layer, next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
 
+            for(size_t i=0;i<n_previous_groups;i++){
+
+              next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
+              next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
+              next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
+              //bridge = new ParallelizedLRNBridge<DataType_SFFloat>(prev_layer, next_layer, &layer_param, 4, 2);
+              //bridge = new LRNBridge<DataType_SFFloat, Layout_CRDB,
+              //       DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, &layer_param);
+              bridge = new ParallelizedBridge<DataType_SFFloat,
+                LRNBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
+                (prev_layers[i], next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+              bridge->name = layer_param.name();
+
+              bridges.push_back(bridge);
+              next_layers.push_back(next_layer);
+
+            }
         }
         break;
         {
           case cnn::LayerParameter_LayerType_DROPOUT:
             // input_[R,C,D] is the same as output_[R,C,D]
-            next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
-            next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
-            next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
-            bridge = new DropoutBridge<DataType_SFFloat, Layout_CRDB,
-                   DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, &layer_param);
+            for(size_t i=0;i<n_previous_groups;i++){
+
+              next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
+              next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
+              next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
+              bridge = new DropoutBridge<DataType_SFFloat, Layout_CRDB,
+                   DataType_SFFloat, Layout_CRDB>(prev_layers[i], next_layer, &layer_param);
+              bridge->name = layer_param.name();
+
+              bridges.push_back(bridge);
+              next_layers.push_back(next_layer);
+            }
         }
         break;
         {
           case cnn::LayerParameter_LayerType_SOFTMAX_LOSS:
             // input_[R,C,D] is the same as output_[R,C,D]
+            if(n_previous_groups != 1){
+              std::cout << "ERROR: Currently, we only support FC layer to connect " <<
+                "between multiple input groups to a single output group." << std::endl;
+                assert(false);
+            }
+
             next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
             next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
             next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
@@ -274,7 +376,11 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
             LogicalCubeFloat * const labels = new LogicalCubeFloat(NULL, 1, 1, 1, B);
 
             bridge = new SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB,
-                   DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, labels);
+                 DataType_SFFloat, Layout_CRDB>(prev_layers[0], next_layer, labels);
+            bridge->name = layer_param.name();
+
+            bridges.push_back(bridge);
+            next_layers.push_back(next_layer);
         }
         break;
         default:
@@ -284,11 +390,21 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
 
       // Appending the bridge to our vector of bridges, and updating pointers
       // and values for the next iteration.
-      bridges.push_back(bridge);
+      //bridges.push_back(bridge);
+      
       input_R = output_R, input_C = output_C, input_D = output_D;
-      prev_data = next_data, prev_grad = next_grad;
-      prev_layer = next_layer;
+      //prev_data = next_data, prev_grad = next_grad;
+      //prev_layer = next_layer;
       //ReadModelFromFile(bridges);
+
+      /**
+       * Swap next_layers with prev_layers and empty next;
+       */
+      prev_layers.clear();
+      for(int i=0;i<next_layers.size();i++){
+        prev_layers.push_back(next_layers[i]);
+      }
+      next_layers.clear();
     }
   }
 }
@@ -353,6 +469,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
         //(*bridge)->p_output_layer->p_data_cube->reset_cube();
         
         (*bridge)->forward();
+        (*bridge)->report_forward();
         //(*bridge)->report_forward_last_transfer.print();
       }
       std::cout << "fwd elpased " << t.elapsed() << std::endl;
@@ -365,7 +482,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       t.restart();
       for (auto bridge = bridges.rbegin(); bridge != bridges.rend(); ++bridge) {
         (*bridge)->backward();
-        (*bridge)->report_backward_updateweight_last_transfer.print();
+        (*bridge)->report_backward();
       }
       std::cout << "bwd elpased " << t.elapsed() << std::endl;
     }

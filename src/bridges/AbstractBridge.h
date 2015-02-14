@@ -24,6 +24,8 @@ template
 class AbstractBridge : public PhysicalOperator {
   public:
 
+    std::string name;   // lets give Bridge a name
+
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
 
@@ -40,6 +42,19 @@ class AbstractBridge : public PhysicalOperator {
     Report report_history;
 
     bool bias_term;
+
+    void report_forward(){
+        std::cout << std::endl;
+        std::cout << "## FOWARD REPORT OF LAYER " << name << " ##" << std::endl;
+        report_forward_last_transfer.print();
+    }
+
+    void report_backward(){
+        std::cout << std::endl;
+        std::cout << "## BACKWARD REPORT OF LAYER " << name << " ##" << std::endl;
+        report_backward_updateweight_last_transfer.print();
+    }
+
 
     // Bridges which subclass AbstractBridge may override these four methods later
     // (e.g. ConvolutionBridge). Most, however, won't, since only ConvolutionBridge
