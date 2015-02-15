@@ -101,7 +101,7 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
 
     const bool bias_term;
     const float stepsize;
-    const float momentum;
+    //const float momentum;
 
     const cnn::FillerParameter weight_filler;
     const cnn::FillerParameter bias_filler;
@@ -144,12 +144,12 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
       * p_forward_lower_connector;
 
     Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
-      Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_TRANS> * p_forward_gemm_kernel;
+      Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS> * p_forward_gemm_kernel;
 
     LogicalCube<DataType, Layout_CRDB> * p_backward_inputgrad;
 
     Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
-      Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS> * p_backward_gemm_updateweight_kernel;
+      Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_TRANS> * p_backward_gemm_updateweight_kernel;
 
     Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
       Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_TRANS_NOTRANS> * p_backward_gemm_updategrad_kernel;

@@ -20,7 +20,7 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
   // value set to K. (We assert that they are equal in initialize.)
   K(iR), num_output_features(layer_param->inner_product_param().num_output()),
   stride(1), padding(0), bias_term(layer_param->inner_product_param().bias_term()),
-  stepsize(_DEFAULT_STEPSIZE), momentum(_DEFAULT_MOMENTUM),
+  stepsize(_DEFAULT_STEPSIZE),
   weight_filler(layer_param->inner_product_param().weight_filler()),
   bias_filler(layer_param->inner_product_param().bias_filler()) {
 
@@ -42,11 +42,6 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
   p_model_cube = new LogicalCubeType(K, K, iD, num_output_features);
   initialize_logical_cube(p_model_cube, weight_filler);
 
-  // We keep a "cache" of the model weights in order to use the momentum
-  // update. The cache is initialized to 0.
-  p_model_cube_history = new LogicalCubeType(K, K, iD, num_output_features);
-  p_model_cube_history->reset_cube();
-
   if (bias_term) {
     p_bias_cube = new LogicalCubeType(1, 1, num_output_features, 1);
     initialize_logical_cube(p_bias_cube, bias_filler);
@@ -54,12 +49,8 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
 
   // First, allocate the space we need for lowering
   // Following code is very messy without the Matrix interface -- TODO
-  //p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*iB,
-  //    1, 1);
-
-  // For fully connected layer, lowered result is the same as the input. So just do the poiner.
-  p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(p_input_layer->p_data_cube->p_data, oR*oC*iB,
-    K*K*iD, 1, 1);
+  p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*iB,
+      1, 1);
 
   LogicalCube<DataType, Layout_CRDB> lowered_forward_model(p_model_cube->p_data, num_output_features,
       K*K*iD, 1, 1);
@@ -72,14 +63,14 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
                                 padding, stride);
 
   p_forward_gemm_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
-                        Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_TRANS>(&lowered_forward_model,
+                        Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS>(&lowered_forward_model,
                             p_forward_lowered_data, &lowered_forward_output);
 
   p_backward_inputgrad = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*iB, 1, 1);
 
   p_backward_gemm_updateweight_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType,
                                       Layout_CRDB, Kernel_GEMM_OpenBlas,
-                                      KernelConfig_GEMM_NOTRANS_NOTRANS>(&lowered_forward_output,
+                                      KernelConfig_GEMM_NOTRANS_TRANS>(&lowered_forward_output,
                                           p_forward_lowered_data, &lowered_forward_model);
   p_backward_gemm_updateweight_kernel->alpha = -stepsize;
   p_backward_gemm_updateweight_kernel->beta = 1.;
@@ -140,10 +131,8 @@ forward() {
   LogicalCube<DataType, Layout_CRDB> lowered_output(p_output_layer->p_data_cube->p_data,
       num_output_features, oR*oC*iB, 1, 1);
 
-  // (1) do the lowering -- NO LOWERING IS NECESSARY FOR FC
-  //t.restart();
-  //p_forward_lower_connector->lower_cube(p_input_layer->p_data_cube, p_forward_lowered_data);
-  //std::cout << "lower: " << t.elapsed() << std::endl;
+  // (1) do the lowering
+  p_forward_lower_connector->lower_cube(p_input_layer->p_data_cube, p_forward_lowered_data);
 
   // (2) call GEMM kernel
   p_forward_gemm_kernel->compute(&lowered_model, p_forward_lowered_data, &lowered_output);
@@ -162,20 +151,16 @@ forward() {
   //  needing to call remap
 
   p_output_layer->p_data_cube->template remap_output<LOWERING_TYPE1>(num_output_features, iB, oR*oC);
+  // add bias
   if (bias_term) {
-
-    // This can be parallelized better than just using openmp, but this is
-    // not so slow... we can get (~ 0.05 seconds / 256 images) if we optimize
-    // this... Lets wait.
-    DataType * p_output = p_output_layer->p_data_cube->get_logical_matrix(0, 0).p_data;
     const size_t output_feature_size = oR*oC;
-    #pragma omp for
     for (size_t o_b = 0; o_b < oB; ++o_b) {
-      DataType * p_output_b = &p_output[o_b*oR*oC*oD];
       for (size_t o_d = 0; o_d < oD; ++o_d) {
+        const LogicalMatrix<DataType> output_data_slice =
+          p_output_layer->p_data_cube->get_logical_matrix(o_d, o_b);
         DataType bias = p_bias_cube->p_data[o_d];
         for (size_t i = 0; i < output_feature_size; ++i) {
-          *(p_output_b++) += bias;
+          output_data_slice.p_data[i] += bias;
         }
       }
     }
@@ -248,14 +233,7 @@ backward() {
   // (4) calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
   p_backward_gemm_updateweight_kernel->alpha = -stepsize;
   p_backward_gemm_updateweight_kernel->beta = 1.0;
-
-  // Performing weight update:
-  // Step 1: dW = -lr .* (dout * x)
   p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
-  // Step 2: dW = momentum .* history + dW
-  Util::math_axpy(p_model_cube->n_elements, momentum, p_model_cube_history->p_data, p_model_cube->p_data);
-  // Step 3: history = dW
-  Util::_our_memcpy(p_model_cube_history->p_data, p_model_cube->p_data, p_model_cube->n_elements);
 
   report_backward_updateweight_last_transfer.end();
 
@@ -275,7 +253,7 @@ FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::
   if (bias_term) {
     delete p_bias_cube;
   }
-  delete p_model_cube; delete p_model_cube_history; delete p_forward_lowered_data;
+  delete p_model_cube; delete p_forward_lowered_data;
   delete p_backward_gemm_updategrad_kernel; delete p_backward_gemm_updateweight_kernel;
   delete p_backward_inputgrad; delete p_forward_gemm_kernel;
   delete p_forward_lower_connector;

@@ -34,6 +34,8 @@ alpha(1.0), beta(0) {
     assert(i1R==oR);
     assert(i1C==i2R);
     assert(i2C==oC);
+    std::cout << i1R << "   " << i1C << std::endl;
+    std::cout << i2R << "   " << i2C << std::endl;
   } else if (KERNELCONFIG == KernelConfig_GEMM_NOTRANS_TRANS) {
     assert(i1D==1); assert(i1B==1);
     assert(i2D==1); assert(i2B==1);
@@ -92,7 +94,7 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
     N = static_cast<int>(i2C);
     K = static_cast<int>(i1R);
     LDA = M;
-    LDB = N;
+    LDB = N;  
   }
 
   BLASFUNC(sgemm)(&N2, &N1, &N, &M, &K, &_alpha, p_input2_cube->p_data,

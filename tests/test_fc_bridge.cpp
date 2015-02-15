@@ -75,12 +75,12 @@ class FCBridgeTest : public ::testing::Test {
     Layer<T, Layout_CRDB>* layer1c;
     Layer<T, Layout_CRDB>* layer2c;
 
-    static const int mB = 4;
-    static const int iD = 100;
-    static const int oD = 100;
-    static const int iR = 10;
-    static const int iC = 10;
-    static const int k = 10;
+    static const int mB = 7;
+    static const int iD = 12;
+    static const int oD = 25;
+    static const int iR = 20;
+    static const int iC = 20;
+    static const int k = 20;
     static const int s = 1;
     static const int p = 0;
     static const int oR = static_cast<int>((static_cast<float>(iR + 2*p - k) / s)) + 1;
@@ -174,10 +174,11 @@ TYPED_TEST(FCBridgeTest, TestBackward) {
   this->ConvolutionBridge_->backward();
   this->FullyConnectedBridge_->backward();
 
+
   for (int i=0;i<this->iR*this->iC*this->iD*this->mB;i++) {
     EXPECT_NEAR(this->grad1->p_data[i], this->grad1c->p_data[i], EPS);
   }
-
+  
   for (int i=0;i<this->oD;i++) {
     EXPECT_NEAR(this->FullyConnectedBridge_->get_bias_cube()->p_data[i], 
       this->ConvolutionBridge_->get_bias_cube()->p_data[i], EPS);
