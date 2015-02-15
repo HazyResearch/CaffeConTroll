@@ -1,19 +1,42 @@
-# This is the setup code. Rename to .config
-# Use absolute paths
+# This is the configuration file that the Makefile
+# will use to compile CcT. We have the following dependencies:
+#   * lmdb
+#   * OpenBLAS
+#   * GoogleTest
+#   * google-glog
+#   * google-gflags
+#   * Boost
+#
+# If any of these libraries are not currently part of your
+# LD_LIBRARY_PATH, please use the Makefile variables below
+# to configure the compilation. Remember: use absolute paths!
+
 # C compiler
-CC=clang++ # CC = g++-4.8
+CC=clang++ 
 
-CCT=/Users/chrismre/DEVEL/CaffeConTroll
-# directory where lmbd library is installed (if not in path)
+# absolute path to CcT
+CCT=
+
+# directory where lmdb library is installed (if not in path)
 LMDB_INCLUDE=
-LMDB_DIR=/opt/local/lib
+LMDB_LIB_DIR=
 
-OPENBLAS_INCLUDE=$(CCT)/externals/OpenBLAS
-OPENBLAS_LIB_DIR=$(CCT)/lib
+# directory where OpenBLAS is installed (if not in path)
+OPENBLAS_INCLUDE=
+OPENBLAS_LIB_DIR=
 
-GTEST_INCLUDE=$(CCT)/gtest-1.7.0/include/
-GTEST_LIB_DIR=$(CCT)/lib/
+# directory where GoogleTest is installed (if not in path)
+GTEST_INCLUDE=
+GTEST_LIB_DIR=
 
-BOOST_INCLUDE=
+# directory where google-glog is installed (if not in path)
+GLOG_LIB_DIR=
+GLOG_INCLUDE=
+
+# directory where google-gflags is installed (if not in path)
+GFLAGS_LIB_DIR=
+GFLAGS_INCLUDE=
+
+# directory where Boost C++ Library is installed (if not in path)
 BOOST_LIB_DIR=
-
+BOOST_INCLUDE=
