@@ -4,7 +4,13 @@
 TEST(GroupingTest, RunTest) {
 
   int argc = 3;
-  char * argv[3] = {"deepnet", "train", "imagenet_train/imagenet_solver_2.prototxt"};
+  char const * a = "deepnet";
+  char const * b = "train";
+  char const * c = "imagenet_train/imagenet_solver_2.prototxt";
+  char const * argv[3];
+  argv[0] = a;
+  argv[1] = b;
+  argv[2] = c;
   std::string data_binary = "toprocess.bin";
   std::string model_file = "NA";
 
