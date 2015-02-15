@@ -1,9 +1,15 @@
 include .config
 UNAME := $(shell uname)
-DIRS=$(OPENBLAS_DIR) $(LMDB_DIR) $(GTEST_LIB_DIR) $(GLOG_LIB_DIR) $(BOOST_LIB_DIR)
 
-LIBS=lmdb openblas glog
+LIBS=lmdb openblas glog 
 LD_BASE=$(foreach l, $(LIBS), -l$l)
+
+INCLUDE_DIRS=$(BOOST_INCLUDE) $(GTEST_INCLUDE) $(LMBD_INCLUDE) $(OPENBLAS_INCLUDE)  
+INCLUDE_STR=$(foreach d, $(INCLUDE_DIRS), -I$d)
+
+LIB_DIRS=$(BOOST_LIB_DIR) $(GTEST_LIB_DIR) $(LMDB_LIBDIR) $(OPENBLAS_LIB_DIR)  
+LIB_STR=$(foreach d, $(LIB_DIRS), -L$d)
+
 # For Mac OS X 10.10 x86_64 Yosemite
 ifeq ($(UNAME), Darwin)
   CFLAGS = -Wall -std=c++11
@@ -22,7 +28,7 @@ PROTO_COMPILED_SRC=$(PROTO_SRC_DIR)cnn.pb.cc
 
 TARGET = deepnet
 SRC = src/main.cpp src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp $(PROTO_COMPILED_SRC)
-DIR_PARAMS=$(foreach d, $(DIRS), -I$d -L$d)
+DIR_PARAMS=$(INCLUDE_STR) $(LIB_STR)
 PROTOBUF = `pkg-config --cflags --libs protobuf`
 
 ASSEMBLY_FLAGS= -S
@@ -36,11 +42,10 @@ WARNING_FLAGS = -Wextra
 
 PRODUCT_FLAGS = -O3
 
-TEST_CC= clang++
 TEST_CFLAGS=-O0 -std=c++11 -I $(GTEST_INCLUDE)
-TEST_LDFLAGS= $(LDFLAGS)   -L$(GTEST_LIB_DIR) -lgtest -lpthread -L $(OPENBLAS_DIR) -lopenblas
+TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest -lpthread 
 
-TEST_BLASFLAGS= -lm -I $(OPENBLAS_DIR)
+TEST_BLASFLAGS= -lm -I $(OPENBLAS_INCLUDE)
 TEST_SOURCES = src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp tests/test_main.cpp\
 	tests/test_accuracy.cpp\
 	tests/test_model_write.cpp\
@@ -69,7 +74,7 @@ product:
 	$(CC) $(CFLAGS) $(PRODUCT_FLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF) $(SRC) -o $(TARGET)
 
 test: $(PROTO_COMPILED_SRC)
-	$(TEST_CC) $(TEST_CFLAGS) $(TEST_SOURCES) $(PROTO_COMPILED_SRC) $(DIR_PARAMS) $(TEST_LDFLAGS) $(TEST_BLASFLAGS) $(PROTOBUF) -o $(TEST_EXECUTABLE)
+	$(CC) $(TEST_CFLAGS) $(TEST_SOURCES) $(PROTO_COMPILED_SRC) $(DIR_PARAMS) $(TEST_LDFLAGS) $(TEST_BLASFLAGS) $(PROTOBUF) -o $(TEST_EXECUTABLE)
 
 warning:
 	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(WARNING_FLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF) $(SRC) -o $(TARGET)
