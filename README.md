@@ -92,7 +92,9 @@ repo.
 
 * Step 4. Copy config.sample to .config and edit .config to contain your paths.
 
-* Step 5. make && make test
+* Step 5. Build the executable and its test.
+
+> make && make test
 
 It's good on a laptop, on a server, or for a snack. It is unclear
 whether CcT can [smell the blood](http://en.wikipedia.org/wiki/Trollhunter) of christian men.
