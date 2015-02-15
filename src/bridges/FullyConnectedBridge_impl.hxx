@@ -213,6 +213,7 @@ backward() {
   // Note: lowered_model is storing p_model_cube_history, not p_model_cube. We need this for the momentum
   // update.
   LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube_history->p_data, num_output_features, K*K*iD, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_model_current(p_model_cube->p_data, num_output_features, K*K*iD, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(p_output_layer->p_gradient_cube->p_data,
       num_output_features, oR*oC*iB, 1, 1);
 
@@ -234,7 +235,7 @@ backward() {
   // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
   p_output_layer->p_gradient_cube->template remap_output<LOWERING_TYPE1>(oB, num_output_features, oR*oC );
   //    - 2.1 GEMM between the gradient of output and old kernel
-  p_backward_gemm_updategrad_kernel->compute(&lowered_model, &lowered_outputgrad, p_backward_inputgrad);
+  p_backward_gemm_updategrad_kernel->compute(&lowered_model_current, &lowered_outputgrad, p_backward_inputgrad);
   //    - 2.2 undo the lowering (i.e., sum together all grad corresponding to the same unlowered position)
   p_forward_lower_connector->inverse_lower_cube(p_backward_inputgrad, p_input_layer->p_gradient_cube);
   // (4) calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
