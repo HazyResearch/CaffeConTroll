@@ -38,7 +38,7 @@ PROTO_SRC=cnn.proto
 PROTO_COMPILED_SRC=$(PROTO_SRC_DIR)cnn.pb.cc
 
 # SOURCE FILE FOR MAIN PROGRAM
-TARGET = deepnet
+TARGET = caffe-ct
 SRC = src/main.cpp src/DeepNet.cpp src/bridges/PhysicalStratum_impl.cpp \
 	  src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp 
 OBJ_FILES = $(patsubst %.cpp,%.o,$(SRC))

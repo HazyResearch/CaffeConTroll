@@ -13,7 +13,7 @@ int main(int argc, const char * argv[]) {
   //srand(0); // TODO: for determinsitic
 
   if (argc < 3) {
-    cout << "Usage: ./deepnet <train/test> <solver.prototxt>" << endl;
+    cout << "Usage: ./caffe-ct <train/test> <solver.prototxt>" << endl;
     exit(1);
   }
 
