@@ -69,22 +69,6 @@ TYPED_TEST(LogicalCubeTest, TestLogicalFetcher) {
    }	  
 }
 
-TYPED_TEST(LogicalCubeTest, TestLogicalMatrix) {
-  for(int i=0; i<this->cube_->n_elements; i++){
-		this->cube_->p_data[i] = i;
-  }
-  typedef typename TypeParam::T T;
-
-  const int k = 3;
-  const int s = 1;
-  for(int b=0; b<this->cube_->B; b++){
-  	for(int d=0; d<this->cube_->D; d++){
-  		const LogicalMatrix<T> m = this->cube_->get_logical_matrix(d, b);
-  		this->cube_->template lower_logical_matrix<LOWERING_TYPE1>(&m, b, d, k, s);		
-  	}
-  }
-}
-
 // Testing RCD Slice -- implemented only for CRDB Layout
 class LogicalCubeTest_CRDB : public ::testing::Test {
  protected:
