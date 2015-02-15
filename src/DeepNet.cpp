@@ -222,7 +222,7 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
               next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
               bridge = new FunnelBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layers[0],
                 next_layer, &layer_param, &solver_param);
-              for(int i=0;i<n_previous_groups;i++){
+              for(size_t i=0;i<n_previous_groups;i++){
                 ((FunnelBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>*)bridge)->p_input_layers.push_back(prev_layers[i]);
               }
               bridge->name = "FUNNEL";
@@ -394,7 +394,7 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
        * Swap next_layers with prev_layers and empty next;
        */
       prev_layers.clear();
-      for(int i=0;i<next_layers.size();i++){
+      for(size_t i=0;i<next_layers.size();i++){
         prev_layers.push_back(next_layers[i]);
       }
       next_layers.clear();
@@ -437,7 +437,11 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 
       // this loading appears to take just ~ 0.1 s for each batch,
       // so double-buffering seems an overkill here because the following operations took seconds...
-      int rs = fread(corpus.images->p_data, sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
+      size_t rs = fread(corpus.images->p_data, sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
+      if (rs != corpus.images->n_elements){
+        std::cout << "Error in reading data" << std::endl;
+        exit(1);
+      }
 
       std::cout << "Loading Time (seconds)     : " << t.elapsed() << std::endl;
       t.restart();
@@ -535,7 +539,6 @@ float test_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 
   // num_mini_batches - 1, because we need one more iteration for the final mini batch
   // (the last mini batch may not be the same size as the rest of the mini batches)
-  int batch_accuracy;
   int total_accuracy = 0;
   for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches - 1; ++batch,
       corpus_batch_index += corpus.mini_batch_size) {

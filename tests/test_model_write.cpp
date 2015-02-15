@@ -111,16 +111,38 @@ TYPED_TEST_CASE(ReadWriteTest, DataTypes);
 
 TYPED_TEST(ReadWriteTest, Model) {
   typedef typename TypeParam::T T;
-  srand(1);
-  for (int i=0;i<this->iR*this->iC*this->iD*this->mB;i++) {
-    this->data1->p_data[i] = rand()%10;
-    this->grad1->p_data[i] = 0;
+  std::fstream input("tests/conv_forward_in.txt", std::ios_base::in);
+  if (input.is_open()){
+    for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
+      input >> this->data1->p_data[i];
+    }  
   }
+  else{
+    FAIL();
+  }
+  input.close();
+  
+  std::fstream model("tests/conv_backward_model.txt", std::ios_base::in);
+  if (model.is_open()){
+    for(int i=0;i<this->iR*this->iC*this->iD*this->oD;i++){
+      model >> this->ConvolutionBridge_->get_model_cube()->p_data[i];
+    }  
+  }
+  else{
+    FAIL();
+  }
+  model.close();
 
-  srand(0);
-  for (int i=0;i<this->k*this->k*this->iD*this->oD;i++) {
-    this->ConvolutionBridge_->get_model_cube()->p_data[i] = rand()%2;
+  std::fstream bias_file("tests/conv_bias_in.txt", std::ios_base::in);
+  if (bias_file.is_open()){
+    for(int i=0;i<this->oD;i++){
+      bias_file >> this->ConvolutionBridge_->get_bias_cube()->p_data[i];
+    }  
   }
+  else{
+    FAIL();
+  }
+  bias_file.close();
 
   int oR = this->oR;
   int oC = this->oC;
@@ -128,11 +150,6 @@ TYPED_TEST(ReadWriteTest, Model) {
   for (int i=0;i<oR*oC*this->oD*this->mB;i++) {
     this->data2->p_data[i] = 0;
     this->grad2->p_data[i] = i*0.1;
-  }
-
-  srand(0);
-  for (int i=0;i<this->oD;i++) {
-    this->ConvolutionBridge_->get_bias_cube()->p_data[i] = 0.1*(rand()%10);
   }
 
   vector<AbstractBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> *> bridges;
