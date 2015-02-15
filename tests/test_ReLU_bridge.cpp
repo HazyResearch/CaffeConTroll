@@ -29,8 +29,10 @@ class ReLUBridgeTest : public ::testing::Test {
 
       cnn::LayerParameter layer_param;
       ReLUBridge_ = new ParallelizedBridge<T, ReLUBridge<T, Layout_CRDB, T, Layout_CRDB> >(layer1,
-          layer2, &layer_param, 4, 1);
+          layer2, &layer_param, &solver_param, 4, 1);
     }
+
+    cnn::SolverParameter solver_param;
 
     virtual ~ReLUBridgeTest() { delete ReLUBridge_; delete layer1; delete layer2;}
     ParallelizedBridge<T, ReLUBridge<T, Layout_CRDB, T, Layout_CRDB> >* ReLUBridge_;

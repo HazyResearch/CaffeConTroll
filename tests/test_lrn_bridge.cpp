@@ -37,8 +37,10 @@ class LRNBridgeTest : public ::testing::Test {
       lrn_param->set_local_size(local_size);
 
       LRNBridge_ = new ParallelizedBridge<DataType_SFFloat, LRNBridge<T, Layout_CRDB, T, Layout_CRDB> >(layer1, layer2,
-          &layer_param, 1, 1);
+          &layer_param, &solver_param, 4, 1);
     }
+
+    cnn::SolverParameter solver_param;
 
     virtual ~LRNBridgeTest() { delete LRNBridge_; delete layer1; delete layer2;}
     ParallelizedBridge<DataType_SFFloat, LRNBridge<T, Layout_CRDB, T, Layout_CRDB> >* LRNBridge_;

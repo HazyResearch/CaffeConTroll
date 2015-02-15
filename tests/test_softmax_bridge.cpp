@@ -80,7 +80,7 @@ TYPED_TEST(softmaxBridgeTest, TestForward){
     int idx = 0;
     if (expected_output.is_open()) {
         expected_output >> output;
-        EXPECT_NEAR(this->softmaxBridge_->loss, output, EPS);
+        EXPECT_NEAR(this->softmaxBridge_->get_loss(), output, EPS);
         expected_output >> output;
     }
     expected_output.close();

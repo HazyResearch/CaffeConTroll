@@ -30,3 +30,5 @@ Corpus * read_corpus_from_lmdb(const cnn::NetParameter & net_param, const std::s
 
 void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetParameter & net_param,
   const cnn::SolverParameter & solver_param);
+
+int find_accuracy(const LogicalCubeFloat * const labels, const LogicalCubeFloat * output);

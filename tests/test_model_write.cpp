@@ -72,8 +72,11 @@ class ReadWriteTest : public ::testing::Test {
       conv_param->set_pad(p);
       conv_param->set_stride(s);
 
+      cnn::SolverParameter solver_param;
+
+
       ConvolutionBridge_ = new ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>(layer1,
-          layer2, &layer_param);
+          layer2, &layer_param, &solver_param);
     }
 
     ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>* ConvolutionBridge_;

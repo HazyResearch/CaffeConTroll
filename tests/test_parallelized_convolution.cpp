@@ -59,11 +59,13 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
       conv_param->set_pad(p);
       conv_param->set_stride(s);
 
+      cnn::SolverParameter solver_param;
+
       // TODO: set #partition to 8 does not halt
       ParallelizedConvolutionBridge_ = new ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
               Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
-              (layer1, layer2, &layer_param, 4, 1);
+              (layer1, layer2, &layer_param, &solver_param, 4, 1);
     }
 
     //	virtual ~ParallelizedConvolutionBridgeTest() { delete ParallelizedConvolutionBridge_; delete layer1; delete layer2; delete bconfig;}
