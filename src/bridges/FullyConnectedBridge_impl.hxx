@@ -44,6 +44,9 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
   p_model_cube = new LogicalCubeType(K, K, iD, num_output_features);
   initialize_logical_cube(p_model_cube, weight_filler);
 
+  p_model_cube_history = new LogicalCubeType(K, K, iD, num_output_features);
+  p_model_cube_history->reset_cube();
+
   if (bias_term) {
     p_bias_cube = new LogicalCubeType(1, 1, num_output_features, 1);
     initialize_logical_cube(p_bias_cube, bias_filler);

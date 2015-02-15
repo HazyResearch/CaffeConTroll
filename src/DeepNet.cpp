@@ -12,31 +12,31 @@ inline size_t compute_conv_next_layer_dimension(const size_t R_i, const size_t K
 // Note: we assume that the very first layer in the .protoxt
 // file specifies the data layer
 // TODO: also read in test set
-Corpus read_corpus_from_lmdb(const cnn::NetParameter & net_param, const string data_binary, bool train) {
+Corpus * read_corpus_from_lmdb(const cnn::NetParameter & net_param, const string data_binary, bool train) {
   if (train){
     const cnn::LayerParameter layer_param = net_param.layers(0);
     if (layer_param.type() == cnn::LayerParameter_LayerType_DATA) {
       if (layer_param.include(0).phase() == 0) { // training phase
-        return Corpus(layer_param, data_binary);
+        return new Corpus(layer_param, data_binary);
       }
     }  
   }
   else{
     const cnn::LayerParameter layer_param = net_param.layers(1);
     if (layer_param.type() == cnn::LayerParameter_LayerType_DATA) {
-      if (layer_param.include(0).phase() == 1) { // training phase
-        return Corpus(layer_param, data_binary);
+      if (layer_param.include(0).phase() == 1) { // testing phase
+        return new Corpus(layer_param, data_binary);
       }
     }  
   }
-  
   cout << "No data layer present in prototxt file!" << endl;
   assert(false);
+  return NULL;
 }
 
 //// Shubham: Need to be refactored a bit on the basis of how these features would actually be used.
 /// Should we have a separate test function?
-void WriteModelToFile(const BridgeVector bridges, const string model_file){
+void write_model_to_file(const BridgeVector bridges, const string model_file){
   FILE * pFile;
   pFile = fopen (model_file.c_str(), "wb");
   LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
@@ -54,7 +54,7 @@ void WriteModelToFile(const BridgeVector bridges, const string model_file){
   fclose(pFile);
 }
 
-void ReadModelFromFile(BridgeVector & bridges, const string model_file){
+void read_model_from_file(BridgeVector & bridges, const string model_file){
   FILE * pFile;
   pFile = fopen (model_file.c_str(), "rb");
   LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
@@ -106,7 +106,7 @@ int find_accuracy(const LogicalCubeFloat * const labels, const LogicalCubeFloat 
 // This takes in the bridge vector (which has been initialized to be empty in load_and_train_network)
 // and builds up a list of bridges in the vector in the order in which they will be executed in the forward
 // pass. Only the bridges variable is modified.
-void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn::NetParameter & net_param,
+void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetParameter & net_param,
   const cnn::SolverParameter & solver_param) {
   size_t input_R = corpus.n_rows, input_C = corpus.n_cols, input_D = corpus.dim, B = corpus.mini_batch_size;
           //, last_B = corpus.last_batch_size;
@@ -369,7 +369,7 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
             LogicalCubeFloat * const labels = new LogicalCubeFloat(NULL, 1, 1, 1, B);
 
             bridge = new SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB,
-                 DataType_SFFloat, Layout_CRDB>(prev_layers[0], next_layer, labels, &solver_param);
+                 DataType_SFFloat, Layout_CRDB>(prev_layers[0], next_layer, labels);
             bridge->name = layer_param.name();
 
             bridges.push_back(bridge);
@@ -408,7 +408,6 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
 void train_network(const BridgeVector & bridges, const Corpus & corpus, const cnn::NetParameter & net_param,
     const cnn::SolverParameter & solver_param) {
 
-  // TODO: we need a more general AbstractLossBridge
   SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> * const softmax =
     (SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> *) bridges.back();
 
@@ -418,11 +417,11 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
   LogicalCubeFloat * const labels = softmax->p_data_labels;
   LogicalCubeFloat * const input_data = first->p_input_layer->p_data_cube;
 
+  Timer t_total;
+
   const size_t num_epochs = solver_param.max_iter();
-  Timer t = Timer();
   for (size_t epoch = 0; epoch < num_epochs; ++epoch) {
     cout << "EPOCH: " << epoch << endl;
-    float epoch_loss = 0.0;
 
     FILE * pFile;
     pFile = fopen (corpus.filename.c_str(), "rb");
@@ -434,13 +433,14 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       cout << "BATCH: " << batch << endl;
 
       Timer t;
+      Timer t2;
 
       // this loading appears to take just ~ 0.1 s for each batch,
       // so double-buffering seems an overkill here because the following operations took seconds...
-      fread(corpus.images->p_data, sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
-      std::cout << "loading elpased " << t.elapsed() << std::endl;
-      t.restart();
+      int rs = fread(corpus.images->p_data, sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
 
+      std::cout << "Loading Time (seconds)     : " << t.elapsed() << std::endl;
+      t.restart();
       // initialize input_data for this mini batch
       // Ce: Notice the change here compared with the master branch -- this needs to be refactored
       // to make the switching between this and the master branch (that load everything in memory)
@@ -448,28 +448,22 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       float * const mini_batch = corpus.images->physical_get_RCDslice(0);
       input_data->p_data = mini_batch;
 
-      softmax->loss = 0.0;
+      softmax->reset_loss();
 
       // initialize labels for this mini batch
       labels->p_data = corpus.labels->physical_get_RCDslice(corpus_batch_index);
 
       // forward pass
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
-        // Reset gradient and data cubes for backward and forward passes, respectively,
-        // since we don't want any leftover values from the previous iteration
-        
-        //(*bridge)->p_input_layer->p_gradient_cube->reset_cube();
-        //(*bridge)->p_output_layer->p_data_cube->reset_cube();
         
         (*bridge)->forward();
         //(*bridge)->report_forward();
         //(*bridge)->report_forward_last_transfer.print();
       }
-      std::cout << "fwd elpased " << t.elapsed() << std::endl;
+      std::cout << "Forward Pass Time (seconds) : " << t.elapsed() << std::endl;
 
-      cout << "LOSS: " << (softmax->loss / corpus.mini_batch_size) << endl;
-      epoch_loss += (softmax->loss / corpus.mini_batch_size);
-      cout << "ACC : " << find_accuracy(labels, (*--bridges.end())->p_output_layer->p_data_cube) << endl;
+      float loss = (softmax->get_loss() / corpus.mini_batch_size);
+      int accuracy = find_accuracy(labels, (*--bridges.end())->p_output_layer->p_data_cube);
 
       // backward pass
       t.restart();
@@ -477,18 +471,50 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
         (*bridge)->backward();
         //(*bridge)->report_backward();
       }
-      std::cout << "bwd elpased " << t.elapsed() << std::endl;
+      std::cout << "Backward Pass Time (seconds): " << t.elapsed() << std::endl;
+      
+      std::cout << "\033[1;31m";
+      std::cout << "Total Time & Loss & Accuracy: " << t2.elapsed() << "    " << loss << "    " << accuracy;
+      std::cout << "\033[0m" << std::endl;
     }
 
     fclose(pFile);
 
     // TODO: handle the very last batch, which may not have the same
     // batch size as the rest of the batches
-    cout << "Time Elapsed for a single epoch: " << t.elapsed() << endl;
+    cout << "Average Time (seconds) per Epoch: " << t_total.elapsed()/(epoch+1) << endl;
   }
-  cout << "Total Time Elapsed: " << t.elapsed() << endl;
+  cout << "Total Time (seconds): " << t_total.elapsed() << endl;
 
 }
+
+Corpus * load_network(const char * file, const string & data_binary, cnn::SolverParameter & solver_param,
+    cnn::NetParameter & net_param, BridgeVector & bridges, bool train) {
+
+  if (Parser::read_proto_from_text_file(file, &solver_param) &&
+  Parser::read_net_params_from_text_file(solver_param.net(), &net_param)) {
+    Corpus * corpus = read_corpus_from_lmdb(net_param, data_binary, train);
+
+#ifdef _DO_WARNING
+    cout << "Corpus train loaded" << endl;
+    cout << "CORPUS NUM IMAGES: " << corpus.n_images << endl;
+    cout << "CORPUS NUM ROWS: " << corpus.n_rows << endl;
+    cout << "CORPUS NUM COLS: " << corpus.n_cols << endl;
+    cout << "CORPUS NUM CHANNELS: " << corpus.dim << endl;
+    cout << "CORPUS MINI BATCH SIZE: " << corpus.mini_batch_size << endl;
+    cout << "CORPUS NUM MINI BATCHES: " << corpus.num_mini_batches << endl;
+    cout << "CORPUS LAST BATCH SIZE: " << corpus.last_batch_size << endl;
+#endif
+
+    construct_network(bridges, *corpus, net_param, solver_param);
+
+    return corpus;
+  } else {
+    throw runtime_error("Error parsing the solver.protoxt file or train_val.txt file");
+    return NULL;
+  }
+}
+
 
 void test_network(const BridgeVector & bridges, const Corpus & corpus, const cnn::NetParameter & net_param,
     const cnn::SolverParameter & solver_param) {
@@ -504,35 +530,45 @@ void test_network(const BridgeVector & bridges, const Corpus & corpus, const cnn
   LogicalCubeFloat * const input_data = first->p_input_layer->p_data_cube;
 
   FILE * pFile;
-  pFile = fopen (corpus.filename.c_str(), "rb");
+  pFile = fopen(corpus.filename.c_str(), "rb");
 
   // num_mini_batches - 1, because we need one more iteration for the final mini batch
   // (the last mini batch may not be the same size as the rest of the mini batches)
   int batch_accuracy;
-  int total_accuracy = 0; 
+  int total_accuracy = 0;
   for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches - 1; ++batch,
       corpus_batch_index += corpus.mini_batch_size) {
     cout << "BATCH: " << batch << endl;
+
+    Timer t;
+    Timer t2;
+
     fread(corpus.images->p_data, sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
+    std::cout << "Loading Time (seconds)     : " << t.elapsed() << std::endl;
 
     float * const mini_batch = corpus.images->physical_get_RCDslice(0);
     input_data->p_data = mini_batch;
 
-    softmax->loss = 0.0;
+    softmax->reset_loss();
 
     // initialize labels for this mini batch
     labels->p_data = corpus.labels->physical_get_RCDslice(corpus_batch_index);
     // forward pass
     for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
-      (*bridge)->p_input_layer->p_gradient_cube->reset_cube();
-      (*bridge)->p_output_layer->p_data_cube->reset_cube();
+      //(*bridge)->p_input_layer->p_gradient_cube->reset_cube();
+      //(*bridge)->p_output_layer->p_data_cube->reset_cube();
       (*bridge)->forward();
     }
+    std::cout << "Forward Pass Time (seconds) : " << t.elapsed() << std::endl;
 
-    cout << "LOSS: " << (softmax->loss / corpus.mini_batch_size) << endl;
-    batch_accuracy = find_accuracy(labels, softmax->p_output_layer->p_data_cube);
-    cout << "Batch" << batch << " Accuracy " << batch_accuracy << endl;
+    float loss = (softmax->get_loss() / corpus.mini_batch_size);
+    int batch_accuracy = find_accuracy(labels, softmax->p_output_layer->p_data_cube);
     total_accuracy += batch_accuracy;
+
+    std::cout << "\033[1;31m";
+    std::cout << "Total Time & Loss & Accuracy: " << t2.elapsed() << "    " << loss << "    " << batch_accuracy ;
+    std::cout << "\033[0m" << std::endl;
+
   }
   cout << "Total Accuracy" << (1.0*total_accuracy/((corpus.num_mini_batches - 1)*corpus.mini_batch_size)) << endl;
   fclose(pFile);
@@ -567,67 +603,29 @@ void test_network(const BridgeVector & bridges, const Corpus & corpus, const cnn
 //                                            size as the rest of batches)
 //
 void load_and_train_network(const char * file, const string data_binary, const string model_file) {
-  // Step 1:
-  cnn::SolverParameter solver_param;
-  Parser::read_proto_from_text_file(file, &solver_param);
 
-  cnn::NetParameter net_param;
-  Parser::read_net_params_from_text_file(solver_param.net(), &net_param);
-  const Corpus corpus = read_corpus_from_lmdb(net_param, data_binary, true);
-
-#ifdef _DO_WARNING
-  cout << "Corpus train loaded" << endl;
-  cout << "CORPUS NUM IMAGES: " << corpus.n_images << endl;
-  cout << "CORPUS NUM ROWS: " << corpus.n_rows << endl;
-  cout << "CORPUS NUM COLS: " << corpus.n_cols << endl;
-  cout << "CORPUS NUM CHANNELS: " << corpus.dim << endl;
-  cout << "CORPUS MINI BATCH SIZE: " << corpus.mini_batch_size << endl;
-  cout << "CORPUS NUM MINI BATCHES: " << corpus.num_mini_batches << endl;
-  cout << "CORPUS LAST BATCH SIZE: " << corpus.last_batch_size << endl;
-#endif
-
-  // Step 2:
-  BridgeVector bridges;
-  construct_network(bridges, corpus, net_param, solver_param);
+  BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
+  Corpus * corpus = load_network(file, data_binary, solver_param, net_param, bridges, true);
 
   // Step 3:
   // Now, the bridges vector is fully populated
-  train_network(bridges, corpus, net_param, solver_param);
+  train_network(bridges, *corpus, net_param, solver_param);
   if(model_file == "NA")
-    WriteModelToFile(bridges, "deepnetmodel.bin");  
+    write_model_to_file(bridges, "deepnetmodel.bin");  
   else
-    WriteModelToFile(bridges, model_file);
+    write_model_to_file(bridges, model_file);
   // Step 4:
   // Clean up! TODO: free the allocated bridges, layers, and cubes
 }
 
 void load_and_test_network(const char * file, const string data_binary, const string model_file) {
-  // Step 1:
-  cnn::SolverParameter solver_param;
-  Parser::read_proto_from_text_file(file, &solver_param);
 
-  cnn::NetParameter net_param;
-  Parser::read_net_params_from_text_file(solver_param.net(), &net_param);
-  const Corpus corpus = read_corpus_from_lmdb(net_param, data_binary, false);
-
-#ifdef _DO_WARNING
-  cout << "Corpus train loaded" << endl;
-  cout << "CORPUS NUM IMAGES: " << corpus.n_images << endl;
-  cout << "CORPUS NUM ROWS: " << corpus.n_rows << endl;
-  cout << "CORPUS NUM COLS: " << corpus.n_cols << endl;
-  cout << "CORPUS NUM CHANNELS: " << corpus.dim << endl;
-  cout << "CORPUS MINI BATCH SIZE: " << corpus.mini_batch_size << endl;
-  cout << "CORPUS NUM MINI BATCHES: " << corpus.num_mini_batches << endl;
-  cout << "CORPUS LAST BATCH SIZE: " << corpus.last_batch_size << endl;
-#endif
-
-  // Step 2:
-  BridgeVector bridges;
-  construct_network(bridges, corpus, net_param, solver_param);
+  BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
+  Corpus * corpus = load_network(file, data_binary, solver_param, net_param, bridges, false);
 
   if(model_file != "NA"){
-    ReadModelFromFile(bridges, model_file); 
-    test_network(bridges, corpus, net_param, solver_param); 
+    read_model_from_file(bridges, model_file); 
+    test_network(bridges, *corpus, net_param, solver_param); 
   }
   else{
     cout << "No valid model file provided" << endl;
