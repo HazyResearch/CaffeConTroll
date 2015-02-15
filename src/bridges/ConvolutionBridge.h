@@ -126,9 +126,12 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     float caffe_stepsize;
     float power;
     float max_iter;
+    float delta;
 
     string regularization_type;
     string lr_policy;
+
+    cnn::SolverParameter::SolverType solver_type;
 
     const cnn::FillerParameter weight_filler;
     const cnn::FillerParameter bias_filler;
@@ -163,6 +166,9 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
   protected:
     LogicalCubeType * p_model_cube;
     LogicalCubeType * p_model_cube_history;
+    LogicalCubeType * p_model_cube_update;
+    LogicalCubeType * p_model_cube_tmp;
+
     LogicalCubeType * p_bias_cube;
     LogicalCubeType * p_forward_lowered_data;
     LogicalCubeType * p_backward_outputgrad;

@@ -33,6 +33,8 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   power(solver_param->power()),
   lr_policy(solver_param->lr_policy()),
   max_iter(solver_param->max_iter()),
+  solver_type(solver_param->solver_type()),
+  delta(solver_param->delta()),
   weight_filler(layer_param->convolution_param().weight_filler()),
   bias_filler(layer_param->convolution_param().bias_filler()) {
 
@@ -58,6 +60,12 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   // update. The cache is initialized to 0.
   p_model_cube_history = new LogicalCubeType(K, K, iD, num_output_features);
   p_model_cube_history->reset_cube();
+
+  p_model_cube_update = new LogicalCubeType(K, K, iD, num_output_features); 
+  p_model_cube_update->reset_cube();
+
+  p_model_cube_tmp = new LogicalCubeType(K, K, iD, num_output_features); 
+  p_model_cube_tmp->reset_cube();
 
   if (bias_term) {
     p_bias_cube = new LogicalCubeType(1, 1, num_output_features, 1);
@@ -267,6 +275,8 @@ backward() {
   // update.
   LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube_history->p_data, num_output_features, K*K*iD, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_model_current(p_model_cube->p_data, num_output_features, K*K*iD, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_model_update(p_model_cube_update->p_data, num_output_features, K*K*iD, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_model_tmp(p_model_cube_tmp->p_data, num_output_features, K*K*iD, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(p_backward_outputgrad->p_data, num_output_features, oR*oC*iB, 1, 1);
 
   // (3) update the bias term, summing over the gradients for each O and B
@@ -296,23 +306,50 @@ backward() {
   }
 
   // (4) calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
-  p_backward_gemm_updateweight_kernel->alpha = -local_rate;
-  p_backward_gemm_updateweight_kernel->beta = momentum;
-  // Performing weight update:
-  // Step 1: V_{t+1} = \muV_{t} - \alpha \grad W
-  // Remember: lowered_model refers to p_model_cube_history
 
-  // X = lowered_model_current / p_model_cube->p_data
+  if(solver_type == 0){ //SGD -- TODO: change to ENUM
+    p_backward_gemm_updateweight_kernel->alpha = -local_rate;
+    p_backward_gemm_updateweight_kernel->beta = momentum;
+    p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
+    if(weight_decay != 0){
+      Util::regularize(regularization_type, lowered_model.n_elements, weight_decay, lowered_model.p_data, p_model_cube->p_data);
+    }
+    Util::math_axpy(p_model_cube->n_elements, 1., p_model_cube_history->p_data, p_model_cube->p_data);
+  }else if (solver_type == 2){ //AdaGrad -- TODO: change to ENUM
+    //std::cout << "ADA" << std::endl;
+    p_backward_gemm_updateweight_kernel->alpha = -1;
+    p_backward_gemm_updateweight_kernel->beta = 0;
 
-  // \Delta X = lowered_model 
-  p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
+    p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model_update);
+    if(weight_decay != 0){
+      Util::regularize(regularization_type, lowered_model_update.n_elements, weight_decay, lowered_model_update.p_data, p_model_cube->p_data);
+    }
+    
+    // optimize this soon
+    for(int i=0;i<lowered_model_update.n_elements;i++){
+      lowered_model.p_data[i] += lowered_model_update.p_data[i] * lowered_model_update.p_data[i];
+      p_model_cube->p_data[i] += local_rate * lowered_model_update.p_data[i] / (sqrt(lowered_model.p_data[i])+delta);
+    }
+  }else if (solver_type == 1){ //Nesterov -- TODO: change to ENUM
+    p_backward_gemm_updateweight_kernel->alpha = 1;
+    p_backward_gemm_updateweight_kernel->beta = 0;
 
-  if(weight_decay != 0){
-    Util::regularize(regularization_type, lowered_model.n_elements, weight_decay, lowered_model.p_data, p_model_cube->p_data);
+    p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model_update);
+    if(weight_decay != 0){
+      Util::regularize(regularization_type, lowered_model_update.n_elements, weight_decay, lowered_model_update.p_data, p_model_cube->p_data);
+    }
+
+    DataType tmp; // optimize this soon
+    for(int i=0;i<lowered_model_update.n_elements;i++){
+      tmp = lowered_model.p_data[i];
+      lowered_model.p_data[i] = local_rate * lowered_model_update.p_data[i] + momentum * tmp;
+      p_model_cube->p_data[i] -= (1+momentum)*lowered_model.p_data[i] + momentum*tmp;
+    }
+
+  }else{
+    std::cout << "Unsupported solver type " << solver_type << std::endl;
+    assert(false);
   }
-
-  // Step 2: W_{t+1} = V_{t+1} + W_{t}
-  Util::math_axpy(p_model_cube->n_elements, 1., p_model_cube_history->p_data, p_model_cube->p_data);
 
   report_backward_updateweight_last_transfer.end();
 
