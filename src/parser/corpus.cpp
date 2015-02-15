@@ -135,16 +135,17 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
 
   mdb_env_stat(mdb_env_, &stat);
   n_images = stat.ms_entries;
+  n_images = 2000;
   num_mini_batches = ceil(float(n_images) / mini_batch_size);
   last_batch_size = mini_batch_size - (num_mini_batches * mini_batch_size - n_images);
 
   // Define and initialize cube storing the mean image from the database
-  mean = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, 1);
+  mean = new LogicalCube<DataType_SFFloat, Layout_CRDB>(datum.height(), datum.width(), dim, 1);
 
   if (layer_param.transform_param().has_mean_file()) {
     const string & mean_file = layer_param.transform_param().mean_file();
     Parser::read_proto_from_binary_file(mean_file.c_str(), &cube);
-    const int count_ = n_rows* n_cols* dim;
+    const int count_ = datum.height()* datum.width()* dim;
     for (int i = 0; i < count_; ++i) {
       mean->p_data[i] = cube.data(i);
     }

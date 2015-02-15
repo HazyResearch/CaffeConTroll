@@ -20,7 +20,7 @@ class FunnelBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout,
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
 
     FunnelBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-        const cnn::LayerParameter * const _layer_param) {
+        const cnn::LayerParameter * const _layer_param, const cnn::SolverParameter * const _solver_param) {
       NOT_IMPLEMENTED;
     }
 
@@ -68,7 +68,7 @@ class FunnelBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Abstra
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
 
     FunnelBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-        const cnn::LayerParameter * const _layer_param);
+        const cnn::LayerParameter * const _layer_param, const cnn::SolverParameter * const _solver_param);
 
     ~FunnelBridge();
 

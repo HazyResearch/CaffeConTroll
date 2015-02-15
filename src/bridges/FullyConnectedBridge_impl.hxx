@@ -136,7 +136,7 @@ forward() {
   // (1) do the lowering
   p_forward_lower_connector->lower_cube(p_input_layer->p_data_cube, p_forward_lowered_data);
 
-  // (2) call GEMM kernel
+    // (2) call GEMM kernel
   p_forward_gemm_kernel->compute(&lowered_model, p_forward_lowered_data, &lowered_output);
 
   // Right now the output we get is of the form:
@@ -239,7 +239,7 @@ backward() {
 
   // Performing weight update:
   // Step 1: dW = -lr .* (dout * x)
-  p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
+  //p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
   // Step 2: dW = momentum .* history + dW
   // Util::math_axpy(p_model_cube->n_elements, momentum, p_model_cube_history->p_data, p_model_cube->p_data);
   // Step 3: history = dW
