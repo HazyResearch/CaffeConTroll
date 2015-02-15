@@ -11,10 +11,8 @@
 
 template <typename DataType>
 SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::SoftmaxLossBridge(InputLayerType * const _p_input_layer,
-    OutputLayerType * const _p_output_layer, DataLabelsLogicalCubeType * const _p_data_labels,
-    const cnn::SolverParameter * const _solver_param)
+    OutputLayerType * const _p_output_layer, DataLabelsLogicalCubeType * const _p_data_labels)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer),
-regularization_type(_solver_param->regularization_type()),
 p_data_labels(_p_data_labels),
 ldR(p_data_labels->R), ldC(p_data_labels->C),
 ldD(p_data_labels->D), ldB(p_data_labels->B) {

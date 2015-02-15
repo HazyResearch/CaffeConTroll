@@ -261,7 +261,7 @@ void construct_network(BridgeVector & bridges, const Corpus & corpus, const cnn:
             LogicalCubeFloat * const labels = new LogicalCubeFloat(NULL, 1, 1, 1, B);
 
             bridge = new SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB,
-                   DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, labels, &solver_param);
+                   DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, labels);
         }
         break;
         default:
@@ -325,7 +325,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       float * const mini_batch = corpus.images->physical_get_RCDslice(0);
       input_data->p_data = mini_batch;
 
-      softmax->loss = 0.0;
+      softmax->reset_loss();
 
       // initialize labels for this mini batch
       labels->p_data = corpus.labels->physical_get_RCDslice(corpus_batch_index);
@@ -336,8 +336,8 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       }
       std::cout << "fwd elapsed " << t.elapsed() << std::endl;
 
-      cout << "LOSS: " << (softmax->loss / corpus.mini_batch_size) << endl;
-      epoch_loss += (softmax->loss / corpus.mini_batch_size);
+      cout << "LOSS: " << (softmax->get_loss() / corpus.mini_batch_size) << endl;
+      epoch_loss += (softmax->get_loss() / corpus.mini_batch_size);
       find_accuracy(labels, (*--bridges.end())->p_output_layer->p_data_cube);
 
       // backward pass
@@ -412,7 +412,7 @@ void test_network(const BridgeVector & bridges, const Corpus & corpus, const cnn
     float * const mini_batch = corpus.images->physical_get_RCDslice(0);
     input_data->p_data = mini_batch;
 
-    softmax->loss = 0.0;
+    softmax->reset_loss();
 
     // initialize labels for this mini batch
     labels->p_data = corpus.labels->physical_get_RCDslice(corpus_batch_index);
@@ -422,7 +422,7 @@ void test_network(const BridgeVector & bridges, const Corpus & corpus, const cnn
       (*bridge)->forward();
     }
 
-    cout << "LOSS: " << (softmax->loss / corpus.mini_batch_size) << endl;
+    cout << "LOSS: " << (softmax->get_loss() / corpus.mini_batch_size) << endl;
     batch_accuracy = find_accuracy(labels, softmax->p_output_layer->p_data_cube);
     cout << "Batch" << batch << " Accuracy " << batch_accuracy << endl;
     total_accuracy += batch_accuracy;
