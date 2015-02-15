@@ -474,7 +474,8 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       std::cout << "Backward Pass Time (seconds): " << t.elapsed() << std::endl;
       
       std::cout << "\033[1;31m";
-      std::cout << "Total Time & Loss & Accuracy: " << t2.elapsed() << "    " << loss << "    " << accuracy;
+      std::cout << "Total Time & Loss & Accuracy: " << t2.elapsed() << "    " << loss 
+                << "    " << 1.0*accuracy/corpus.mini_batch_size;
       std::cout << "\033[0m" << std::endl;
     }
 
@@ -566,7 +567,8 @@ float test_network(const BridgeVector & bridges, const Corpus & corpus, const cn
     total_accuracy += batch_accuracy;
 
     std::cout << "\033[1;31m";
-    std::cout << "Total Time & Loss & Accuracy: " << t2.elapsed() << "    " << loss << "    " << batch_accuracy ;
+    std::cout << "Total Time & Loss & Accuracy: " << t2.elapsed() << "    " << loss 
+              << "    " << 1.0*batch_accuracy/corpus.mini_batch_size;
     std::cout << "\033[0m" << std::endl;
 
   }
