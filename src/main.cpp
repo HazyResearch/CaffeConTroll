@@ -63,39 +63,39 @@ Corpus read_corpus_from_lmdb(const cnn::NetParameter & net_param, const string &
 //// Shubham: Need to be refactored a bit on the basis of how these features would actually be used.
 /// Should we have a separate test function?
 void write_model_to_file(const BridgeVector bridges, const string model_file) {
-  // FILE * pFile;
-  // pFile = fopen (model_file.c_str(), "wb");
-  // LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
-  // LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
-  // for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
-  //   model = (*bridge)->get_model_cube();
-  //   if (model) {
-  //     fwrite(model->p_data , sizeof(DataType_SFFloat), model->n_elements, pFile);
-  //   }
-  //   bias = (*bridge)->get_bias_cube();
-  //   if (bias) {
-  //     fwrite(bias->p_data , sizeof(DataType_SFFloat), bias->n_elements, pFile);
-  //   }
-  // }
-  // fclose(pFile);
+  FILE * pFile;
+  pFile = fopen (model_file.c_str(), "wb");
+  LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
+  LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
+  for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
+    model = (*bridge)->get_model_cube();
+    if (model) {
+      fwrite(model->p_data , sizeof(DataType_SFFloat), model->n_elements, pFile);
+    }
+    bias = (*bridge)->get_bias_cube();
+    if (bias) {
+      fwrite(bias->p_data , sizeof(DataType_SFFloat), bias->n_elements, pFile);
+    }
+  }
+  fclose(pFile);
 }
 
 void read_model_from_file(BridgeVector & bridges, const string model_file) {
-  // FILE * pFile;
-  // pFile = fopen (model_file.c_str(), "rb");
-  // LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
-  // LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
-  // for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
-  //   model = (*bridge)->get_model_cube();
-  //   if (model) {
-  //     fread(model->p_data , sizeof(DataType_SFFloat), model->n_elements, pFile);
-  //   }
-  //   bias = (*bridge)->get_bias_cube();
-  //   if (bias) {
-  //     fread(bias->p_data , sizeof(DataType_SFFloat), bias->n_elements, pFile);
-  //   }
-  // }
-  // fclose(pFile);
+  FILE * pFile;
+  pFile = fopen (model_file.c_str(), "rb");
+  LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
+  LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
+  for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
+    model = (*bridge)->get_model_cube();
+    if (model) {
+      fread(model->p_data , sizeof(DataType_SFFloat), model->n_elements, pFile);
+    }
+    bias = (*bridge)->get_bias_cube();
+    if (bias) {
+      fread(bias->p_data , sizeof(DataType_SFFloat), bias->n_elements, pFile);
+    }
+  }
+  fclose(pFile);
 }
 
 int find_accuracy(const LogicalCubeFloat * const labels, const LogicalCubeFloat * output) {
@@ -362,23 +362,26 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 Corpus load_network(const char * file, const string & data_binary, cnn::SolverParameter & solver_param,
     cnn::NetParameter & net_param, BridgeVector & bridges, bool train) {
 
-  Parser::read_proto_from_text_file(file, &solver_param);
-  Parser::read_net_params_from_text_file(solver_param.net(), &net_param);
-  const Corpus corpus = read_corpus_from_lmdb(net_param, data_binary, train);
+  if (Parser::read_proto_from_text_file(file, &solver_param) &&
+  Parser::read_net_params_from_text_file(solver_param.net(), &net_param)) {
+    const Corpus corpus = read_corpus_from_lmdb(net_param, data_binary, train);
 
 #ifdef _DO_WARNING
-  cout << "Corpus train loaded" << endl;
-  cout << "CORPUS NUM IMAGES: " << corpus.n_images << endl;
-  cout << "CORPUS NUM ROWS: " << corpus.n_rows << endl;
-  cout << "CORPUS NUM COLS: " << corpus.n_cols << endl;
-  cout << "CORPUS NUM CHANNELS: " << corpus.dim << endl;
-  cout << "CORPUS MINI BATCH SIZE: " << corpus.mini_batch_size << endl;
-  cout << "CORPUS NUM MINI BATCHES: " << corpus.num_mini_batches << endl;
-  cout << "CORPUS LAST BATCH SIZE: " << corpus.last_batch_size << endl;
+    cout << "Corpus train loaded" << endl;
+    cout << "CORPUS NUM IMAGES: " << corpus.n_images << endl;
+    cout << "CORPUS NUM ROWS: " << corpus.n_rows << endl;
+    cout << "CORPUS NUM COLS: " << corpus.n_cols << endl;
+    cout << "CORPUS NUM CHANNELS: " << corpus.dim << endl;
+    cout << "CORPUS MINI BATCH SIZE: " << corpus.mini_batch_size << endl;
+    cout << "CORPUS NUM MINI BATCHES: " << corpus.num_mini_batches << endl;
+    cout << "CORPUS LAST BATCH SIZE: " << corpus.last_batch_size << endl;
 #endif
 
-  construct_network(bridges, corpus, net_param, solver_param);
-  return corpus;
+    construct_network(bridges, corpus, net_param, solver_param);
+    return corpus;
+  } else {
+    throw runtime_error("Error parsing the solver.protoxt file or train_val.txt file");
+  }
 }
 
 void test_network(const BridgeVector & bridges, const Corpus & corpus, const cnn::NetParameter & net_param,
