@@ -29,8 +29,10 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_backward_updateweight_constructor;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_backward_updateweight_last_transfer;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_backward_updateweight_history;
-
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::needs_to_calc_backward_grad;
+    
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::layer_param;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::solver_param;
 
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_input_layer;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_output_layer;
@@ -54,8 +56,9 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
 
     ParallelizedBridge(Layer<DataType, Layout_CRDB> * const _input_layer,
         Layer<DataType, Layout_CRDB> * const _output_layer,
-        const cnn::LayerParameter * const _layer_param, size_t _n_partition,
-        size_t _n_thread_per_partition);
+        const cnn::LayerParameter * const _layer_param,
+        const cnn::SolverParameter * const _solver_param,
+        size_t _n_partition, size_t _n_thread_per_partition);
 
     void forward();
 

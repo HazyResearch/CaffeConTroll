@@ -74,14 +74,16 @@ TYPED_TEST(softmaxBridgeTest, TestForward){
         this->label->p_data[n] = rand()%10;
     }
     this->softmaxBridge_->forward();
-    std::fstream expected_output("softmax_forward.txt", std::ios_base::in);
+    std::fstream expected_output("tests/softmax_forward.txt", std::ios_base::in);
     
     T output;
     int idx = 0;
     if (expected_output.is_open()) {
         expected_output >> output;
-        EXPECT_NEAR(this->softmaxBridge_->loss, output, EPS);
+        EXPECT_NEAR(this->softmaxBridge_->get_loss(), output, EPS);
         expected_output >> output;
+    }else{
+        FAIL();
     }
     expected_output.close();
 }
@@ -103,7 +105,7 @@ TYPED_TEST(softmaxBridgeTest, TestBackward){
     }
     this->softmaxBridge_->backward();
 
-    std::fstream expected_output("softmax_backward.txt", std::ios_base::in);
+    std::fstream expected_output("tests/softmax_backward.txt", std::ios_base::in);
     
     T output;
     int idx = 0;
@@ -114,6 +116,8 @@ TYPED_TEST(softmaxBridgeTest, TestBackward){
             expected_output >> output;
             idx++;
         }
+    }else{
+        FAIL();
     }
     expected_output.close();   
 }

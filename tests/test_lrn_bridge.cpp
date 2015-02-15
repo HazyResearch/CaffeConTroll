@@ -37,8 +37,10 @@ class LRNBridgeTest : public ::testing::Test {
       lrn_param->set_local_size(local_size);
 
       LRNBridge_ = new ParallelizedBridge<DataType_SFFloat, LRNBridge<T, Layout_CRDB, T, Layout_CRDB> >(layer1, layer2,
-          &layer_param, 1, 1);
+          &layer_param, &solver_param, 4, 1);
     }
+
+    cnn::SolverParameter solver_param;
 
     virtual ~LRNBridgeTest() { delete LRNBridge_; delete layer1; delete layer2;}
     ParallelizedBridge<DataType_SFFloat, LRNBridge<T, Layout_CRDB, T, Layout_CRDB> >* LRNBridge_;
@@ -81,7 +83,7 @@ TYPED_TEST(LRNBridgeTest, TestForward){
 
   this->LRNBridge_->forward();
 
-  std::fstream expected_output("lrn_forward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/lrn_forward.txt", std::ios_base::in);
 
   T output;
   int idx = 0;
@@ -92,6 +94,8 @@ TYPED_TEST(LRNBridgeTest, TestForward){
       expected_output >> output;
       idx++;
     }
+  }else{
+    FAIL();
   }
   expected_output.close();
 }
@@ -117,7 +121,7 @@ TYPED_TEST(LRNBridgeTest, TestBackward){
 
   this->LRNBridge_->backward();
 
-  std::fstream expected_output("lrn_backward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/lrn_backward.txt", std::ios_base::in);
   T output;
   int idx = 0;
   if (expected_output.is_open()) {
@@ -127,6 +131,8 @@ TYPED_TEST(LRNBridgeTest, TestBackward){
       expected_output >> output;
       idx++;
     }
+  }else{
+    FAIL();
   }
   expected_output.close();
 }

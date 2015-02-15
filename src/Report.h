@@ -84,7 +84,7 @@ public:
         //std::cout << " Float Point Ops = " << get_flop_GFlop() << " G" << std::endl;
         std::cout << " Time Elapsed    = " << elapsed_time << " seconds" << std::endl;
         std::cout << " Data Throughput = " << get_throughput_GB() << " GBytes/s" << std::endl;
-        std::cout << " Flops           = " << get_flops_GFlops() << " GBytes/s" << std::endl;
+        std::cout << " Flops           = " << get_flops_GFlops() << " GFlops" << std::endl;
         //std::cout << "###############################" << std::endl;
     }
 

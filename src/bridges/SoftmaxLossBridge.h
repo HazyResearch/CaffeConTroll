@@ -78,6 +78,15 @@ class SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public A
 
     void backward();
 
+    DataType get_loss() {
+      return loss;
+    }
+
+    void reset_loss() {
+      loss = DataType(0.);
+    }
+
+  protected:
     DataType loss;
 };
 

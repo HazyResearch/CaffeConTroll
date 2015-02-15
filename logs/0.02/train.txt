@@ -1,0 +1,3971 @@
+ubuntu@ip-172-31-10-77:~/deepnet$ ./deepnet train caffe_inputs2/imagenet_solver_3.prototxt -b data/toprocess5.bin -m deepnetmodel.bin 
+Start writing 2000 to data/toprocess5.bin...
+Finished writing images to data/toprocess5.bin...
+Constructing CONV layer with Grouping = 2 (# Input Grouping=1)
+Constructing RELU layer (# Input Grouping=2)
+Constructing MAXPOOLING (# Input Grouping=2)
+Constructing LRN layer (# Input Grouping=2)
+Constructing CONV layer with Grouping = 2 (# Input Grouping=2)
+Constructing RELU layer (# Input Grouping=2)
+Constructing MAXPOOLING (# Input Grouping=2)
+Constructing LRN layer (# Input Grouping=2)
+Constructing CONV layer with Grouping = 2 (# Input Grouping=2)
+Constructing RELU layer (# Input Grouping=2)
+Constructing CONV layer with Grouping = 2 (# Input Grouping=2)
+Constructing RELU layer (# Input Grouping=2)
+Constructing CONV layer with Grouping = 2 (# Input Grouping=2)
+Constructing RELU layer (# Input Grouping=2)
+Constructing MAXPOOLING (# Input Grouping=2)
+Constructing FUNNEL layer with grouping 1 (# Input Grouping=2)
+Constructing FC layer (# Input Grouping=1)
+Constructing RELU layer (# Input Grouping=1)
+Constructing DROPOUT layer (# Input Grouping=1)
+Constructing FC layer (# Input Grouping=1)
+Constructing RELU layer (# Input Grouping=1)
+Constructing DROPOUT layer (# Input Grouping=1)
+Constructing FC layer (# Input Grouping=1)
+Constructing SOFTMAX layer (# Input Grouping=1)
+EPOCH: 0
+BATCH: 0
+loading elpased 0.0610924
+max: 3.31893  gt: 0.523889
+max: 3.24418  gt: 0.503766
+max: 3.77567  gt: 1.40011
+max: 3.70451  gt: -0.169455
+max: 3.65699  gt: 0.642783
+fwd elpased 2.14169
+LOSS: 7.43568
+ACC : 0
+bwd elpased 2.49635
+BATCH: 1
+loading elpased 0.0420828
+max: 3.34423  gt: -0.637978
+max: 3.1481  gt: 1.34767
+max: 3.52711  gt: 1.46651
+max: 3.53399  gt: 1.02576
+max: 3.71003  gt: -1.22879
+fwd elpased 1.78956
+LOSS: 7.40294
+ACC : 1
+bwd elpased 2.38907
+BATCH: 2
+loading elpased 0.04162
+max: 3.11482  gt: 0.156085
+max: 2.9668  gt: -1.56448
+max: 3.3419  gt: -0.717356
+max: 3.37942  gt: 0.32808
+max: 3.64469  gt: 1.80394
+fwd elpased 1.78509
+LOSS: 7.42129
+ACC : 0
+bwd elpased 2.42916
+BATCH: 3
+loading elpased 0.0401363
+max: 3.03634  gt: -0.63641
+max: 2.88803  gt: 0.378985
+max: 3.35026  gt: 0.658294
+max: 3.52891  gt: 1.06862
+max: 3.47922  gt: -0.823173
+fwd elpased 1.75355
+LOSS: 7.30185
+ACC : 1
+bwd elpased 2.43675
+BATCH: 4
+loading elpased 0.0397837
+max: 2.90961  gt: -0.827966
+max: 2.76504  gt: 0.857423
+max: 3.245  gt: 0.254081
+max: 3.37995  gt: 0.484854
+max: 3.34262  gt: 0.156639
+fwd elpased 1.7276
+LOSS: 7.35915
+ACC : 0
+bwd elpased 2.40589
+BATCH: 5
+loading elpased 0.0395201
+max: 2.86763  gt: -0.899423
+max: 2.67329  gt: 0.340237
+max: 3.13112  gt: 0.0122941
+max: 3.24626  gt: 0.331578
+max: 3.19886  gt: 0.626707
+fwd elpased 1.82517
+LOSS: 7.35523
+ACC : 0
+bwd elpased 2.39533
+BATCH: 6
+loading elpased 0.0402369
+max: 2.86338  gt: -0.961196
+max: 2.72098  gt: 0.147729
+max: 3.09736  gt: -0.0225491
+max: 3.23806  gt: 1.32378
+max: 3.0933  gt: 0.259925
+fwd elpased 1.74131
+LOSS: 7.3125
+ACC : 0
+bwd elpased 2.3843
+Time Elapsed for a single epoch: 30.0199
+EPOCH: 1
+BATCH: 0
+loading elpased 0.0381736
+max: 2.78686  gt: 0.813425
+max: 2.59114  gt: 0.737362
+max: 3.00698  gt: 1.49252
+max: 3.06866  gt: 0.745556
+max: 3.00514  gt: 1.1625
+fwd elpased 1.74156
+LOSS: 6.93243
+ACC : 0
+bwd elpased 2.38839
+BATCH: 1
+loading elpased 0.0369592
+max: 2.79944  gt: -0.395241
+max: 2.54453  gt: 1.40088
+max: 2.85992  gt: 1.7185
+max: 3.10376  gt: 1.10596
+max: 3.1104  gt: -0.564254
+fwd elpased 1.70859
+LOSS: 6.93427
+ACC : 2
+bwd elpased 2.41332
+BATCH: 2
+loading elpased 0.0371241
+max: 2.87672  gt: 0.429318
+max: 2.42339  gt: -0.994888
+max: 2.75098  gt: -0.384188
+max: 3.05959  gt: 0.719607
+max: 3.09158  gt: 1.96543
+fwd elpased 1.76814
+LOSS: 6.95713
+ACC : 1
+bwd elpased 2.41171
+BATCH: 3
+loading elpased 0.0366945
+max: 2.86065  gt: -0.0246586
+max: 2.40399  gt: 0.45984
+max: 2.81453  gt: 0.950734
+max: 3.26696  gt: 1.62252
+max: 2.98073  gt: -0.510717
+fwd elpased 1.73926
+LOSS: 6.87109
+ACC : 0
+bwd elpased 2.42921
+BATCH: 4
+loading elpased 0.0366457
+max: 2.83935  gt: -0.321996
+max: 2.33751  gt: 1.39571
+max: 2.76679  gt: 0.394632
+max: 3.28567  gt: 0.734602
+max: 2.8923  gt: 0.536672
+fwd elpased 1.75585
+LOSS: 6.94983
+ACC : 1
+bwd elpased 2.37345
+BATCH: 5
+loading elpased 0.0369551
+max: 2.79746  gt: -0.604549
+max: 2.44186  gt: 1.01569
+max: 2.70093  gt: 0.470166
+max: 3.20155  gt: 0.934738
+max: 2.78198  gt: 1.32065
+fwd elpased 1.75711
+LOSS: 6.93956
+ACC : 1
+bwd elpased 2.40533
+BATCH: 6
+loading elpased 0.0367014
+max: 2.88415  gt: -0.599737
+max: 2.43006  gt: 0.850094
+max: 2.71428  gt: 0.492682
+max: 3.15427  gt: 1.63048
+max: 2.70533  gt: 0.868748
+fwd elpased 1.7602
+LOSS: 6.90741
+ACC : 1
+bwd elpased 2.41333
+Time Elapsed for a single epoch: 59.3591
+EPOCH: 2
+BATCH: 0
+loading elpased 0.0371634
+max: 2.81255  gt: 1.07436
+max: 2.36466  gt: 0.972358
+max: 2.65117  gt: 1.61241
+max: 3.2521  gt: 1.49581
+max: 2.64785  gt: 1.63516
+fwd elpased 1.78555
+LOSS: 6.57301
+ACC : 2
+bwd elpased 2.38429
+BATCH: 1
+loading elpased 0.0371484
+max: 2.80648  gt: -0.188652
+max: 2.44828  gt: 1.57955
+max: 2.5402  gt: 2.01904
+max: 3.27679  gt: 1.22146
+max: 2.76911  gt: 0.0160685
+fwd elpased 1.75529
+LOSS: 6.58315
+ACC : 4
+bwd elpased 2.42376
+BATCH: 2
+loading elpased 0.0374672
+max: 2.9107  gt: 0.673712
+max: 2.42095  gt: -0.468454
+max: 2.44171  gt: -0.0728058
+max: 3.22003  gt: 1.06101
+max: 2.76172  gt: 2.16785
+fwd elpased 1.73237
+LOSS: 6.60393
+ACC : 1
+bwd elpased 2.42615
+BATCH: 3
+loading elpased 0.0367582
+max: 2.88798  gt: 0.523878
+max: 2.54183  gt: 0.599783
+max: 2.53254  gt: 1.22591
+max: 3.42051  gt: 2.05763
+max: 2.6794  gt: -0.203391
+fwd elpased 1.79353
+LOSS: 6.53423
+ACC : 2
+bwd elpased 2.39413
+BATCH: 4
+loading elpased 0.0364184
+max: 2.87089  gt: 0.110915
+max: 2.391  gt: 1.81982
+max: 2.51504  gt: 0.532779
+max: 3.41868  gt: 0.977985
+max: 2.60471  gt: 0.873635
+fwd elpased 1.72946
+LOSS: 6.62254
+ACC : 1
+bwd elpased 2.43613
+BATCH: 5
+loading elpased 0.0363253
+max: 2.81971  gt: -0.301046
+max: 2.58048  gt: 1.6146
+max: 2.48241  gt: 0.881809
+max: 3.32343  gt: 1.45576
+max: 2.5951  gt: 1.80908
+fwd elpased 1.78991
+LOSS: 6.59999
+ACC : 2
+bwd elpased 2.38324
+BATCH: 6
+loading elpased 0.0366184
+max: 2.91981  gt: -0.28342
+max: 2.56032  gt: 1.43994
+max: 2.51121  gt: 0.909318
+max: 3.26531  gt: 1.87619
+max: 2.67122  gt: 1.42641
+fwd elpased 1.74299
+LOSS: 6.57319
+ACC : 3
+bwd elpased 2.44434
+Time Elapsed for a single epoch: 88.8527
+EPOCH: 3
+BATCH: 0
+loading elpased 0.0378508
+max: 2.85043  gt: 1.33688
+max: 2.49295  gt: 1.22447
+max: 2.46949  gt: 1.76296
+max: 3.35808  gt: 2.13724
+max: 2.69142  gt: 2.0729
+fwd elpased 1.76424
+LOSS: 6.26726
+ACC : 5
+bwd elpased 2.4279
+BATCH: 1
+loading elpased 0.0370392
+max: 2.83802  gt: -0.00297865
+max: 2.56245  gt: 1.82802
+max: 2.5381  gt: 2.37464
+max: 3.37827  gt: 1.35545
+max: 2.68242  gt: 0.537531
+fwd elpased 1.73655
+LOSS: 6.27764
+ACC : 5
+bwd elpased 2.38526
+BATCH: 2
+loading elpased 0.0369569
+max: 2.94516  gt: 0.897632
+max: 2.52166  gt: 0.0293105
+max: 2.72357  gt: 0.232548
+max: 3.31066  gt: 1.39923
+max: 2.76256  gt: 2.38809
+fwd elpased 1.77268
+LOSS: 6.29355
+ACC : 3
+bwd elpased 2.39278
+BATCH: 3
+loading elpased 0.036427
+max: 2.95629  gt: 1.0477
+max: 2.64045  gt: 0.788068
+max: 2.74763  gt: 1.5107
+max: 3.51553  gt: 2.41209
+max: 2.84683  gt: 0.0949962
+fwd elpased 1.77044
+LOSS: 6.23299
+ACC : 8
+bwd elpased 2.40403
+BATCH: 4
+loading elpased 0.0363935
+max: 2.9814  gt: 0.52666
+max: 2.51055  gt: 2.18673
+max: 2.73961  gt: 0.674346
+max: 3.51426  gt: 1.25307
+max: 2.74475  gt: 1.20319
+fwd elpased 1.73471
+LOSS: 6.32548
+ACC : 5
+bwd elpased 2.43304
+BATCH: 5
+loading elpased 0.0362026
+max: 2.99838  gt: -0.0095989
+max: 2.68013  gt: 2.15263
+max: 2.85572  gt: 1.27922
+max: 3.41519  gt: 1.96502
+max: 2.83935  gt: 2.16673
+fwd elpased 1.7361
+LOSS: 6.29233
+ACC : 3
+bwd elpased 2.45296
+BATCH: 6
+loading elpased 0.0365534
+max: 2.97247  gt: 0.0219616
+max: 2.64745  gt: 1.95577
+max: 2.77036  gt: 1.27001
+max: 3.35312  gt: 2.11708
+max: 2.88402  gt: 1.92879
+fwd elpased 1.75967
+LOSS: 6.26651
+ACC : 6
+bwd elpased 2.37094
+Time Elapsed for a single epoch: 118.266
+EPOCH: 4
+BATCH: 0
+loading elpased 0.0373826
+max: 2.90935  gt: 1.58746
+max: 2.58859  gt: 1.50795
+max: 2.76492  gt: 1.94808
+max: 3.44034  gt: 2.69521
+max: 2.80809  gt: 2.52923
+fwd elpased 1.73939
+LOSS: 5.9797
+ACC : 8
+bwd elpased 2.43473
+BATCH: 1
+loading elpased 0.0376191
+max: 2.88558  gt: 0.192287
+max: 2.64089  gt: 2.1141
+max: 2.74994  gt: 2.74994
+max: 3.47162  gt: 1.51417
+max: 2.9223  gt: 1.01429
+fwd elpased 1.7161
+LOSS: 5.98629
+ACC : 10
+bwd elpased 2.40911
+BATCH: 2
+loading elpased 0.0376462
+max: 3.00169  gt: 1.14029
+max: 2.7172  gt: 0.488578
+max: 3.12159  gt: 0.554482
+max: 3.38532  gt: 1.75783
+max: 3.08687  gt: 2.64855
+fwd elpased 1.7611
+LOSS: 5.99738
+ACC : 7
+bwd elpased 2.3706
+BATCH: 3
+loading elpased 0.036588
+max: 3.19484  gt: 1.56054
+max: 2.88551  gt: 1.01137
+max: 3.13631  gt: 1.82216
+max: 3.59036  gt: 2.74263
+max: 3.1451  gt: 0.459462
+fwd elpased 1.72343
+LOSS: 5.94033
+ACC : 12
+bwd elpased 2.40034
+BATCH: 4
+loading elpased 0.0364407
+max: 3.20682  gt: 0.929889
+max: 2.74723  gt: 2.56294
+max: 3.13365  gt: 0.857916
+max: 3.59554  gt: 1.56667
+max: 3.02998  gt: 1.555
+fwd elpased 1.77496
+LOSS: 6.03399
+ACC : 6
+bwd elpased 2.42064
+BATCH: 5
+loading elpased 0.0363473
+max: 3.23634  gt: 0.286202
+max: 2.98378  gt: 2.68335
+max: 3.252  gt: 1.67845
+max: 3.5036  gt: 2.47101
+max: 3.14547  gt: 2.49312
+fwd elpased 1.70726
+LOSS: 5.99177
+ACC : 8
+bwd elpased 2.41883
+BATCH: 6
+loading elpased 0.0372441
+max: 3.05997  gt: 0.321041
+max: 3.15882  gt: 2.42701
+max: 3.15952  gt: 1.60012
+max: 3.44215  gt: 2.37485
+max: 3.20459  gt: 2.44531
+fwd elpased 1.74706
+LOSS: 5.96656
+ACC : 7
+bwd elpased 2.41232
+Time Elapsed for a single epoch: 147.576
+EPOCH: 5
+BATCH: 0
+loading elpased 0.0372866
+max: 3.00348  gt: 1.85982
+max: 3.13493  gt: 1.8518
+max: 3.16653  gt: 2.18203
+max: 3.52941  gt: 3.23574
+max: 3.11352  gt: 2.99484
+fwd elpased 1.7499
+LOSS: 5.6897
+ACC : 12
+bwd elpased 2.40963
+BATCH: 1
+loading elpased 0.037092
+max: 2.99421  gt: 0.394368
+max: 3.12809  gt: 2.43317
+max: 3.15286  gt: 3.15286
+max: 3.76686  gt: 1.72099
+max: 3.41037  gt: 1.48636
+fwd elpased 1.80028
+LOSS: 5.69011
+ACC : 13
+bwd elpased 2.43565
+BATCH: 2
+loading elpased 0.0372316
+max: 3.15767  gt: 1.4168
+max: 3.07782  gt: 0.96208
+max: 3.56278  gt: 0.910397
+max: 3.76514  gt: 2.15936
+max: 3.60283  gt: 2.97225
+fwd elpased 1.81333
+LOSS: 5.69607
+ACC : 11
+bwd elpased 2.42332
+BATCH: 3
+loading elpased 0.0367782
+max: 3.44929  gt: 2.07872
+max: 3.45994  gt: 1.2996
+max: 3.59068  gt: 2.16829
+max: 3.88301  gt: 3.11302
+max: 3.58057  gt: 0.834772
+fwd elpased 1.68407
+LOSS: 5.63857
+ACC : 18
+bwd elpased 2.38289
+BATCH: 4
+loading elpased 0.0363991
+max: 3.44961  gt: 1.36002
+max: 3.28767  gt: 2.98392
+max: 3.58622  gt: 1.06036
+max: 3.86962  gt: 1.95003
+max: 3.4452  gt: 1.95701
+fwd elpased 1.76114
+LOSS: 5.73327
+ACC : 14
+bwd elpased 2.4042
+BATCH: 5
+loading elpased 0.0366744
+max: 3.48612  gt: 0.627372
+max: 3.44354  gt: 3.22334
+max: 3.70595  gt: 2.10767
+max: 3.78259  gt: 3.01096
+max: 3.53651  gt: 2.80992
+fwd elpased 1.74993
+LOSS: 5.679
+ACC : 13
+bwd elpased 2.43154
+BATCH: 6
+loading elpased 0.0366789
+max: 3.29116  gt: 0.639782
+max: 3.76935  gt: 2.89782
+max: 3.63218  gt: 1.9768
+max: 3.9452  gt: 2.67771
+max: 3.63497  gt: 2.97855
+fwd elpased 1.72271
+LOSS: 5.65099
+ACC : 9
+bwd elpased 2.43306
+Time Elapsed for a single epoch: 177.05
+EPOCH: 6
+BATCH: 0
+loading elpased 0.0371205
+max: 3.1737  gt: 2.16937
+max: 3.71278  gt: 2.25095
+max: 3.63591  gt: 2.49415
+max: 3.88485  gt: 3.78796
+max: 3.60952  gt: 3.48139
+fwd elpased 1.71871
+LOSS: 5.37986
+ACC : 23
+bwd elpased 2.42007
+BATCH: 1
+loading elpased 0.0373848
+max: 3.21342  gt: 0.643857
+max: 3.71676  gt: 2.83052
+max: 3.62342  gt: 3.62342
+max: 4.39747  gt: 2.0101
+max: 3.91703  gt: 1.95572
+fwd elpased 1.74125
+LOSS: 5.36985
+ACC : 17
+bwd elpased 2.39655
+BATCH: 2
+loading elpased 0.0374984
+max: 3.39503  gt: 1.77386
+max: 3.59555  gt: 1.44384
+max: 4.10235  gt: 1.31616
+max: 4.42597  gt: 2.63816
+max: 4.15975  gt: 3.37793
+fwd elpased 1.79554
+LOSS: 5.37064
+ACC : 11
+bwd elpased 2.44086
+BATCH: 3
+loading elpased 0.0364438
+max: 3.72199  gt: 2.62937
+max: 4.10425  gt: 1.68536
+max: 4.13374  gt: 2.59287
+max: 4.55468  gt: 3.5267
+max: 4.13514  gt: 1.31852
+fwd elpased 1.74859
+LOSS: 5.30867
+ACC : 22
+bwd elpased 2.45423
+BATCH: 4
+loading elpased 0.0363465
+max: 3.70555  gt: 1.85943
+max: 3.90265  gt: 3.46641
+max: 4.13112  gt: 1.32344
+max: 4.5281  gt: 2.45219
+max: 3.97373  gt: 2.44278
+fwd elpased 1.76619
+LOSS: 5.40001
+ACC : 17
+bwd elpased 2.43445
+BATCH: 5
+loading elpased 0.0367933
+max: 3.74083  gt: 1.05701
+max: 4.01796  gt: 3.83406
+max: 4.23211  gt: 2.59161
+max: 4.3915  gt: 3.57233
+max: 4.07342  gt: 3.14977
+fwd elpased 1.77681
+LOSS: 5.33475
+ACC : 17
+bwd elpased 2.42021
+BATCH: 6
+loading elpased 0.037275
+max: 3.52132  gt: 1.00612
+max: 4.495  gt: 3.39054
+max: 4.19614  gt: 2.41645
+max: 4.60678  gt: 3.08307
+max: 4.25538  gt: 3.58962
+fwd elpased 1.83032
+LOSS: 5.29943
+ACC : 10
+bwd elpased 2.40438
+Time Elapsed for a single epoch: 206.672
+EPOCH: 7
+BATCH: 0
+loading elpased 0.0372811
+max: 3.38778  gt: 2.54722
+max: 4.38448  gt: 2.77004
+max: 4.19275  gt: 2.88893
+max: 4.41794  gt: 4.39621
+max: 4.30841  gt: 4.02524
+fwd elpased 1.72945
+LOSS: 5.0279
+ACC : 26
+bwd elpased 2.42737
+BATCH: 1
+loading elpased 0.036962
+max: 3.44434  gt: 0.982534
+max: 4.39855  gt: 3.33174
+max: 4.17256  gt: 4.17256
+max: 5.0921  gt: 2.3909
+max: 4.51114  gt: 2.463
+fwd elpased 1.73518
+LOSS: 5.0003
+ACC : 21
+bwd elpased 2.40563
+BATCH: 2
+loading elpased 0.0375626
+max: 3.6631  gt: 2.19705
+max: 4.23128  gt: 2.01562
+max: 4.76386  gt: 1.85473
+max: 5.1778  gt: 3.20499
+max: 4.9097  gt: 3.97215
+fwd elpased 1.80813
+LOSS: 4.99106
+ACC : 14
+bwd elpased 2.42488
+BATCH: 3
+loading elpased 0.0363616
+max: 4.06727  gt: 3.29083
+max: 4.92879  gt: 2.24502
+max: 4.7851  gt: 3.18725
+max: 5.32928  gt: 4.04
+max: 4.86415  gt: 1.92014
+fwd elpased 1.7747
+LOSS: 4.92379
+ACC : 23
+bwd elpased 2.39266
+BATCH: 4
+loading elpased 0.0364438
+max: 4.08028  gt: 2.46896
+max: 4.64306  gt: 4.06372
+max: 4.8221  gt: 1.7066
+max: 5.25399  gt: 3.16537
+max: 4.67029  gt: 3.02322
+fwd elpased 1.71025
+LOSS: 5.00286
+ACC : 17
+bwd elpased 2.39233
+BATCH: 5
+loading elpased 0.0364952
+max: 4.25228  gt: 1.65133
+max: 4.77029  gt: 4.5832
+max: 4.86729  gt: 3.15966
+max: 5.06088  gt: 4.31028
+max: 4.84182  gt: 3.57114
+fwd elpased 1.76685
+LOSS: 4.92825
+ACC : 22
+bwd elpased 2.40459
+BATCH: 6
+loading elpased 0.0371535
+max: 4.36898  gt: 1.48434
+max: 5.45352  gt: 4.10679
+max: 4.92565  gt: 3.07929
+max: 5.37147  gt: 3.66875
+max: 5.18196  gt: 4.37006
+fwd elpased 1.76458
+LOSS: 4.87357
+ACC : 13
+bwd elpased 2.41923
+Time Elapsed for a single epoch: 236.1
+EPOCH: 8
+BATCH: 0
+loading elpased 0.0371399
+max: 4.16399  gt: 3.10981
+max: 5.2407  gt: 3.51132
+max: 4.94997  gt: 3.5002
+max: 5.15681  gt: 5.05524
+max: 5.23681  gt: 4.72674
+fwd elpased 1.74729
+LOSS: 4.59685
+ACC : 25
+bwd elpased 2.43334
+BATCH: 1
+loading elpased 0.0371264
+max: 4.3102  gt: 1.49136
+max: 5.29878  gt: 3.98779
+max: 4.89629  gt: 4.89629
+max: 6.00092  gt: 2.94529
+max: 5.32536  gt: 3.04244
+fwd elpased 1.72116
+LOSS: 4.54496
+ACC : 20
+bwd elpased 2.42604
+BATCH: 2
+loading elpased 0.0371392
+max: 4.15249  gt: 2.74759
+max: 5.02172  gt: 2.7768
+max: 5.74163  gt: 2.6335
+max: 6.25541  gt: 4.07522
+max: 6.01716  gt: 4.83352
+fwd elpased 1.75939
+LOSS: 4.51294
+ACC : 17
+bwd elpased 2.60861
+BATCH: 3
+loading elpased 0.036603
+max: 4.59558  gt: 4.15056
+max: 6.13524  gt: 3.12727
+max: 5.78821  gt: 4.0717
+max: 6.38657  gt: 4.80285
+max: 5.95481  gt: 2.7729
+fwd elpased 2.06996
+LOSS: 4.43768
+ACC : 17
+bwd elpased 2.51318
+BATCH: 4
+loading elpased 0.0365748
+max: 5.21443  gt: 3.35783
+max: 5.59472  gt: 5.0722
+max: 5.90078  gt: 2.26522
+max: 6.33788  gt: 4.32637
+max: 5.72679  gt: 3.94536
+fwd elpased 1.74801
+LOSS: 4.49868
+ACC : 14
+bwd elpased 2.43258
+BATCH: 5
+loading elpased 0.0363116
+max: 5.55767  gt: 2.55002
+max: 6.11476  gt: 5.55033
+max: 5.66526  gt: 3.93062
+max: 6.17455  gt: 5.29699
+max: 6.04834  gt: 4.18742
+fwd elpased 1.75483
+LOSS: 4.41637
+ACC : 11
+bwd elpased 2.40421
+BATCH: 6
+loading elpased 0.0372481
+max: 5.70579  gt: 2.25547
+max: 6.97766  gt: 5.2859
+max: 6.06021  gt: 4.17858
+max: 6.72707  gt: 4.6466
+max: 6.76226  gt: 5.6157
+fwd elpased 1.7366
+LOSS: 4.32871
+ACC : 7
+bwd elpased 2.3682
+Time Elapsed for a single epoch: 266.096
+EPOCH: 9
+BATCH: 0
+loading elpased 0.0378923
+max: 5.24863  gt: 3.92953
+max: 6.34966  gt: 4.61766
+max: 6.12935  gt: 4.61947
+max: 6.29724  gt: 5.92069
+max: 6.7798  gt: 5.60041
+fwd elpased 1.73479
+LOSS: 4.06196
+ACC : 14
+bwd elpased 2.39072
+BATCH: 1
+loading elpased 0.0373387
+max: 5.56776  gt: 2.38479
+max: 6.48773  gt: 5.01767
+max: 5.91159  gt: 5.91159
+max: 7.42437  gt: 3.99542
+max: 6.47329  gt: 3.83859
+fwd elpased 1.78078
+LOSS: 3.98597
+ACC : 14
+bwd elpased 2.41811
+BATCH: 2
+loading elpased 0.0368146
+max: 5.3096  gt: 3.84963
+max: 6.45648  gt: 3.88553
+max: 7.2722  gt: 3.90541
+max: 7.79733  gt: 5.61437
+max: 7.69745  gt: 6.00512
+fwd elpased 1.77911
+LOSS: 3.94086
+ACC : 10
+bwd elpased 2.41764
+BATCH: 3
+loading elpased 0.036726
+max: 5.38911  gt: 5.14236
+max: 7.8618  gt: 4.63023
+max: 7.14831  gt: 5.42441
+max: 7.61088  gt: 5.97417
+max: 7.96048  gt: 4.34019
+fwd elpased 1.75847
+LOSS: 3.87836
+ACC : 10
+bwd elpased 2.38366
+BATCH: 4
+loading elpased 0.0371206
+max: 6.84009  gt: 4.66372
+max: 6.64805  gt: 6.64805
+max: 7.43118  gt: 3.36506
+max: 8.0681  gt: 6.44772
+max: 7.17443  gt: 5.75529
+fwd elpased 1.74801
+LOSS: 3.94898
+ACC : 9
+bwd elpased 2.41392
+BATCH: 5
+loading elpased 0.0368777
+max: 7.14841  gt: 4.21574
+max: 8.13386  gt: 6.31549
+max: 6.42121  gt: 4.91547
+max: 7.85287  gt: 6.47992
+max: 7.48325  gt: 5.14409
+fwd elpased 1.79304
+LOSS: 3.89621
+ACC : 4
+bwd elpased 2.4263
+BATCH: 6
+loading elpased 0.0372734
+max: 7.12688  gt: 3.7828
+max: 8.69721  gt: 6.90387
+max: 7.60404  gt: 5.78048
+max: 8.75177  gt: 6.18677
+max: 8.55171  gt: 7.20001
+fwd elpased 1.78405
+LOSS: 3.79764
+ACC : 4
+bwd elpased 2.39891
+Time Elapsed for a single epoch: 295.598
+EPOCH: 10
+BATCH: 0
+loading elpased 0.0371193
+max: 5.96354  gt: 4.94555
+max: 7.65333  gt: 6.00148
+max: 7.84876  gt: 6.34342
+max: 7.71472  gt: 6.47874
+max: 8.76783  gt: 6.18896
+fwd elpased 1.82653
+LOSS: 3.62969
+ACC : 3
+bwd elpased 2.39589
+BATCH: 1
+loading elpased 0.0370825
+max: 6.87832  gt: 3.99319
+max: 7.96714  gt: 6.13043
+max: 7.7233  gt: 6.64901
+max: 8.77524  gt: 5.49694
+max: 7.43697  gt: 4.84093
+fwd elpased 1.76043
+LOSS: 3.58538
+ACC : 4
+bwd elpased 2.45869
+BATCH: 2
+loading elpased 0.0375378
+max: 6.55921  gt: 5.19011
+max: 7.98209  gt: 5.23828
+max: 8.38109  gt: 5.66027
+max: 8.99267  gt: 7.42208
+max: 9.08741  gt: 6.56182
+fwd elpased 1.78321
+LOSS: 3.54354
+ACC : 0
+bwd elpased 2.44038
+BATCH: 3
+loading elpased 0.0364601
+max: 6.90624  gt: 5.53766
+max: 8.94066  gt: 6.19629
+max: 8.08691  gt: 6.53638
+max: 9.39083  gt: 6.74887
+max: 9.32944  gt: 6.21871
+fwd elpased 1.74786
+LOSS: 3.53537
+ACC : 1
+bwd elpased 2.4248
+BATCH: 4
+loading elpased 0.0364451
+max: 7.71451  gt: 5.58809
+max: 7.95938  gt: 7.77338
+max: 9.28265  gt: 4.9702
+max: 9.52467  gt: 8.01861
+max: 8.0359  gt: 7.31619
+fwd elpased 1.79455
+LOSS: 3.57782
+ACC : 2
+bwd elpased 2.50744
+BATCH: 5
+loading elpased 0.0365375
+max: 8.01417  gt: 5.7453
+max: 9.23891  gt: 6.49353
+max: 6.73709  gt: 5.45393
+max: 8.93018  gt: 7.00382
+max: 8.55072  gt: 6.04148
+fwd elpased 1.78992
+LOSS: 3.56797
+ACC : 1
+bwd elpased 2.43226
+BATCH: 6
+loading elpased 0.0372013
+max: 7.68111  gt: 5.21939
+max: 9.38257  gt: 7.94375
+max: 8.58961  gt: 6.76206
+max: 9.65319  gt: 7.27894
+max: 9.18799  gt: 7.75042
+fwd elpased 1.76006
+LOSS: 3.48131
+ACC : 3
+bwd elpased 2.47644
+Time Elapsed for a single epoch: 325.47
+EPOCH: 11
+BATCH: 0
+loading elpased 0.0372625
+max: 6.5063  gt: 5.46002
+max: 8.5483  gt: 6.47016
+max: 9.009  gt: 7.11654
+max: 8.89548  gt: 6.58727
+max: 9.49444  gt: 6.29544
+fwd elpased 1.7791
+LOSS: 3.38915
+ACC : 2
+bwd elpased 2.42831
+BATCH: 1
+loading elpased 0.037332
+max: 7.64928  gt: 5.40788
+max: 8.63254  gt: 6.57719
+max: 8.50328  gt: 6.84091
+max: 9.11389  gt: 6.45201
+max: 7.73972  gt: 5.66574
+fwd elpased 1.75453
+LOSS: 3.37457
+ACC : 1
+bwd elpased 2.45496
+BATCH: 2
+loading elpased 0.0369991
+max: 7.33028  gt: 5.9182
+max: 8.51136  gt: 5.94735
+max: 8.60806  gt: 6.5343
+max: 10.156  gt: 8.00288
+max: 9.47182  gt: 6.51164
+fwd elpased 1.69866
+LOSS: 3.32542
+ACC : 1
+bwd elpased 2.43634
+BATCH: 3
+loading elpased 0.0371408
+max: 7.67573  gt: 5.80797
+max: 9.08332  gt: 6.96809
+max: 8.43916  gt: 6.73392
+max: 10.0176  gt: 6.96273
+max: 9.48832  gt: 7.18161
+fwd elpased 1.82154
+LOSS: 3.32664
+ACC : 0
+bwd elpased 2.41641
+BATCH: 4
+loading elpased 0.0364705
+max: 8.0163  gt: 5.95236
+max: 8.65836  gt: 8.04842
+max: 9.60214  gt: 6.27625
+max: 9.82276  gt: 8.36437
+max: 8.9485  gt: 7.69211
+fwd elpased 1.75698
+LOSS: 3.33375
+ACC : 0
+bwd elpased 2.42185
+BATCH: 5
+loading elpased 0.0361917
+max: 8.44218  gt: 6.61362
+max: 9.50827  gt: 6.5516
+max: 6.95959  gt: 5.72468
+max: 9.2425  gt: 7.21338
+max: 8.90765  gt: 6.47706
+fwd elpased 1.7682
+LOSS: 3.34066
+ACC : 0
+bwd elpased 2.41558
+BATCH: 6
+loading elpased 0.0369568
+max: 8.51133  gt: 5.93953
+max: 9.41366  gt: 8.26295
+max: 8.95254  gt: 7.13092
+max: 9.87128  gt: 7.7753
+max: 9.76298  gt: 7.92561
+fwd elpased 1.78067
+LOSS: 3.27217
+ACC : 0
+bwd elpased 2.45694
+Time Elapsed for a single epoch: 355.133
+EPOCH: 12
+BATCH: 0
+loading elpased 0.0378544
+max: 7.13221  gt: 5.80895
+max: 8.80327  gt: 6.70227
+max: 9.37692  gt: 7.32446
+max: 9.34458  gt: 6.6898
+max: 9.58651  gt: 6.301
+fwd elpased 1.77497
+LOSS: 3.22936
+ACC : 0
+bwd elpased 2.43309
+BATCH: 1
+loading elpased 0.0370853
+max: 8.2501  gt: 6.16384
+max: 8.80095  gt: 6.81574
+max: 8.66372  gt: 6.99852
+max: 9.18553  gt: 6.80589
+max: 7.79617  gt: 6.01072
+fwd elpased 1.73784
+LOSS: 3.23757
+ACC : 0
+bwd elpased 2.44361
+BATCH: 2
+loading elpased 0.0368914
+max: 8.00785  gt: 6.32433
+max: 8.68207  gt: 6.28289
+max: 8.66806  gt: 6.86
+max: 10.3437  gt: 8.23416
+max: 9.42269  gt: 6.57294
+fwd elpased 1.77455
+LOSS: 3.1815
+ACC : 0
+bwd elpased 2.41546
+BATCH: 3
+loading elpased 0.0370989
+max: 8.08525  gt: 5.99392
+max: 9.11192  gt: 7.36048
+max: 8.70143  gt: 6.88608
+max: 10.1392  gt: 7.05064
+max: 9.41941  gt: 7.59045
+fwd elpased 1.77954
+LOSS: 3.17892
+ACC : 0
+bwd elpased 2.44822
+BATCH: 4
+loading elpased 0.0363329
+max: 8.16561  gt: 6.20882
+max: 8.95139  gt: 8.02978
+max: 9.60402  gt: 7.04499
+max: 9.80849  gt: 8.43133
+max: 9.26549  gt: 7.81662
+fwd elpased 1.76252
+LOSS: 3.17593
+ACC : 0
+bwd elpased 2.40975
+BATCH: 5
+loading elpased 0.0368631
+max: 8.62871  gt: 7.04967
+max: 9.59108  gt: 6.68717
+max: 7.42638  gt: 5.88233
+max: 9.24407  gt: 7.26374
+max: 9.0221  gt: 6.68703
+fwd elpased 1.7418
+LOSS: 3.18714
+ACC : 0
+bwd elpased 2.45968
+BATCH: 6
+loading elpased 0.0368818
+max: 8.80659  gt: 6.38699
+max: 9.47884  gt: 8.4669
+max: 9.11655  gt: 7.3672
+max: 9.85741  gt: 7.87681
+max: 9.78727  gt: 7.99757
+fwd elpased 1.75011
+LOSS: 3.13281
+ACC : 0
+bwd elpased 2.45563
+Time Elapsed for a single epoch: 384.793
+EPOCH: 13
+BATCH: 0
+loading elpased 0.037938
+max: 7.45959  gt: 6.05995
+max: 8.88128  gt: 6.83212
+max: 9.50971  gt: 7.5092
+max: 9.42278  gt: 6.69637
+max: 9.58659  gt: 6.35974
+fwd elpased 1.81288
+LOSS: 3.11393
+ACC : 0
+bwd elpased 2.42214
+BATCH: 1
+loading elpased 0.0376247
+max: 8.53959  gt: 6.56503
+max: 8.83578  gt: 6.91252
+max: 8.6863  gt: 7.06197
+max: 9.14745  gt: 6.89349
+max: 7.86197  gt: 6.15279
+fwd elpased 1.75516
+LOSS: 3.13174
+ACC : 0
+bwd elpased 2.44325
+BATCH: 2
+loading elpased 0.0372602
+max: 8.31846  gt: 6.58301
+max: 8.70851  gt: 6.46891
+max: 8.65713  gt: 6.99788
+max: 10.3215  gt: 8.22671
+max: 9.40726  gt: 6.64358
+fwd elpased 1.79477
+LOSS: 3.07273
+ACC : 0
+bwd elpased 2.39529
+BATCH: 3
+loading elpased 0.0368042
+max: 8.26326  gt: 6.18575
+max: 9.20555  gt: 7.47428
+max: 8.77906  gt: 6.97389
+max: 10.0149  gt: 7.06355
+max: 9.30555  gt: 7.80814
+fwd elpased 1.74365
+LOSS: 3.07299
+ACC : 0
+bwd elpased 2.4343
+BATCH: 4
+loading elpased 0.0364631
+max: 8.23337  gt: 6.38593
+max: 8.99321  gt: 8.07382
+max: 9.6154  gt: 7.43662
+max: 9.74296  gt: 8.38911
+max: 9.32428  gt: 7.89039
+fwd elpased 1.7901
+LOSS: 3.06761
+ACC : 0
+bwd elpased 2.39748
+BATCH: 5
+loading elpased 0.0364517
+max: 8.71774  gt: 7.34931
+max: 9.67908  gt: 6.8386
+max: 7.62845  gt: 6.03434
+max: 9.13837  gt: 7.30367
+max: 9.02736  gt: 6.84879
+fwd elpased 1.74064
+LOSS: 3.076
+ACC : 0
+bwd elpased 2.41067
+BATCH: 6
+loading elpased 0.0370164
+max: 9.03397  gt: 6.72206
+max: 9.51711  gt: 8.52722
+max: 9.22457  gt: 7.49857
+max: 9.75443  gt: 7.97127
+max: 9.85129  gt: 8.07645
+fwd elpased 1.77489
+LOSS: 3.03406
+ACC : 0
+bwd elpased 2.40995
+Time Elapsed for a single epoch: 414.392
+EPOCH: 14
+BATCH: 0
+loading elpased 0.0379022
+max: 7.66266  gt: 6.24812
+max: 8.86857  gt: 6.96786
+max: 9.54401  gt: 7.61053
+max: 9.44065  gt: 6.73376
+max: 9.4737  gt: 6.43817
+fwd elpased 1.72899
+LOSS: 3.02592
+ACC : 0
+bwd elpased 2.39081
+BATCH: 1
+loading elpased 0.037308
+max: 8.75127  gt: 6.79763
+max: 8.93331  gt: 7.0239
+max: 8.6812  gt: 7.10892
+max: 9.0726  gt: 7.00988
+max: 7.88646  gt: 6.29579
+fwd elpased 1.74314
+LOSS: 3.04517
+ACC : 0
+bwd elpased 2.44227
+BATCH: 2
+loading elpased 0.0370109
+max: 8.47306  gt: 6.7609
+max: 8.64509  gt: 6.5809
+max: 8.61833  gt: 7.07423
+max: 10.2959  gt: 8.28387
+max: 9.37533  gt: 6.73696
+fwd elpased 1.80551
+LOSS: 2.98852
+ACC : 0
+bwd elpased 2.42236
+BATCH: 3
+loading elpased 0.0366491
+max: 8.38714  gt: 6.30767
+max: 9.27907  gt: 7.60597
+max: 8.79034  gt: 7.02699
+max: 9.91704  gt: 7.10182
+max: 9.28853  gt: 7.85551
+fwd elpased 1.78535
+LOSS: 2.99199
+ACC : 0
+bwd elpased 2.42346
+BATCH: 4
+loading elpased 0.0364099
+max: 8.27733  gt: 6.57398
+max: 8.99729  gt: 8.09842
+max: 9.58086  gt: 7.65289
+max: 9.65922  gt: 8.4547
+max: 9.31506  gt: 7.94936
+fwd elpased 1.78538
+LOSS: 2.98458
+ACC : 0
+bwd elpased 2.39353
+BATCH: 5
+loading elpased 0.0364375
+max: 8.79561  gt: 7.53244
+max: 9.70225  gt: 7.01402
+max: 7.70424  gt: 6.14826
+max: 9.14221  gt: 7.37244
+max: 9.0276  gt: 7.00026
+fwd elpased 1.75635
+LOSS: 2.99209
+ACC : 0
+bwd elpased 2.46426
+BATCH: 6
+loading elpased 0.0368928
+max: 9.15071  gt: 6.86617
+max: 9.58799  gt: 8.5644
+max: 9.28515  gt: 7.57948
+max: 9.71265  gt: 7.96566
+max: 9.83109  gt: 8.12127
+fwd elpased 1.76415
+LOSS: 2.95954
+ACC : 0
+bwd elpased 2.44325
+Time Elapsed for a single epoch: 444.014
+EPOCH: 15
+BATCH: 0
+loading elpased 0.0370925
+max: 7.73562  gt: 6.40542
+max: 8.8929  gt: 7.03895
+max: 9.51619  gt: 7.6709
+max: 9.37962  gt: 6.78916
+max: 9.34952  gt: 6.50671
+fwd elpased 1.78437
+LOSS: 2.95151
+ACC : 0
+bwd elpased 2.39501
+BATCH: 1
+loading elpased 0.0369702
+max: 8.87754  gt: 7.0016
+max: 8.93311  gt: 7.0924
+max: 8.66365  gt: 7.22996
+max: 9.07173  gt: 7.10835
+max: 7.92494  gt: 6.3617
+fwd elpased 1.75915
+LOSS: 2.97274
+ACC : 0
+bwd elpased 2.44012
+BATCH: 2
+loading elpased 0.0369785
+max: 8.60638  gt: 6.94537
+max: 8.6068  gt: 6.66123
+max: 8.64409  gt: 7.17603
+max: 10.3005  gt: 8.29959
+max: 9.30728  gt: 6.84866
+fwd elpased 1.76777
+LOSS: 2.92246
+ACC : 0
+bwd elpased 2.45417
+BATCH: 3
+loading elpased 0.0365258
+max: 8.46569  gt: 6.47106
+max: 9.35056  gt: 7.76526
+max: 8.82131  gt: 7.08072
+max: 9.83002  gt: 7.09895
+max: 9.2442  gt: 7.93057
+fwd elpased 1.73969
+LOSS: 2.92395
+ACC : 0
+bwd elpased 2.40513
+BATCH: 4
+loading elpased 0.0364028
+max: 8.30249  gt: 6.69258
+max: 9.02902  gt: 8.09268
+max: 9.48225  gt: 7.80043
+max: 9.59205  gt: 8.49642
+max: 9.3396  gt: 7.98038
+fwd elpased 1.7576
+LOSS: 2.91662
+ACC : 0
+bwd elpased 2.43179
+BATCH: 5
+loading elpased 0.0366828
+max: 8.79825  gt: 7.61598
+max: 9.73609  gt: 7.14132
+max: 7.67216  gt: 6.1943
+max: 9.10489  gt: 7.42054
+max: 9.11661  gt: 7.08888
+fwd elpased 1.76384
+LOSS: 2.92098
+ACC : 0
+bwd elpased 2.44308
+BATCH: 6
+loading elpased 0.0371936
+max: 9.23495  gt: 7.08461
+max: 9.62864  gt: 8.63584
+max: 9.33049  gt: 7.71917
+max: 9.69552  gt: 7.99841
+max: 9.82776  gt: 8.21872
+fwd elpased 1.76866
+LOSS: 2.89334
+ACC : 0
+bwd elpased 2.4053
+Time Elapsed for a single epoch: 473.602
+EPOCH: 16
+BATCH: 0
+loading elpased 0.0370935
+max: 7.81379  gt: 6.54843
+max: 8.9399  gt: 7.1308
+max: 9.55181  gt: 7.77757
+max: 9.33788  gt: 6.83856
+max: 9.26923  gt: 6.57654
+fwd elpased 1.73932
+LOSS: 2.89171
+ACC : 0
+bwd elpased 2.4023
+BATCH: 1
+loading elpased 0.036968
+max: 8.98748  gt: 7.1777
+max: 8.99285  gt: 7.15984
+max: 8.69425  gt: 7.24577
+max: 9.08102  gt: 7.22495
+max: 7.96384  gt: 6.44544
+fwd elpased 1.79418
+LOSS: 2.91022
+ACC : 0
+bwd elpased 2.41202
+BATCH: 2
+loading elpased 0.0371856
+max: 8.6916  gt: 7.06644
+max: 8.58787  gt: 6.69406
+max: 8.62022  gt: 7.21737
+max: 10.3255  gt: 8.36957
+max: 9.21687  gt: 6.87641
+fwd elpased 1.70649
+LOSS: 2.86128
+ACC : 0
+bwd elpased 2.43586
+BATCH: 3
+loading elpased 0.0364868
+max: 8.52877  gt: 6.60095
+max: 9.45234  gt: 7.87411
+max: 8.84416  gt: 7.21057
+max: 9.72861  gt: 7.13716
+max: 9.25081  gt: 8.02588
+fwd elpased 1.76647
+LOSS: 2.86724
+ACC : 0
+bwd elpased 2.43715
+BATCH: 4
+loading elpased 0.036438
+max: 8.31559  gt: 6.83203
+max: 9.02064  gt: 8.10441
+max: 9.59717  gt: 7.96722
+max: 9.51382  gt: 8.57477
+max: 9.36819  gt: 8.0211
+fwd elpased 1.75689
+LOSS: 2.85608
+ACC : 0
+bwd elpased 2.41229
+BATCH: 5
+loading elpased 0.0370184
+max: 8.82349  gt: 7.67993
+max: 9.74666  gt: 7.28654
+max: 7.67348  gt: 6.24218
+max: 9.08831  gt: 7.43994
+max: 9.10304  gt: 7.16499
+fwd elpased 1.76034
+LOSS: 2.86487
+ACC : 0
+bwd elpased 2.42326
+BATCH: 6
+loading elpased 0.037299
+max: 9.32205  gt: 7.26554
+max: 9.71692  gt: 8.70455
+max: 9.34624  gt: 7.83335
+max: 9.63689  gt: 8.04154
+max: 9.82709  gt: 8.28755
+fwd elpased 1.75311
+LOSS: 2.83596
+ACC : 0
+bwd elpased 2.41072
+Time Elapsed for a single epoch: 503.086
+EPOCH: 17
+BATCH: 0
+loading elpased 0.0372258
+max: 7.8539  gt: 6.67554
+max: 8.94215  gt: 7.1801
+max: 9.55986  gt: 7.89376
+max: 9.33076  gt: 6.9208
+max: 9.15057  gt: 6.66322
+fwd elpased 1.74378
+LOSS: 2.83763
+ACC : 0
+bwd elpased 2.39876
+BATCH: 1
+loading elpased 0.0376455
+max: 9.09753  gt: 7.34383
+max: 9.01189  gt: 7.26507
+max: 8.80008  gt: 7.33154
+max: 9.12389  gt: 7.28784
+max: 7.98592  gt: 6.53239
+fwd elpased 1.78554
+LOSS: 2.85626
+ACC : 1
+bwd elpased 2.44086
+BATCH: 2
+loading elpased 0.0371081
+max: 8.85928  gt: 7.27564
+max: 8.61124  gt: 6.78627
+max: 8.6494  gt: 7.26397
+max: 10.3684  gt: 8.44598
+max: 9.24214  gt: 6.93628
+fwd elpased 1.77714
+LOSS: 2.80954
+ACC : 0
+bwd elpased 2.44756
+BATCH: 3
+loading elpased 0.0368169
+max: 8.63151  gt: 6.73249
+max: 9.53166  gt: 7.96471
+max: 8.84913  gt: 7.24922
+max: 9.65083  gt: 7.15797
+max: 9.2612  gt: 8.09687
+fwd elpased 1.75979
+LOSS: 2.81762
+ACC : 0
+bwd elpased 2.372
+BATCH: 4
+loading elpased 0.0364914
+max: 8.38462  gt: 6.92922
+max: 9.05918  gt: 8.09929
+max: 9.62909  gt: 8.0682
+max: 9.51043  gt: 8.61595
+max: 9.37404  gt: 8.08345
+fwd elpased 1.72258
+LOSS: 2.80523
+ACC : 0
+bwd elpased 2.41989
+BATCH: 5
+loading elpased 0.0362549
+max: 8.81852  gt: 7.77138
+max: 9.74236  gt: 7.3911
+max: 7.6664  gt: 6.32902
+max: 9.07105  gt: 7.51546
+max: 9.13732  gt: 7.27082
+fwd elpased 1.76016
+LOSS: 2.81302
+ACC : 0
+bwd elpased 2.40683
+BATCH: 6
+loading elpased 0.0371356
+max: 9.41056  gt: 7.47298
+max: 9.76246  gt: 8.7575
+max: 9.45037  gt: 7.98838
+max: 9.62999  gt: 8.06598
+max: 9.83963  gt: 8.3676
+fwd elpased 1.74307
+LOSS: 2.78644
+ACC : 0
+bwd elpased 2.42142
+Time Elapsed for a single epoch: 532.558
+EPOCH: 18
+BATCH: 0
+loading elpased 0.0370228
+max: 7.89964  gt: 6.78362
+max: 8.98715  gt: 7.24499
+max: 9.60344  gt: 8.00615
+max: 9.30597  gt: 6.93666
+max: 9.06423  gt: 6.67948
+fwd elpased 1.72458
+LOSS: 2.78864
+ACC : 0
+bwd elpased 2.44242
+BATCH: 1
+loading elpased 0.0377063
+max: 9.22517  gt: 7.51584
+max: 9.07554  gt: 7.38235
+max: 8.81626  gt: 7.40024
+max: 9.10483  gt: 7.44029
+max: 7.97807  gt: 6.56599
+fwd elpased 1.78404
+LOSS: 2.80633
+ACC : 1
+bwd elpased 2.42361
+BATCH: 2
+loading elpased 0.0370065
+max: 8.97188  gt: 7.39689
+max: 8.59593  gt: 6.82725
+max: 8.62401  gt: 7.28839
+max: 10.4248  gt: 8.57204
+max: 9.18442  gt: 6.98989
+fwd elpased 1.81231
+LOSS: 2.76256
+ACC : 0
+bwd elpased 2.39895
+BATCH: 3
+loading elpased 0.0367682
+max: 8.70761  gt: 6.80806
+max: 9.61659  gt: 8.05826
+max: 8.82308  gt: 7.31378
+max: 9.62187  gt: 7.26207
+max: 9.27379  gt: 8.19311
+fwd elpased 1.71986
+LOSS: 2.77249
+ACC : 0
+bwd elpased 2.42328
+BATCH: 4
+loading elpased 0.0363375
+max: 8.44518  gt: 6.9987
+max: 9.06445  gt: 8.18532
+max: 9.65215  gt: 8.15009
+max: 9.63659  gt: 8.69066
+max: 9.38437  gt: 8.09158
+fwd elpased 1.76967
+LOSS: 2.75821
+ACC : 0
+bwd elpased 2.42547
+BATCH: 5
+loading elpased 0.0364286
+max: 8.76672  gt: 7.85694
+max: 9.80166  gt: 7.49765
+max: 7.62838  gt: 6.40559
+max: 9.09685  gt: 7.56839
+max: 9.13322  gt: 7.38913
+fwd elpased 1.73443
+LOSS: 2.76551
+ACC : 0
+bwd elpased 2.45947
+BATCH: 6
+loading elpased 0.0365926
+max: 9.54165  gt: 7.62596
+max: 9.84662  gt: 8.80844
+max: 9.54354  gt: 8.13481
+max: 9.61384  gt: 8.08025
+max: 9.87181  gt: 8.47438
+fwd elpased 1.74014
+LOSS: 2.74022
+ACC : 0
+bwd elpased 2.43855
+Time Elapsed for a single epoch: 562.128
+EPOCH: 19
+BATCH: 0
+loading elpased 0.0373057
+max: 7.95555  gt: 6.88212
+max: 8.9912  gt: 7.32488
+max: 9.58898  gt: 8.05871
+max: 9.26251  gt: 7.02635
+max: 9.00986  gt: 6.71522
+fwd elpased 1.77989
+LOSS: 2.74634
+ACC : 0
+bwd elpased 2.41258
+BATCH: 1
+loading elpased 0.0372513
+max: 9.36615  gt: 7.62553
+max: 9.15924  gt: 7.45601
+max: 8.77961  gt: 7.49336
+max: 9.15212  gt: 7.48272
+max: 8.02186  gt: 6.64846
+fwd elpased 1.77003
+LOSS: 2.7627
+ACC : 1
+bwd elpased 2.41911
+BATCH: 2
+loading elpased 0.0368098
+max: 9.06718  gt: 7.57167
+max: 8.55795  gt: 6.90748
+max: 8.65908  gt: 7.35086
+max: 10.4602  gt: 8.64812
+max: 9.13093  gt: 7.0128
+fwd elpased 1.7745
+LOSS: 2.71854
+ACC : 0
+bwd elpased 2.43931
+BATCH: 3
+loading elpased 0.0366741
+max: 8.80905  gt: 6.9211
+max: 9.70012  gt: 8.12404
+max: 8.81279  gt: 7.41496
+max: 9.5311  gt: 7.30757
+max: 9.30743  gt: 8.30057
+fwd elpased 1.75297
+LOSS: 2.72999
+ACC : 0
+bwd elpased 2.41316
+BATCH: 4
+loading elpased 0.0364255
+max: 8.48564  gt: 7.11646
+max: 9.07038  gt: 8.2122
+max: 9.74536  gt: 8.28571
+max: 9.77522  gt: 8.74876
+max: 9.41884  gt: 8.18099
+fwd elpased 1.76629
+LOSS: 2.71455
+ACC : 0
+bwd elpased 2.40666
+BATCH: 5
+loading elpased 0.0362713
+max: 8.77954  gt: 7.89385
+max: 9.82975  gt: 7.58964
+max: 7.59287  gt: 6.40222
+max: 9.1057  gt: 7.6167
+max: 9.22421  gt: 7.48234
+fwd elpased 1.7201
+LOSS: 2.72068
+ACC : 0
+bwd elpased 2.41538
+BATCH: 6
+loading elpased 0.036572
+max: 9.63227  gt: 7.81395
+max: 9.95339  gt: 8.89587
+max: 9.71766  gt: 8.30288
+max: 9.64924  gt: 8.13093
+max: 9.86247  gt: 8.55239
+fwd elpased 1.75838
+LOSS: 2.69919
+ACC : 0
+bwd elpased 2.4593
+Time Elapsed for a single epoch: 591.687
+EPOCH: 20
+BATCH: 0
+loading elpased 0.0378856
+max: 7.99929  gt: 6.93959
+max: 9.03374  gt: 7.38195
+max: 9.66382  gt: 8.1522
+max: 9.2615  gt: 7.09634
+max: 8.91371  gt: 6.75027
+fwd elpased 1.73732
+LOSS: 2.70484
+ACC : 0
+bwd elpased 2.4168
+BATCH: 1
+loading elpased 0.0369777
+max: 9.49348  gt: 7.77782
+max: 9.20395  gt: 7.56811
+max: 8.8306  gt: 7.55942
+max: 9.18945  gt: 7.56609
+max: 8.01245  gt: 6.67607
+fwd elpased 1.80131
+LOSS: 2.72009
+ACC : 1
+bwd elpased 2.45567
+BATCH: 2
+loading elpased 0.0369266
+max: 9.21421  gt: 7.68637
+max: 8.59796  gt: 7.01532
+max: 8.62441  gt: 7.35029
+max: 10.5739  gt: 8.75807
+max: 9.11134  gt: 7.06103
+fwd elpased 1.71806
+LOSS: 2.6751
+ACC : 0
+bwd elpased 2.4074
+BATCH: 3
+loading elpased 0.036425
+max: 8.85542  gt: 7.02597
+max: 9.75816  gt: 8.23898
+max: 8.86521  gt: 7.48919
+max: 9.4867  gt: 7.36915
+max: 9.3476  gt: 8.41276
+fwd elpased 1.77926
+LOSS: 2.69018
+ACC : 0
+bwd elpased 2.43711
+BATCH: 4
+loading elpased 0.0371367
+max: 8.57028  gt: 7.1599
+max: 9.11569  gt: 8.24559
+max: 9.79812  gt: 8.42616
+max: 9.88751  gt: 8.85267
+max: 9.42974  gt: 8.21669
+fwd elpased 1.78247
+LOSS: 2.67485
+ACC : 1
+bwd elpased 2.43283
+BATCH: 5
+loading elpased 0.0365597
+max: 8.75044  gt: 7.95393
+max: 9.868  gt: 7.67039
+max: 7.58562  gt: 6.47111
+max: 9.09002  gt: 7.66634
+max: 9.23674  gt: 7.60459
+fwd elpased 1.76519
+LOSS: 2.67628
+ACC : 0
+bwd elpased 2.40367
+BATCH: 6
+loading elpased 0.0372581
+max: 9.7096  gt: 7.95201
+max: 10.0381  gt: 8.98832
+max: 9.85809  gt: 8.43288
+max: 9.6678  gt: 8.1717
+max: 9.89295  gt: 8.63623
+fwd elpased 1.76106
+LOSS: 2.65884
+ACC : 0
+bwd elpased 2.4513
+Time Elapsed for a single epoch: 621.31
+EPOCH: 21
+BATCH: 0
+loading elpased 0.0371954
+max: 8.04708  gt: 7.03417
+max: 9.03754  gt: 7.47342
+max: 9.65665  gt: 8.27986
+max: 9.25367  gt: 7.15942
+max: 8.84143  gt: 6.71405
+fwd elpased 1.73118
+LOSS: 2.6631
+ACC : 0
+bwd elpased 2.46878
+BATCH: 1
+loading elpased 0.0371371
+max: 9.68432  gt: 7.86788
+max: 9.30446  gt: 7.64877
+max: 8.8592  gt: 7.60863
+max: 9.25487  gt: 7.66585
+max: 8.0405  gt: 6.71391
+fwd elpased 1.73858
+LOSS: 2.68006
+ACC : 1
+bwd elpased 2.4711
+BATCH: 2
+loading elpased 0.0369811
+max: 9.3255  gt: 7.83446
+max: 8.57308  gt: 7.07575
+max: 8.64323  gt: 7.43817
+max: 10.6415  gt: 8.84945
+max: 9.04782  gt: 7.09222
+fwd elpased 1.7905
+LOSS: 2.63268
+ACC : 1
+bwd elpased 2.43258
+BATCH: 3
+loading elpased 0.0367395
+max: 8.94952  gt: 7.08112
+max: 9.85849  gt: 8.35096
+max: 8.88385  gt: 7.5519
+max: 9.41503  gt: 7.38284
+max: 9.45674  gt: 8.5196
+fwd elpased 1.78399
+LOSS: 2.64982
+ACC : 0
+bwd elpased 2.44512
+BATCH: 4
+loading elpased 0.0371377
+max: 8.60447  gt: 7.22381
+max: 9.15324  gt: 8.29414
+max: 9.91401  gt: 8.52717
+max: 10.0007  gt: 8.94629
+max: 9.46833  gt: 8.30131
+fwd elpased 1.74152
+LOSS: 2.6352
+ACC : 2
+bwd elpased 2.39203
+BATCH: 5
+loading elpased 0.0361985
+max: 8.76636  gt: 7.99769
+max: 9.94124  gt: 7.80165
+max: 7.55896  gt: 6.51052
+max: 9.06834  gt: 7.70196
+max: 9.30826  gt: 7.78663
+fwd elpased 1.72197
+LOSS: 2.63324
+ACC : 0
+bwd elpased 2.40479
+BATCH: 6
+loading elpased 0.0365777
+max: 9.75222  gt: 8.13165
+max: 10.1205  gt: 9.11599
+max: 10.0026  gt: 8.64442
+max: 9.67193  gt: 8.24989
+max: 9.96803  gt: 8.73302
+fwd elpased 1.72657
+LOSS: 2.61372
+ACC : 0
+bwd elpased 2.42429
+Time Elapsed for a single epoch: 650.856
+EPOCH: 22
+BATCH: 0
+loading elpased 0.0372
+max: 8.07527  gt: 7.17255
+max: 9.08157  gt: 7.49308
+max: 9.72097  gt: 8.37635
+max: 9.2701  gt: 7.2463
+max: 8.74676  gt: 6.75241
+fwd elpased 1.7466
+LOSS: 2.62468
+ACC : 1
+bwd elpased 2.43774
+BATCH: 1
+loading elpased 0.0376519
+max: 9.80144  gt: 8.00389
+max: 9.34866  gt: 7.78183
+max: 8.92576  gt: 7.70716
+max: 9.32132  gt: 7.75223
+max: 8.05366  gt: 6.78095
+fwd elpased 1.80739
+LOSS: 2.63809
+ACC : 1
+bwd elpased 2.39413
+BATCH: 2
+loading elpased 0.037032
+max: 9.44282  gt: 7.96548
+max: 8.57446  gt: 7.18203
+max: 8.65962  gt: 7.50616
+max: 10.7553  gt: 8.98744
+max: 9.0193  gt: 7.08743
+fwd elpased 1.76449
+LOSS: 2.59215
+ACC : 1
+bwd elpased 2.42335
+BATCH: 3
+loading elpased 0.0366403
+max: 8.99602  gt: 7.21296
+max: 9.93129  gt: 8.43115
+max: 8.92429  gt: 7.62101
+max: 9.40506  gt: 7.44612
+max: 9.58447  gt: 8.64335
+fwd elpased 1.79095
+LOSS: 2.60943
+ACC : 0
+bwd elpased 2.44339
+BATCH: 4
+loading elpased 0.0364586
+max: 8.6676  gt: 7.34112
+max: 9.16703  gt: 8.37216
+max: 9.94504  gt: 8.64352
+max: 10.1771  gt: 9.11118
+max: 9.47513  gt: 8.38374
+fwd elpased 1.76758
+LOSS: 2.5933
+ACC : 2
+bwd elpased 2.44268
+BATCH: 5
+loading elpased 0.0363049
+max: 8.77203  gt: 8.04794
+max: 9.9928  gt: 7.85998
+max: 7.48432  gt: 6.52475
+max: 9.12905  gt: 7.79045
+max: 9.35835  gt: 7.90631
+fwd elpased 1.76181
+LOSS: 2.58906
+ACC : 0
+bwd elpased 2.44843
+BATCH: 6
+loading elpased 0.0365783
+max: 9.85124  gt: 8.33975
+max: 10.2104  gt: 9.22643
+max: 10.1417  gt: 8.80614
+max: 9.72721  gt: 8.31343
+max: 10.0239  gt: 8.84803
+fwd elpased 1.77947
+LOSS: 2.57095
+ACC : 0
+bwd elpased 2.44189
+Time Elapsed for a single epoch: 680.578
+EPOCH: 23
+BATCH: 0
+loading elpased 0.0379179
+max: 8.09565  gt: 7.30439
+max: 9.13471  gt: 7.56969
+max: 9.79452  gt: 8.48407
+max: 9.3085  gt: 7.3293
+max: 8.68292  gt: 6.811
+fwd elpased 1.76355
+LOSS: 2.5823
+ACC : 1
+bwd elpased 2.43613
+BATCH: 1
+loading elpased 0.0370515
+max: 10.0233  gt: 8.14165
+max: 9.46172  gt: 7.94172
+max: 8.97561  gt: 7.8113
+max: 9.39301  gt: 7.86479
+max: 8.04691  gt: 6.84958
+fwd elpased 1.76687
+LOSS: 2.59623
+ACC : 1
+bwd elpased 2.42453
+BATCH: 2
+loading elpased 0.0372768
+max: 9.58916  gt: 8.15508
+max: 8.64286  gt: 7.28061
+max: 8.63583  gt: 7.57426
+max: 10.882  gt: 9.12065
+max: 8.99652  gt: 7.11092
+fwd elpased 1.75102
+LOSS: 2.54469
+ACC : 1
+bwd elpased 2.44266
+BATCH: 3
+loading elpased 0.0364576
+max: 9.12615  gt: 7.29984
+max: 10.06  gt: 8.56199
+max: 8.95153  gt: 7.70909
+max: 9.39456  gt: 7.51273
+max: 9.6862  gt: 8.77783
+fwd elpased 1.71664
+LOSS: 2.56786
+ACC : 0
+bwd elpased 2.45887
+BATCH: 4
+loading elpased 0.0363599
+max: 8.75972  gt: 7.38338
+max: 9.19492  gt: 8.35727
+max: 10.0511  gt: 8.80485
+max: 10.3617  gt: 9.24036
+max: 9.54011  gt: 8.44113
+fwd elpased 1.74489
+LOSS: 2.55008
+ACC : 2
+bwd elpased 2.41102
+BATCH: 5
+loading elpased 0.0364969
+max: 8.7508  gt: 8.11641
+max: 10.0322  gt: 7.97513
+max: 7.46983  gt: 6.58944
+max: 9.20275  gt: 7.83159
+max: 9.43772  gt: 8.06261
+fwd elpased 1.74141
+LOSS: 2.54403
+ACC : 1
+bwd elpased 2.43798
+BATCH: 6
+loading elpased 0.0368899
+max: 9.97012  gt: 8.48023
+max: 10.3618  gt: 9.33552
+max: 10.3569  gt: 9.01116
+max: 9.77148  gt: 8.39714
+max: 10.0756  gt: 8.95706
+fwd elpased 1.82922
+LOSS: 2.5257
+ACC : 0
+bwd elpased 2.47249
+Time Elapsed for a single epoch: 710.248
+EPOCH: 24
+BATCH: 0
+loading elpased 0.0374713
+max: 8.18357  gt: 7.4033
+max: 9.16604  gt: 7.63124
+max: 9.84449  gt: 8.6658
+max: 9.39457  gt: 7.40246
+max: 8.60163  gt: 6.7876
+fwd elpased 1.79991
+LOSS: 2.5386
+ACC : 1
+bwd elpased 2.40201
+BATCH: 1
+loading elpased 0.0376384
+max: 10.2258  gt: 8.30798
+max: 9.56549  gt: 8.07243
+max: 9.08663  gt: 7.94923
+max: 9.48269  gt: 7.98429
+max: 8.05709  gt: 6.92316
+fwd elpased 1.77449
+LOSS: 2.55255
+ACC : 1
+bwd elpased 2.40693
+BATCH: 2
+loading elpased 0.0371433
+max: 9.7565  gt: 8.24683
+max: 8.6849  gt: 7.37089
+max: 8.66334  gt: 7.62383
+max: 11.0317  gt: 9.26205
+max: 8.91948  gt: 7.11874
+fwd elpased 1.78039
+LOSS: 2.49401
+ACC : 2
+bwd elpased 2.4654
+BATCH: 3
+loading elpased 0.0365035
+max: 9.21807  gt: 7.4311
+max: 10.1713  gt: 8.66254
+max: 8.99214  gt: 7.84346
+max: 9.30568  gt: 7.58012
+max: 9.83773  gt: 8.89677
+fwd elpased 1.77687
+LOSS: 2.528
+ACC : 0
+bwd elpased 2.40634
+BATCH: 4
+loading elpased 0.036459
+max: 8.83297  gt: 7.51618
+max: 9.23261  gt: 8.42664
+max: 10.1538  gt: 8.96226
+max: 10.525  gt: 9.38747
+max: 9.53034  gt: 8.5829
+fwd elpased 1.78006
+LOSS: 2.50521
+ACC : 2
+bwd elpased 2.41308
+BATCH: 5
+loading elpased 0.036501
+max: 8.75233  gt: 8.22811
+max: 10.1039  gt: 8.0519
+max: 7.41454  gt: 6.63586
+max: 9.20862  gt: 7.88526
+max: 9.54817  gt: 8.24017
+fwd elpased 1.75059
+LOSS: 2.49491
+ACC : 2
+bwd elpased 2.39257
+BATCH: 6
+loading elpased 0.0368667
+max: 10.0343  gt: 8.6774
+max: 10.4896  gt: 9.48454
+max: 10.5345  gt: 9.20919
+max: 9.74213  gt: 8.44411
+max: 10.1635  gt: 9.04016
+fwd elpased 1.74243
+LOSS: 2.47724
+ACC : 1
+bwd elpased 2.44867
+Time Elapsed for a single epoch: 739.861
+EPOCH: 25
+BATCH: 0
+loading elpased 0.0372748
+max: 8.17634  gt: 7.54034
+max: 9.17884  gt: 7.75952
+max: 9.86306  gt: 8.83105
+max: 9.37567  gt: 7.51199
+max: 8.50066  gt: 6.82007
+fwd elpased 1.76726
+LOSS: 2.49103
+ACC : 1
+bwd elpased 2.41359
+BATCH: 1
+loading elpased 0.0376583
+max: 10.4496  gt: 8.47577
+max: 9.72859  gt: 8.20793
+max: 9.18847  gt: 8.02894
+max: 9.58722  gt: 8.12976
+max: 8.06189  gt: 6.93282
+fwd elpased 1.78874
+LOSS: 2.50213
+ACC : 2
+bwd elpased 2.42907
+BATCH: 2
+loading elpased 0.0369397
+max: 9.94308  gt: 8.40574
+max: 8.72696  gt: 7.48248
+max: 8.65532  gt: 7.7382
+max: 11.1922  gt: 9.39064
+max: 8.95684  gt: 7.07481
+fwd elpased 1.74898
+LOSS: 2.44397
+ACC : 5
+bwd elpased 2.41611
+BATCH: 3
+loading elpased 0.0367398
+max: 9.26141  gt: 7.49507
+max: 10.3322  gt: 8.74183
+max: 9.06109  gt: 7.99655
+max: 9.27887  gt: 7.68761
+max: 10.0469  gt: 9.09038
+fwd elpased 1.77902
+LOSS: 2.47752
+ACC : 1
+bwd elpased 2.44284
+BATCH: 4
+loading elpased 0.0363691
+max: 8.95673  gt: 7.65245
+max: 9.27646  gt: 8.50757
+max: 10.3184  gt: 9.14935
+max: 10.7087  gt: 9.62656
+max: 9.57839  gt: 8.64906
+fwd elpased 1.76349
+LOSS: 2.4527
+ACC : 3
+bwd elpased 2.43123
+BATCH: 5
+loading elpased 0.0361522
+max: 8.76911  gt: 8.34557
+max: 10.2059  gt: 8.22404
+max: 7.38021  gt: 6.66564
+max: 9.26976  gt: 8.00883
+max: 9.65226  gt: 8.49928
+fwd elpased 1.78739
+LOSS: 2.43957
+ACC : 3
+bwd elpased 2.50911
+BATCH: 6
+loading elpased 0.0369788
+max: 10.179  gt: 8.86237
+max: 10.6568  gt: 9.65413
+max: 10.7912  gt: 9.53954
+max: 9.85625  gt: 8.56495
+max: 10.2936  gt: 9.11829
+fwd elpased 1.76661
+LOSS: 2.42063
+ACC : 2
+bwd elpased 2.40167
+Time Elapsed for a single epoch: 769.579
+EPOCH: 26
+BATCH: 0
+loading elpased 0.0374476
+max: 8.21241  gt: 7.72893
+max: 9.22742  gt: 7.80243
+max: 9.89074  gt: 8.98041
+max: 9.44968  gt: 7.5881
+max: 8.41042  gt: 6.85312
+fwd elpased 1.75313
+LOSS: 2.43748
+ACC : 2
+bwd elpased 2.41545
+BATCH: 1
+loading elpased 0.0372953
+max: 10.708  gt: 8.63386
+max: 9.83428  gt: 8.36316
+max: 9.2886  gt: 8.15607
+max: 9.72709  gt: 8.26763
+max: 8.10672  gt: 7.00661
+fwd elpased 1.76622
+LOSS: 2.44772
+ACC : 4
+bwd elpased 2.42963
+BATCH: 2
+loading elpased 0.0375548
+max: 10.1241  gt: 8.63358
+max: 8.77649  gt: 7.60791
+max: 8.64724  gt: 7.82198
+max: 11.385  gt: 9.60692
+max: 8.93728  gt: 7.0453
+fwd elpased 1.73097
+LOSS: 2.38305
+ACC : 8
+bwd elpased 2.42727
+BATCH: 3
+loading elpased 0.0370892
+max: 9.46381  gt: 7.64786
+max: 10.4791  gt: 8.95529
+max: 9.14529  gt: 8.14923
+max: 9.21763  gt: 7.82445
+max: 10.2179  gt: 9.29969
+fwd elpased 1.75489
+LOSS: 2.41968
+ACC : 2
+bwd elpased 2.44855
+BATCH: 4
+loading elpased 0.0371376
+max: 8.98595  gt: 7.77668
+max: 9.32991  gt: 8.5679
+max: 10.4115  gt: 9.32456
+max: 10.9794  gt: 9.86094
+max: 9.63606  gt: 8.80368
+fwd elpased 1.78056
+LOSS: 2.39158
+ACC : 4
+bwd elpased 2.38631
+BATCH: 5
+loading elpased 0.0361634
+max: 8.77769  gt: 8.50144
+max: 10.2818  gt: 8.34309
+max: 7.36496  gt: 6.75915
+max: 9.33987  gt: 8.1281
+max: 9.78569  gt: 8.70761
+fwd elpased 1.79696
+LOSS: 2.3744
+ACC : 4
+bwd elpased 2.4853
+BATCH: 6
+loading elpased 0.0369627
+max: 10.4365  gt: 9.14114
+max: 10.859  gt: 9.88298
+max: 11.103  gt: 9.82598
+max: 9.89961  gt: 8.68563
+max: 10.4149  gt: 9.31354
+fwd elpased 1.74635
+LOSS: 2.353
+ACC : 5
+bwd elpased 2.43974
+Time Elapsed for a single epoch: 799.214
+EPOCH: 27
+BATCH: 0
+loading elpased 0.0378923
+max: 8.2326  gt: 7.94974
+max: 9.30761  gt: 7.88241
+max: 9.97898  gt: 9.26604
+max: 9.57018  gt: 7.70256
+max: 8.304  gt: 6.86833
+fwd elpased 1.73577
+LOSS: 2.37505
+ACC : 4
+bwd elpased 2.39798
+BATCH: 1
+loading elpased 0.0377698
+max: 10.9638  gt: 8.86517
+max: 10.0762  gt: 8.60311
+max: 9.46911  gt: 8.35697
+max: 9.84457  gt: 8.47901
+max: 8.12092  gt: 7.099
+fwd elpased 1.76474
+LOSS: 2.38858
+ACC : 5
+bwd elpased 2.4035
+BATCH: 2
+loading elpased 0.03736
+max: 10.4314  gt: 8.77201
+max: 8.85587  gt: 7.79
+max: 8.63939  gt: 7.9079
+max: 11.5829  gt: 9.84089
+max: 8.94295  gt: 7.01396
+fwd elpased 1.77208
+LOSS: 2.31038
+ACC : 16
+bwd elpased 2.47019
+BATCH: 3
+loading elpased 0.0364252
+max: 9.55102  gt: 7.77348
+max: 10.6913  gt: 9.13408
+max: 9.2476  gt: 8.46617
+max: 9.16623  gt: 8.0053
+max: 10.4755  gt: 9.60857
+fwd elpased 1.72865
+LOSS: 2.35478
+ACC : 5
+bwd elpased 2.40624
+BATCH: 4
+loading elpased 0.0363234
+max: 9.09495  gt: 7.93581
+max: 9.45188  gt: 8.68488
+max: 10.6222  gt: 9.5975
+max: 11.2651  gt: 10.2113
+max: 9.65864  gt: 8.98387
+fwd elpased 1.74557
+LOSS: 2.321
+ACC : 10
+bwd elpased 2.41037
+BATCH: 5
+loading elpased 0.0365416
+max: 8.72301  gt: 8.6791
+max: 10.4106  gt: 8.48489
+max: 7.399  gt: 6.81408
+max: 9.41174  gt: 8.24606
+max: 9.94413  gt: 9.01762
+fwd elpased 1.75717
+LOSS: 2.29785
+ACC : 11
+bwd elpased 2.4127
+BATCH: 6
+loading elpased 0.0365839
+max: 10.6435  gt: 9.46862
+max: 11.0665  gt: 10.2226
+max: 11.4669  gt: 10.2262
+max: 9.97133  gt: 8.82274
+max: 10.5969  gt: 9.49047
+fwd elpased 1.73804
+LOSS: 2.27298
+ACC : 9
+bwd elpased 2.46365
+Time Elapsed for a single epoch: 828.695
+EPOCH: 28
+BATCH: 0
+loading elpased 0.0378757
+max: 8.33716  gt: 8.18095
+max: 9.42285  gt: 7.9832
+max: 9.97761  gt: 9.53962
+max: 9.67303  gt: 7.86784
+max: 8.18356  gt: 6.92759
+fwd elpased 1.7718
+LOSS: 2.29706
+ACC : 8
+bwd elpased 2.38768
+BATCH: 1
+loading elpased 0.0370692
+max: 11.3341  gt: 9.04522
+max: 10.2447  gt: 8.83827
+max: 9.68885  gt: 8.56166
+max: 10.0383  gt: 8.63085
+max: 8.21218  gt: 7.14297
+fwd elpased 1.75894
+LOSS: 2.31358
+ACC : 8
+bwd elpased 2.43303
+BATCH: 2
+loading elpased 0.0371427
+max: 10.656  gt: 8.9625
+max: 8.93207  gt: 8.00144
+max: 8.66313  gt: 8.05209
+max: 11.8252  gt: 10.1339
+max: 8.97943  gt: 6.99106
+fwd elpased 1.75503
+LOSS: 2.22503
+ACC : 26
+bwd elpased 2.45703
+BATCH: 3
+loading elpased 0.0364779
+max: 9.69612  gt: 7.85243
+max: 10.9376  gt: 9.35516
+max: 9.38001  gt: 8.77176
+max: 9.0604  gt: 8.20504
+max: 10.6767  gt: 10.03
+fwd elpased 1.7466
+LOSS: 2.27885
+ACC : 10
+bwd elpased 2.42221
+BATCH: 4
+loading elpased 0.0364845
+max: 9.16914  gt: 8.14995
+max: 9.63157  gt: 8.81951
+max: 10.8895  gt: 9.92602
+max: 11.6031  gt: 10.5375
+max: 9.75858  gt: 9.15999
+fwd elpased 1.75674
+LOSS: 2.23536
+ACC : 14
+bwd elpased 2.46506
+BATCH: 5
+loading elpased 0.0362319
+max: 8.88604  gt: 8.88604
+max: 10.5331  gt: 8.72272
+max: 7.52164  gt: 6.91426
+max: 9.48662  gt: 8.3769
+max: 10.087  gt: 9.37729
+fwd elpased 1.79954
+LOSS: 2.20794
+ACC : 17
+bwd elpased 2.40129
+BATCH: 6
+loading elpased 0.0368529
+max: 11.0043  gt: 9.83209
+max: 11.41  gt: 10.5605
+max: 11.8664  gt: 10.6744
+max: 10.0237  gt: 8.96745
+max: 10.8375  gt: 9.76149
+fwd elpased 1.7899
+LOSS: 2.17277
+ACC : 14
+bwd elpased 2.42994
+Time Elapsed for a single epoch: 858.342
+EPOCH: 29
+BATCH: 0
+loading elpased 0.0373261
+max: 8.48733  gt: 8.48733
+max: 9.45334  gt: 8.18773
+max: 10.1364  gt: 9.9395
+max: 9.79319  gt: 8.02225
+max: 8.1423  gt: 7.00853
+fwd elpased 1.78462
+LOSS: 2.20615
+ACC : 18
+bwd elpased 2.4184
+BATCH: 1
+loading elpased 0.0374876
+max: 11.8114  gt: 9.32294
+max: 10.5103  gt: 9.22831
+max: 9.96091  gt: 8.84786
+max: 10.2019  gt: 8.91303
+max: 8.23208  gt: 7.35063
+fwd elpased 1.77668
+LOSS: 2.22011
+ACC : 12
+bwd elpased 2.43161
+BATCH: 2
+loading elpased 0.0374892
+max: 10.9675  gt: 9.24439
+max: 9.12066  gt: 8.28143
+max: 8.82891  gt: 8.23659
+max: 12.1764  gt: 10.4181
+max: 9.05284  gt: 7.04326
+fwd elpased 1.7679
+LOSS: 2.12153
+ACC : 31
+bwd elpased 2.45998
+BATCH: 3
+loading elpased 0.0364548
+max: 9.93633  gt: 8.09508
+max: 11.1584  gt: 9.56603
+max: 9.58474  gt: 9.14734
+max: 8.982  gt: 8.50447
+max: 10.9583  gt: 10.4972
+fwd elpased 1.7911
+LOSS: 2.18267
+ACC : 19
+bwd elpased 2.37526
+BATCH: 4
+loading elpased 0.0364245
+max: 9.3096  gt: 8.50256
+max: 9.97275  gt: 9.04832
+max: 11.1032  gt: 10.2468
+max: 11.986  gt: 11.0231
+max: 9.72456  gt: 9.48712
+fwd elpased 1.74436
+LOSS: 2.12433
+ACC : 23
+bwd elpased 2.45462
+BATCH: 5
+loading elpased 0.0362663
+max: 9.24701  gt: 9.24701
+max: 10.6233  gt: 8.91906
+max: 7.58356  gt: 7.01994
+max: 9.60205  gt: 8.49435
+max: 10.339  gt: 9.77587
+fwd elpased 1.74644
+LOSS: 2.0973
+ACC : 28
+bwd elpased 2.4018
+BATCH: 6
+loading elpased 0.0372663
+max: 11.4625  gt: 10.2116
+max: 11.7434  gt: 10.968
+max: 12.2822  gt: 11.1616
+max: 10.0965  gt: 9.24904
+max: 11.0964  gt: 10.047
+fwd elpased 1.77502
+LOSS: 2.05238
+ACC : 25
+bwd elpased 2.41626
+Time Elapsed for a single epoch: 887.959
+EPOCH: 30
+BATCH: 0
+loading elpased 0.0371596
+max: 8.83782  gt: 8.83782
+max: 9.51647  gt: 8.39411
+max: 10.5006  gt: 10.3125
+max: 9.94986  gt: 8.19508
+max: 8.05756  gt: 7.05533
+fwd elpased 1.75651
+LOSS: 2.09194
+ACC : 28
+bwd elpased 2.41123
+BATCH: 1
+loading elpased 0.0371016
+max: 12.3854  gt: 9.68168
+max: 10.9093  gt: 9.70826
+max: 10.2862  gt: 9.12723
+max: 10.4909  gt: 9.02814
+max: 8.23359  gt: 7.55521
+fwd elpased 1.77592
+LOSS: 2.09994
+ACC : 30
+bwd elpased 2.43423
+BATCH: 2
+loading elpased 0.0372953
+max: 11.4975  gt: 9.67514
+max: 9.27692  gt: 8.58473
+max: 8.94759  gt: 8.42853
+max: 12.4986  gt: 10.8548
+max: 9.15727  gt: 7.13148
+fwd elpased 1.78102
+LOSS: 1.99451
+ACC : 42
+bwd elpased 2.41978
+BATCH: 3
+loading elpased 0.0371076
+max: 10.3147  gt: 8.27702
+max: 11.4831  gt: 9.99376
+max: 9.86686  gt: 9.69372
+max: 8.93791  gt: 8.84052
+max: 11.4101  gt: 11.119
+fwd elpased 1.71863
+LOSS: 2.06689
+ACC : 29
+bwd elpased 2.42181
+BATCH: 4
+loading elpased 0.0371185
+max: 9.42334  gt: 8.86278
+max: 10.2263  gt: 9.30118
+max: 11.3825  gt: 10.7452
+max: 12.4845  gt: 11.6463
+max: 9.75195  gt: 9.75195
+fwd elpased 1.81587
+LOSS: 1.98238
+ACC : 35
+bwd elpased 2.45107
+BATCH: 5
+loading elpased 0.0367636
+max: 9.6578  gt: 9.6578
+max: 10.7758  gt: 9.22087
+max: 7.75516  gt: 7.22611
+max: 9.62594  gt: 8.79177
+max: 10.6836  gt: 10.4113
+fwd elpased 1.74992
+LOSS: 1.95581
+ACC : 43
+bwd elpased 2.45562
+BATCH: 6
+loading elpased 0.0367315
+max: 11.9934  gt: 10.7212
+max: 12.1602  gt: 11.5534
+max: 12.9565  gt: 11.7681
+max: 10.5554  gt: 9.4987
+max: 11.3404  gt: 10.4101
+fwd elpased 1.72516
+LOSS: 1.91069
+ACC : 46
+bwd elpased 2.41864
+Time Elapsed for a single epoch: 917.569
+EPOCH: 31
+BATCH: 0
+loading elpased 0.0371242
+max: 9.35126  gt: 9.35126
+max: 9.43839  gt: 8.68735
+max: 11.028  gt: 10.7707
+max: 10.2496  gt: 8.35944
+max: 7.9793  gt: 7.22817
+fwd elpased 1.78065
+LOSS: 1.95529
+ACC : 52
+bwd elpased 2.43375
+BATCH: 1
+loading elpased 0.0378175
+max: 13.1832  gt: 10.1303
+max: 11.2706  gt: 10.161
+max: 10.7022  gt: 9.45088
+max: 10.6331  gt: 9.41022
+max: 8.37437  gt: 7.80872
+fwd elpased 1.77521
+LOSS: 1.94817
+ACC : 40
+bwd elpased 2.41865
+BATCH: 2
+loading elpased 0.0372436
+max: 12.0416  gt: 9.94737
+max: 9.44337  gt: 9.00967
+max: 9.01548  gt: 8.76789
+max: 12.9193  gt: 11.2333
+max: 9.34242  gt: 7.26271
+fwd elpased 1.76083
+LOSS: 1.83976
+ACC : 60
+bwd elpased 2.47333
+BATCH: 3
+loading elpased 0.0371973
+max: 10.582  gt: 8.54484
+max: 11.881  gt: 10.3157
+max: 10.4151  gt: 10.4151
+max: 9.40818  gt: 9.40818
+max: 11.8579  gt: 11.8579
+fwd elpased 1.82085
+LOSS: 1.91643
+ACC : 55
+bwd elpased 2.41033
+BATCH: 4
+loading elpased 0.0363744
+max: 9.92902  gt: 9.36074
+max: 10.6379  gt: 9.66214
+max: 12.0248  gt: 11.2369
+max: 13.1497  gt: 12.6489
+max: 10.198  gt: 10.198
+fwd elpased 1.74418
+LOSS: 1.8109
+ACC : 53
+bwd elpased 2.42976
+BATCH: 5
+loading elpased 0.0362789
+max: 10.2385  gt: 10.2385
+max: 11.1173  gt: 9.70174
+max: 7.93637  gt: 7.61564
+max: 9.68739  gt: 9.20666
+max: 11.1384  gt: 11.1384
+fwd elpased 1.78609
+LOSS: 1.78919
+ACC : 67
+bwd elpased 2.44274
+BATCH: 6
+loading elpased 0.0365174
+max: 12.6473  gt: 11.3548
+max: 12.5996  gt: 12.2914
+max: 13.4919  gt: 12.4228
+max: 11.1894  gt: 10.1038
+max: 11.5255  gt: 10.9307
+fwd elpased 1.7757
+LOSS: 1.73501
+ACC : 69
+bwd elpased 2.43117
+Time Elapsed for a single epoch: 947.325
+EPOCH: 32
+BATCH: 0
+loading elpased 0.0370933
+max: 9.99165  gt: 9.99165
+max: 9.75298  gt: 8.98817
+max: 11.6683  gt: 11.1945
+max: 10.5249  gt: 8.59002
+max: 7.86051  gt: 7.38682
+fwd elpased 1.77511
+LOSS: 1.79699
+ACC : 66
+bwd elpased 2.41824
+BATCH: 1
+loading elpased 0.0370523
+max: 13.7828  gt: 10.7285
+max: 11.7117  gt: 10.5613
+max: 11.2308  gt: 9.74301
+max: 10.6164  gt: 9.75757
+max: 8.55329  gt: 8.09773
+fwd elpased 1.70386
+LOSS: 1.75844
+ACC : 72
+bwd elpased 2.43248
+BATCH: 2
+loading elpased 0.0371632
+max: 12.6357  gt: 10.2892
+max: 9.69455  gt: 9.48599
+max: 9.19523  gt: 9.19523
+max: 13.3092  gt: 11.9366
+max: 9.65899  gt: 7.49436
+fwd elpased 1.74022
+LOSS: 1.66502
+ACC : 80
+bwd elpased 2.43383
+BATCH: 3
+loading elpased 0.0370362
+max: 10.9639  gt: 8.94142
+max: 12.0496  gt: 10.822
+max: 11.2491  gt: 11.2491
+max: 9.98173  gt: 9.98173
+max: 12.6774  gt: 12.6774
+fwd elpased 1.74987
+LOSS: 1.73612
+ACC : 82
+bwd elpased 2.43285
+BATCH: 4
+loading elpased 0.0364886
+max: 10.4667  gt: 10.3945
+max: 11.076  gt: 10.0093
+max: 12.6509  gt: 11.9499
+max: 13.9987  gt: 13.9987
+max: 10.8129  gt: 10.8129
+fwd elpased 1.73476
+LOSS: 1.60601
+ACC : 85
+bwd elpased 2.45327
+BATCH: 5
+loading elpased 0.0364749
+max: 11.1237  gt: 11.1237
+max: 11.6457  gt: 10.1246
+max: 8.13659  gt: 8.07238
+max: 9.67308  gt: 9.67308
+max: 11.9487  gt: 11.9487
+fwd elpased 1.75426
+LOSS: 1.59001
+ACC : 89
+bwd elpased 2.45154
+BATCH: 6
+loading elpased 0.0372722
+max: 13.0608  gt: 12.1274
+max: 13.1314  gt: 13.1314
+max: 13.955  gt: 13.1837
+max: 11.8194  gt: 10.681
+max: 11.5908  gt: 11.5177
+fwd elpased 1.75226
+LOSS: 1.53178
+ACC : 93
+bwd elpased 2.48964
+Time Elapsed for a single epoch: 976.92
+EPOCH: 33
+BATCH: 0
+loading elpased 0.0370998
+max: 10.7671  gt: 10.7671
+max: 10.3287  gt: 9.4926
+max: 12.4556  gt: 12.0904
+max: 10.9631  gt: 8.81311
+max: 7.79343  gt: 7.70885
+fwd elpased 1.74619
+LOSS: 1.62529
+ACC : 83
+bwd elpased 2.42949
+BATCH: 1
+loading elpased 0.0372964
+max: 14.3871  gt: 11.3323
+max: 12.0257  gt: 11.0755
+max: 11.9682  gt: 10.1446
+max: 10.8014  gt: 10.1902
+max: 8.82048  gt: 8.40938
+fwd elpased 1.77627
+LOSS: 1.54226
+ACC : 102
+bwd elpased 2.44244
+BATCH: 2
+loading elpased 0.0377145
+max: 13.2372  gt: 10.823
+max: 10.0628  gt: 10.0628
+max: 9.82133  gt: 9.82133
+max: 14.0022  gt: 12.4725
+max: 9.97841  gt: 8.17275
+fwd elpased 1.77604
+LOSS: 1.4751
+ACC : 107
+bwd elpased 2.40439
+BATCH: 3
+loading elpased 0.0367927
+max: 11.3209  gt: 9.78402
+max: 12.5963  gt: 11.4614
+max: 12.189  gt: 12.189
+max: 10.8436  gt: 10.8436
+max: 13.5014  gt: 13.5014
+fwd elpased 1.76054
+LOSS: 1.532
+ACC : 113
+bwd elpased 2.41163
+BATCH: 4
+loading elpased 0.0365365
+max: 11.4605  gt: 11.4605
+max: 11.6186  gt: 10.3385
+max: 13.3417  gt: 12.9183
+max: 15.2856  gt: 15.2856
+max: 11.448  gt: 11.448
+fwd elpased 1.73103
+LOSS: 1.38763
+ACC : 121
+bwd elpased 2.41132
+BATCH: 5
+loading elpased 0.0361377
+max: 12.1213  gt: 12.1213
+max: 12.1644  gt: 10.9013
+max: 8.61029  gt: 8.61029
+max: 10.3413  gt: 10.3413
+max: 12.8674  gt: 12.8674
+fwd elpased 1.75199
+LOSS: 1.37819
+ACC : 118
+bwd elpased 2.423
+BATCH: 6
+loading elpased 0.036545
+max: 13.6537  gt: 12.6426
+max: 13.8178  gt: 13.8178
+max: 14.54  gt: 13.7628
+max: 12.3915  gt: 11.4384
+max: 12.3922  gt: 12.3922
+fwd elpased 1.76067
+LOSS: 1.33447
+ACC : 122
+bwd elpased 2.43519
+Time Elapsed for a single epoch: 1006.45
+EPOCH: 34
+BATCH: 0
+loading elpased 0.0379217
+max: 11.7139  gt: 11.7139
+max: 11.124  gt: 10.3251
+max: 13.4867  gt: 12.8277
+max: 11.3145  gt: 9.23856
+max: 8.4806  gt: 8.13312
+fwd elpased 1.77939
+LOSS: 1.43573
+ACC : 107
+bwd elpased 2.45038
+BATCH: 1
+loading elpased 0.0376361
+max: 14.8194  gt: 12.2805
+max: 12.4153  gt: 11.6816
+max: 12.812  gt: 10.6187
+max: 11.6894  gt: 10.672
+max: 9.0602  gt: 9.00896
+fwd elpased 1.77009
+LOSS: 1.31697
+ACC : 131
+bwd elpased 2.4097
+BATCH: 2
+loading elpased 0.0371191
+max: 13.5129  gt: 11.0629
+max: 10.7018  gt: 10.7018
+max: 10.6179  gt: 10.6179
+max: 14.2119  gt: 12.6872
+max: 10.5571  gt: 9.03548
+fwd elpased 1.70385
+LOSS: 1.27622
+ACC : 132
+bwd elpased 2.44993
+BATCH: 3
+loading elpased 0.0372536
+max: 11.6888  gt: 10.6074
+max: 12.9399  gt: 12.1945
+max: 13.2568  gt: 13.2568
+max: 11.6217  gt: 11.6217
+max: 14.6121  gt: 14.6121
+fwd elpased 1.71964
+LOSS: 1.30306
+ACC : 138
+bwd elpased 2.4048
+BATCH: 4
+loading elpased 0.0364333
+max: 12.3919  gt: 12.3919
+max: 12.4703  gt: 10.6593
+max: 13.7847  gt: 13.7847
+max: 16.4824  gt: 16.4824
+max: 12.3114  gt: 12.3114
+fwd elpased 1.81714
+LOSS: 1.15904
+ACC : 139
+bwd elpased 2.37036
+BATCH: 5
+loading elpased 0.0364658
+max: 13.0775  gt: 13.0775
+max: 12.6665  gt: 11.5394
+max: 9.25  gt: 9.25
+max: 11.1694  gt: 11.1694
+max: 13.82  gt: 13.82
+fwd elpased 1.73442
+LOSS: 1.17255
+ACC : 145
+bwd elpased 2.38636
+BATCH: 6
+loading elpased 0.0369986
+max: 13.8386  gt: 13.704
+max: 14.6433  gt: 14.6433
+max: 15.4465  gt: 15.4465
+max: 12.874  gt: 12.5288
+max: 13.1519  gt: 13.1519
+fwd elpased 1.71859
+LOSS: 1.143
+ACC : 145
+bwd elpased 2.46683
+Time Elapsed for a single epoch: 1035.91
+EPOCH: 35
+BATCH: 0
+loading elpased 0.0371831
+max: 12.5957  gt: 12.5957
+max: 12.1245  gt: 10.9094
+max: 14.4538  gt: 13.3248
+max: 11.3995  gt: 9.9761
+max: 9.35618  gt: 8.80678
+fwd elpased 1.75661
+LOSS: 1.25249
+ACC : 130
+bwd elpased 2.42132
+BATCH: 1
+loading elpased 0.037155
+max: 14.4891  gt: 13.2593
+max: 13.3966  gt: 12.6285
+max: 13.9223  gt: 10.948
+max: 12.4118  gt: 11.0692
+max: 9.59687  gt: 9.59687
+fwd elpased 1.78917
+LOSS: 1.10072
+ACC : 158
+bwd elpased 2.40345
+BATCH: 2
+loading elpased 0.0368181
+max: 13.8159  gt: 11.9511
+max: 11.0899  gt: 11.0899
+max: 11.6461  gt: 11.6461
+max: 14.7636  gt: 13.0766
+max: 10.9944  gt: 9.71934
+fwd elpased 1.77033
+LOSS: 1.06321
+ACC : 157
+bwd elpased 2.41472
+BATCH: 3
+loading elpased 0.0364702
+max: 11.6428  gt: 11.4785
+max: 12.9135  gt: 12.9135
+max: 14.5098  gt: 14.5098
+max: 12.5045  gt: 12.5045
+max: 15.2284  gt: 15.2284
+fwd elpased 1.76061
+LOSS: 1.08675
+ACC : 169
+bwd elpased 2.44899
+BATCH: 4
+loading elpased 0.0364032
+max: 13.4758  gt: 13.4758
+max: 12.6485  gt: 10.6275
+max: 15.2031  gt: 15.2031
+max: 17.1291  gt: 17.1291
+max: 12.98  gt: 12.98
+fwd elpased 1.80723
+LOSS: 0.957139
+ACC : 171
+bwd elpased 2.40246
+BATCH: 5
+loading elpased 0.0362544
+max: 13.8765  gt: 13.8765
+max: 12.9393  gt: 12.3118
+max: 10.1895  gt: 10.1895
+max: 11.9954  gt: 11.9954
+max: 14.9154  gt: 14.9154
+fwd elpased 1.73712
+LOSS: 0.972306
+ACC : 172
+bwd elpased 2.40634
+BATCH: 6
+loading elpased 0.0371912
+max: 14.6259  gt: 14.0728
+max: 15.6411  gt: 15.6411
+max: 17.1581  gt: 17.1581
+max: 13.3911  gt: 13.3911
+max: 13.8017  gt: 13.8017
+fwd elpased 1.73339
+LOSS: 0.947282
+ACC : 165
+bwd elpased 2.40593
+Time Elapsed for a single epoch: 1065.44
+EPOCH: 36
+BATCH: 0
+loading elpased 0.0370093
+max: 13.4997  gt: 13.4997
+max: 12.9248  gt: 11.2669
+max: 14.8528  gt: 13.7888
+max: 11.8704  gt: 10.8593
+max: 10.2488  gt: 9.54716
+fwd elpased 1.7987
+LOSS: 1.05807
+ACC : 161
+bwd elpased 2.41237
+BATCH: 1
+loading elpased 0.0372568
+max: 15.3308  gt: 14.1379
+max: 14.0622  gt: 13.8228
+max: 14.5971  gt: 11.4754
+max: 12.8724  gt: 11.5146
+max: 10.2253  gt: 10.2253
+fwd elpased 1.71337
+LOSS: 0.904984
+ACC : 173
+bwd elpased 2.40967
+BATCH: 2
+loading elpased 0.0375571
+max: 14.3771  gt: 12.3817
+max: 11.4214  gt: 11.4214
+max: 12.3696  gt: 12.3696
+max: 15.3868  gt: 13.1195
+max: 11.517  gt: 10.4649
+fwd elpased 1.75684
+LOSS: 0.895246
+ACC : 181
+bwd elpased 2.38263
+BATCH: 3
+loading elpased 0.0364729
+max: 12.4585  gt: 12.4585
+max: 13.2727  gt: 13.2419
+max: 15.3308  gt: 15.3308
+max: 13.3591  gt: 13.3591
+max: 15.6951  gt: 15.6951
+fwd elpased 1.76401
+LOSS: 0.870748
+ACC : 185
+bwd elpased 2.42717
+BATCH: 4
+loading elpased 0.036335
+max: 14.2954  gt: 14.2954
+max: 13.0835  gt: 10.6473
+max: 16.773  gt: 16.773
+max: 18.4511  gt: 18.4511
+max: 13.6859  gt: 13.6859
+fwd elpased 1.71707
+LOSS: 0.794158
+ACC : 190
+bwd elpased 2.38336
+BATCH: 5
+loading elpased 0.036608
+max: 14.8568  gt: 14.8568
+max: 12.9611  gt: 12.4686
+max: 10.9627  gt: 10.9627
+max: 12.7533  gt: 12.7533
+max: 16.026  gt: 16.026
+fwd elpased 1.75231
+LOSS: 0.81761
+ACC : 194
+bwd elpased 2.38292
+BATCH: 6
+loading elpased 0.0369167
+max: 14.739  gt: 14.6402
+max: 15.9591  gt: 15.9591
+max: 17.9011  gt: 17.9011
+max: 13.5837  gt: 13.2667
+max: 14.0414  gt: 14.0414
+fwd elpased 1.7145
+LOSS: 0.779287
+ACC : 194
+bwd elpased 2.38352
+Time Elapsed for a single epoch: 1094.71
+EPOCH: 37
+BATCH: 0
+loading elpased 0.0373
+max: 14.3166  gt: 14.3166
+max: 13.8532  gt: 11.682
+max: 15.4918  gt: 14.2736
+max: 12.7268  gt: 11.2643
+max: 10.9899  gt: 10.2246
+fwd elpased 1.74775
+LOSS: 0.880769
+ACC : 179
+bwd elpased 2.40142
+BATCH: 1
+loading elpased 0.0371817
+max: 14.8795  gt: 14.8795
+max: 14.7923  gt: 14.7923
+max: 15.5755  gt: 11.9672
+max: 12.8374  gt: 11.1118
+max: 10.7048  gt: 10.7048
+fwd elpased 1.76993
+LOSS: 0.732639
+ACC : 194
+bwd elpased 2.39542
+BATCH: 2
+loading elpased 0.037203
+max: 13.6382  gt: 13.4284
+max: 11.9409  gt: 11.9409
+max: 13.2517  gt: 13.2517
+max: 15.2579  gt: 13.706
+max: 12.0443  gt: 11.2783
+fwd elpased 1.74877
+LOSS: 0.720967
+ACC : 197
+bwd elpased 2.43216
+BATCH: 3
+loading elpased 0.0367203
+max: 12.8228  gt: 12.8228
+max: 13.9737  gt: 13.8734
+max: 16.2626  gt: 16.2626
+max: 14.5029  gt: 14.5029
+max: 16.5799  gt: 16.5799
+fwd elpased 1.77697
+LOSS: 0.69797
+ACC : 203
+bwd elpased 2.39243
+BATCH: 4
+loading elpased 0.0363359
+max: 14.884  gt: 14.884
+max: 13.4579  gt: 10.6654
+max: 17.4345  gt: 17.4345
+max: 19.581  gt: 19.581
+max: 13.7654  gt: 13.7654
+fwd elpased 1.77178
+LOSS: 0.67856
+ACC : 204
+bwd elpased 2.38577
+BATCH: 5
+loading elpased 0.0364666
+max: 15.7266  gt: 15.7266
+max: 13.1818  gt: 13.064
+max: 11.8276  gt: 11.8276
+max: 13.4495  gt: 13.4495
+max: 16.7661  gt: 16.7661
+fwd elpased 1.72211
+LOSS: 0.672474
+ACC : 206
+bwd elpased 2.41084
+BATCH: 6
+loading elpased 0.0366375
+max: 14.9104  gt: 14.902
+max: 16.847  gt: 16.847
+max: 17.9789  gt: 17.9789
+max: 14.3657  gt: 14.3657
+max: 14.2596  gt: 14.2596
+fwd elpased 1.77075
+LOSS: 0.686533
+ACC : 200
+bwd elpased 2.36483
+Time Elapsed for a single epoch: 1124.07
+EPOCH: 38
+BATCH: 0
+loading elpased 0.0373061
+max: 14.7897  gt: 14.7897
+max: 14.2412  gt: 11.971
+max: 16.4985  gt: 14.8058
+max: 12.7707  gt: 12.7707
+max: 11.6822  gt: 10.9851
+fwd elpased 1.72925
+LOSS: 0.771797
+ACC : 196
+bwd elpased 2.40816
+BATCH: 1
+loading elpased 0.0372951
+max: 14.4201  gt: 14.4201
+max: 16.4905  gt: 16.4905
+max: 16.4263  gt: 12.0668
+max: 12.6716  gt: 11.9793
+max: 11.159  gt: 11.159
+fwd elpased 1.78312
+LOSS: 0.609156
+ACC : 210
+bwd elpased 2.40749
+BATCH: 2
+loading elpased 0.037069
+max: 14.7571  gt: 14.7571
+max: 13.4726  gt: 11.8354
+max: 13.7567  gt: 13.7567
+max: 14.495  gt: 14.495
+max: 12.4733  gt: 11.9258
+fwd elpased 1.80495
+LOSS: 0.640747
+ACC : 207
+bwd elpased 2.37315
+BATCH: 3
+loading elpased 0.0367689
+max: 13.2807  gt: 12.5737
+max: 13.8476  gt: 13.8476
+max: 17.0624  gt: 17.0624
+max: 15.2965  gt: 15.2965
+max: 17.4178  gt: 17.4178
+fwd elpased 1.74939
+LOSS: 0.566809
+ACC : 214
+bwd elpased 2.36554
+BATCH: 4
+loading elpased 0.0363274
+max: 16.1684  gt: 16.1684
+max: 14.133  gt: 10.8934
+max: 18.0918  gt: 18.0918
+max: 19.3496  gt: 19.3496
+max: 14.1647  gt: 14.1647
+fwd elpased 1.76253
+LOSS: 0.593235
+ACC : 220
+bwd elpased 2.39693
+BATCH: 5
+loading elpased 0.0362549
+max: 16.0168  gt: 16.0168
+max: 13.8416  gt: 13.8416
+max: 12.2138  gt: 12.2138
+max: 13.9588  gt: 13.9588
+max: 17.019  gt: 17.019
+fwd elpased 1.79207
+LOSS: 0.543615
+ACC : 220
+bwd elpased 2.37859
+BATCH: 6
+loading elpased 0.0369722
+max: 16.8846  gt: 16.8846
+max: 17.5292  gt: 17.5292
+max: 18.6526  gt: 18.6526
+max: 15.9722  gt: 15.9722
+max: 14.6855  gt: 14.6855
+fwd elpased 1.71898
+LOSS: 0.542261
+ACC : 212
+bwd elpased 2.39731
+Time Elapsed for a single epoch: 1153.41
+EPOCH: 39
+BATCH: 0
+loading elpased 0.0372567
+max: 15.2523  gt: 15.2523
+max: 14.3178  gt: 12.0244
+max: 16.6652  gt: 15.6219
+max: 13.9747  gt: 13.9747
+max: 12.0418  gt: 11.7065
+fwd elpased 1.77054
+LOSS: 0.619473
+ACC : 208
+bwd elpased 2.35544
+BATCH: 1
+loading elpased 0.0375979
+max: 14.9843  gt: 14.3759
+max: 17.4461  gt: 17.4461
+max: 16.0838  gt: 12.7585
+max: 12.7668  gt: 12.7668
+max: 11.6907  gt: 11.6907
+fwd elpased 1.77872
+LOSS: 0.523263
+ACC : 220
+bwd elpased 2.35992
+BATCH: 2
+loading elpased 0.0370977
+max: 15.9133  gt: 15.9133
+max: 13.8072  gt: 12.1965
+max: 14.4547  gt: 14.4547
+max: 15.2742  gt: 15.2742
+max: 12.9732  gt: 12.6736
+fwd elpased 1.75987
+LOSS: 0.502062
+ACC : 217
+bwd elpased 2.38149
+BATCH: 3
+loading elpased 0.036692
+max: 14.0418  gt: 11.2938
+max: 13.5983  gt: 13.5983
+max: 17.4926  gt: 17.4926
+max: 15.9929  gt: 15.9929
+max: 18.0161  gt: 18.0161
+fwd elpased 1.75248
+LOSS: 0.452465
+ACC : 226
+bwd elpased 2.39991
+BATCH: 4
+loading elpased 0.0364664
+max: 16.4919  gt: 16.4919
+max: 13.9615  gt: 11.5092
+max: 18.0309  gt: 18.0309
+max: 19.7962  gt: 19.7962
+max: 15.025  gt: 15.025
+fwd elpased 1.79436
+LOSS: 0.509497
+ACC : 225
+bwd elpased 2.40283
+BATCH: 5
+loading elpased 0.0362722
+max: 16.5097  gt: 16.5097
+max: 13.9625  gt: 13.9625
+max: 12.788  gt: 12.788
+max: 14.0807  gt: 14.0807
+max: 17.6889  gt: 17.6889
+fwd elpased 1.76337
+LOSS: 0.462788
+ACC : 227
+bwd elpased 2.40495
+BATCH: 6
+loading elpased 0.036897
+max: 18.7568  gt: 18.7568
+max: 17.3494  gt: 17.3494
+max: 18.7629  gt: 18.7629
+max: 16.5523  gt: 16.5523
+max: 15.2311  gt: 15.2311
+fwd elpased 1.72874
+LOSS: 0.462903
+ACC : 222
+bwd elpased 2.39962
+Time Elapsed for a single epoch: 1182.74
+EPOCH: 40
+BATCH: 0
+loading elpased 0.0370693
+max: 16.0806  gt: 16.0806
+max: 14.1826  gt: 12.9067
+max: 16.7026  gt: 15.5805
+max: 14.2822  gt: 14.2822
+max: 12.1601  gt: 12.1487
+fwd elpased 1.70239
+LOSS: 0.553547
+ACC : 217
+bwd elpased 2.3987
+BATCH: 1
+loading elpased 0.0370694
+max: 15.9458  gt: 13.7105
+max: 16.9562  gt: 16.9562
+max: 16.057  gt: 12.9569
+max: 14.8669  gt: 14.8669
+max: 12.3663  gt: 12.3663
+fwd elpased 1.82719
+LOSS: 0.437668
+ACC : 229
+bwd elpased 2.44326
+BATCH: 2
+loading elpased 0.0369411
+max: 16.5354  gt: 16.5354
+max: 12.8941  gt: 12.7475
+max: 15.0537  gt: 15.0537
+max: 16.4551  gt: 16.4551
+max: 13.1782  gt: 13.1782
+fwd elpased 1.75679
+LOSS: 0.411926
+ACC : 232
+bwd elpased 2.36524
+BATCH: 3
+loading elpased 0.0364683
+max: 14.6534  gt: 11.0351
+max: 13.2678  gt: 13.2678
+max: 18.2533  gt: 18.2533
+max: 16.3359  gt: 16.3359
+max: 17.8947  gt: 17.8947
+fwd elpased 1.73706
+LOSS: 0.357617
+ACC : 228
+bwd elpased 2.42896
+BATCH: 4
+loading elpased 0.0364667
+max: 16.5327  gt: 16.5327
+max: 13.2813  gt: 12.0778
+max: 17.6536  gt: 17.6536
+max: 20.3759  gt: 20.3759
+max: 15.2883  gt: 15.2883
+fwd elpased 1.767
+LOSS: 0.45578
+ACC : 229
+bwd elpased 2.3825
+BATCH: 5
+loading elpased 0.0366475
+max: 17.2954  gt: 17.2954
+max: 13.9241  gt: 13.9241
+max: 13.4458  gt: 13.4458
+max: 13.8273  gt: 13.8273
+max: 18.0622  gt: 18.0622
+fwd elpased 1.77366
+LOSS: 0.354157
+ACC : 234
+bwd elpased 2.40336
+BATCH: 6
+loading elpased 0.0368545
+max: 17.814  gt: 17.814
+max: 17.5296  gt: 17.5296
+max: 18.7705  gt: 18.7705
+max: 17.1528  gt: 17.1528
+max: 15.9091  gt: 15.9091
+fwd elpased 1.72231
+LOSS: 0.377961
+ACC : 227
+bwd elpased 2.36034
+Time Elapsed for a single epoch: 1212.08
+EPOCH: 41
+BATCH: 0
+loading elpased 0.0379006
+max: 16.6537  gt: 16.6537
+max: 13.8036  gt: 13.5115
+max: 17.1924  gt: 16.6187
+max: 14.5476  gt: 14.5476
+max: 12.8338  gt: 12.8338
+fwd elpased 1.77162
+LOSS: 0.484336
+ACC : 219
+bwd elpased 2.43643
+BATCH: 1
+loading elpased 0.0370512
+max: 14.5835  gt: 14.5835
+max: 18.241  gt: 18.241
+max: 15.7339  gt: 14.2833
+max: 15.0642  gt: 15.0642
+max: 12.6212  gt: 12.6212
+fwd elpased 1.7727
+LOSS: 0.347643
+ACC : 230
+bwd elpased 2.38685
+BATCH: 2
+loading elpased 0.0370114
+max: 16.7659  gt: 16.7659
+max: 14.0864  gt: 14.0864
+max: 15.6924  gt: 15.6924
+max: 16.9104  gt: 16.9104
+max: 13.9114  gt: 13.9114
+fwd elpased 1.72813
+LOSS: 0.311802
+ACC : 238
+bwd elpased 2.40554
+BATCH: 3
+loading elpased 0.0364315
+max: 14.4117  gt: 14.4117
+max: 13.9637  gt: 13.9637
+max: 18.8057  gt: 18.8057
+max: 16.8298  gt: 16.8298
+max: 18.2582  gt: 18.2582
+fwd elpased 1.77895
+LOSS: 0.259918
+ACC : 238
+bwd elpased 2.38446
+BATCH: 4
+loading elpased 0.0371122
+max: 17.3307  gt: 17.3307
+max: 13.424  gt: 13.1654
+max: 18.1362  gt: 18.1362
+max: 20.3944  gt: 20.3944
+max: 15.7755  gt: 15.7755
+fwd elpased 1.75654
+LOSS: 0.368236
+ACC : 235
+bwd elpased 2.41125
+BATCH: 5
+loading elpased 0.0369063
+max: 17.8856  gt: 17.8856
+max: 14.2079  gt: 14.2079
+max: 13.9417  gt: 13.9417
+max: 14.4986  gt: 14.4986
+max: 18.4423  gt: 18.4423
+fwd elpased 1.7313
+LOSS: 0.294209
+ACC : 238
+bwd elpased 2.38288
+BATCH: 6
+loading elpased 0.0365995
+max: 17.7992  gt: 17.7992
+max: 17.7356  gt: 17.7356
+max: 18.4281  gt: 18.4281
+max: 17.6104  gt: 17.6104
+max: 15.5245  gt: 15.5245
+fwd elpased 1.78018
+LOSS: 0.3207
+ACC : 235
+bwd elpased 2.36826
+Time Elapsed for a single epoch: 1241.45
+EPOCH: 42
+BATCH: 0
+loading elpased 0.03722
+max: 16.783  gt: 16.783
+max: 13.9271  gt: 13.4998
+max: 17.6575  gt: 16.8718
+max: 15.1913  gt: 15.1913
+max: 13.5524  gt: 13.5524
+fwd elpased 1.79998
+LOSS: 0.382247
+ACC : 225
+bwd elpased 2.40158
+BATCH: 1
+loading elpased 0.0370753
+max: 16.854  gt: 16.854
+max: 18.1514  gt: 18.1514
+max: 16.458  gt: 14.6922
+max: 15.1824  gt: 15.1824
+max: 13.4144  gt: 13.4144
+fwd elpased 1.76693
+LOSS: 0.288271
+ACC : 236
+bwd elpased 2.42073
+BATCH: 2
+loading elpased 0.0375413
+max: 17.0999  gt: 17.0999
+max: 15.9329  gt: 15.9329
+max: 16.2105  gt: 16.2105
+max: 16.6963  gt: 16.6963
+max: 14.8166  gt: 14.8166
+fwd elpased 1.78694
+LOSS: 0.288355
+ACC : 239
+bwd elpased 2.36717
+BATCH: 3
+loading elpased 0.0369157
+max: 15.9637  gt: 15.9637
+max: 15.0514  gt: 15.0514
+max: 18.842  gt: 18.842
+max: 17.5027  gt: 17.5027
+max: 18.4772  gt: 18.4772
+fwd elpased 1.76117
+LOSS: 0.205668
+ACC : 244
+bwd elpased 2.38979
+BATCH: 4
+loading elpased 0.036466
+max: 17.6008  gt: 17.6008
+max: 14.6019  gt: 14.6019
+max: 18.4917  gt: 18.4917
+max: 20.3265  gt: 20.3265
+max: 15.9077  gt: 15.9077
+fwd elpased 1.73121
+LOSS: 0.321964
+ACC : 240
+bwd elpased 2.37556
+BATCH: 5
+loading elpased 0.0362154
+max: 18.3051  gt: 18.3051
+max: 15.4107  gt: 15.4107
+max: 14.4751  gt: 14.4751
+max: 14.6048  gt: 14.6048
+max: 19.0201  gt: 19.0201
+fwd elpased 1.74318
+LOSS: 0.240202
+ACC : 242
+bwd elpased 2.3975
+BATCH: 6
+loading elpased 0.0367314
+max: 17.7758  gt: 17.7758
+max: 18.3016  gt: 18.3016
+max: 19.0658  gt: 19.0658
+max: 17.3831  gt: 17.3831
+max: 16.3603  gt: 16.3603
+fwd elpased 1.77277
+LOSS: 0.2724
+ACC : 235
+bwd elpased 2.39742
+Time Elapsed for a single epoch: 1270.83
+EPOCH: 43
+BATCH: 0
+loading elpased 0.0372228
+max: 16.9566  gt: 16.9566
+max: 14.6166  gt: 14.6166
+max: 18.2183  gt: 16.9629
+max: 15.2588  gt: 15.2588
+max: 13.6632  gt: 13.6632
+fwd elpased 1.74333
+LOSS: 0.292899
+ACC : 235
+bwd elpased 2.33736
+BATCH: 1
+loading elpased 0.0376572
+max: 16.5965  gt: 16.5965
+max: 18.4975  gt: 18.4975
+max: 17.1788  gt: 14.4847
+max: 14.8938  gt: 14.8938
+max: 13.943  gt: 13.943
+fwd elpased 1.77982
+LOSS: 0.25202
+ACC : 240
+bwd elpased 2.42344
+BATCH: 2
+loading elpased 0.0376146
+max: 16.9251  gt: 16.9251
+max: 16.1696  gt: 16.1696
+max: 16.5252  gt: 16.5252
+max: 16.7863  gt: 16.7863
+max: 15.1515  gt: 15.1515
+fwd elpased 1.75551
+LOSS: 0.224164
+ACC : 240
+bwd elpased 2.4051
+BATCH: 3
+loading elpased 0.0371999
+max: 15.9426  gt: 15.9426
+max: 14.8933  gt: 14.8933
+max: 19.3655  gt: 19.3655
+max: 17.7235  gt: 17.7235
+max: 19.3341  gt: 19.3341
+fwd elpased 1.76647
+LOSS: 0.144059
+ACC : 247
+bwd elpased 2.4241
+BATCH: 4
+loading elpased 0.0363816
+max: 18.0555  gt: 18.0555
+max: 15.7536  gt: 15.7536
+max: 18.5407  gt: 18.5407
+max: 20.4965  gt: 20.4965
+max: 16.8384  gt: 16.8384
+fwd elpased 1.76848
+LOSS: 0.26223
+ACC : 244
+bwd elpased 2.4295
+BATCH: 5
+loading elpased 0.0368339
+max: 18.3954  gt: 18.3954
+max: 16.1026  gt: 16.1026
+max: 14.6325  gt: 14.6325
+max: 14.6931  gt: 14.6931
+max: 19.4703  gt: 19.4703
+fwd elpased 1.72988
+LOSS: 0.205525
+ACC : 243
+bwd elpased 2.3689
+BATCH: 6
+loading elpased 0.0369413
+max: 18.2225  gt: 18.2225
+max: 18.5764  gt: 18.5764
+max: 19.5833  gt: 19.5833
+max: 17.9941  gt: 17.9941
+max: 16.8184  gt: 16.8184
+fwd elpased 1.77372
+LOSS: 0.227811
+ACC : 241
+bwd elpased 2.35373
+Time Elapsed for a single epoch: 1300.17
+EPOCH: 44
+BATCH: 0
+loading elpased 0.0372471
+max: 17.5065  gt: 17.5065
+max: 15.8231  gt: 15.8231
+max: 18.7311  gt: 16.9261
+max: 15.9822  gt: 15.9822
+max: 14.5375  gt: 14.5375
+fwd elpased 1.7514
+LOSS: 0.277075
+ACC : 239
+bwd elpased 2.44578
+BATCH: 1
+loading elpased 0.0372909
+max: 16.7899  gt: 16.7899
+max: 19.3866  gt: 19.3866
+max: 17.7483  gt: 14.1131
+max: 15.234  gt: 15.234
+max: 14.0668  gt: 14.0668
+fwd elpased 1.78146
+LOSS: 0.227794
+ACC : 242
+bwd elpased 2.51191
+BATCH: 2
+loading elpased 0.0371263
+max: 16.9895  gt: 16.9895
+max: 16.9701  gt: 16.9701
+max: 16.7616  gt: 16.7616
+max: 17.328  gt: 17.328
+max: 15.4188  gt: 15.4188
+fwd elpased 1.76416
+LOSS: 0.229821
+ACC : 244
+bwd elpased 2.3894
+BATCH: 3
+loading elpased 0.036369
+max: 16.0926  gt: 16.0926
+max: 15.4515  gt: 15.4515
+max: 19.4124  gt: 19.4124
+max: 17.9385  gt: 17.9385
+max: 19.1685  gt: 19.1685
+fwd elpased 1.76558
+LOSS: 0.111641
+ACC : 250
+bwd elpased 2.39191
+BATCH: 4
+loading elpased 0.0364655
+max: 17.9156  gt: 17.9156
+max: 16.8977  gt: 16.8977
+max: 18.4872  gt: 18.4872
+max: 21.3729  gt: 21.3729
+max: 17.361  gt: 17.361
+fwd elpased 1.76271
+LOSS: 0.270787
+ACC : 246
+bwd elpased 2.40919
+BATCH: 5
+loading elpased 0.0361032
+max: 18.6512  gt: 18.6512
+max: 16.3552  gt: 16.3552
+max: 14.8726  gt: 14.8726
+max: 14.9058  gt: 14.9058
+max: 20.3531  gt: 20.3531
+fwd elpased 1.74577
+LOSS: 0.181384
+ACC : 244
+bwd elpased 2.38704
+BATCH: 6
+loading elpased 0.0365415
+max: 18.1385  gt: 18.1385
+max: 18.4707  gt: 18.4707
+max: 19.8574  gt: 19.8574
+max: 18.3977  gt: 18.3977
+max: 16.9579  gt: 16.9579
+fwd elpased 1.71369
+LOSS: 0.176861
+ACC : 243
+bwd elpased 2.39265
+Time Elapsed for a single epoch: 1329.65
+EPOCH: 45
+BATCH: 0
+loading elpased 0.0378478
+max: 17.4719  gt: 17.4719
+max: 16.5964  gt: 16.5964
+max: 17.7977  gt: 17.7785
+max: 16.0975  gt: 16.0975
+max: 14.6776  gt: 14.6776
+fwd elpased 1.75234
+LOSS: 0.243412
+ACC : 241
+bwd elpased 2.40988
+BATCH: 1
+loading elpased 0.0372991
+max: 17.3445  gt: 17.3445
+max: 19.6172  gt: 19.6172
+max: 17.3622  gt: 17.3622
+max: 15.872  gt: 15.872
+max: 14.627  gt: 14.627
+fwd elpased 1.79443
+LOSS: 0.19268
+ACC : 245
+bwd elpased 2.37168
+BATCH: 2
+loading elpased 0.0368612
+max: 17.2674  gt: 17.2674
+max: 17.5342  gt: 17.5342
+max: 16.8715  gt: 16.8715
+max: 17.3292  gt: 17.3292
+max: 15.6179  gt: 15.6179
+fwd elpased 1.73709
+LOSS: 0.173688
+ACC : 244
+bwd elpased 2.43323
+BATCH: 3
+loading elpased 0.0365273
+max: 16.5862  gt: 16.5862
+max: 15.9324  gt: 15.9324
+max: 19.4037  gt: 19.4037
+max: 17.9118  gt: 17.9118
+max: 19.7851  gt: 19.7851
+fwd elpased 1.75284
+LOSS: 0.076069
+ACC : 251
+bwd elpased 2.40656
+BATCH: 4
+loading elpased 0.0370847
+max: 18.2091  gt: 18.2091
+max: 17.0658  gt: 17.0658
+max: 18.1936  gt: 18.1936
+max: 21.5567  gt: 21.5567
+max: 17.4842  gt: 17.4842
+fwd elpased 1.72113
+LOSS: 0.228154
+ACC : 247
+bwd elpased 2.36388
+BATCH: 5
+loading elpased 0.0364919
+max: 18.9178  gt: 18.9178
+max: 16.932  gt: 16.932
+max: 15.1702  gt: 15.1702
+max: 15.1085  gt: 15.1085
+max: 20.4072  gt: 20.4072
+fwd elpased 1.74379
+LOSS: 0.151561
+ACC : 246
+bwd elpased 2.4244
+BATCH: 6
+loading elpased 0.0368922
+max: 18.6041  gt: 18.6041
+max: 18.8459  gt: 18.8459
+max: 20.2411  gt: 20.2411
+max: 18.7594  gt: 18.7594
+max: 17.3837  gt: 17.3837
+fwd elpased 1.71657
+LOSS: 0.159252
+ACC : 246
+bwd elpased 2.37407
+Time Elapsed for a single epoch: 1358.93
+EPOCH: 46
+BATCH: 0
+loading elpased 0.0372046
+max: 17.8291  gt: 17.8291
+max: 16.7559  gt: 16.7559
+max: 21.69  gt: 21.69
+max: 16.5592  gt: 16.5592
+max: 14.8449  gt: 14.8449
+fwd elpased 1.72129
+LOSS: 0.205169
+ACC : 244
+bwd elpased 2.3655
+BATCH: 1
+loading elpased 0.0376682
+max: 17.4058  gt: 17.4058
+max: 19.328  gt: 19.328
+max: 19.0759  gt: 19.0759
+max: 15.7733  gt: 15.7733
+max: 14.8741  gt: 14.8741
+fwd elpased 1.72996
+LOSS: 0.167053
+ACC : 246
+bwd elpased 2.34509
+BATCH: 2
+loading elpased 0.0369268
+max: 17.424  gt: 17.424
+max: 17.6565  gt: 17.6565
+max: 17.0127  gt: 17.0127
+max: 17.1947  gt: 17.1947
+max: 15.8406  gt: 15.8406
+fwd elpased 1.75701
+LOSS: 0.172339
+ACC : 245
+bwd elpased 2.43496
+BATCH: 3
+loading elpased 0.0370836
+max: 16.8556  gt: 16.8556
+max: 15.789  gt: 15.789
+max: 19.8929  gt: 19.8929
+max: 17.9357  gt: 17.9357
+max: 20.3727  gt: 20.3727
+fwd elpased 1.78763
+LOSS: 0.0682619
+ACC : 253
+bwd elpased 2.42449
+BATCH: 4
+loading elpased 0.0364221
+max: 18.1831  gt: 18.1831
+max: 17.391  gt: 17.391
+max: 20.4381  gt: 20.4381
+max: 21.9578  gt: 21.9578
+max: 17.9518  gt: 17.9518
+fwd elpased 1.76626
+LOSS: 0.231702
+ACC : 247
+bwd elpased 2.41439
+BATCH: 5
+loading elpased 0.0366299
+max: 19.1348  gt: 19.1348
+max: 16.5  gt: 16.5
+max: 15.26  gt: 15.26
+max: 15.1524  gt: 15.1524
+max: 20.5178  gt: 20.5178
+fwd elpased 1.77119
+LOSS: 0.136115
+ACC : 247
+bwd elpased 2.37479
+BATCH: 6
+loading elpased 0.0369352
+max: 17.8875  gt: 17.8875
+max: 19.0688  gt: 19.0688
+max: 20.1835  gt: 20.1835
+max: 18.9066  gt: 18.9066
+max: 17.7406  gt: 17.7406
+fwd elpased 1.7425
+LOSS: 0.149807
+ACC : 247
+bwd elpased 2.35004
+Time Elapsed for a single epoch: 1388.18
+EPOCH: 47
+BATCH: 0
+loading elpased 0.0372628
+max: 17.9985  gt: 17.9985
+max: 17.0904  gt: 17.0904
+max: 21.6878  gt: 21.6878
+max: 16.6649  gt: 16.6649
+max: 15.1278  gt: 15.1278
+fwd elpased 1.77783
+LOSS: 0.175843
+ACC : 244
+bwd elpased 2.3429
+BATCH: 1
+loading elpased 0.0370094
+max: 17.0254  gt: 17.0254
+max: 19.897  gt: 19.897
+max: 19.5749  gt: 19.5749
+max: 16.2226  gt: 16.2226
+max: 15.0631  gt: 15.0631
+fwd elpased 1.71361
+LOSS: 0.156744
+ACC : 248
+bwd elpased 2.38475
+BATCH: 2
+loading elpased 0.0370496
+max: 17.453  gt: 17.453
+max: 17.9049  gt: 17.9049
+max: 17.29  gt: 17.29
+max: 17.1994  gt: 17.1994
+max: 16.2085  gt: 16.2085
+fwd elpased 1.7664
+LOSS: 0.105199
+ACC : 248
+bwd elpased 2.41605
+BATCH: 3
+loading elpased 0.0365773
+max: 16.9671  gt: 16.9671
+max: 16.8783  gt: 16.8783
+max: 20.2468  gt: 20.2468
+max: 18.1843  gt: 18.1843
+max: 20.4796  gt: 20.4796
+fwd elpased 1.78084
+LOSS: 0.0630022
+ACC : 253
+bwd elpased 2.39644
+BATCH: 4
+loading elpased 0.0363561
+max: 18.7118  gt: 18.7118
+max: 17.5745  gt: 17.5745
+max: 20.0587  gt: 20.0587
+max: 22.0564  gt: 22.0564
+max: 18.1091  gt: 18.1091
+fwd elpased 1.74564
+LOSS: 0.171044
+ACC : 248
+bwd elpased 2.3595
+BATCH: 5
+loading elpased 0.0362852
+max: 19.3607  gt: 19.3607
+max: 17.1355  gt: 17.1355
+max: 15.294  gt: 15.294
+max: 15.4591  gt: 15.4591
+max: 20.7573  gt: 20.7573
+fwd elpased 1.7478
+LOSS: 0.117367
+ACC : 249
+bwd elpased 2.43775
+BATCH: 6
+loading elpased 0.0366715
+max: 18.8251  gt: 18.8251
+max: 19.6989  gt: 19.6989
+max: 20.7314  gt: 20.7314
+max: 19.5742  gt: 19.5742
+max: 18.0169  gt: 18.0169
+fwd elpased 1.78064
+LOSS: 0.137663
+ACC : 248
+bwd elpased 2.40189
+Time Elapsed for a single epoch: 1417.51
+EPOCH: 48
+BATCH: 0
+loading elpased 0.0372026
+max: 18.3455  gt: 18.3455
+max: 17.431  gt: 17.431
+max: 21.8782  gt: 21.8782
+max: 17.151  gt: 17.151
+max: 15.3449  gt: 15.3449
+fwd elpased 1.74323
+LOSS: 0.142929
+ACC : 247
+bwd elpased 2.42439
+BATCH: 1
+loading elpased 0.0375601
+max: 17.9267  gt: 17.9267
+max: 20.3459  gt: 20.3459
+max: 19.8232  gt: 19.8232
+max: 16.7727  gt: 16.7727
+max: 15.3533  gt: 15.3533
+fwd elpased 1.75981
+LOSS: 0.146666
+ACC : 250
+bwd elpased 2.42012
+BATCH: 2
+loading elpased 0.0375
+max: 17.8085  gt: 17.8085
+max: 18.5816  gt: 18.5816
+max: 17.6406  gt: 17.6406
+max: 17.3016  gt: 17.3016
+max: 16.3605  gt: 16.3605
+fwd elpased 1.77291
+LOSS: 0.08542
+ACC : 249
+bwd elpased 2.43071
+BATCH: 3
+loading elpased 0.0372521
+max: 17.6586  gt: 17.6586
+max: 16.8772  gt: 16.8772
+max: 20.8253  gt: 20.8253
+max: 18.5956  gt: 18.5956
+max: 20.449  gt: 20.449
+fwd elpased 1.77856
+LOSS: 0.0577207
+ACC : 253
+bwd elpased 2.39603
+BATCH: 4
+loading elpased 0.0364113
+max: 19.205  gt: 19.205
+max: 17.9681  gt: 17.9681
+max: 20.54  gt: 20.54
+max: 22.6538  gt: 22.6538
+max: 18.5727  gt: 18.5727
+fwd elpased 1.7565
+LOSS: 0.178229
+ACC : 250
+bwd elpased 2.41226
+BATCH: 5
+loading elpased 0.0362694
+max: 19.724  gt: 19.724
+max: 17.0479  gt: 17.0479
+max: 15.3463  gt: 15.3463
+max: 15.6975  gt: 15.6975
+max: 20.928  gt: 20.928
+fwd elpased 1.79347
+LOSS: 0.104057
+ACC : 249
+bwd elpased 2.42767
+BATCH: 6
+loading elpased 0.037239
+max: 18.9712  gt: 18.9712
+max: 19.7336  gt: 19.7336
+max: 20.8866  gt: 20.8866
+max: 19.7495  gt: 19.7495
+max: 18.2408  gt: 18.2408
+fwd elpased 1.77712
+LOSS: 0.115426
+ACC : 249
+bwd elpased 2.39665
+Time Elapsed for a single epoch: 1447.07
+EPOCH: 49
+BATCH: 0
+loading elpased 0.0371838
+max: 18.5489  gt: 18.5489
+max: 17.6714  gt: 17.6714
+max: 21.7407  gt: 21.7407
+max: 17.3424  gt: 17.3424
+max: 15.4039  gt: 15.4039
+fwd elpased 1.75549
+LOSS: 0.130475
+ACC : 248
+BATCH: 1
+loading elpased 0.0373214
+max: 17.8818  gt: 17.8818
+max: 21.1104  gt: 21.1104
+max: 20.0913  gt: 20.0913
+max: 17.1066  gt: 17.1066
+max: 15.6612  gt: 15.6612
+fwd elpased 1.74469
+LOSS: 0.16643
+ACC : 248
+BATCH: 2
+loading elpased 0.0375906
+max: 17.8877  gt: 17.8877
+max: 19.102  gt: 19.102
+max: 18.1506  gt: 18.1506
+max: 18.0694  gt: 18.0694
+max: 16.6005  gt: 16.6005
+fwd elpased 1.75862
+LOSS: 0.0600692
+ACC : 253
+BATCH: 3
+loading elpased 0.0371851
+max: 17.6528  gt: 17.6528
+max: 17.4851  gt: 17.4851
+max: 20.3037  gt: 20.3037
+max: 18.8446  gt: 18.8446
+max: 20.7029  gt: 20.7029
+fwd elpased 1.8252
+LOSS: 0.0347721
+ACC : 256
+BATCH: 4
+loading elpased 0.0364483
+max: 19.4164  gt: 19.4164
+max: 18.4495  gt: 18.4495
+max: 20.0287  gt: 20.0287
+max: 21.7825  gt: 21.7825
+max: 18.2558  gt: 18.2558
+fwd elpased 1.74575
+LOSS: 0.0932729
+ACC : 254
+BATCH: 5
+loading elpased 0.0368369
+max: 19.9337  gt: 19.9337
+max: 17.0551  gt: 17.0551
+max: 15.3808  gt: 15.3808
+max: 15.6059  gt: 15.6059
+max: 20.1985  gt: 20.1985
+fwd elpased 1.77481
+LOSS: 0.0509598
+ACC : 254
+BATCH: 6
+loading elpased 0.0372735
+max: 19.5866  gt: 19.5866
+max: 19.7277  gt: 19.7277
+max: 20.2574  gt: 20.2574
+max: 20.0595  gt: 20.0595
+max: 18.356  gt: 18.356
+fwd elpased 1.80477
+LOSS: 0.0199626
+ACC : 256
+Time Elapsed for a single epoch: 1459.75
+Total Time Elapsed: 1459.75

@@ -29,8 +29,10 @@ class ReLUBridgeTest : public ::testing::Test {
 
       cnn::LayerParameter layer_param;
       ReLUBridge_ = new ParallelizedBridge<T, ReLUBridge<T, Layout_CRDB, T, Layout_CRDB> >(layer1,
-          layer2, &layer_param, 4, 1);
+          layer2, &layer_param, &solver_param, 4, 1);
     }
+
+    cnn::SolverParameter solver_param;
 
     virtual ~ReLUBridgeTest() { delete ReLUBridge_; delete layer1; delete layer2;}
     ParallelizedBridge<T, ReLUBridge<T, Layout_CRDB, T, Layout_CRDB> >* ReLUBridge_;
@@ -74,7 +76,7 @@ TYPED_TEST(ReLUBridgeTest, TestForward) {
 
   this->ReLUBridge_->forward();
 
-  std::fstream expected_output("relu_forward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/relu_forward.txt", std::ios_base::in);
 
   T output;
   int idx = 0;
@@ -85,6 +87,8 @@ TYPED_TEST(ReLUBridgeTest, TestForward) {
       expected_output >> output;
       idx++;
     }
+  }else{
+    FAIL();
   }
   expected_output.close();
 }
@@ -111,7 +115,7 @@ TYPED_TEST(ReLUBridgeTest, TestBackward) {
 
   this->ReLUBridge_->backward();
 
-  std::fstream expected_output("relu_backward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/relu_backward.txt", std::ios_base::in);
 
   T output;
   int idx = 0;
@@ -122,6 +126,8 @@ TYPED_TEST(ReLUBridgeTest, TestBackward) {
       expected_output >> output;
       idx++;
     }
+  }else{
+    FAIL();
   }
   expected_output.close();
 }

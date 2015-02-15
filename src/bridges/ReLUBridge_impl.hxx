@@ -11,8 +11,10 @@
 
 template <typename DataType>
 ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::ReLUBridge(InputLayerType * const _p_input_layer,
-    OutputLayerType * const _p_output_layer, const cnn::LayerParameter * const _layer_param)
-: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer, _layer_param) {
+    OutputLayerType * const _p_output_layer, const cnn::LayerParameter * const _layer_param,
+    const cnn::SolverParameter * const _solver_param)
+: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer,
+    _layer_param, _solver_param) {
 
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();

@@ -40,14 +40,10 @@ template <typename DataType>
 void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
   report_forward_last_transfer.reset();
 
-  // TODO: uncomment this when we move to OpenBLAS implementation
-  // openblas_set_num_threads(run_with_n_threads);
-
   LogicalCube<DataType, Layout_CRDB> * const input_data = p_input_layer->p_data_cube;
 
   const DataType * const ground_truth = p_data_labels->p_data;
 
-  //input_data->logical_print();
   for (size_t i_b = 0; i_b < iB; ++i_b) {
     const DataType * const single_input_batch = input_data->physical_get_RCDslice(i_b);
     DataType max = single_input_batch[0];
@@ -73,8 +69,6 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() 
   }
 
   report_forward_last_transfer.end();
-  //report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_lowering);
-  //report_forward_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);
   report_forward_history.aggregate(report_forward_last_transfer);
 }
 
@@ -84,9 +78,6 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() 
 template <typename DataType>
 void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
   report_backward_updateweight_last_transfer.reset();
-
-  // TODO: uncomment this when we move to OpenBLAS implementation
-  //openblas_set_num_threads(run_with_n_threads);
 
   // First, copy the output data into the input gradient
   Util::_our_memcpy(p_input_layer->p_gradient_cube->p_data,
@@ -113,10 +104,6 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward()
   //caffe_scal(prob_.count(), loss_weight = 1 / num / spatial_dim, bottom_diff);
 
   report_backward_updateweight_last_transfer.end();
-  //report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_element_mul_kernel->report_last_lowering);
-  //report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updategrad_kernel->report_last_lowering);
-  //report_backward_updateweight_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);
-  //report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updateweight_kernel->report_last_lowering);
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
 }
 

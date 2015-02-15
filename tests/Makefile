@@ -12,7 +12,8 @@ endif
 
 BLASFLAGS= -lm -I $(OPENBLAS_DIR) 
 PROTOBUF = `pkg-config --cflags --libs protobuf`
-SOURCES   = test_main.cpp test_MaxPooling_bridge.cpp test_softmax_bridge.cpp ../src/util.cpp ../src/parser/cnn.pb.cc ../src/timer.cpp
+#SOURCES  = test_main.cpp test_convolution_bridge.cpp ../src/util.cpp ../src/parser/cnn.pb.cc ../src/timer.cpp
+SOURCES   = test_main.cpp test_fc_bridge.cpp ../src/util.cpp ../src/parser/cnn.pb.cc ../src/timer.cpp
 EXECUTABLE=test
 
 all: $(SOURCES)

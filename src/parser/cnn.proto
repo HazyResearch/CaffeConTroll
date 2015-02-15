@@ -28,7 +28,7 @@ message FillerParameter {
   optional float std = 6 [default = 1]; // the std value in Gaussian filler
   // The expected number of non-zero input weights for a given output in
   // Gaussian filler -- the default -1 means don't perform sparsification.
-  optional int32 sparse = 7 [default = -1];
+  // optional int32 sparse = 7 [default = -1];
 }
 
 message NetParameter {
@@ -97,17 +97,17 @@ message SolverParameter {
   optional bool test_compute_loss = 19 [default = false];
   // If true, run an initial test pass before the first iteration,
   // ensuring memory availability and printing the starting value of the loss.
-  optional bool test_initialization = 32 [default = true];
+  // optional bool test_initialization = 32 [default = true];
   optional float base_lr = 5; // The base learning rate
   // the number of iterations between displaying info. If display = 0, no info
   // will be displayed.
-  optional int32 display = 6;
+  // optional int32 display = 6;
   // Display the cost averaged over the last average_cost iterations
-  optional int32 average_loss = 33 [default = 1];
+  // optional int32 average_loss = 33 [default = 1];
   optional int32 max_iter = 7; // the maximum number of iterations
-  optional string lr_policy = 8; // The learning rate decay policy.
-  optional float gamma = 9; // The parameter to compute the learning rate.
-  optional float power = 10; // The parameter to compute the learning rate.
+  // optional string lr_policy = 8; // The learning rate decay policy.
+  // optional float gamma = 9; // The parameter to compute the learning rate.
+  // optional float power = 10; // The parameter to compute the learning rate.
   optional float momentum = 11; // The momentum value.
   optional float weight_decay = 12; // The weight decay.
   // regularization types supported: L1 and L2
@@ -116,34 +116,34 @@ message SolverParameter {
   // the stepsize for learning rate policy "step"
   optional int32 stepsize = 13;
   // the stepsize for learning rate policy "multistep"
-  repeated int32 stepvalue = 34;
-  optional int32 snapshot = 14 [default = 0]; // The snapshot interval
-  optional string snapshot_prefix = 15; // The prefix for the snapshot.
+  // repeated int32 stepvalue = 34;
+  // optional int32 snapshot = 14 [default = 0]; // The snapshot interval
+  // optional string snapshot_prefix = 15; // The prefix for the snapshot.
   // whether to snapshot diff in the results or not. Snapshotting diff will help
   // debugging but the final protocol buffer size will be much larger.
-  optional bool snapshot_diff = 16 [default = false];
+  // optional bool snapshot_diff = 16 [default = false];
   // the mode solver will use: 0 for CPU and 1 for GPU. Use GPU in default.
-  enum SolverMode {
-    CPU = 0;
-    GPU = 1;
-  }
-  optional SolverMode solver_mode = 17 [default = GPU];
+  // enum SolverMode {
+  //   CPU = 0;
+  //   GPU = 1;
+  // }
+  // optional SolverMode solver_mode = 17 [default = GPU];
   // the device_id will that be used in GPU mode. Use device_id = 0 in default.
-  optional int32 device_id = 18 [default = 0];
+  // optional int32 device_id = 18 [default = 0];
   // If non-negative, the seed with which the Solver will initialize the Caffe
   // random number generator -- useful for reproducible results. Otherwise,
   // (and by default) initialize using a seed derived from the system clock.
-  optional int64 random_seed = 20 [default = -1];
+  // optional int64 random_seed = 20 [default = -1];
 
   // Solver type
   enum SolverType {
     SGD = 0;
-    NESTEROV = 1;
-    ADAGRAD = 2;
+    // NESTEROV = 1;
+    // ADAGRAD = 2;
   }
   optional SolverType solver_type = 30 [default = SGD];
   // numerical stability for AdaGrad
-  optional float delta = 31 [default = 1e-8];
+  // optional float delta = 31 [default = 1e-8];
 
   // If true, print information about the state of the net that may help with
   // debugging learning problems.
@@ -209,76 +209,76 @@ message LayerParameter {
     // "NONE" layer type is 0th enum element so that we don't cause confusion
     // by defaulting to an existent LayerType (instead, should usually error if
     // the type is unspecified).
-    NONE = 0;
-    ABSVAL = 35;
-    ACCURACY = 1;
-    ARGMAX = 30;
-    BNLL = 2;
-    CONCAT = 3;
-    CONTRASTIVE_LOSS = 37;
+    // NONE = 0;
+    // ABSVAL = 35;
+    // ACCURACY = 1;
+    // ARGMAX = 30;
+    // BNLL = 2;
+    // CONCAT = 3;
+    // CONTRASTIVE_LOSS = 37;
     CONVOLUTION = 4;
     DATA = 5;
     DROPOUT = 6;
-    DUMMY_DATA = 32;
-    EUCLIDEAN_LOSS = 7;
-    ELTWISE = 25;
-    FLATTEN = 8;
-    HDF5_DATA = 9;
-    HDF5_OUTPUT = 10;
-    HINGE_LOSS = 28;
-    IM2COL = 11;
-    IMAGE_DATA = 12;
-    INFOGAIN_LOSS = 13;
+    // DUMMY_DATA = 32;
+    // EUCLIDEAN_LOSS = 7;
+    // ELTWISE = 25;
+    // FLATTEN = 8;
+    // HDF5_DATA = 9;
+    // HDF5_OUTPUT = 10;
+    // HINGE_LOSS = 28;
+    // IM2COL = 11;
+    // IMAGE_DATA = 12;
+    // INFOGAIN_LOSS = 13;
     INNER_PRODUCT = 14;
     LRN = 15;
-    MEMORY_DATA = 29;
-    MULTINOMIAL_LOGISTIC_LOSS = 16;
-    MVN = 34;
+    // MEMORY_DATA = 29;
+    // MULTINOMIAL_LOGISTIC_LOSS = 16;
+    // MVN = 34;
     POOLING = 17;
-    POWER = 26;
+    // POWER = 26;
     RELU = 18;
-    SIGMOID = 19;
-    SIGMOID_CROSS_ENTROPY_LOSS = 27;
-    SILENCE = 36;
-    SOFTMAX = 20;
+    // SIGMOID = 19;
+    // SIGMOID_CROSS_ENTROPY_LOSS = 27;
+    // SILENCE = 36;
+    // SOFTMAX = 20;
     SOFTMAX_LOSS = 21;
-    SPLIT = 22;
-    SLICE = 33;
-    TANH = 23;
-    WINDOW_DATA = 24;
-    THRESHOLD = 31;
+    // SPLIT = 22;
+    // SLICE = 33;
+    // TANH = 23;
+    // WINDOW_DATA = 24;
+    // THRESHOLD = 31;
   }
   optional LayerType type = 5; // the layer type from the enum above
   
   repeated float blobs_lr = 7;
 
-  optional AccuracyParameter accuracy_param = 27;
-  optional ArgMaxParameter argmax_param = 23;
-  optional ConcatParameter concat_param = 9;
-  optional ContrastiveLossParameter contrastive_loss_param = 40;
+  // optional AccuracyParameter accuracy_param = 27;
+  // optional ArgMaxParameter argmax_param = 23;
+  // optional ConcatParameter concat_param = 9;
+  // optional ContrastiveLossParameter contrastive_loss_param = 40;
   optional ConvolutionParameter convolution_param = 10;
   optional DataParameter data_param = 11;
   optional DropoutParameter dropout_param = 12;
-  optional DummyDataParameter dummy_data_param = 26;
-  optional EltwiseParameter eltwise_param = 24;
-  optional HDF5DataParameter hdf5_data_param = 13;
-  optional HDF5OutputParameter hdf5_output_param = 14;
-  optional HingeLossParameter hinge_loss_param = 29;
-  optional ImageDataParameter image_data_param = 15;
-  optional InfogainLossParameter infogain_loss_param = 16;
+  // optional DummyDataParameter dummy_data_param = 26;
+  // optional EltwiseParameter eltwise_param = 24;
+  // optional HDF5DataParameter hdf5_data_param = 13;
+  // optional HDF5OutputParameter hdf5_output_param = 14;
+  // optional HingeLossParameter hinge_loss_param = 29;
+  // optional ImageDataParameter image_data_param = 15;
+  // optional InfogainLossParameter infogain_loss_param = 16;
   optional InnerProductParameter inner_product_param = 17;
   optional LRNParameter lrn_param = 18;
-  optional MemoryDataParameter memory_data_param = 22;
-  optional MVNParameter mvn_param = 34;
+  // optional MemoryDataParameter memory_data_param = 22;
+  // optional MVNParameter mvn_param = 34;
   optional PoolingParameter pooling_param = 19;
-  optional PowerParameter power_param = 21;
+  // optional PowerParameter power_param = 21;
   optional ReLUParameter relu_param = 30;
-  optional SigmoidParameter sigmoid_param = 38;
+  // optional SigmoidParameter sigmoid_param = 38;
   optional SoftmaxParameter softmax_param = 39;
-  optional SliceParameter slice_param = 31;
-  optional TanHParameter tanh_param = 37;
-  optional ThresholdParameter threshold_param = 25;
-  optional WindowDataParameter window_data_param = 20;
+  // optional SliceParameter slice_param = 31;
+  // optional TanHParameter tanh_param = 37;
+  // optional ThresholdParameter threshold_param = 25;
+  // optional WindowDataParameter window_data_param = 20;
 
   // Parameters for data pre-processing.
   optional TransformationParameter transform_param = 36;
@@ -334,15 +334,15 @@ message ConvolutionParameter {
   // Pad, kernel size, and stride are all given as a single value for equal
   // dimensions in height and width or as Y, X pairs.
   optional uint32 pad = 3 [default = 0]; // The padding size (equal in Y, X)
-  optional uint32 pad_h = 9 [default = 0]; // The padding height
-  optional uint32 pad_w = 10 [default = 0]; // The padding width
+  // optional uint32 pad_h = 9 [default = 0]; // The padding height
+  // optional uint32 pad_w = 10 [default = 0]; // The padding width
   optional uint32 kernel_size = 4; // The kernel size (square)
-  optional uint32 kernel_h = 11; // The kernel height
-  optional uint32 kernel_w = 12; // The kernel width
+  // optional uint32 kernel_h = 11; // The kernel height
+  // optional uint32 kernel_w = 12; // The kernel width
   optional uint32 group = 5 [default = 1]; // The group size for group conv
   optional uint32 stride = 6 [default = 1]; // The stride (equal in Y, X)
-  optional uint32 stride_h = 13; // The stride height
-  optional uint32 stride_w = 14; // The stride width
+  // optional uint32 stride_h = 13; // The stride height
+  // optional uint32 stride_w = 14; // The stride width
   optional FillerParameter weight_filler = 7; // The filler for the weight
   optional FillerParameter bias_filler = 8; // The filler for the bias
   enum Engine {
@@ -356,7 +356,7 @@ message ConvolutionParameter {
 // Message that stores parameters used by DataLayer
 message DataParameter {
   enum DB {
-    LEVELDB = 0;
+    // LEVELDB = 0;
     LMDB = 1;
   }
   // Specify the data source.
@@ -368,7 +368,8 @@ message DataParameter {
   // point would be set as rand_skip * rand(0,1). Note that rand_skip should not
   // be larger than the number of keys in the leveldb.
   optional uint32 rand_skip = 7 [default = 0];
-  optional DB backend = 8 [default = LEVELDB];
+  // optional DB backend = 8 [default = LEVELDB];
+  optional DB backend = 8 [default = LMDB];
   // DEPRECATED. See TransformationParameter. For data pre-processing, we can do
   // simple scaling and subtracting the data mean, if provided. Note that the
   // mean subtraction is always carried out before scaling.
@@ -523,21 +524,21 @@ message MVNParameter {
 message PoolingParameter {
   enum PoolMethod {
     MAX = 0;
-    AVE = 1;
-    STOCHASTIC = 2;
+    // AVE = 1;
+    // STOCHASTIC = 2;
   }
   optional PoolMethod pool = 1 [default = MAX]; // The pooling method
   // Pad, kernel size, and stride are all given as a single value for equal
   // dimensions in height and width or as Y, X pairs.
   optional uint32 pad = 4 [default = 0]; // The padding size (equal in Y, X)
-  optional uint32 pad_h = 9 [default = 0]; // The padding height
-  optional uint32 pad_w = 10 [default = 0]; // The padding width
+  // optional uint32 pad_h = 9 [default = 0]; // The padding height
+  // optional uint32 pad_w = 10 [default = 0]; // The padding width
   optional uint32 kernel_size = 2; // The kernel size (square)
-  optional uint32 kernel_h = 5; // The kernel height
-  optional uint32 kernel_w = 6; // The kernel width
+  // optional uint32 kernel_h = 5; // The kernel height
+  // optional uint32 kernel_w = 6; // The kernel width
   optional uint32 stride = 3 [default = 1]; // The stride (equal in Y, X)
-  optional uint32 stride_h = 7; // The stride height
-  optional uint32 stride_w = 8; // The stride width
+  // optional uint32 stride_h = 7; // The stride height
+  // optional uint32 stride_w = 8; // The stride width
   enum Engine {
     DEFAULT = 0;
     CAFFE = 1;
@@ -561,7 +562,7 @@ message ReLUParameter {
   // Maas, A. L., Hannun, A. Y., & Ng, A. Y. (2013). Rectifier nonlinearities
   // improve neural network acoustic models. In ICML Workshop on Deep Learning
   // for Audio, Speech, and Language Processing.
-  optional float negative_slope = 1 [default = 0];
+  // optional float negative_slope = 1 [default = 0];
   enum Engine {
     DEFAULT = 0;
     CAFFE = 1;
@@ -639,5 +640,4 @@ message WindowDataParameter {
   // square: the tightest square around the window is cropped
   optional string crop_mode = 11 [default = "warp"];
 }
-
 

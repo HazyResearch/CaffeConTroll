@@ -3,11 +3,17 @@
 # C compiler
 CC=clang++ # CC = g++-4.8
 
-# use absolute paths
 # directory where lmbd library is installed.
+# do not leave these open.
+LMDB_INCLUDE=
 LMDB_DIR=/opt/local/lib
-OPENBLAS_DIR=/Users/chrismre/DEVEL/deepnet/externals/OpenBLAS/
-GTEST_LIB_DIR=/Users/chrismre/DEVEL/deepnet/lib/
+
+OPENBLAS_INCLUDE=/Users/chrismre/DEVEL/deepnet/externals/OpenBLAS/include
+OPENBLAS_LIB_DIR=/Users/chrismre/DEVEL/deepnet/externals/lib
+
 GTEST_INCLUDE=/Users/chrismre/DEVEL/deepnet/gtest-1.7.0/include/
-GTEST_LIB_DIR=
-BOOST_LIB_DIR=
+GTEST_LIB_DIR=/Users/chrismre/DEVEL/deepnet/lib/
+
+BOOST_INCLUDE=.
+BOOST_LIB_DIR=.
+

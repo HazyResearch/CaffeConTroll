@@ -48,7 +48,8 @@ class ConvolutionBridge : public AbstractBridge<InputLayerDataType, InputLayerLa
 
     ConvolutionBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
-        const cnn::LayerParameter * const _layer_param) {
+        const cnn::LayerParameter * const _layer_param,
+        const cnn::SolverParameter * const _solver_param) {
       NOT_IMPLEMENTED;
     }
 
@@ -90,7 +91,10 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oD;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oB;
 
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::needs_to_calc_backward_grad;
+
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::layer_param;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::solver_param;
 
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_input_layer;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_output_layer;
@@ -113,8 +117,11 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     const size_t padding;
 
     const bool bias_term;
+
     const float stepsize;
     const float momentum;
+    const float weight_decay;
+    const string regularization_type;
 
     const cnn::FillerParameter weight_filler;
     const cnn::FillerParameter bias_filler;
@@ -137,7 +144,8 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
 
     ConvolutionBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
-        const cnn::LayerParameter * const _layer_param);
+        const cnn::LayerParameter * const _layer_param,
+        const cnn::SolverParameter * const _solver_param);
 
     ~ConvolutionBridge();
 
@@ -150,6 +158,8 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     LogicalCubeType * p_model_cube_history;
     LogicalCubeType * p_bias_cube;
     LogicalCubeType * p_forward_lowered_data;
+    LogicalCubeType * p_backward_outputgrad;
+    LogicalCubeType * p_backward_inputgrad;
 
     size_t mR, mC, mD, mB; /*< Size of the model LogicalCube */
 
@@ -161,8 +171,6 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
       Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS> * p_forward_gemm_kernel;
 
-    LogicalCube<DataType, Layout_CRDB> * p_backward_outputgrad;
-    LogicalCube<DataType, Layout_CRDB> * p_backward_inputgrad;
 
     Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
       Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KernelConfig_TANHGRAD_ON_INPUT1> * p_backward_element_mul_kernel;

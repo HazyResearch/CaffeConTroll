@@ -1,13 +1,20 @@
 # This is the setup code. Rename to .config
 # Use absolute paths
 # C compiler
-CC=g++ # inexplicably
+CC=g++-4.8 # inexplicably
 
 
 # use absolute paths
 # directory where lmbd library is installed.
+LMDB_INCLUDE=
 LMDB_DIR=/usr/local/lib
-OPENBLAS_DIR=./externals/OpenBLAS/
-GTEST_LIB_DIR=/usr/local/lib
+
+OPENBLAS_INCLUDE=./externals/OpenBLAS/
+OPENBLAS_LIB_DIR=
+
 GTEST_INCLUDE=/usr/include/
-  
+GTEST_LIB_DIR=/usr/local/lib
+
+BOOST_INCLUDE=
+BOOST_LIB_DIR=
+

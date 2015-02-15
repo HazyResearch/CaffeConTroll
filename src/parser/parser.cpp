@@ -37,13 +37,13 @@ using google::protobuf::Message;
 bool Parser::read_proto_from_text_file(const char * filename, Message * proto) {
   int fd = open(filename, O_RDONLY);
   google::protobuf::io::FileInputStream fileInput(fd);
-  fileInput.SetCloseOnDelete( true );
+  fileInput.SetCloseOnDelete(true);
   bool success = google::protobuf::TextFormat::Parse(&fileInput, proto);
   return success;
 }
 
-void Parser::read_net_params_from_text_file(const string & param_file, Message * param) {
-  read_proto_from_text_file(param_file.c_str(), param);
+bool Parser::read_net_params_from_text_file(const string & param_file, Message * param) {
+  return read_proto_from_text_file(param_file.c_str(), param);
 }
 
 bool Parser::read_proto_from_binary_file(const char * filename, Message * proto) {

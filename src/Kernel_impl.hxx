@@ -92,7 +92,7 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
     N = static_cast<int>(i2C);
     K = static_cast<int>(i1R);
     LDA = M;
-    LDB = N;
+    LDB = N;  
   }
 
   BLASFUNC(sgemm)(&N2, &N1, &N, &M, &K, &_alpha, p_input2_cube->p_data,

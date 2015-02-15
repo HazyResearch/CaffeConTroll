@@ -1,0 +1,85 @@
+ubuntu@ip-172-31-10-77:~/deepnet$ ./deepnet test caffe_inputs2/imagenet_solver_3.prototxt -b data/toprocess5.bin -m deepnetmodel.bin 
+Start writing 2000 to data/toprocess5.bin...
+Finished writing images to data/toprocess5.bin...
+Constructing CONV layer with Grouping = 2 (# Input Grouping=1)
+Constructing RELU layer (# Input Grouping=2)
+Constructing MAXPOOLING (# Input Grouping=2)
+Constructing LRN layer (# Input Grouping=2)
+Constructing CONV layer with Grouping = 2 (# Input Grouping=2)
+Constructing RELU layer (# Input Grouping=2)
+Constructing MAXPOOLING (# Input Grouping=2)
+Constructing LRN layer (# Input Grouping=2)
+Constructing CONV layer with Grouping = 2 (# Input Grouping=2)
+Constructing RELU layer (# Input Grouping=2)
+Constructing CONV layer with Grouping = 2 (# Input Grouping=2)
+Constructing RELU layer (# Input Grouping=2)
+Constructing CONV layer with Grouping = 2 (# Input Grouping=2)
+Constructing RELU layer (# Input Grouping=2)
+Constructing MAXPOOLING (# Input Grouping=2)
+Constructing FUNNEL layer with grouping 1 (# Input Grouping=2)
+Constructing FC layer (# Input Grouping=1)
+Constructing RELU layer (# Input Grouping=1)
+Constructing DROPOUT layer (# Input Grouping=1)
+Constructing FC layer (# Input Grouping=1)
+Constructing RELU layer (# Input Grouping=1)
+Constructing DROPOUT layer (# Input Grouping=1)
+Constructing FC layer (# Input Grouping=1)
+Constructing SOFTMAX layer (# Input Grouping=1)
+BATCH: 0
+max: 18.4416  gt: 18.4416
+max: 15.4228  gt: 14.6052
+max: 21.6957  gt: 21.6957
+max: 17.7016  gt: 17.7016
+max: 15.2806  gt: 15.2806
+LOSS: 1.31827
+Batch0 Accuracy 188
+BATCH: 1
+max: 18.4579  gt: 18.4579
+max: 19.5073  gt: 19.5073
+max: 15.3612  gt: 15.3612
+max: 15.3044  gt: 15.3044
+max: 15.5843  gt: 15.5843
+LOSS: 1.40583
+Batch1 Accuracy 186
+BATCH: 2
+max: 16.3834  gt: 16.3834
+max: 16.1869  gt: 11.5804
+max: 15.6393  gt: 14.308
+max: 17.9585  gt: 17.9585
+max: 15.436  gt: 15.436
+LOSS: 1.02687
+Batch2 Accuracy 205
+BATCH: 3
+max: 13.7609  gt: 10.5828
+max: 16.1024  gt: 9.09715
+max: 20.5535  gt: 20.5535
+max: 19.772  gt: 19.772
+max: 18.0045  gt: 18.0045
+LOSS: 1.2851
+Batch3 Accuracy 189
+BATCH: 4
+max: 15.5239  gt: 12.8368
+max: 16.5353  gt: 16.5353
+max: 17.3085  gt: 15.78
+max: 21.7259  gt: 21.7259
+max: 14.5754  gt: 14.5754
+LOSS: 1.1695
+Batch4 Accuracy 199
+BATCH: 5
+max: 16.796  gt: 16.796
+max: 17.5237  gt: 17.5237
+max: 14.972  gt: 14.972
+max: 12.5407  gt: 12.5407
+max: 17.0647  gt: 15.4333
+LOSS: 0.984944
+Batch5 Accuracy 209
+BATCH: 6
+max: 19.6854  gt: 19.6854
+max: 15.8503  gt: 10.9248
+max: 18.8307  gt: 18.8307
+max: 20.2775  gt: 20.2775
+max: 17.0121  gt: 17.0121
+LOSS: 1.03873
+Batch6 Accuracy 202
+Total Accuracy0.768973
+

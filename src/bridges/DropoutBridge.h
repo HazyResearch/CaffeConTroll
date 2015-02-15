@@ -20,7 +20,7 @@ class DropoutBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
 
     DropoutBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-        const cnn::LayerParameter * const _layer_param) {
+        const cnn::LayerParameter * const _layer_param, const cnn::SolverParameter * const _solver_param) {
       NOT_IMPLEMENTED;
     }
 
@@ -57,6 +57,7 @@ class DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Abstr
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oB;
 
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::layer_param;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::solver_param;
 
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_input_layer;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_output_layer;
@@ -66,7 +67,7 @@ class DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Abstr
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
 
     DropoutBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-        const cnn::LayerParameter * const _layer_param);
+        const cnn::LayerParameter * const _layer_param, const cnn::SolverParameter * const _solver_param);
 
     ~DropoutBridge();
 
