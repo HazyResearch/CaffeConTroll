@@ -3,18 +3,17 @@
 # C compiler
 CC=clang++ # CC = g++-4.8
 
-# directory where lmbd library is installed.
-# do not leave these open.
-CCT=/Users/chrismre/DEVEL/deepnet
+CCT=/Users/chrismre/DEVEL/CaffeConTroll
+# directory where lmbd library is installed (if not in path)
 LMDB_INCLUDE=
 LMDB_DIR=/opt/local/lib
 
 OPENBLAS_INCLUDE=$(CCT)/externals/OpenBLAS
-OPENBLAS_LIB_DIR=$(CCT)/externals/lib
+OPENBLAS_LIB_DIR=$(CCT)/lib
 
 GTEST_INCLUDE=$(CCT)/gtest-1.7.0/include/
 GTEST_LIB_DIR=$(CCT)/lib/
 
-BOOST_INCLUDE=.
-BOOST_LIB_DIR=.
+BOOST_INCLUDE=
+BOOST_LIB_DIR=
 
