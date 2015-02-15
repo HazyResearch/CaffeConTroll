@@ -11,8 +11,10 @@
 
 template <typename DataType>
 MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::MaxPoolingBridge(InputLayerType * const _p_input_layer,
-    OutputLayerType * const _p_output_layer, const cnn::LayerParameter * const _layer_param)
-: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer, _layer_param) {
+    OutputLayerType * const _p_output_layer, const cnn::LayerParameter * const _layer_param,
+    const cnn::SolverParameter * const _solver_param)
+: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer,
+    _p_output_layer, _layer_param, _solver_param) {
 
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();
@@ -82,7 +84,7 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
 
               max_index_slice_pdata[pool_index] = input_data_pdata[index] > output_data_pdata[pool_index] ?
                                               index : max_index_slice_pdata[pool_index];
-              output_data_pdata[pool_index] = input_data_pdata[index] > output_data_pdata[pool_index] ? 
+              output_data_pdata[pool_index] = input_data_pdata[index] > output_data_pdata[pool_index] ?
                                               input_data_pdata[index] : output_data_pdata[pool_index];
             }
           }
@@ -95,7 +97,7 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
     }
   }
 
-  report_forward_last_transfer.end(1.0*iB*iD*iR*iC*sizeof(DataType), 
+  report_forward_last_transfer.end(1.0*iB*iD*iR*iC*sizeof(DataType),
           iB*iD*pooled_height*pooled_width*(sizeof(DataType)+sizeof(size_t)), 0);
   report_forward_history.aggregate(report_forward_last_transfer);
 }

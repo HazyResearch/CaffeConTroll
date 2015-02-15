@@ -20,7 +20,8 @@ class MaxPoolingBridge : public AbstractBridge<InputLayerDataType, InputLayerLay
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
 
     MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-        const cnn::LayerParameter * const _layer_param) {
+        const cnn::LayerParameter * const _layer_param,
+        const cnn::SolverParameter * const _solver_param) {
       NOT_IMPLEMENTED;
     }
 
@@ -57,6 +58,7 @@ class MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Ab
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oB;
 
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::layer_param;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::solver_param;
 
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_input_layer;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_output_layer;
@@ -66,7 +68,8 @@ class MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Ab
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
 
     MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-        const cnn::LayerParameter * const _layer_param);
+        const cnn::LayerParameter * const _layer_param,
+        const cnn::SolverParameter * const _solver_param);
 
     ~MaxPoolingBridge();
 

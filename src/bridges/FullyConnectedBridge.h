@@ -35,7 +35,8 @@ class FullyConnectedBridge : public AbstractBridge<InputLayerDataType, InputLaye
 
     FullyConnectedBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
-        const cnn::LayerParameter * const _layer_param) {
+        const cnn::LayerParameter * const _layer_param,
+        const cnn::SolverParameter * const _solver_param) {
       NOT_IMPLEMENTED;
     }
 
@@ -78,6 +79,7 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oB;
 
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::layer_param;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::solver_param;
 
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_input_layer;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_output_layer;
@@ -100,8 +102,12 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
     const size_t padding;
 
     const bool bias_term;
+
     const float stepsize;
-    //const float momentum;
+
+    const float momentum;
+    const float weight_decay;
+    const string regularization_type;
 
     const cnn::FillerParameter weight_filler;
     const cnn::FillerParameter bias_filler;
@@ -124,7 +130,8 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
 
     FullyConnectedBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
-        const cnn::LayerParameter * const _layer_param);
+        const cnn::LayerParameter * const _layer_param,
+        const cnn::SolverParameter * const _solver_param);
 
     ~FullyConnectedBridge();
 

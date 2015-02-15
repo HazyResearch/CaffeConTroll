@@ -10,7 +10,7 @@
 #define moka_LRNBridge_impl_hxx
 
 /**
- * This function is from 
+ * This function is from
  * http://martin.ankerl.com/2012/01/25/optimized-approximative-pow-in-c-and-cpp/
  **/
 inline double fastPrecisePow(double a, double b) {
@@ -34,13 +34,12 @@ inline double fastPrecisePow(double a, double b) {
   return r * u.d;
 }
 
-
-
-
 template <typename DataType>
 LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::LRNBridge(InputLayerType * const _p_input_layer,
-    OutputLayerType * const _p_output_layer, const cnn::LayerParameter * const _layer_param)
-: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer, _layer_param),
+    OutputLayerType * const _p_output_layer, const cnn::LayerParameter * const _layer_param,
+    const cnn::SolverParameter * const _solver_param)
+: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer,
+    _p_output_layer, _layer_param, _solver_param),
  alpha(layer_param->lrn_param().alpha()), beta(layer_param->lrn_param().beta()),
  local_size(layer_param->lrn_param().local_size()) {
 
@@ -71,7 +70,7 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
   report_forward_last_transfer.reset();
 
   p_input_layer->p_gradient_cube->reset_cube();
-  
+
   const DataType alpha_over_size = alpha / local_size;
 
   const int norm_window = (int) local_size / 2;
@@ -82,11 +81,6 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
   const int _iR = iR;
 
   const int iRiC = iR*iC;
-
-  DataType sum;
-  DataType num;
-  DataType denom_no_exponent;
-  DataType denom;
 
   DataType * p_denoms = denoms->p_data;
   DataType * p_output = p_output_layer->p_data_cube->p_data;
@@ -147,7 +141,6 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
   // then do normalization
   p_denoms = denoms->p_data;
   p_output = p_output_layer->p_data_cube->p_data;
-  p_input_layer->p_data_cube->p_data;
   const size_t n_elements = _iB*_iD*_iC*_iR;
   for (size_t i = 0; i < n_elements; ++i) {
     *p_denoms = alpha_over_size*(*p_denoms) + 1;

@@ -82,7 +82,7 @@ Corpus::Corpus(const cnn::LayerParameter & layer_param, const string data_binary
 }
 
 /**
- * This is 
+ * This is
  */
 void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_param, const string data_binary) {
   cnn::Datum datum;
@@ -95,10 +95,10 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
   MDB_stat stat;
 
   // TODO
-  //  - This needs refactoring to make this an option 
+  //  - This needs refactoring to make this an option
   //  - Need help from either Firas or Shubham because this requires
   //    changing the cmd input parsing part
-  
+
   switch (layer_param.data_param().backend()) {
     case 1:
       CHECK_EQ(mdb_env_create(&mdb_env_),MDB_SUCCESS) << "Error in mdb_env_create";
@@ -124,7 +124,7 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
   dim = datum.channels();
   mini_batch_size = layer_param.data_param().batch_size();
   const int crop_size = layer_param.transform_param().crop_size();
-  
+
   if (layer_param.transform_param().has_crop_size()) {
     n_rows = crop_size;
     n_cols = crop_size;
@@ -133,7 +133,7 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
     n_cols = datum.width();
   }
 
-  mdb_env_stat (mdb_env_, &stat);
+  mdb_env_stat(mdb_env_, &stat);
   n_images = stat.ms_entries;
   num_mini_batches = ceil(float(n_images) / mini_batch_size);
   last_batch_size = mini_batch_size - (num_mini_batches * mini_batch_size - n_images);
@@ -155,11 +155,11 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
   // Initialize the cube storing the correct labels
   labels = new LogicalCube<DataType_SFFloat, Layout_CRDB>(1, 1, 1, n_images);
 
-  filename = data_binary; 
-  
+  filename = data_binary;
+
   //if (filename != "NA"){
-    FILE * pFile = fopen (filename.c_str(), "wb+"); 
-    if(pFile == NULL) {
+    FILE * pFile = fopen (filename.c_str(), "wb+");
+    if (pFile == NULL) {
       // perror("Error");
       throw std::runtime_error("File open error: " + filename + " " + strerror(errno)); // TODO: REAL MESSAGE
     }
@@ -182,7 +182,7 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
     fclose(pFile);
   //}
   // else{
-  //   images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, n_images); 
+  //   images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, n_images);
   //   MDB_cursor_op op = MDB_FIRST;
   //   for (size_t b = 0; b < n_images; b++) {
   //     mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
@@ -195,7 +195,7 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
   //   }
   // }
 
-  
+
 }
 
 

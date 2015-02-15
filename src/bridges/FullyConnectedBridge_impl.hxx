@@ -13,14 +13,16 @@
 template <typename DataType>
 FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::
 FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-    const cnn::LayerParameter * const _layer_param)
+  const cnn::LayerParameter * const _layer_param, const cnn::SolverParameter * const _solver_param)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer,
-    _p_output_layer, _layer_param),
+    _p_output_layer, _layer_param, _solver_param),
   // padding is set to 0, and stride is set to 1. iC would also work as the
   // value set to K. (We assert that they are equal in initialize.)
   K(iR), num_output_features(layer_param->inner_product_param().num_output()),
   stride(1), padding(0), bias_term(layer_param->inner_product_param().bias_term()),
-  stepsize(_DEFAULT_STEPSIZE),
+  stepsize(solver_param->base_lr()), momentum(solver_param->momentum()),
+  weight_decay(solver_param->weight_decay()),
+  regularization_type(solver_param->regularization_type()),
   weight_filler(layer_param->inner_product_param().weight_filler()),
   bias_filler(layer_param->inner_product_param().bias_filler()) {
 
@@ -235,6 +237,14 @@ backward() {
   p_backward_gemm_updateweight_kernel->beta = 1.0;
   p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
 
+  // Performing weight update:
+  // Step 1: dW = -lr .* (dout * x)
+  p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
+  // Step 2: dW = momentum .* history + dW
+  // Util::math_axpy(p_model_cube->n_elements, momentum, p_model_cube_history->p_data, p_model_cube->p_data);
+  // Step 3: history = dW
+  // Util::_our_memcpy(p_model_cube_history->p_data, p_model_cube->p_data, p_model_cube->n_elements);
+  
   report_backward_updateweight_last_transfer.end();
 
   report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updategrad_kernel->report_last_lowering);
