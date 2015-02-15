@@ -135,7 +135,6 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
 
   mdb_env_stat(mdb_env_, &stat);
   n_images = stat.ms_entries;
-  n_images = 2000;
   num_mini_batches = ceil(float(n_images) / mini_batch_size);
   last_batch_size = mini_batch_size - (num_mini_batches * mini_batch_size - n_images);
 
