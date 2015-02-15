@@ -471,15 +471,13 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       epoch_loss += (softmax->loss / corpus.mini_batch_size);
       cout << "ACC : " << find_accuracy(labels, (*--bridges.end())->p_output_layer->p_data_cube) << endl;
 
-      if(epoch != num_epochs - 1){  //TODO DEBUG
-        // backward pass
-        t.restart();
-        for (auto bridge = bridges.rbegin(); bridge != bridges.rend(); ++bridge) {
-          (*bridge)->backward();
-          //(*bridge)->report_backward();
-        }
-        std::cout << "bwd elpased " << t.elapsed() << std::endl;
+      // backward pass
+      t.restart();
+      for (auto bridge = bridges.rbegin(); bridge != bridges.rend(); ++bridge) {
+        (*bridge)->backward();
+        //(*bridge)->report_backward();
       }
+      std::cout << "bwd elpased " << t.elapsed() << std::endl;
     }
 
     fclose(pFile);
