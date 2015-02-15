@@ -42,6 +42,7 @@ void write_model_to_file(const BridgeVector bridges, const string model_file) {
   for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
     model = (*bridge)->get_model_cube();
     if (model) {
+      std::cout << (*bridge)->name << ">" << "  " << model->p_data[0] << " " << model->p_data[1] << std::endl;
       fwrite(model->p_data , sizeof(DataType_SFFloat), model->n_elements, pFile);
     }
     bias = (*bridge)->get_bias_cube();
@@ -60,7 +61,9 @@ void read_model_from_file(BridgeVector & bridges, const string model_file) {
   for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
     model = (*bridge)->get_model_cube();
     if (model) {
+      std::cout << (*bridge)->name << "0" << "  " << model->p_data[0] << " " << model->p_data[1] << std::endl;
       fread(model->p_data , sizeof(DataType_SFFloat), model->n_elements, pFile);
+      std::cout << (*bridge)->name << "<" << "  " << model->p_data[0] << " " << model->p_data[1] << std::endl;
     }
     bias = (*bridge)->get_bias_cube();
     if (bias) {
