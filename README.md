@@ -76,7 +76,9 @@ instructions](http://caffe.berkeleyvision.org/installation.html).
 Start with their instructions! One difference is that we only support
 OpenBLAS (we don't support Atlas). We use some new features of
 OpenBLAS, and so you'll want to use the included submodule in our git
-repo.
+repo. *NB: the .travis.yml should always contain a working build
+script for Ubuntu, if you are confused about dependencies.*
+
 
 * Step 1. Install the packages listed at the Caffe link.
 
@@ -97,13 +99,16 @@ repo.
 > make
 
 * Step 6. (Optional) If you want tests, you need to install Google's
-testing infrastructure, glog and gtest, as with Caffe.
+testing infrastructure, glog and gtest, as with Caffe. Then, make the
+test file.
 
-make test
+> make test && ./test
+
 
 It's good on a laptop, on a server, or for a snack. It is unclear
 whether CcT can [smell the
 blood](http://en.wikipedia.org/wiki/Trollhunter) of christian men.
+
 
 Contact
 -------
