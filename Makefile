@@ -20,58 +20,65 @@ else ifeq ($(UNAME), Linux)
   LDFLAGS = $(LD_BASE) -lrt -lboost_program_options
 endif
 
+DEBUG_FLAGS = -g -O0 -DDEBUG
+ifeq ($(UNAME), Darwin)
+  DEBUG_FLAGS += -ferror-limit=10
+endif
+ASSEMBLY_FLAGS= -S
+
+DIR_PARAMS=$(INCLUDE_STR) $(LIB_STR)
+PROTOBUF = `pkg-config --cflags --libs protobuf`
+WARNING_FLAGS = -Wextra
+PRODUCT_FLAGS = -Ofast
+
 # Protobuf variables
 PROTO_SRC_DIR=src/parser/
 PROTO_CC=protoc --cpp_out=.
 PROTO_SRC=cnn.proto
 PROTO_COMPILED_SRC=$(PROTO_SRC_DIR)cnn.pb.cc
 
+# SOURCE FILE FOR MAIN PROGRAM
 TARGET = deepnet
-SRC = src/main.cpp src/DeepNet.cpp src/bridges/PhysicalStratum_impl.cpp src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp $(PROTO_COMPILED_SRC)
+SRC = src/main.cpp src/DeepNet.cpp src/bridges/PhysicalStratum_impl.cpp \
+	  src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp 
+OBJ_FILES = $(patsubst %.cpp,%.o,$(SRC))
 
-DIR_PARAMS=$(INCLUDE_STR) $(LIB_STR)
-PROTOBUF = `pkg-config --cflags --libs protobuf`
-
-ASSEMBLY_FLAGS= -S
-
-DEBUG_FLAGS = -g -O0 -DDEBUG
-ifeq ($(UNAME), Darwin)
-  DEBUG_FLAGS += -ferror-limit=10
-endif
-
-WARNING_FLAGS = -Wextra
-
-PRODUCT_FLAGS = -O3
-
-TEST_CFLAGS=-O0 -std=c++11 -I $(GTEST_INCLUDE)
+# SOURCE FILE FOR TEST
 TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest -lpthread 
-
-TEST_BLASFLAGS= -lm -I $(OPENBLAS_INCLUDE)
-
-TEST_SOURCES = src/DeepNet.cpp src/bridges/PhysicalStratum_impl.cpp src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp tests/test_main.cpp\
-	tests/test_lrn_bridge.cpp\
-	tests/test_ReLU_bridge.cpp\
-	tests/test_MaxPooling_bridge.cpp\
-	tests/test_connector.cpp\
-	tests/test_model_write.cpp\
-	tests/test_parallelized_convolution.cpp\
-	tests/test_softmax_bridge.cpp\
-	tests/test_dropout_bridge.cpp\
-	tests/test_cube.cpp\
-	tests/test_report.cpp\
-	tests/test_kernel.cpp\
-	tests/test_scanner.cpp\
-	tests/test_accuracy.cpp\
-
-	# TODO -- Enable test_lenet_network.cpp
-	# tests/test_lenet_network.cpp\
-
+TEST_SOURCES = src/DeepNet.cpp src/bridges/PhysicalStratum_impl.cpp \
+	src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp tests/test_main.cpp\
+	tests/test_lrn_bridge.cpp tests/test_ReLU_bridge.cpp tests/test_MaxPooling_bridge.cpp\
+	tests/test_connector.cpp tests/test_model_write.cpp	tests/test_parallelized_convolution.cpp\
+	tests/test_softmax_bridge.cpp tests/test_dropout_bridge.cpp tests/test_cube.cpp\
+	tests/test_report.cpp tests/test_kernel.cpp	tests/test_scanner.cpp tests/test_accuracy.cpp
+TEST_OBJ_FILES = $(patsubst %.cpp,%.o,$(TEST_SOURCES))
 TEST_EXECUTABLE=test
 
 .PHONY: all assembly clean product test warning
 
-all: $(PROTO_COMPILED_SRC)
-	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF) $(SRC) -o $(TARGET)
+all: CFLAGS += $(DEBUG_FLAGS)
+all: $(OBJ_FILES) cnn.pb.o
+	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF)
+
+release: CFLAGS += $(PRODUCT_FLAGS)
+release: $(OBJ_FILES) cnn.pb.o
+	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF)
+
+test: CFLAGS += -O0 -I $(GTEST_INCLUDE)
+test: $(TEST_OBJ_FILES) cnn.pb.o 
+	$(CC) $^ -o $(TEST_EXECUTABLE) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF) 
+
+%.o: %.cpp $(PROTO_COMPILED_SRC)
+	$(CC) $(CFLAGS) $(DIR_PARAMS) $(TEST_LDFLAGS) $(TEST_BLASFLAGS) $(PROTOBUF) -c $< -o $@
+
+cnn.pb.o: $(PROTO_COMPILED_SRC)
+	$(CC) $(CFLAGS) $(DIR_PARAMS) $(TEST_LDFLAGS) $(TEST_BLASFLAGS) $(PROTOBUF) -c $(PROTO_COMPILED_SRC)
+
+$(PROTO_COMPILED_SRC): $(PROTO_SRC_DIR)$(PROTO_SRC)
+	cd $(PROTO_SRC_DIR); $(PROTO_CC) $(PROTO_SRC); cd -
+
+warning:
+	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(WARNING_FLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF) $(SRC) -o $(TARGET)
 
 assembly:
 	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(ASSEMBLY_FLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF) $(SRC)
@@ -79,16 +86,5 @@ assembly:
 clean:
 	rm -f $(TARGET)
 	rm -f $(PROTO_SRC_DIR)*.pb.*
-
-product:
-	$(CC) $(CFLAGS) $(PRODUCT_FLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF) $(SRC) -o $(TARGET)
-
-test: $(PROTO_COMPILED_SRC)
-	$(CC) $(TEST_CFLAGS) $(TEST_SOURCES) $(PROTO_COMPILED_SRC) $(DIR_PARAMS) $(TEST_LDFLAGS) $(TEST_BLASFLAGS) $(PROTOBUF) -o $(TEST_EXECUTABLE)
-
-warning:
-	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(WARNING_FLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF) $(SRC) -o $(TARGET)
-
-$(PROTO_COMPILED_SRC): $(PROTO_SRC_DIR)$(PROTO_SRC)
-	cd $(PROTO_SRC_DIR); $(PROTO_CC) $(PROTO_SRC); cd -
-
+	rm -f $(TEST_OBJ_FILES)
+	rm -f $(TEST_EXECUTABLE)
