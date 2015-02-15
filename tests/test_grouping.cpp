@@ -1,17 +1,17 @@
 #include "gtest/gtest.h"
-#include "DeepNet.h"
+#include "../src/DeepNet.h"
 
 TEST(GroupingTest, RunTest) {
 
   int argc = 3;
   char const * a = "deepnet";
   char const * b = "train";
-  char const * c = "imagenet_train/imagenet_solver_2.prototxt";
+  char const * c = "tests/imagenet_train/imagenet_solver_2.prototxt";
   char const * argv[3];
   argv[0] = a;
   argv[1] = b;
   argv[2] = c;
-  std::string data_binary = "toprocess.bin";
+  std::string data_binary = "tests/toprocess.bin";
   std::string model_file = "NA";
 
   cnn::SolverParameter solver_param;
@@ -19,10 +19,10 @@ TEST(GroupingTest, RunTest) {
 
   cnn::NetParameter net_param;
   Parser::read_net_params_from_text_file(solver_param.net(), &net_param);
-  const Corpus corpus = read_corpus_from_lmdb(net_param, data_binary, true);
+  Corpus * corpus = read_corpus_from_lmdb(net_param, data_binary, true);
 
   BridgeVector bridges;
-  construct_network(bridges, corpus, net_param);
+  construct_network(bridges, *corpus, net_param, solver_param);
 
   // First, test the execution order
   EXPECT_EQ(bridges[0]->name, "conv1"); // The dupliate here is where grouping happens

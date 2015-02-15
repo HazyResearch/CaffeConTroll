@@ -37,6 +37,8 @@ class FCBridgeTest : public ::testing::Test {
       layer1c = new Layer<T, Layout_CRDB>(data1c, grad1c);
       layer2c = new Layer<T, Layout_CRDB>(data2c, grad2c);
 
+      cnn::SolverParameter solver_param;
+
       cnn::LayerParameter layer_param;
       cnn::ConvolutionParameter * const conv_param = layer_param.mutable_convolution_param();
       conv_param->set_num_output(oD);
@@ -48,10 +50,10 @@ class FCBridgeTest : public ::testing::Test {
       inn_param->set_num_output(oD);
 
       ConvolutionBridge_ = new ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>(layer1,
-          layer2, &layer_param);
+          layer2, &layer_param, &solver_param);
 
       FullyConnectedBridge_ = new FullyConnectedBridge< T, Layout_CRDB, T, Layout_CRDB>(layer1c,
-          layer2c, &layer_param);
+          layer2c, &layer_param, &solver_param);
     }
 
     ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>* ConvolutionBridge_;

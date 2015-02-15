@@ -50,7 +50,9 @@ TEST_SOURCES = src/DeepNet.cpp src/bridges/PhysicalStratum_impl.cpp \
 	tests/test_lrn_bridge.cpp tests/test_ReLU_bridge.cpp tests/test_MaxPooling_bridge.cpp\
 	tests/test_connector.cpp tests/test_model_write.cpp	tests/test_parallelized_convolution.cpp\
 	tests/test_softmax_bridge.cpp tests/test_dropout_bridge.cpp tests/test_cube.cpp\
-	tests/test_report.cpp tests/test_kernel.cpp	tests/test_scanner.cpp tests/test_accuracy.cpp
+	tests/test_report.cpp tests/test_kernel.cpp	tests/test_scanner.cpp tests/test_accuracy.cpp\
+	tests/test_fc_bridge.cpp tests/test_grouping.cpp
+
 TEST_OBJ_FILES = $(patsubst %.cpp,%.o,$(TEST_SOURCES))
 TEST_EXECUTABLE=test
 
