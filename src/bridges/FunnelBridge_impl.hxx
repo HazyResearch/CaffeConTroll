@@ -19,11 +19,7 @@ FunnelBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::FunnelBridge(InputLa
   report_forward_history.reset();
 
 #ifdef _DO_ASSERT
-  assert(iD == oD); assert(iB == oB);
-#endif
-
-#ifdef _DO_ASSERT
-  assert(oR == pooled_height); assert(oC == pooled_width);
+  assert(iB == oB);
 #endif
 
   report_forward_constructor.end(0, 0, 0);
