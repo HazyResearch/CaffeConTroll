@@ -66,8 +66,8 @@ class Util {
 
     template <typename T>
     static inline void xavier_initialize(T * const arr, const size_t n_arr_elements, const size_t n_batch) {
-      //mt19937 gen(rd());
-	mt19937 gen(0); // TODO determinsitic for debugging
+      mt19937 gen(rd());
+      //mt19937 gen(0); // TODO determinsitic for debugging
 
       const size_t fan_in = n_arr_elements / n_batch;
       const float scale = sqrt(T(3) / fan_in);
@@ -79,8 +79,8 @@ class Util {
 
     template <typename T>
     static inline void bernoulli_initialize(T * const arr, const size_t n_arr_elements, const float p) {
-      //mt19937 gen(rd());
-	mt19937 gen(0); // determinsitic for debugging
+      mt19937 gen(rd());
+      //mt19937 gen(0); // determinsitic for debugging
 
       bernoulli_distribution bern(p);
       for (size_t i = 0; i < n_arr_elements; ++i) {
@@ -90,8 +90,8 @@ class Util {
 
     template <typename T>
     static inline void gaussian_initialize(T * const arr, const size_t n_arr_elements, const T mean, const T std_dev) {
-      //mt19937 gen(rd());
-	mt19937 gen(0); // determinsitic for debugging
+      mt19937 gen(rd());
+      //mt19937 gen(0); // determinsitic for debugging
 
       normal_distribution<T> gaussian(mean, std_dev);
       for (size_t i = 0; i < n_arr_elements; ++i) {
