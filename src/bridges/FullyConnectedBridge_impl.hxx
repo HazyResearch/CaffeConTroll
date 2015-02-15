@@ -129,7 +129,8 @@ forward() {
 
   // (0) cast input model and output to matrix
   // This one should be refactored with the matrix interface
-  LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->p_data, num_output_features, K*K*iD, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->p_data, num_output_features,
+      K*K*iD, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_output(p_output_layer->p_data_cube->p_data,
       num_output_features, oR*oC*iB, 1, 1);
 
@@ -204,10 +205,11 @@ backward() {
 
   report_backward_updateweight_last_transfer.reset();
   // (1) calculate the gradient of output and store in the buffer
-  // p_backward_outputgrad = p_output_layer->p_gradient_cube;
 
   // (2) calculate the GEMM between the gradient of output and old kernel to calc the update on grad
-  LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->p_data, num_output_features, K*K*iD, 1, 1);
+  // Note: lowered_model is storing p_model_cube_history, not p_model_cube. We need this for the momentum
+  // update.
+  LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube_history->p_data, num_output_features, K*K*iD, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(p_output_layer->p_gradient_cube->p_data,
       num_output_features, oR*oC*iB, 1, 1);
 
@@ -234,17 +236,15 @@ backward() {
   p_forward_lower_connector->inverse_lower_cube(p_backward_inputgrad, p_input_layer->p_gradient_cube);
   // (4) calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
   p_backward_gemm_updateweight_kernel->alpha = -stepsize;
-  p_backward_gemm_updateweight_kernel->beta = 1.0;
-  p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
-
+  p_backward_gemm_updateweight_kernel->beta = momentum;
   // Performing weight update:
-  // Step 1: dW = -lr .* (dout * x)
-  //p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
-  // Step 2: dW = momentum .* history + dW
-  // Util::math_axpy(p_model_cube->n_elements, momentum, p_model_cube_history->p_data, p_model_cube->p_data);
-  // Step 3: history = dW
-  // Util::_our_memcpy(p_model_cube_history->p_data, p_model_cube->p_data, p_model_cube->n_elements);
-  
+
+  // Step 1: V_{t+1} = \muV_{t} - \alpha \grad W
+  // Remember: lowered_model refers to p_model_cube_history
+  p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
+  // Step 2: W_{t+1} = V_{t+1} + W_{t}
+  Util::math_axpy(p_model_cube->n_elements, 1., p_model_cube_history->p_data, p_model_cube->p_data);
+
   report_backward_updateweight_last_transfer.end();
 
   report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updategrad_kernel->report_last_lowering);
