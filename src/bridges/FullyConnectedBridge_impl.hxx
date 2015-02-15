@@ -58,8 +58,8 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
   //    1, 1);
 
   // For fully connected layer, lowered result is the same as the input. So just do the poiner.
-  p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(p_input_layer->p_data_cube->p_data, K*K*iD, oR*oC*iB,
-      1, 1);
+  p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(p_input_layer->p_data_cube->p_data, oR*oC*iB,
+    K*K*iD, 1, 1);
 
   LogicalCube<DataType, Layout_CRDB> lowered_forward_model(p_model_cube->p_data, num_output_features,
       K*K*iD, 1, 1);
@@ -72,14 +72,14 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
                                 padding, stride);
 
   p_forward_gemm_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
-                        Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS>(&lowered_forward_model,
+                        Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_TRANS>(&lowered_forward_model,
                             p_forward_lowered_data, &lowered_forward_output);
 
   p_backward_inputgrad = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*iB, 1, 1);
 
   p_backward_gemm_updateweight_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType,
                                       Layout_CRDB, Kernel_GEMM_OpenBlas,
-                                      KernelConfig_GEMM_NOTRANS_TRANS>(&lowered_forward_output,
+                                      KernelConfig_GEMM_NOTRANS_NOTRANS>(&lowered_forward_output,
                                           p_forward_lowered_data, &lowered_forward_model);
   p_backward_gemm_updateweight_kernel->alpha = -stepsize;
   p_backward_gemm_updateweight_kernel->beta = 1.;
@@ -248,7 +248,6 @@ backward() {
   // (4) calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
   p_backward_gemm_updateweight_kernel->alpha = -stepsize;
   p_backward_gemm_updateweight_kernel->beta = 1.0;
-  p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
 
   // Performing weight update:
   // Step 1: dW = -lr .* (dout * x)
