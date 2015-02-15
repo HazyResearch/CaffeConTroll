@@ -118,10 +118,17 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
 
     const bool bias_term;
 
-    const float stepsize;
-    const float momentum;
-    const float weight_decay;
-    const string regularization_type;
+    float stepsize;
+    float momentum;
+    float weight_decay;
+    float gamma;
+    float i_iter;
+    float caffe_stepsize;
+    float power;
+    float max_iter;
+
+    string regularization_type;
+    string lr_policy;
 
     const cnn::FillerParameter weight_filler;
     const cnn::FillerParameter bias_filler;

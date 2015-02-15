@@ -20,9 +20,16 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
   // value set to K. (We assert that they are equal in initialize.)
   K(iR), num_output_features(layer_param->inner_product_param().num_output()),
   stride(1), padding(0), bias_term(layer_param->inner_product_param().bias_term()),
-  stepsize(solver_param->base_lr()), momentum(solver_param->momentum()),
+  stepsize(solver_param->base_lr()),
+  momentum(solver_param->momentum()),
   weight_decay(solver_param->weight_decay()),
   regularization_type(solver_param->regularization_type()),
+  gamma(solver_param->gamma()),
+  caffe_stepsize(solver_param->stepsize()),
+  i_iter(0),
+  power(solver_param->power()),
+  lr_policy(solver_param->lr_policy()),
+  max_iter(solver_param->max_iter()),
   weight_filler(layer_param->inner_product_param().weight_filler()),
   bias_filler(layer_param->inner_product_param().bias_filler()) {
 
@@ -206,6 +213,10 @@ void FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::
 backward() {
   openblas_set_num_threads(run_with_n_threads);
 
+  i_iter ++;
+  float local_rate = Util::get_learing_rate(lr_policy, stepsize, gamma, i_iter,
+    caffe_stepsize, power, max_iter);
+
   report_backward_updateweight_last_transfer.reset();
   // (1) calculate the gradient of output and store in the buffer
 
@@ -246,6 +257,11 @@ backward() {
   // Step 1: V_{t+1} = \muV_{t} - \alpha \grad W
   // Remember: lowered_model refers to p_model_cube_history
   p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
+
+  if(weight_decay != 0){
+    Util::regularize(regularization_type, lowered_model.n_elements, weight_decay, lowered_model.p_data, p_model_cube->p_data);
+  }
+  
   // Step 2: W_{t+1} = V_{t+1} + W_{t}
   Util::math_axpy(p_model_cube->n_elements, 1., p_model_cube_history->p_data, p_model_cube->p_data);
 

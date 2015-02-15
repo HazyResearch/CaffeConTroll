@@ -462,8 +462,10 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       }
       std::cout << "Forward Pass Time (seconds) : " << t.elapsed() << std::endl;
 
+      Timer t3;
       float loss = (softmax->get_loss() / corpus.mini_batch_size);
       int accuracy = find_accuracy(labels, (*--bridges.end())->p_output_layer->p_data_cube);
+      std::cout << t3.elapsed() << std::endl;
 
       // backward pass
       t.restart();

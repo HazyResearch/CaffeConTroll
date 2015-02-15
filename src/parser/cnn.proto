@@ -105,9 +105,9 @@ message SolverParameter {
   // Display the cost averaged over the last average_cost iterations
   // optional int32 average_loss = 33 [default = 1];
   optional int32 max_iter = 7; // the maximum number of iterations
-  // optional string lr_policy = 8; // The learning rate decay policy.
-  // optional float gamma = 9; // The parameter to compute the learning rate.
-  // optional float power = 10; // The parameter to compute the learning rate.
+  optional string lr_policy = 8; // The learning rate decay policy.
+  optional float gamma = 9; // The parameter to compute the learning rate.
+  optional float power = 10; // The parameter to compute the learning rate.
   optional float momentum = 11; // The momentum value.
   optional float weight_decay = 12; // The weight decay.
   // regularization types supported: L1 and L2

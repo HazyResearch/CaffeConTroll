@@ -17,7 +17,6 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer,
     _p_output_layer, _layer_param, _solver_param),
   K(layer_param->convolution_param().kernel_size()),
-  //num_output_features(layer_param->convolution_param().num_output()),
   num_output_features(_p_output_layer->dD), // We are missing the abstraction of Logical Plan -- that is
                                             // why we cannot use layer_param here when there is grouping.
                                             // layer_param is the user input, not the Logical Plan
@@ -28,6 +27,12 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   momentum(solver_param->momentum()),
   weight_decay(solver_param->weight_decay()),
   regularization_type(solver_param->regularization_type()),
+  gamma(solver_param->gamma()),
+  caffe_stepsize(solver_param->stepsize()),
+  i_iter(0),
+  power(solver_param->power()),
+  lr_policy(solver_param->lr_policy()),
+  max_iter(solver_param->max_iter()),
   weight_filler(layer_param->convolution_param().weight_filler()),
   bias_filler(layer_param->convolution_param().bias_filler()) {
 
@@ -102,8 +107,6 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
                                       Layout_CRDB, Kernel_GEMM_OpenBlas,
                                       KernelConfig_GEMM_NOTRANS_TRANS>(&lowered_forward_output,
                                           p_forward_lowered_data, &lowered_forward_model);
-  p_backward_gemm_updateweight_kernel->alpha = -stepsize;
-  p_backward_gemm_updateweight_kernel->beta = 1.;
 
   p_backward_gemm_updategrad_kernel = new Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB,
                                     DataType_SFFloat, Layout_CRDB, Kernel_GEMM_OpenBlas,
@@ -241,6 +244,12 @@ template <typename DataType, NonLinearFunction FUNC>
 void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 backward() {
 
+  i_iter ++;
+  float local_rate = Util::get_learing_rate(lr_policy, stepsize, gamma, i_iter,
+    caffe_stepsize, power, max_iter);
+
+  //std::cout << "ITER " << i_iter << "   STEPSIZE " << local_rate << " under (" << lr_policy << ")" << std::endl;
+
   openblas_set_num_threads(run_with_n_threads);
 
   report_backward_updateweight_last_transfer.reset();
@@ -271,7 +280,7 @@ backward() {
         for (size_t i = 0; i < output_feature_size; ++i) {
           sum += input_grad_slice.p_data[i];
         }
-        bias_term[o_d] -= stepsize*sum;
+        bias_term[o_d] -= local_rate*sum;
       }
     }
   }
@@ -287,12 +296,21 @@ backward() {
   }
 
   // (4) calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
-  p_backward_gemm_updateweight_kernel->alpha = -stepsize;
+  p_backward_gemm_updateweight_kernel->alpha = -local_rate;
   p_backward_gemm_updateweight_kernel->beta = momentum;
   // Performing weight update:
   // Step 1: V_{t+1} = \muV_{t} - \alpha \grad W
   // Remember: lowered_model refers to p_model_cube_history
+
+  // X = lowered_model_current / p_model_cube->p_data
+
+  // \Delta X = lowered_model 
   p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
+
+  if(weight_decay != 0){
+    Util::regularize(regularization_type, lowered_model.n_elements, weight_decay, lowered_model.p_data, p_model_cube->p_data);
+  }
+
   // Step 2: W_{t+1} = V_{t+1} + W_{t}
   Util::math_axpy(p_model_cube->n_elements, 1., p_model_cube_history->p_data, p_model_cube->p_data);
 
