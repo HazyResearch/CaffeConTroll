@@ -82,7 +82,7 @@ repo.
 
 * Step 2. Clone our repository including the OpenBLAS submodule.
 
-> git clone --recursive https://github.com/HazyResearch/deepnet.git
+> git clone --recursive git@github.com:HazyResearch/CaffeConTroll.git
 
 * Step 3. Copy config.sample to .config and edit .config to contain your paths.
 
