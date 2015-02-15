@@ -84,9 +84,15 @@ repo.
 
 > git clone --recursive git@github.com:HazyResearch/CaffeConTroll.git
 
-* Step 3. Copy config.sample to .config and edit .config to contain your paths.
 
-* Step 4. make && make test
+* Step 3. Compile OpenBlas and install it, e.g., where CCT is the root
+  directory of CcT.
+
+> make FC=gfortran && make install PREFIX=$(CCT)
+
+* Step 4. Copy config.sample to .config and edit .config to contain your paths.
+
+* Step 5. make && make test
 
 It's good on a laptop, on a server, or for a snack. It is unclear
 whether CcT can [smell the blood](http://en.wikipedia.org/wiki/Trollhunter) of christian men.
