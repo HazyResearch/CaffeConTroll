@@ -21,7 +21,7 @@ class SoftmaxLossBridge : public AbstractBridge<InputLayerDataType, InputLayerLa
     typedef LogicalCube<InputLayerDataType, InputLayerLayout> DataLabelsLogicalCubeType;
 
     SoftmaxLossBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-        DataLabelsLogicalCubeType * const _p_data_labels) {
+        DataLabelsLogicalCubeType * const _p_data_labels, const cnn::SolverParameter * const _solver_param) {
       NOT_IMPLEMENTED;
     }
 
@@ -66,13 +66,15 @@ class SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public A
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
     typedef LogicalCube<DataType, Layout_CRDB> DataLabelsLogicalCubeType;
 
+    const string regularization_type;
+
     // TODO: make this const again
     DataLabelsLogicalCubeType * const p_data_labels;
 
     const size_t ldR, ldC, ldD, ldB; /*< Size of the data labels LogicalCube */
 
     SoftmaxLossBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-        DataLabelsLogicalCubeType * const _p_data_labels);
+        DataLabelsLogicalCubeType * const _p_data_labels, const cnn::SolverParameter * const _solver_param);
 
     void forward();
 

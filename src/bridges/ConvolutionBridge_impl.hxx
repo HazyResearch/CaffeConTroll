@@ -13,16 +13,18 @@
 template <typename DataType, NonLinearFunction FUNC>
 ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-    const cnn::LayerParameter * const _layer_param)
+  const cnn::LayerParameter * const _layer_param, const cnn::SolverParameter * const _solver_param)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer,
-    _p_output_layer, _layer_param),
+    _p_output_layer, _layer_param, _solver_param),
   K(layer_param->convolution_param().kernel_size()),
   num_output_features(layer_param->convolution_param().num_output()),
   stride(layer_param->convolution_param().stride()),
   padding(layer_param->convolution_param().pad()),
   bias_term(layer_param->convolution_param().bias_term()),
-  stepsize(_DEFAULT_STEPSIZE),
-  momentum(_DEFAULT_MOMENTUM),
+  stepsize(solver_param->base_lr()),
+  momentum(solver_param->momentum()),
+  weight_decay(solver_param->weight_decay()),
+  regularization_type(solver_param->regularization_type()),
   weight_filler(layer_param->convolution_param().weight_filler()),
   bias_filler(layer_param->convolution_param().bias_filler()) {
 
@@ -106,7 +108,6 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
                                         &lowered_forward_output, p_backward_inputgrad);
 
   report_forward_constructor.end(0, 0, 0);
-
 }
 
 // Intiailize a Logical Cube using a FillerParameter. This is only called if layer_param is
@@ -272,14 +273,13 @@ backward() {
   // (4) calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
   p_backward_gemm_updateweight_kernel->alpha = -stepsize;
   p_backward_gemm_updateweight_kernel->beta = 1.;
-
   // Performing weight update:
   // Step 1: dW = -lr .* (dout * x)
   p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
   // Step 2: dW = momentum .* history + dW
-  Util::math_axpy(p_model_cube->n_elements, momentum, p_model_cube_history->p_data, p_model_cube->p_data);
+  // Util::math_axpy(p_model_cube->n_elements, momentum, p_model_cube_history->p_data, p_model_cube->p_data);
   // Step 3: history = dW
-  Util::_our_memcpy(p_model_cube_history->p_data, p_model_cube->p_data, p_model_cube->n_elements);
+  // Util::_our_memcpy(p_model_cube_history->p_data, p_model_cube->p_data, p_model_cube->n_elements);
 
   report_backward_updateweight_last_transfer.end();
 

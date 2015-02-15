@@ -11,9 +11,10 @@
 
 template<typename DataType, typename BridgeType>
 ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layout_CRDB> * const _input_layer,
-    Layer<DataType, Layout_CRDB> * const _output_layer, const cnn::LayerParameter * const _layer_param, size_t _n_partition,
+    Layer<DataType, Layout_CRDB> * const _output_layer, const cnn::LayerParameter * const _layer_param,
+    const cnn::SolverParameter * const _solver_param, size_t _n_partition,
     size_t _n_thread_per_partition) : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_input_layer,
-      _output_layer, _layer_param), n_partition(_n_partition), n_batch(_input_layer->dB),
+      _output_layer, _layer_param, _solver_param), n_partition(_n_partition), n_batch(_input_layer->dB),
 n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch / n_partition) {
 
   report_forward_constructor.reset();
@@ -62,7 +63,8 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
 
   for (size_t ib = 0; ib < _data_cubes_lower.size(); ib++) {
     _bridges.push_back(
-        new BridgeType(_partitioned_layers_lower[ib], _partitioned_layers_higher[ib], layer_param)
+        new BridgeType(_partitioned_layers_lower[ib], _partitioned_layers_higher[ib],
+          layer_param, solver_param)
         );
   }
 
@@ -77,10 +79,10 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
   BridgeType * const example_bridge = _bridges[0]; // get one convbrdige as example
   // TODO: p_model_cube should be T * __const__ -- but this involes changing the
   // constructor, need to discuss with Firas in detials
-  LogicalCubeType * const examle_cube = _bridges[0]->get_model_cube();
-  if (examle_cube != NULL) {
-    p_model_cube = new LogicalCubeType(examle_cube->R, examle_cube->C, examle_cube->D, examle_cube->B);
-      memcpy(p_model_cube->p_data, examle_cube->p_data, p_model_cube->n_elements*sizeof(DataType));
+  LogicalCubeType * const example_cube = _bridges[0]->get_model_cube();
+  if (example_cube != NULL) {
+    p_model_cube = new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B);
+      memcpy(p_model_cube->p_data, example_cube->p_data, p_model_cube->n_elements*sizeof(DataType));
   } else {
     p_model_cube = NULL;
   }
@@ -93,6 +95,8 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
     } else {
       p_bias_cube = NULL;
     }
+  } else {
+    p_bias_cube = NULL;
   }
 
   report_backward_updateweight_constructor.end(0, 0, 0);
@@ -174,7 +178,7 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
       }
     }
   }
-  
+
   report_backward_updateweight_last_transfer.end();
   report_backward_updateweight_last_transfer.aggregate_onlystat(stratum.report_backward_updateweight_last_transfer);
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
