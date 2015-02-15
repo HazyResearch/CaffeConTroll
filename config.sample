@@ -5,14 +5,15 @@ CC=clang++ # CC = g++-4.8
 
 # directory where lmbd library is installed.
 # do not leave these open.
+CCT=/Users/chrismre/DEVEL/deepnet
 LMDB_INCLUDE=
 LMDB_DIR=/opt/local/lib
 
-OPENBLAS_INCLUDE=/Users/chrismre/DEVEL/deepnet/externals/OpenBLAS/include
-OPENBLAS_LIB_DIR=/Users/chrismre/DEVEL/deepnet/externals/lib
+OPENBLAS_INCLUDE=$(CCT)/externals/OpenBLAS
+OPENBLAS_LIB_DIR=$(CCT)/externals/lib
 
-GTEST_INCLUDE=/Users/chrismre/DEVEL/deepnet/gtest-1.7.0/include/
-GTEST_LIB_DIR=/Users/chrismre/DEVEL/deepnet/lib/
+GTEST_INCLUDE=$(CCT)/gtest-1.7.0/include/
+GTEST_LIB_DIR=$(CCT)/lib/
 
 BOOST_INCLUDE=.
 BOOST_LIB_DIR=.
