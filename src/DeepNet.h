@@ -24,7 +24,7 @@ typedef std::vector<AbstractBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFlo
 
 void load_and_train_network(const char * file, const std::string data_binary, const std::string model_file);
 
-void load_and_test_network(const char * file, const std::string data_binary, const std::string model_file);
+float load_and_test_network(const char * file, const std::string data_binary, const std::string model_file);
 
 Corpus * read_corpus_from_lmdb(const cnn::NetParameter & net_param, const std::string data_binary, bool train);
 

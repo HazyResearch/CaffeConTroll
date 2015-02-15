@@ -516,7 +516,7 @@ Corpus * load_network(const char * file, const string & data_binary, cnn::Solver
 }
 
 
-void test_network(const BridgeVector & bridges, const Corpus & corpus, const cnn::NetParameter & net_param,
+float test_network(const BridgeVector & bridges, const Corpus & corpus, const cnn::NetParameter & net_param,
     const cnn::SolverParameter & solver_param) {
 
   // TODO: we need a more general AbstractLossBridge
@@ -570,8 +570,10 @@ void test_network(const BridgeVector & bridges, const Corpus & corpus, const cnn
     std::cout << "\033[0m" << std::endl;
 
   }
-  cout << "Total Accuracy" << (1.0*total_accuracy/((corpus.num_mini_batches - 1)*corpus.mini_batch_size)) << endl;
+  float acc = (1.0*total_accuracy/((corpus.num_mini_batches - 1)*corpus.mini_batch_size));
+  cout << "Overall Accuracy " << acc << endl;
   fclose(pFile);
+  return acc;
 }
 
 // We expect this to be called from main,
@@ -618,16 +620,18 @@ void load_and_train_network(const char * file, const string data_binary, const s
   // Clean up! TODO: free the allocated bridges, layers, and cubes
 }
 
-void load_and_test_network(const char * file, const string data_binary, const string model_file) {
+float load_and_test_network(const char * file, const string data_binary, const string model_file) {
 
   BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
   Corpus * corpus = load_network(file, data_binary, solver_param, net_param, bridges, false);
 
   if(model_file != "NA"){
     read_model_from_file(bridges, model_file); 
-    test_network(bridges, *corpus, net_param, solver_param); 
+    return test_network(bridges, *corpus, net_param, solver_param); 
   }
   else{
     cout << "No valid model file provided" << endl;
+    assert(false);
+    return -1;
   }  
 }
