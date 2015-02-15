@@ -417,7 +417,13 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
   LogicalCubeFloat * const labels = softmax->p_data_labels;
   LogicalCubeFloat * const input_data = first->p_input_layer->p_data_cube;
 
+  float t_load;
+  float t_forward;
+  float t_backward;
+  float t_pass;
+
   Timer t_total;
+  const int display_iter = 50;
 
   const size_t num_epochs = solver_param.max_iter();
   for (size_t epoch = 0; epoch < num_epochs; ++epoch) {
@@ -430,8 +436,6 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
     // (the last mini batch may not be the same size as the rest of the mini batches)
     for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches - 1; ++batch,
         corpus_batch_index += corpus.mini_batch_size) {
-      cout << "BATCH: " << batch << endl;
-
       Timer t;
       Timer t2;
 
@@ -443,7 +447,8 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
         exit(1);
       }
 
-      std::cout << "Loading Time (seconds)     : " << t.elapsed() << std::endl;
+      t_load = t.elapsed();
+
       t.restart();
       // initialize input_data for this mini batch
       // Ce: Notice the change here compared with the master branch -- this needs to be refactored
@@ -464,7 +469,8 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
         //(*bridge)->report_forward();
         //(*bridge)->report_forward_last_transfer.print();
       }
-      std::cout << "Forward Pass Time (seconds) : " << t.elapsed() << std::endl;
+
+      t_forward = t.elapsed();
 
       float loss = (softmax->get_loss() / corpus.mini_batch_size);
       int accuracy = find_accuracy(labels, (*--bridges.end())->p_output_layer->p_data_cube);
@@ -475,12 +481,22 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
         (*bridge)->backward();
         //(*bridge)->report_backward();
       }
-      std::cout << "Backward Pass Time (seconds): " << t.elapsed() << std::endl;
+      t_backward = t.elapsed();
       
-      std::cout << "\033[1;31m";
-      std::cout << "Total Time & Loss & Accuracy: " << t2.elapsed() << "    " << loss 
-                << "    " << 1.0*accuracy/corpus.mini_batch_size;
-      std::cout << "\033[0m" << std::endl;
+      t_pass = t2.elapsed();
+
+
+      if(batch % display_iter == 0){
+        cout << "BATCH: " << batch << endl;
+        std::cout << "Loading Time (seconds)     : " << t_load << std::endl;
+        std::cout << "Forward Pass Time (seconds) : " << t_forward << std::endl;
+        std::cout << "Backward Pass Time (seconds): " << t_backward << std::endl;
+        std::cout << "\033[1;31m";
+        std::cout << "Total Time & Loss & Accuracy: " << t_pass << "    " << loss 
+                  << "    " << 1.0*accuracy/corpus.mini_batch_size;
+        std::cout << "\033[0m" << std::endl;
+      }
+      
     }
 
     fclose(pFile);

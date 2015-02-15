@@ -77,7 +77,7 @@ TYPED_TEST(LRNBridgeTest, TestInitialization){
 TYPED_TEST(LRNBridgeTest, TestForward){
   typedef typename TypeParam::T T;
 
-  std::fstream input("tests/lrn_forward_in.txt", std::ios_base::in);
+  std::fstream input("tests/input/lrn_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
       input >> this->data1->p_data[i];
@@ -90,7 +90,7 @@ TYPED_TEST(LRNBridgeTest, TestForward){
 
   this->LRNBridge_->forward();
 
-  std::fstream expected_output("tests/lrn_forward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/output/lrn_forward.txt", std::ios_base::in);
 
   T output;
   int idx = 0;
@@ -111,7 +111,7 @@ TYPED_TEST(LRNBridgeTest, TestForward){
 TYPED_TEST(LRNBridgeTest, TestBackward){
   typedef typename TypeParam::T T;
 
-  std::fstream input("tests/lrn_forward_in.txt", std::ios_base::in);
+  std::fstream input("tests/input/lrn_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
       input >> this->data1->p_data[i];
@@ -127,7 +127,7 @@ TYPED_TEST(LRNBridgeTest, TestBackward){
 
   this->LRNBridge_->forward();
 
-  std::fstream grad("tests/lrn_backward_in.txt", std::ios_base::in);
+  std::fstream grad("tests/input/lrn_backward_in.txt", std::ios_base::in);
   if (grad.is_open()){
     for(int i=0;i<oR*oC*this->iD*this->mB;i++){
       grad >> this->grad2->p_data[i];
@@ -140,7 +140,7 @@ TYPED_TEST(LRNBridgeTest, TestBackward){
 
   this->LRNBridge_->backward();
 
-  std::fstream expected_output("tests/lrn_backward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/output/lrn_backward.txt", std::ios_base::in);
   T output;
   int idx = 0;
   if (expected_output.is_open()) {

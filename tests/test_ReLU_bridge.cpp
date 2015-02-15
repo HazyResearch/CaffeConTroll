@@ -66,7 +66,7 @@ TYPED_TEST(ReLUBridgeTest, TestInitialization) {
 TYPED_TEST(ReLUBridgeTest, TestForward) {
   typedef typename TypeParam::T T;
 
-  std::fstream input("tests/relu_forward_in.txt", std::ios_base::in);
+  std::fstream input("tests/input/relu_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
       input >> this->data1->p_data[i];
@@ -79,7 +79,7 @@ TYPED_TEST(ReLUBridgeTest, TestForward) {
 
   this->ReLUBridge_->forward();
 
-  std::fstream expected_output("tests/relu_forward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/output/relu_forward.txt", std::ios_base::in);
 
   T output;
   int idx = 0;
@@ -100,7 +100,7 @@ TYPED_TEST(ReLUBridgeTest, TestForward) {
 TYPED_TEST(ReLUBridgeTest, TestBackward) {
   typedef typename TypeParam::T T;
 
-  std::fstream input("tests/relu_forward_in.txt", std::ios_base::in);
+  std::fstream input("tests/input/relu_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
       input >> this->data1->p_data[i];
@@ -123,7 +123,7 @@ TYPED_TEST(ReLUBridgeTest, TestBackward) {
 
   this->ReLUBridge_->backward();
 
-  std::fstream expected_output("tests/relu_backward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/output/relu_backward.txt", std::ios_base::in);
 
   T output;
   int idx = 0;

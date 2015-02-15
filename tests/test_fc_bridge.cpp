@@ -113,7 +113,7 @@ TYPED_TEST(FCBridgeTest, TestInitialization) {
 }
 
 TYPED_TEST(FCBridgeTest, TestForward) {
-  std::fstream input("tests/conv_forward_in.txt", std::ios_base::in);
+  std::fstream input("tests/input/conv_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
       input >> this->data1->p_data[i];
@@ -125,7 +125,7 @@ TYPED_TEST(FCBridgeTest, TestForward) {
   }
   input.close();
   
-  std::fstream model("tests/conv_model.txt", std::ios_base::in);
+  std::fstream model("tests/input/conv_model.txt", std::ios_base::in);
   if (model.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->oD;i++){
       model >> this->ConvolutionBridge_->get_model_cube()->p_data[i];
@@ -138,7 +138,7 @@ TYPED_TEST(FCBridgeTest, TestForward) {
   }
   model.close();
 
-  std::fstream bias_file("tests/conv_bias_in.txt", std::ios_base::in);
+  std::fstream bias_file("tests/input/conv_bias_in.txt", std::ios_base::in);
   if (bias_file.is_open()){
     for(int i=0;i<this->oD;i++){
       bias_file >> this->ConvolutionBridge_->get_bias_cube()->p_data[i];
@@ -163,7 +163,7 @@ TYPED_TEST(FCBridgeTest, TestForward) {
 
 
 TYPED_TEST(FCBridgeTest, TestBackward) {
-  std::fstream input("tests/conv_forward_in.txt", std::ios_base::in);
+  std::fstream input("tests/input/conv_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
       input >> this->data1->p_data[i];
@@ -177,7 +177,7 @@ TYPED_TEST(FCBridgeTest, TestBackward) {
   }
   input.close();
   
-  std::fstream model("tests/conv_backward_model.txt", std::ios_base::in);
+  std::fstream model("tests/input/conv_backward_model.txt", std::ios_base::in);
   if (model.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->oD;i++){
       model >> this->ConvolutionBridge_->get_model_cube()->p_data[i];
@@ -190,7 +190,7 @@ TYPED_TEST(FCBridgeTest, TestBackward) {
   }
   model.close();
 
-  std::fstream bias_file("tests/conv_bias_in.txt", std::ios_base::in);
+  std::fstream bias_file("tests/input/conv_bias_in.txt", std::ios_base::in);
   if (bias_file.is_open()){
     for(int i=0;i<this->oD;i++){
       bias_file >> this->ConvolutionBridge_->get_bias_cube()->p_data[i];

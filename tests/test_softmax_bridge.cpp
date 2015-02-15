@@ -64,7 +64,7 @@ TYPED_TEST(softmaxBridgeTest, TestInitialization){
 TYPED_TEST(softmaxBridgeTest, TestForward){
 	typedef typename TypeParam::T T;
 
-    std::fstream input("tests/softmax_forward_in.txt", std::ios_base::in);
+    std::fstream input("tests/input/softmax_forward_in.txt", std::ios_base::in);
     if (input.is_open()){
         for(int i=0;i<this->iD*this->mB;i++){
           input >> this->data1->p_data[i];
@@ -75,7 +75,7 @@ TYPED_TEST(softmaxBridgeTest, TestForward){
     }
     input.close();
 
-    std::fstream label_file("tests/softmax_label.txt", std::ios_base::in);
+    std::fstream label_file("tests/input/softmax_label.txt", std::ios_base::in);
     if (label_file.is_open()){
         for(int i=0;i<this->mB;i++){
           label_file >> this->label->p_data[i];
@@ -87,7 +87,7 @@ TYPED_TEST(softmaxBridgeTest, TestForward){
     label_file.close();
 
     this->softmaxBridge_->forward();
-    std::fstream expected_output("tests/softmax_forward.txt", std::ios_base::in);
+    std::fstream expected_output("tests/output/softmax_forward.txt", std::ios_base::in);
     
     T output;
     if (expected_output.is_open()) {
@@ -104,7 +104,7 @@ TYPED_TEST(softmaxBridgeTest, TestForward){
 TYPED_TEST(softmaxBridgeTest, TestBackward){
     typedef typename TypeParam::T T;
     
-    std::fstream label_file("tests/softmax_label.txt", std::ios_base::in);
+    std::fstream label_file("tests/input/softmax_label.txt", std::ios_base::in);
     if (label_file.is_open()){
         for(int i=0;i<this->mB;i++){
           label_file >> this->label->p_data[i];
@@ -117,7 +117,7 @@ TYPED_TEST(softmaxBridgeTest, TestBackward){
 
     this->softmaxBridge_->forward();
 
-    std::fstream output_file("tests/softmax_backward_in.txt", std::ios_base::in);
+    std::fstream output_file("tests/input/softmax_backward_in.txt", std::ios_base::in);
     if (output_file.is_open()){
         for(int i=0;i<this->iD*this->mB;i++){
           output_file >> this->data2->p_data[i];
@@ -130,7 +130,7 @@ TYPED_TEST(softmaxBridgeTest, TestBackward){
     
     this->softmaxBridge_->backward();
 
-    std::fstream expected_output("tests/softmax_backward.txt", std::ios_base::in);
+    std::fstream expected_output("tests/output/softmax_backward.txt", std::ios_base::in);
     
     T output;
     int idx = 0;
