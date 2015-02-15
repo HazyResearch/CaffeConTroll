@@ -83,7 +83,7 @@ TYPED_TEST(LRNBridgeTest, TestForward){
 
   this->LRNBridge_->forward();
 
-  std::fstream expected_output("lrn_forward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/lrn_forward.txt", std::ios_base::in);
 
   T output;
   int idx = 0;
@@ -94,6 +94,8 @@ TYPED_TEST(LRNBridgeTest, TestForward){
       expected_output >> output;
       idx++;
     }
+  }else{
+    FAIL();
   }
   expected_output.close();
 }
@@ -119,7 +121,7 @@ TYPED_TEST(LRNBridgeTest, TestBackward){
 
   this->LRNBridge_->backward();
 
-  std::fstream expected_output("lrn_backward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/lrn_backward.txt", std::ios_base::in);
   T output;
   int idx = 0;
   if (expected_output.is_open()) {
@@ -129,6 +131,8 @@ TYPED_TEST(LRNBridgeTest, TestBackward){
       expected_output >> output;
       idx++;
     }
+  }else{
+    FAIL();
   }
   expected_output.close();
 }

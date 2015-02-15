@@ -46,11 +46,16 @@ class FCBridgeTest : public ::testing::Test {
       conv_param->set_pad(p);
       conv_param->set_stride(s);
 
+      solver_param.set_base_lr(0.01);
+      solver_param.set_momentum(0.0);
+
       cnn::InnerProductParameter * const inn_param = layer_param.mutable_inner_product_param();
       inn_param->set_num_output(oD);
 
       ConvolutionBridge_ = new ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>(layer1,
           layer2, &layer_param, &solver_param);
+
+      ConvolutionBridge_->needs_to_calc_backward_grad = true;
 
       FullyConnectedBridge_ = new FullyConnectedBridge< T, Layout_CRDB, T, Layout_CRDB>(layer1c,
           layer2c, &layer_param, &solver_param);

@@ -115,7 +115,7 @@ TYPED_TEST(ConvolutionBridgeTest, TestForward) {
 
   this->ConvolutionBridge_->forward();
 
-  std::fstream expected_output("conv_forward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/conv_forward.txt", std::ios_base::in);
   if(TypeParam::FUNC == FUNC_NOFUNC) {
     T output;
     int idx = 0;
@@ -126,6 +126,8 @@ TYPED_TEST(ConvolutionBridgeTest, TestForward) {
         expected_output >> output;
         idx++;
       }
+    }else{
+      FAIL();
     }
     expected_output.close();
   }
@@ -162,7 +164,7 @@ TYPED_TEST(ConvolutionBridgeTest, TestBackward) {
 
   this->ConvolutionBridge_->backward();
   //this->bias->logical_print();
-  std::fstream expected_output("conv_backward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/conv_backward.txt", std::ios_base::in);
   T output;
   int idx = 0;
   if (expected_output.is_open()) {
@@ -172,10 +174,12 @@ TYPED_TEST(ConvolutionBridgeTest, TestBackward) {
       expected_output >> output;
       idx++;
     }
+  }else{
+    FAIL();
   }
   expected_output.close();
 
-  std::fstream expected_bias("conv_bias.txt", std::ios_base::in);
+  std::fstream expected_bias("tests/conv_bias.txt", std::ios_base::in);
 
   idx = 0;
   if (expected_bias.is_open()) {
@@ -185,10 +189,12 @@ TYPED_TEST(ConvolutionBridgeTest, TestBackward) {
       expected_bias >> output;
       idx++;
     }
+  }else{
+    FAIL();
   }
   expected_bias.close();
 
-  std::fstream expected_weights("conv_weights.txt", std::ios_base::in);
+  std::fstream expected_weights("tests/conv_weights.txt", std::ios_base::in);
   idx = 0;
   if (expected_weights.is_open()) {
     expected_weights >> output;
@@ -197,6 +203,8 @@ TYPED_TEST(ConvolutionBridgeTest, TestBackward) {
       expected_weights >> output;
       idx++;
     }
+  }else{
+    FAIL();
   }
   expected_weights.close();
 }

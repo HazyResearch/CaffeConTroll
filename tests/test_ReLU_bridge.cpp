@@ -76,7 +76,7 @@ TYPED_TEST(ReLUBridgeTest, TestForward) {
 
   this->ReLUBridge_->forward();
 
-  std::fstream expected_output("relu_forward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/relu_forward.txt", std::ios_base::in);
 
   T output;
   int idx = 0;
@@ -87,6 +87,8 @@ TYPED_TEST(ReLUBridgeTest, TestForward) {
       expected_output >> output;
       idx++;
     }
+  }else{
+    FAIL();
   }
   expected_output.close();
 }
@@ -113,7 +115,7 @@ TYPED_TEST(ReLUBridgeTest, TestBackward) {
 
   this->ReLUBridge_->backward();
 
-  std::fstream expected_output("relu_backward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/relu_backward.txt", std::ios_base::in);
 
   T output;
   int idx = 0;
@@ -124,6 +126,8 @@ TYPED_TEST(ReLUBridgeTest, TestBackward) {
       expected_output >> output;
       idx++;
     }
+  }else{
+    FAIL();
   }
   expected_output.close();
 }

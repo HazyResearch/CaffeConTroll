@@ -59,13 +59,16 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
       conv_param->set_pad(p);
       conv_param->set_stride(s);
 
-      cnn::SolverParameter solver_param;
+      solver_param.set_base_lr(0.01);
+      solver_param.set_momentum(0.0);
 
       // TODO: set #partition to 8 does not halt
       ParallelizedConvolutionBridge_ = new ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
               Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
               (layer1, layer2, &layer_param, &solver_param, 4, 1);
+
+      ParallelizedConvolutionBridge_->needs_to_calc_backward_grad = true;
     }
 
     //	virtual ~ParallelizedConvolutionBridgeTest() { delete ParallelizedConvolutionBridge_; delete layer1; delete layer2; delete bconfig;}
@@ -82,6 +85,8 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
     Layer<T, Layout_CRDB>* layer1;
     Layer<T, Layout_CRDB>* layer2;
 
+    cnn::SolverParameter solver_param;
+
     static const int mB = 4;
     static const int iD = 3;
     static const int oD = 10;
@@ -90,8 +95,8 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
     static const int k = 5;
     static const int s = 4;
     static const int p = 2;
-    static const int oR = (iR + 2*p - k) / s + 1;
-    static const int oC = (iC + 2*p - k) / s + 1;
+    static const int oR = static_cast<int>((static_cast<float>(iR + 2*p - k) / s)) + 1;
+    static const int oC = static_cast<int>((static_cast<float>(iC + 2*p - k) / s)) + 1;
 };
 
 typedef ::testing::Types<FloatNOFUNC> DataTypes;
@@ -130,7 +135,7 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestForward){
 
   this->ParallelizedConvolutionBridge_->forward();
 
-  std::fstream expected_output("conv_forward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/conv_forward.txt", std::ios_base::in);
   if(TypeParam::FUNC == FUNC_NOFUNC){
     T output;
     int idx = 0;
@@ -141,6 +146,8 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestForward){
         expected_output >> output;
         idx++;
       }
+    }else{
+      FAIL();
     }
     expected_output.close();
   }
@@ -150,38 +157,36 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestForward){
 TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
   typedef typename TypeParam::T T;
   srand(1);
-  for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
+  for (int i=0;i<this->iR*this->iC*this->iD*this->mB;i++) {
     this->data1->p_data[i] = rand()%10;
     this->grad1->p_data[i] = 0;
   }
 
   srand(0);
-  for(int i=0;i<this->k*this->k*this->iD*this->oD;i++){
-    const int weight = rand()%2;
-    this->ParallelizedConvolutionBridge_->p_model_cube->p_data[i] = weight;
+  for (int i=0;i<this->k*this->k*this->iD*this->oD;i++) {
+    this->ParallelizedConvolutionBridge_->get_model_cube()->p_data[i] = rand()%2;
   }
 
   int oR = this->oR;
   int oC = this->oC;
 
-  for(int i=0;i<oR*oC*this->oD*this->mB;i++){
+  for (int i=0;i<oR*oC*this->oD*this->mB;i++) {
     this->data2->p_data[i] = 0;
     this->grad2->p_data[i] = i*0.1;
   }
 
   srand(0);
-  for(int i=0;i<this->oD;i++){
-    this->ParallelizedConvolutionBridge_->p_bias_cube->p_data[i] = 0.1*(rand()%10);
-    //for(auto it = this->ParallelizedConvolutionBridge_->_bridges.begin(); it != this->ParallelizedConvolutionBridge_->_bridges.end(); ++it)
-    //      (*it)->bias_cube()->p_data[i] = 0.1*(rand()%10);
+  for (int i=0;i<this->oD;i++) {
+    this->ParallelizedConvolutionBridge_->get_bias_cube()->p_data[i] = 0.1*(rand()%10);
   }
+
 
   this->ParallelizedConvolutionBridge_->forward();
 
   this->ParallelizedConvolutionBridge_->backward();
   //this->bias->logical_print();
 
-  std::fstream expected_output("conv_backward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/conv_backward.txt", std::ios_base::in);
   T output;
   int idx = 0;
 
@@ -192,10 +197,13 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
       expected_output >> output;
       idx++;
     }
+  }else{
+    FAIL();
   }
   expected_output.close();
 
-  std::fstream expected_bias("conv_bias.txt", std::ios_base::in);
+
+  std::fstream expected_bias("tests/conv_bias.txt", std::ios_base::in);
 
   idx = 0;
 
@@ -209,10 +217,12 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
       expected_bias >> output;
       idx++;
     }
+  }else{
+    FAIL();
   }
   expected_bias.close();
 
-  std::fstream expected_weights("conv_weights.txt", std::ios_base::in);
+  std::fstream expected_weights("tests/conv_weights.txt", std::ios_base::in);
 
   idx = 0;
 
@@ -224,6 +234,8 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
       expected_weights >> output;
       idx++;
     }
+  }else{
+    FAIL();
   }
   expected_weights.close();
 

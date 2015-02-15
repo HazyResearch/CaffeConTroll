@@ -73,7 +73,7 @@ TYPED_TEST(dropoutBridgeTest, TestForward) {
     this->data1->p_data[i] = rand()%10;
   }
 
-  std::fstream mask_cube_file("dropout_mask.txt", std::ios_base::in);
+  std::fstream mask_cube_file("tests/dropout_mask.txt", std::ios_base::in);
   int m;
   int idx = 0;
   if (mask_cube_file.is_open()) {
@@ -83,12 +83,14 @@ TYPED_TEST(dropoutBridgeTest, TestForward) {
       mask_cube_file >> m;
       idx++;
     }
+  }else{
+    FAIL();
   }
   mask_cube_file.close();
 
   this->dropoutBridge_->forward();
 
-  std::fstream expected_output("dropout_forward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/dropout_forward.txt", std::ios_base::in);
 
   T output;
   idx = 0;
@@ -99,6 +101,8 @@ TYPED_TEST(dropoutBridgeTest, TestForward) {
       expected_output >> output;
       idx++;
     }
+  }else{
+    FAIL();
   }
   expected_output.close();
 }
@@ -106,7 +110,6 @@ TYPED_TEST(dropoutBridgeTest, TestForward) {
 
 TYPED_TEST(dropoutBridgeTest, TestBackward) {
   typedef typename TypeParam::T T;
-
 
   int oR = this->iR;
   int oC = this->iC;
@@ -116,7 +119,7 @@ TYPED_TEST(dropoutBridgeTest, TestBackward) {
     this->grad2->p_data[i] = rand()%10;
   }
 
-  std::fstream mask_cube_file("dropout_mask_cube.txt", std::ios_base::in);
+  std::fstream mask_cube_file("tests/dropout_mask.txt", std::ios_base::in);
   int m;
   int idx = 0;
   if (mask_cube_file.is_open()) {
@@ -126,6 +129,8 @@ TYPED_TEST(dropoutBridgeTest, TestBackward) {
       mask_cube_file >> m;
       idx++;
     }
+  }else{
+    FAIL();
   }
   mask_cube_file.close();
 
@@ -133,7 +138,7 @@ TYPED_TEST(dropoutBridgeTest, TestBackward) {
 
   this->dropoutBridge_->backward();
 
-  std::fstream expected_output("dropout_backward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/dropout_backward", std::ios_base::in);
 
   T output;
   idx = 0;
@@ -144,6 +149,8 @@ TYPED_TEST(dropoutBridgeTest, TestBackward) {
       expected_output >> output;
       idx++;
     }
+  }else{
+    FAIL();
   }
   expected_output.close();
 }

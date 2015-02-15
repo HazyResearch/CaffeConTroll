@@ -31,7 +31,7 @@ TYPED_TEST(LenetTest, RunTest) {
 
   cnn::SolverParameter solver_param;
 
-  Corpus * corpus = read_corpus_from_lmdb(this->net_param, "test_data.bin", true);
+  Corpus * corpus = read_corpus_from_lmdb(this->net_param, "tests/test_data.bin", false);
   construct_network(this->bridges, *corpus, this->net_param, solver_param);
   SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> * const softmax =
     (SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> *) this->bridges.back();
@@ -69,11 +69,13 @@ TYPED_TEST(LenetTest, RunTest) {
        total_accuracy += find_accuracy(labels, softmax->p_output_layer->p_data_cube);
     }
 
-    std::fstream expected_accuracy("accuracy_train.txt", std::ios_base::in);
+    std::fstream expected_accuracy("tests/accuracy_train.txt", std::ios_base::in);
     double output;
     if (expected_accuracy.is_open()) {
       expected_accuracy >> output;  
       EXPECT_NEAR((1.0*total_accuracy/((corpus->num_mini_batches - 1)*corpus->mini_batch_size)), output, 0.01);
+    }else{
+      FAIL();
     }
     expected_accuracy.close();
     fclose(pFile);

@@ -119,7 +119,7 @@ TYPED_TEST(MaxPoolingBridgeTest, TestBackward) {
 
   this->MaxPoolingBridge_->backward();
 
-  std::fstream expected_output("pooling_backward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/pooling_backward.txt", std::ios_base::in);
 
   T output;
   int idx = 0;
@@ -130,6 +130,8 @@ TYPED_TEST(MaxPoolingBridgeTest, TestBackward) {
       expected_output >> output;
       idx++;
     }
+  }else{
+    FAIL();
   }
   expected_output.close();
 }
