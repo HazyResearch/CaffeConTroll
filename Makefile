@@ -27,7 +27,8 @@ endif
 ASSEMBLY_FLAGS= -S
 
 DIR_PARAMS=$(INCLUDE_STR) $(LIB_STR)
-PROTOBUF = `pkg-config --cflags --libs protobuf`
+PROTOBUF     = `pkg-config --cflags protobuf`
+PROTOBUF_LIB = `pkg-config --cflags --libs protobuf`
 WARNING_FLAGS = -Wextra
 PRODUCT_FLAGS = -Ofast
 
@@ -62,21 +63,21 @@ TEST_EXECUTABLE=test
 
 all: CFLAGS += $(DEBUG_FLAGS)
 all: $(OBJ_FILES) cnn.pb.o
-	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF)
+	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
 release: CFLAGS += $(PRODUCT_FLAGS)
 release: $(OBJ_FILES) cnn.pb.o
-	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF)
+	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
 test: CFLAGS += -O0 -I $(GTEST_INCLUDE)
 test: $(TEST_OBJ_FILES) cnn.pb.o 
-	$(CC) $^ -o $(TEST_EXECUTABLE) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF) 
+	$(CC) $^ -o $(TEST_EXECUTABLE) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB) 
 
 %.o: %.cpp $(PROTO_COMPILED_SRC)
-	$(CC) $(CFLAGS) $(DIR_PARAMS) $(TEST_LDFLAGS) $(TEST_BLASFLAGS) $(PROTOBUF) -c $< -o $@
+	$(CC) $(CFLAGS) $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $< -o $@
 
 cnn.pb.o: $(PROTO_COMPILED_SRC)
-	$(CC) $(CFLAGS) $(DIR_PARAMS) $(TEST_LDFLAGS) $(TEST_BLASFLAGS) $(PROTOBUF) -c $(PROTO_COMPILED_SRC)
+	$(CC) $(CFLAGS) $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $(PROTO_COMPILED_SRC)
 
 $(PROTO_COMPILED_SRC): $(PROTO_SRC_DIR)$(PROTO_SRC)
 	cd $(PROTO_SRC_DIR); $(PROTO_CC) $(PROTO_SRC); cd -
