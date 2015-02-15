@@ -20,6 +20,34 @@ void simple_mult(LogicalCube<T, Layout_CRDB>* in1, LogicalCube<T, Layout_CRDB>* 
   }
 }
 
+template <typename T>
+void simple_mult2(LogicalCube<T, Layout_CRDB>* in1, LogicalCube<T, Layout_CRDB>* in2, LogicalCube<T, Layout_CRDB>* out){
+  for(int i=0;i<in1->C;i++){
+    for(int j=0;j<in2->C;j++)
+    {
+        *out->logical_get(i, j, 0, 0)=0;
+        for(int k=0;k<in1->R;k++)
+        {
+            *out->logical_get(i, j, 0, 0) += *in1->logical_get(k, i, 0, 0) * (*in2->logical_get(k, j, 0, 0));
+        }
+    }
+  }
+}
+
+template <typename T>
+void simple_mult3(LogicalCube<T, Layout_CRDB>* in1, LogicalCube<T, Layout_CRDB>* in2, LogicalCube<T, Layout_CRDB>* out){
+  for(int i=0;i<in1->R;i++){
+    for(int j=0;j<in2->R;j++)
+    {
+        *out->logical_get(i, j, 0, 0)=0;
+        for(int k=0;k<in1->C;k++)
+        {
+            *out->logical_get(i, j, 0, 0) += *in1->logical_get(i, k, 0, 0) * (*in2->logical_get(j, k, 0, 0));
+        }
+    }
+  }
+}
+
 typedef ::testing::Types<FloatCRDB> DTypes;
 
 template <typename TypeParam>
@@ -146,9 +174,6 @@ TYPED_TEST(ElemMulTanhKernelTest, TestCompute){
   }
 }
 
-// TODO --- for Different types of GEMM
-
-/*
 template <typename TypeParam>
 class BlasTNKernelTest : public ::testing::Test {
  protected:
@@ -181,14 +206,13 @@ TYPED_TEST(BlasTNKernelTest, TestCompute){
   LogicalCube<T, Layout_CRDB>* out_expected = new LogicalCube<T, Layout_CRDB>(2, 3, 1, 1); 
   
   this->kernel_->compute(this->cube1, this->cube2, this->cube3);
-  simple_mult<T>(this->cube1,this->cube2,out_expected);
+  simple_mult2<T>(this->cube1,this->cube2,out_expected);
 
-  this->cube3->logical_print();
-  out_expected->logical_print();
   for(int i=0; i<6; i++){
     EXPECT_NEAR(this->cube3->p_data[i], out_expected->p_data[i], EPS);
   }
 }
+
 
 template <typename TypeParam>
 class BlasNTKernelTest : public ::testing::Test {
@@ -222,12 +246,9 @@ TYPED_TEST(BlasNTKernelTest, TestCompute){
   LogicalCube<T, Layout_CRDB>* out_expected = new LogicalCube<T, Layout_CRDB>(2, 3, 1, 1); 
   
   this->kernel_->compute(this->cube1, this->cube2, this->cube3);
-  simple_mult<T>(this->cube1,this->cube2,out_expected);
+  simple_mult3<T>(this->cube1,this->cube2,out_expected);
 
-  this->cube3->logical_print();
-  out_expected->logical_print();
   for(int i=0; i<6; i++){
     EXPECT_NEAR(this->cube3->p_data[i], out_expected->p_data[i], EPS);
   }
 }
-*/

@@ -98,6 +98,9 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
   } else {
     p_bias_cube = NULL;
   }
+  else {
+    p_bias_cube = NULL;
+  }
 
   report_backward_updateweight_constructor.end(0, 0, 0);
   report_forward_constructor.end(0, 0, 0);

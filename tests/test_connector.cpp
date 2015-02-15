@@ -39,26 +39,23 @@ class ConnectorTest : public ::testing::Test {
  	typedef typename TypeParam::T T;
   ConnectorTest(){
   	input_cube = new LogicalCube<T, TypeParam::LAYOUT>(R,C,D,B);
- 	p_config = new LoweringConfig();
-	p_config->kernel_size = k;
-  p_config->stride = s;
-
+ 	
 	output_cube = new LogicalCube<T, Layout_CRDB>(k*k*D,((R-k)/s+1)*((C-k)/s+1)*B,1,1);
   	connector_ = new Connector<T, TypeParam::LAYOUT, T, Layout_CRDB, LOWERING_TYPE1>(input_cube, output_cube, 
-		p_config);	
+		k, p, s);	
   }
       //: connector_(new Connector<T, TypeParam::LAYOUT, T, Layout_CRDB, LOWERING_TYPE1>(4, 5, 3, 2)) {}
   virtual ~ConnectorTest() { delete connector_; }
   Connector<T, TypeParam::LAYOUT, T, Layout_CRDB, LOWERING_TYPE1>*  connector_;
   LogicalCube<T, TypeParam::LAYOUT>* input_cube;
   LogicalCube<T, Layout_CRDB>* output_cube;
-  LoweringConfig * p_config;
   const int R = 4;
   const int C = 4;
   const int D = 1;
   const int B = 1;
   const int k = 2;
   const int s = 1;
+  const int p = 0;
 };
 
 
@@ -101,12 +98,7 @@ TYPED_TEST(ConnectorTest, TestLowering){
   for(int i=0; i<n; i++){
     EXPECT_NEAR(this->output_cube->p_data[i],  expected_output->p_data[i],EPS);
   }
- cout << "input" << endl;
- this->input_cube->logical_print();
- cout << "Expected output" << endl;
- expected_output->logical_print();
- cout << "Actual Output" << endl;
- this->output_cube->logical_print();
+
 }
 
 //TODO -- Check for inverse lowering
