@@ -27,7 +27,7 @@ PROTO_SRC=cnn.proto
 PROTO_COMPILED_SRC=$(PROTO_SRC_DIR)cnn.pb.cc
 
 TARGET = deepnet
-SRC = src/main.cpp src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp $(PROTO_COMPILED_SRC)
+SRC = src/main.cpp src/bridges/PhysicalStratum_impl.cpp src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp $(PROTO_COMPILED_SRC)
 DIR_PARAMS=$(INCLUDE_STR) $(LIB_STR)
 PROTOBUF = `pkg-config --cflags --libs protobuf`
 
@@ -46,7 +46,7 @@ TEST_CFLAGS=-O0 -std=c++11 -I $(GTEST_INCLUDE)
 TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest -lpthread 
 
 TEST_BLASFLAGS= -lm -I $(OPENBLAS_INCLUDE)
-TEST_SOURCES = src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp tests/test_main.cpp\
+TEST_SOURCES = src/bridges/PhysicalStratum_impl.cpp src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp tests/test_main.cpp\
 	tests/test_lrn_bridge.cpp\
 	tests/test_ReLU_bridge.cpp\
 	# tests/test_connector.cpp\

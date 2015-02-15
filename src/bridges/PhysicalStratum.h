@@ -21,13 +21,10 @@ using std::vector;
  * Wrapper of calling the forward() function -- only
  * used when we call thread
  **/
-void _forward(PhysicalOperator * const bridge) {
-  bridge->forward();
-}
+void _forward(PhysicalOperator * const bridge);
 
-void _backward(PhysicalOperator * const bridge) {
-  bridge->backward();
-}
+void _backward(PhysicalOperator * const bridge);
+
 
 /**
  * A Stratum is a set of PhysicalOperators that will
@@ -36,6 +33,7 @@ void _backward(PhysicalOperator * const bridge) {
  **/
 class PhysicalStratum : public PhysicalOperator {
   public:
+
     vector<PhysicalOperator *> executors; // STL overhead is not that crucial here,
                                           // so we just use a vector
     PhysicalStratum();
@@ -44,7 +42,5 @@ class PhysicalStratum : public PhysicalOperator {
 
     void backward();
 };
-
-#include "PhysicalStratum_impl.hxx"
 
 #endif
