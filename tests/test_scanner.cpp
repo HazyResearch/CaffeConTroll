@@ -17,9 +17,10 @@ class ScannerTANHTest : public ::testing::Test {
  protected:
 	typedef typename TypeParam::T T ;
 
-	ScannerTANHTest()
-			: cube_(new LogicalCube<T, LAYOUT>(4, 5, 3, 2)),
-				scanner_(new Scanner<T, LAYOUT, FUNC_TANH>(cube_)) {}
+	ScannerTANHTest(){
+		cube_ = new LogicalCube<T, LAYOUT>(4, 5, 3, 2);
+		scanner_ = new Scanner<T, LAYOUT, FUNC_TANH>(cube_);	
+	}
 	virtual ~ScannerTANHTest() { delete cube_; delete scanner_; }
 	Scanner<T, LAYOUT, FUNC_TANH>*  scanner_;
 	LogicalCube<T, LAYOUT>* cube_;
@@ -35,8 +36,7 @@ TYPED_TEST(ScannerTANHTest, TestApply) {
 		this->cube_->p_data[i] = i;
 	}
 	this->scanner_->apply(this->cube_);
-	typedef typename TypeParam::T T;
-	float ind=0;
+
 	for(int i=0; i<this->cube_->n_elements; i++){
 		EXPECT_NEAR(this->cube_->p_data[i], tanh(i), EPS);
 	}   
@@ -47,9 +47,10 @@ class ScannerNO_FUNCTest : public ::testing::Test {
  protected:
 	typedef typename TypeParam::T T ;
 
-	ScannerNO_FUNCTest()
-			: cube_(new LogicalCube<T, LAYOUT>(4, 5, 3, 2)),
-				scanner_(new Scanner<T, LAYOUT, FUNC_NOFUNC>(cube_)) {}
+	ScannerNO_FUNCTest(){
+		cube_ = new LogicalCube<T, LAYOUT>(4, 5, 3, 2);
+		scanner_ = new Scanner<T, LAYOUT, FUNC_NOFUNC>(cube_);
+	}
 	virtual ~ScannerNO_FUNCTest() { delete cube_; delete scanner_; }
 	Scanner<T, LAYOUT, FUNC_NOFUNC>*  scanner_;
 	LogicalCube<T, LAYOUT>* cube_;
@@ -63,8 +64,7 @@ TYPED_TEST(ScannerNO_FUNCTest, TestApply) {
 		this->cube_->p_data[i] = i;
 	}
 	this->scanner_->apply(this->cube_);
-	typedef typename TypeParam::T T;
-	float ind=0;
+
 	for(int i=0; i<this->cube_->n_elements; i++){
 		EXPECT_NEAR(this->cube_->p_data[i], i, EPS);
 	}   

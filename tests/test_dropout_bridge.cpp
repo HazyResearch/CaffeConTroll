@@ -36,7 +36,7 @@ class dropoutBridgeTest : public ::testing::Test {
     cnn::SolverParameter solver_param;
 
 
-    virtual ~dropoutBridgeTest() { delete dropoutBridge_; delete layer1; delete layer2;}
+    virtual ~dropoutBridgeTest() { delete data1; delete data2; delete grad1; delete grad2; delete layer1; delete layer2;}
     DropoutBridge<T, Layout_CRDB, T, Layout_CRDB>* dropoutBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
@@ -67,13 +67,19 @@ TYPED_TEST(dropoutBridgeTest, TestInitialization) {
 }
 
 TYPED_TEST(dropoutBridgeTest, TestForward) {
-  srand(1);
   typedef typename TypeParam::T T;
-  for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++) {
-    this->data1->p_data[i] = rand()%10;
+  std::fstream input("tests/input/dropout_forward_in.txt", std::ios_base::in);
+  if (input.is_open()){
+    for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
+      input >> this->data1->p_data[i];
+    }  
   }
+  else{
+    FAIL();
+  }
+  input.close();
 
-  std::fstream mask_cube_file("tests/dropout_mask.txt", std::ios_base::in);
+  std::fstream mask_cube_file("tests/input/dropout_mask.txt", std::ios_base::in);
   int m;
   int idx = 0;
   if (mask_cube_file.is_open()) {
@@ -90,7 +96,7 @@ TYPED_TEST(dropoutBridgeTest, TestForward) {
 
   this->dropoutBridge_->forward();
 
-  std::fstream expected_output("tests/dropout_forward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/output/dropout_forward.txt", std::ios_base::in);
 
   T output;
   idx = 0;
@@ -114,12 +120,18 @@ TYPED_TEST(dropoutBridgeTest, TestBackward) {
   int oR = this->iR;
   int oC = this->iC;
 
-  srand(0);
-  for(int i=0;i<oR*oC*this->iD*this->mB;i++) {
-    this->grad2->p_data[i] = rand()%10;
+  std::fstream grad("tests/input/dropout_backward_in.txt", std::ios_base::in);
+  if (grad.is_open()){
+    for(int i=0;i<oR*oC*this->iD*this->mB;i++){
+      grad >> this->grad2->p_data[i];
+    }  
   }
+  else{
+    FAIL();
+  }
+  grad.close();
 
-  std::fstream mask_cube_file("tests/dropout_mask.txt", std::ios_base::in);
+  std::fstream mask_cube_file("tests/input/dropout_mask.txt", std::ios_base::in);
   int m;
   int idx = 0;
   if (mask_cube_file.is_open()) {
@@ -138,7 +150,7 @@ TYPED_TEST(dropoutBridgeTest, TestBackward) {
 
   this->dropoutBridge_->backward();
 
-  std::fstream expected_output("tests/dropout_backward", std::ios_base::in);
+  std::fstream expected_output("tests/output/dropout_backward", std::ios_base::in);
 
   T output;
   idx = 0;

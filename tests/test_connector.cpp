@@ -1,6 +1,3 @@
-///// Issues with Lowering ----- 
-///// TO FIX -- Working only for stride 1
-
 #include "../src/Connector.h"
 #include "../src/LogicalCube.h"
 #include "test_types.h"
@@ -44,7 +41,7 @@ class ConnectorTest : public ::testing::Test {
   	connector_ = new Connector<T, TypeParam::LAYOUT, T, Layout_CRDB, LOWERING_TYPE1>(input_cube, output_cube, 
 		k, p, s);	
   }
-      //: connector_(new Connector<T, TypeParam::LAYOUT, T, Layout_CRDB, LOWERING_TYPE1>(4, 5, 3, 2)) {}
+
   virtual ~ConnectorTest() { delete connector_; }
   Connector<T, TypeParam::LAYOUT, T, Layout_CRDB, LOWERING_TYPE1>*  connector_;
   LogicalCube<T, TypeParam::LAYOUT>* input_cube;
@@ -59,7 +56,6 @@ class ConnectorTest : public ::testing::Test {
 };
 
 
-//TODO -- Check For Layout Type BDRC-- not working properly
 typedef ::testing::Types<FloatCRDB> DataTypes;
 
 TYPED_TEST_CASE(ConnectorTest, DataTypes);
@@ -121,7 +117,7 @@ TYPED_TEST(ConnectorTest, TestInverseLowering){
   this->input_cube->logical_print();
 	if (TypeParam::LAYOUT == Layout_CRDB){
 	  	for(int i=0; i<this->output_cube->n_elements; i++){
-	  		//*input_expected.logical_get((i/24)%3+(i/2)%2, (i/8)%3+(i%2), i/72, (i/4)%2) += *this->output_cube->logical_get(i/8,i%8,0,0);
+	  		*input_expected.logical_get((i/24)%3+(i/2)%2, (i/8)%3+(i%2), i/72, (i/4)%2) += *this->output_cube->logical_get(i/8,i%8,0,0);
 		}
 
 		for(int i=0; i<this->input_cube->n_elements; i++){

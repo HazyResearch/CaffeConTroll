@@ -71,7 +71,7 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
       ParallelizedConvolutionBridge_->needs_to_calc_backward_grad = true;
     }
 
-    //	virtual ~ParallelizedConvolutionBridgeTest() { delete ParallelizedConvolutionBridge_; delete layer1; delete layer2; delete bconfig;}
+    virtual ~ParallelizedConvolutionBridgeTest() {delete data1; delete data2; delete grad1; delete grad2; delete layer1; delete layer2;}
     ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
               Layout_CRDB, DataType_SFFloat, Layout_CRDB> >* ParallelizedConvolutionBridge_;
@@ -112,30 +112,44 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestInitialization){
 
 TYPED_TEST(ParallelizedConvolutionBridgeTest, TestForward){
   typedef typename TypeParam::T T;
-  srand(1);
-  for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
-    this->data1->p_data[i] = rand()%10;
-  }
-  srand(0);
-  for(int i=0;i<this->k*this->k*this->iD*this->oD;i++){
-    float weight = rand()%10;
-    this->ParallelizedConvolutionBridge_->p_model_cube->p_data[i] = weight;
-  }
-  srand(0);
-  for(int i=0;i<this->oD;i++){
-    //this->ConvolutionBridge_->bias_cube()->p_data[i] = 0.0;
-    float bias = 0.1*(rand()%10);
-    this->ParallelizedConvolutionBridge_->p_bias_cube->p_data[i] = bias;
-    //for(auto it = this->ParallelizedConvolutionBridge_->_bridges.begin(); it != this->ParallelizedConvolutionBridge_->_bridges.end(); ++it)
-    //    (*it)->bias_cube()->p_data[i] = bias;
-  }
 
-  int oR = this->oR;
-  int oC = this->oC;
+  std::fstream input("tests/input/conv_forward_in.txt", std::ios_base::in);
+  if (input.is_open()){
+    for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
+      input >> this->data1->p_data[i];
+      this->grad1->p_data[i] = 0;
+    }  
+  }
+  else{
+    FAIL();
+  }
+  input.close();
+  
+  std::fstream model("tests/input/conv_model.txt", std::ios_base::in);
+  if (model.is_open()){
+    for(int i=0;i<this->iR*this->iC*this->iD*this->oD;i++){
+      model >> this->ParallelizedConvolutionBridge_->p_model_cube->p_data[i];
+    }  
+  }
+  else{
+    FAIL();
+  }
+  model.close();
+
+  std::fstream bias_file("tests/input/conv_bias_in.txt", std::ios_base::in);
+  if (bias_file.is_open()){
+    for(int i=0;i<this->oD;i++){
+      bias_file >> this->ParallelizedConvolutionBridge_->p_bias_cube->p_data[i];
+    }  
+  }
+  else{
+    FAIL();
+  }
+  bias_file.close();
 
   this->ParallelizedConvolutionBridge_->forward();
 
-  std::fstream expected_output("tests/conv_forward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/output/conv_forward.txt", std::ios_base::in);
   if(TypeParam::FUNC == FUNC_NOFUNC){
     T output;
     int idx = 0;
@@ -156,28 +170,46 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestForward){
 
 TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
   typedef typename TypeParam::T T;
-  srand(1);
-  for (int i=0;i<this->iR*this->iC*this->iD*this->mB;i++) {
-    this->data1->p_data[i] = rand()%10;
-    this->grad1->p_data[i] = 0;
-  }
 
-  srand(0);
-  for (int i=0;i<this->k*this->k*this->iD*this->oD;i++) {
-    this->ParallelizedConvolutionBridge_->get_model_cube()->p_data[i] = rand()%2;
+  std::fstream input("tests/input/conv_forward_in.txt", std::ios_base::in);
+  if (input.is_open()){
+    for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
+      input >> this->data1->p_data[i];
+    }  
   }
+  else{
+    FAIL();
+  }
+  input.close();
+  
+  std::fstream model("tests/input/conv_backward_model.txt", std::ios_base::in);
+  if (model.is_open()){
+    for(int i=0;i<this->iR*this->iC*this->iD*this->oD;i++){
+      model >> this->ParallelizedConvolutionBridge_->p_model_cube->p_data[i];
+    }  
+  }
+  else{
+    FAIL();
+  }
+  model.close();
+
+  std::fstream bias_file("tests/input/conv_bias_in.txt", std::ios_base::in);
+  if (bias_file.is_open()){
+    for(int i=0;i<this->oD;i++){
+      bias_file >> this->ParallelizedConvolutionBridge_->p_bias_cube->p_data[i];
+    }  
+  }
+  else{
+    FAIL();
+  }
+  bias_file.close();
 
   int oR = this->oR;
   int oC = this->oC;
-
+  
   for (int i=0;i<oR*oC*this->oD*this->mB;i++) {
     this->data2->p_data[i] = 0;
     this->grad2->p_data[i] = i*0.1;
-  }
-
-  srand(0);
-  for (int i=0;i<this->oD;i++) {
-    this->ParallelizedConvolutionBridge_->get_bias_cube()->p_data[i] = 0.1*(rand()%10);
   }
 
 
@@ -186,7 +218,7 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
   this->ParallelizedConvolutionBridge_->backward();
   //this->bias->logical_print();
 
-  std::fstream expected_output("tests/conv_backward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/output/conv_backward.txt", std::ios_base::in);
   T output;
   int idx = 0;
 
@@ -203,7 +235,7 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
   expected_output.close();
 
 
-  std::fstream expected_bias("tests/conv_bias.txt", std::ios_base::in);
+  std::fstream expected_bias("tests/output/conv_bias.txt", std::ios_base::in);
 
   idx = 0;
 
@@ -222,7 +254,7 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
   }
   expected_bias.close();
 
-  std::fstream expected_weights("tests/conv_weights.txt", std::ios_base::in);
+  std::fstream expected_weights("tests/output/conv_weights.txt", std::ios_base::in);
 
   idx = 0;
 

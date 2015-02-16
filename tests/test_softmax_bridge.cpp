@@ -31,7 +31,7 @@ class softmaxBridgeTest : public ::testing::Test {
     softmaxBridge_ = new SoftmaxLossBridge<T, Layout_CRDB, T, Layout_CRDB>(layer1, layer2, label);
    } 
 
-  	virtual ~softmaxBridgeTest() { delete softmaxBridge_; delete layer1; delete layer2;}
+  	virtual ~softmaxBridgeTest() { delete data1; delete data2; delete grad1; delete grad2; delete layer1; delete layer2;}
     SoftmaxLossBridge<T, Layout_CRDB, T, Layout_CRDB>* softmaxBridge_;
 
   	LogicalCube<T, Layout_CRDB>* data1;
@@ -64,20 +64,32 @@ TYPED_TEST(softmaxBridgeTest, TestInitialization){
 TYPED_TEST(softmaxBridgeTest, TestForward){
 	typedef typename TypeParam::T T;
 
-    srand(1);  
-    for(int i=0;i<this->iD*this->mB;i++){
-        this->data1->p_data[i] = (rand()%5)*0.1;
+    std::fstream input("tests/input/softmax_forward_in.txt", std::ios_base::in);
+    if (input.is_open()){
+        for(int i=0;i<this->iD*this->mB;i++){
+          input >> this->data1->p_data[i];
+        }  
     }
+    else{
+        FAIL();
+    }
+    input.close();
 
-    srand(0);
-    for(int n=0;n<this->mB;n++){
-        this->label->p_data[n] = rand()%10;
+    std::fstream label_file("tests/input/softmax_label.txt", std::ios_base::in);
+    if (label_file.is_open()){
+        for(int i=0;i<this->mB;i++){
+          label_file >> this->label->p_data[i];
+        }  
     }
+    else{
+        FAIL();
+    }
+    label_file.close();
+
     this->softmaxBridge_->forward();
-    std::fstream expected_output("tests/softmax_forward.txt", std::ios_base::in);
+    std::fstream expected_output("tests/output/softmax_forward.txt", std::ios_base::in);
     
     T output;
-    int idx = 0;
     if (expected_output.is_open()) {
         expected_output >> output;
         EXPECT_NEAR(this->softmaxBridge_->get_loss(), output, EPS);
@@ -92,20 +104,33 @@ TYPED_TEST(softmaxBridgeTest, TestForward){
 TYPED_TEST(softmaxBridgeTest, TestBackward){
     typedef typename TypeParam::T T;
     
-    srand(0);
-    for(int n=0;n<this->mB;n++){
-        this->label->p_data[n] = rand()%10;
+    std::fstream label_file("tests/input/softmax_label.txt", std::ios_base::in);
+    if (label_file.is_open()){
+        for(int i=0;i<this->mB;i++){
+          label_file >> this->label->p_data[i];
+        }  
     }
-
+    else{
+        FAIL();
+    }
+    label_file.close();
 
     this->softmaxBridge_->forward();
-    srand(1);
-    for(int i=0;i<this->iD*this->mB;i++){
-        this->data2->p_data[i] = (rand()%5)*0.1;
+
+    std::fstream output_file("tests/input/softmax_backward_in.txt", std::ios_base::in);
+    if (output_file.is_open()){
+        for(int i=0;i<this->iD*this->mB;i++){
+          output_file >> this->data2->p_data[i];
+        }  
     }
+    else{
+        FAIL();
+    }
+    output_file.close();
+    
     this->softmaxBridge_->backward();
 
-    std::fstream expected_output("tests/softmax_backward.txt", std::ios_base::in);
+    std::fstream expected_output("tests/output/softmax_backward.txt", std::ios_base::in);
     
     T output;
     int idx = 0;
