@@ -14,9 +14,7 @@
 #include <random>
 #include <float.h>
 #include <limits>
-// These two includes are from OpenBlas
-#include "common.h"
-#include "cblas.h"
+#include "cblas.h" // cblas include
 
 enum InitializerType {
   CONSTANT = 0,
@@ -99,14 +97,19 @@ class Util {
       }
     }
 
-    static inline void math_axpy(const int N, const double alpha, const float * X, float * Y) {
-      cblas_saxpby(N, alpha, X, 1, 1., Y, 1);
-    }
+#ifdef _USE_OPENBLAS
+    static inline void math_axpy(const int N, const double alpha, const float * X, float * Y)   { cblas_saxpby(N, alpha, X, 1, 1., Y, 1);}
+    static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) { cblas_daxpby(N, alpha, X, 1, 1., Y, 1); }
+    static inline void set_num_threads(const int nThreads) { openblas_set_num_threads(nThreads); }
+#elif _USE_ATLAS
+    static inline void math_axpy(const int N, const double alpha, const float * X, float * Y)   { catlas_saxpby(N, alpha, X, 1, 1., Y, 1); }
+    static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) { catlas_daxpby(N, alpha, X, 1, 1., Y, 1);}
+    static inline void set_num_threads(const int nThreads) {       set_num_threads(nThreads); }
 
-    static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) {
-      cblas_daxpby(N, alpha, X, 1, 1., Y, 1);
-    }
-
+#else
+      #error "Select a BLAS framework." 
+#endif
+    
     // Note: this is only used for shorts and floats, since _our_memset will only work for ints
     template <typename T>
     static inline void constant_initialize(T * const arr, const T value, const size_t n_arr_elements) {

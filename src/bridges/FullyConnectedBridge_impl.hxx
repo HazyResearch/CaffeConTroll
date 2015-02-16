@@ -125,9 +125,9 @@ initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter
 template <typename DataType>
 void FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::
 forward() {
+  Util::set_num_threads(run_with_n_threads);
 
-  openblas_set_num_threads(run_with_n_threads);
-
+  
   report_forward_last_transfer.reset();
 
   // (0) cast input model and output to matrix
@@ -204,8 +204,9 @@ forward() {
 template <typename DataType>
 void FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::
 backward() {
-  openblas_set_num_threads(run_with_n_threads);
+  Util::set_num_threads(run_with_n_threads);
 
+  
   report_backward_updateweight_last_transfer.reset();
   // (1) calculate the gradient of output and store in the buffer
 
