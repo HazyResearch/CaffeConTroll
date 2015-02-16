@@ -37,8 +37,10 @@ Corpus * read_corpus_from_lmdb(const cnn::NetParameter & net_param, const string
 //// Shubham: Need to be refactored a bit on the basis of how these features would actually be used.
 /// Should we have a separate test function?
 void write_model_to_file(const BridgeVector bridges, const string model_file){
-  FILE * pFile;
-  pFile = fopen (model_file.c_str(), "wb");
+  FILE * pFile = fopen (model_file.c_str(), "wb");
+  if(!pFile) 
+    throw runtime_error("Error opening " + model_file);
+  
   LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
   LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
   for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
@@ -434,9 +436,10 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
   for (size_t epoch = 0; epoch < num_epochs; ++epoch) {
     cout << "EPOCH: " << epoch << endl;
 
-    FILE * pFile;
-    pFile = fopen (corpus.filename.c_str(), "rb");
-
+    FILE * pFile = fopen (corpus.filename.c_str(), "rb");
+    if(!pFile) 
+      throw runtime_error("Error opening the corpus file: " + corpus.filename);
+    
     // num_mini_batches - 1, because we need one more iteration for the final mini batch
     // (the last mini batch may not be the same size as the rest of the mini batches)
     for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches ; ++batch,
@@ -444,11 +447,12 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       Timer t;
       Timer t2;
 
-      // this loading appears to take just ~ 0.1 s for each batch,
-      // so double-buffering seems an overkill here because the following operations took seconds...
+      // The last batch may be smaller, but all other batches should be the appropriate size.
+      // rs will then contain the real number of entires
       size_t rs = fread(corpus.images->p_data, sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
-      if (rs != corpus.images->n_elements){
-        std::cout << "Error in reading data" << std::endl;
+      if (rs != corpus.images->n_elements && batch != corpus.num_mini_batches - 1){
+	std::cout << "Error in reading data from " << corpus.filename << " in batch " << batch << " of " << corpus.num_mini_batches << std::endl;
+	std::cout << "read:  " << rs << " expected " << corpus.images->n_elements << std::endl;		
         exit(1);
       }
 
@@ -560,9 +564,10 @@ float test_network(const BridgeVector & bridges, const Corpus & corpus, const cn
   LogicalCubeFloat * const labels = softmax->p_data_labels;
   LogicalCubeFloat * const input_data = first->p_input_layer->p_data_cube;
 
-  FILE * pFile;
-  pFile = fopen(corpus.filename.c_str(), "rb");
-
+  FILE * pFile = fopen(corpus.filename.c_str(), "rb");
+  if(!pFile)
+      throw runtime_error("Error opening the corpus file: " + corpus.filename);
+    
   // num_mini_batches - 1, because we need one more iteration for the final mini batch
   // (the last mini batch may not be the same size as the rest of the mini batches)
   float t_load;

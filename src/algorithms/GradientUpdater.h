@@ -87,8 +87,8 @@ public:
     			p_gradient, p_model);
   		}
 
-  		std::cout << "STEPSIZE = " << stepsize << " MOMENTUM = " << momentum << " BASE_LR = " 
-  			<< base_learning_rate << " BASE_REG = " << base_regularization << std::endl ;
+  		// std::cout << "STEPSIZE = " << stepsize << " MOMENTUM = " << momentum << " BASE_LR = " 
+  		//	<< base_learning_rate << " BASE_REG = " << base_regularization << std::endl ;
 
 		for(int i=0;i<n_elements;i++){
 			p_history_updates[i] = stepsize * p_gradient[i] + momentum * p_history_updates[i];
