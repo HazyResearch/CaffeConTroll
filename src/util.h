@@ -108,7 +108,7 @@ class Util {
     }
 
     static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) {
-#ifdef _OPENBLAS      
+#ifdef _USE_OPENBLAS      
       cblas_daxpby(N, alpha, X, 1, 1., Y, 1);
 #elif _USE_ATLAS
       catlas_daxpby(N, alpha, X, 1, 1., Y, 1);

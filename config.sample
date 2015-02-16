@@ -24,8 +24,10 @@ LMDB_LIB_DIR=
 # directory where OpenBLAS is installed (if not in path)
 BLAS_INCLUDE=
 BLAS_LIB_DIR=
-# BLAS_LIB=BLAS LAPACK # Installed Atlas (installed on Mac)
-# BLAS_LIB=openblas    # OpenBlas
+BLAS_LIBS=BLAS LAPACK # Mac libararies
+BLAS_DEFS=-D_USE_ATLAS
+# BLAS_LIBS=openblas # OpenBlas
+# BLAS_DEFS=-D_USE_OPENBLAS
 
 # directory where GoogleTest is installed (if not in path)
 GTEST_INCLUDE=
