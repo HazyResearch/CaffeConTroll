@@ -74,6 +74,10 @@ class AbstractBridge : public PhysicalOperator {
         return NULL;
     }
 
+    virtual LogicalCube<InputLayerDataType, InputLayerLayout> * const get_model_grad_cube() {
+        return NULL;
+    }
+
     // First constructor, which takes in a cnn::LayerParameter as a third argument. This will
     // be used when initializing from a *.prototxt file
     AbstractBridge<InputLayerDataType, InputLayerLayout,
