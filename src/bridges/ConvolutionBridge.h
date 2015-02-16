@@ -195,6 +195,122 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     void initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter filler_param);
 };
 
-#include "ConvolutionBridge_impl.hxx"
+template <typename DataType, NonLinearFunction FUNC>
+class ConvolutionBridge<CPU_CONV_LOWERINGTYPE2, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>
+: public AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> {
+  public:
+    /* Re-declare these member fields so that they don't have to be resolved using vtable lookups */
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_forward_constructor;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_forward_last_transfer;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_forward_history;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::run_with_n_threads;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_backward_updateweight_constructor;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_backward_updateweight_last_transfer;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_backward_updateweight_history;
+
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iR;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iC;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iD;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iB;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oR;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oC;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oD;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oB;
+
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::needs_to_calc_backward_grad;
+
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::layer_param;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::solver_param;
+
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_input_layer;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_output_layer;
+
+    Report report_forward_kernel;
+    Report report_backward_kernel;
+    Report report_forward_lowering;
+    Report report_backward_inverse_lowering;
+    Report report_backward_grad_kernel;
+    Report report_backward_weight_kernel;
+
+    /* Re-declare these typedefs */
+    typedef Layer<DataType, Layout_CRDB> InputLayerType;
+    typedef Layer<DataType, Layout_CRDB> OutputLayerType;
+    typedef LogicalCube<DataType, Layout_CRDB> LogicalCubeType;
+
+    const size_t K;
+    const size_t num_output_features;
+    const size_t stride;
+    const size_t padding;
+
+    const bool bias_term;
+
+    const float stepsize;
+    const float momentum;
+    const float weight_decay;
+    const string regularization_type;
+
+    const cnn::FillerParameter weight_filler;
+    const cnn::FillerParameter bias_filler;
+
+    void set_model_cube(LogicalCube<DataType, Layout_CRDB> * model) {
+      Util::_our_memcpy(p_model_cube->p_data, model->p_data, p_model_cube->n_elements*sizeof(DataType));
+    }
+
+    LogicalCube<DataType, Layout_CRDB> * const get_model_cube() {
+      return p_model_cube;
+    }
+
+    void set_bias_cube(LogicalCube<DataType, Layout_CRDB> * bias) {
+      Util::_our_memcpy(p_bias_cube->p_data, bias->p_data, p_bias_cube->n_elements*sizeof(DataType));
+    }
+
+    LogicalCube<DataType, Layout_CRDB> * const get_bias_cube() {
+      return p_bias_cube;
+    }
+
+    ConvolutionBridge(InputLayerType * const _p_input_layer,
+        OutputLayerType * const _p_output_layer,
+        const cnn::LayerParameter * const _layer_param,
+        const cnn::SolverParameter * const _solver_param);
+
+    ~ConvolutionBridge();
+
+    void forward();
+
+    void backward();
+
+  protected:
+    LogicalCubeType * p_model_cube;
+    LogicalCubeType * p_model_cube_history;
+    LogicalCubeType * p_bias_cube;
+    LogicalCubeType * p_forward_lowered_model;
+    LogicalCubeType * p_backward_outputgrad;
+    LogicalCubeType * p_backward_inputgrad;
+
+    size_t mR, mC, mD, mB; /*< Size of the model LogicalCube */
+
+    Scanner<DataType, Layout_CRDB, FUNC> * p_forward_applyfunc_scanner;
+
+    Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, LOWERING_TYPE2>
+      * p_forward_lower_connector;
+
+    Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
+      Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS> * p_forward_gemm_kernel;
+
+
+    Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
+      Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KernelConfig_TANHGRAD_ON_INPUT1> * p_backward_element_mul_kernel;
+
+    Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
+      Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_TRANS> * p_backward_gemm_updateweight_kernel;
+
+    Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
+      Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_TRANS_NOTRANS> * p_backward_gemm_updategrad_kernel;
+
+    void initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter filler_param);
+};
+
+#include "ConvolutionBridge_Lowering1_impl.hxx"
+#include "ConvolutionBridge_Lowering2_impl.hxx"
 
 #endif

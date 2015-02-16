@@ -39,7 +39,7 @@ lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeTyp
   report_last_lowering.reset();
 
 #ifdef _DO_WARNING
-  std::cerr << "WARNING: " << "You are using the most general version of the lowering function. " << "This might be slow!" << std::endl;
+  cerr << "WARNING: " << "You are using the most general version of the lowering function. " << "This might be slow!" << endl;
 #endif
 
 #ifdef _DO_ASSERT
@@ -74,7 +74,7 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
   report_last_inverse_lowering.reset();
 
 #ifdef _DO_WARNING
-  std::cerr << "WARNING: " << "You are using the most general version of the lowering function. " << "This might be slow!" << std::endl;
+  cerr << "WARNING: " << "You are using the most general version of the lowering function. " << "This might be slow!" << endl;
 #endif
 
 #ifdef _DO_ASSERT

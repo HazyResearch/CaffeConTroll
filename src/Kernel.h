@@ -52,14 +52,14 @@ public:
     Kernel(const Input1LogicalCubeType * const p_input1_cube,
            const Input2LogicalCubeType * const p_input2_cube,
            const OutputLogicalCubeType * const p_output_cube){
-        std::cerr << "ERROR: Using a kernel with unsupported Layout or DataType." << std::endl;
+        cerr << "ERROR: Using a kernel with unsupported Layout or DataType." << endl;
         assert(false);
     }
 
     void compute(const Input1LogicalCubeType * const p_input1_cube,
                   const Input2LogicalCubeType * const p_input2_cube,
                   OutputLogicalCubeType * const p_output_cube){
-        std::cerr << "ERROR: Using a kernel with unsupported Layout or DataType." << std::endl;
+        cerr << "ERROR: Using a kernel with unsupported Layout or DataType." << endl;
         assert(false);
     }
 
@@ -93,8 +93,8 @@ public:
     Kernel(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
            const OutputLogicalCubeType * const p_output_cube);
 
-    void compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
-                  OutputLogicalCubeType * const p_output_cube);
+    void compute(const Input1LogicalCubeType * const p_input1_cube,
+        const Input2LogicalCubeType * const p_input2_cube, OutputLogicalCubeType * const p_output_cube);
 
 };
 
@@ -106,21 +106,14 @@ public:
     typedef LogicalCube<DataType, Layout_CRDB> Input2LogicalCubeType;
     typedef LogicalCube<DataType, Layout_CRDB> OutputLogicalCubeType;
 
-    char transA;
-    char transB;
-
-    const size_t i1n_elements;
-    const size_t i2n_elements;
-    const size_t on_elements;
-
     Report report_constructor;
     Report report_last_lowering;
     Report report_history;
 
-    Kernel(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
-           const OutputLogicalCubeType * const p_output_cube);
+    Kernel();
 
-    void compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube, OutputLogicalCubeType * const p_output_cube);
+    void compute(const Input1LogicalCubeType * const p_input1_cube,
+        const Input2LogicalCubeType * const p_input2_cube, OutputLogicalCubeType * const p_output_cube);
 
 };
 

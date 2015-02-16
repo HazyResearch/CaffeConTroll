@@ -1,13 +1,13 @@
 //
-//  ConvolutionBridge_impl.hxx
+//  ConvolutionBridge_Lowering1_impl.hxx
 //  moka
 //
 //  Created by Ce Zhang on 1/13/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#ifndef moka_ConvolutionBridge_impl_hxx
-#define moka_ConvolutionBridge_impl_hxx
+#ifndef moka_ConvolutionBridge_Lowering1_impl_hxx
+#define moka_ConvolutionBridge_Lowering1_impl_hxx
 
 // Constructor for convolution layer
 template <typename DataType, NonLinearFunction FUNC>
@@ -88,16 +88,15 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   // TODO: figure out a better way to support other functions besides tanh
   if (FUNC != FUNC_NOFUNC) {
     p_backward_element_mul_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType,
-                                  Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU,
-                                  KernelConfig_TANHGRAD_ON_INPUT1>(p_output_layer->p_data_cube,
-                                      p_output_layer->p_gradient_cube, p_backward_outputgrad);
+                                  Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KernelConfig_TANHGRAD_ON_INPUT1>();
   }
 
-  // TODO: this constructor doesn't make any sense -- we're passing in different arguments later, in backward()
   p_backward_gemm_updateweight_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType,
                                       Layout_CRDB, Kernel_GEMM_OpenBlas,
                                       KernelConfig_GEMM_NOTRANS_TRANS>(&lowered_forward_output,
                                           p_forward_lowered_data, &lowered_forward_model);
+  p_backward_gemm_updateweight_kernel->alpha = -stepsize;
+  p_backward_gemm_updateweight_kernel->beta = momentum;
 
   p_backward_gemm_updategrad_kernel = new Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB,
                                     DataType_SFFloat, Layout_CRDB, Kernel_GEMM_OpenBlas,
