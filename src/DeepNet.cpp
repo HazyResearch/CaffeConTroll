@@ -253,7 +253,7 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
             //  next_layer, &layer_param, &solver_param);
             
             bridge->name = layer_param.name();
-            bridge->run_with_n_threads = 1;  // TODO: Add a better abstraction here.
+            bridge->run_with_n_threads = 16;  // TODO: Add a better abstraction here.
             bridges.push_back(bridge);
             next_layers.push_back(next_layer);
         }
