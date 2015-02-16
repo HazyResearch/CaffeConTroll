@@ -64,7 +64,7 @@ TEST_EXECUTABLE=test
 
 .PHONY: all assembly clean product test warning
 
-all: CFLAGS += $(DEBUG_FLAGS)
+#all: CFLAGS += $(DEBUG_FLAGS)
 all: $(OBJ_FILES) cnn.pb.o
 	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
@@ -72,7 +72,7 @@ release: CFLAGS += $(PRODUCT_FLAGS)
 release: $(OBJ_FILES) cnn.pb.o
 	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
-test: CFLAGS += -O0 -I $(GTEST_INCLUDE)
+test: CFLAGS += -O3 -I $(GTEST_INCLUDE)
 test: $(TEST_OBJ_FILES) cnn.pb.o 
 	$(CC) $^ -o $(TEST_EXECUTABLE) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB) 
 
