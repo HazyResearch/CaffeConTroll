@@ -1,13 +1,20 @@
-.DS_Store
-*.DSYM
+# binaries
 a.out
-deepnet
+caffe-ct
 test
 tests/test
-*.swp
-tags
+*.bin
+# Personal Makefile configuration
+.config
+# Residual compilation files
+.DS_Store
+*.DSYM
 *.pb.cc
 *.pb.h
+*.o
+# Swap files
+*.swp
+# ctags
+tags
+# Personal libraries
 lib/
-.config
-*.bin
