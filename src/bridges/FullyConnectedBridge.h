@@ -28,9 +28,9 @@ class FullyConnectedBridge : public AbstractBridge<InputLayerDataType, InputLaye
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
     typedef LogicalCube<InputLayerDataType, InputLayerLayout> LogicalCubeType;
 
-    virtual void set_model_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * model) = 0;
+    virtual void set_model_cube(const LogicalCube<InputLayerDataType, InputLayerLayout> * const model) = 0;
     virtual LogicalCube<InputLayerDataType, InputLayerLayout> * get_model_cube() = 0;
-    virtual void set_bias_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * bias) = 0;
+    virtual void set_bias_cube(const LogicalCube<InputLayerDataType, InputLayerLayout> * const bias) = 0;
     virtual LogicalCube<InputLayerDataType, InputLayerLayout> * get_bias_cube() = 0;
 
     FullyConnectedBridge(InputLayerType * const _p_input_layer,
@@ -106,17 +106,16 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
     const cnn::FillerParameter weight_filler;
     const cnn::FillerParameter bias_filler;
 
-    void set_model_cube(LogicalCube<DataType, Layout_CRDB> * model) {
-      p_model_cube->p_data = model->p_data;
-      //Util::_our_memcpy(p_model_cube->p_data, model->p_data, p_model_cube->n_elements*sizeof(DataType));
+    void set_model_cube(const LogicalCube<DataType, Layout_CRDB> * const model) {
+      p_model_cube->set_p_data(model->get_p_data());
     }
 
     LogicalCube<DataType, Layout_CRDB> * const get_model_cube() {
       return p_model_cube;
     }
 
-    void set_bias_cube(LogicalCube<DataType, Layout_CRDB> * bias) {
-      Util::_our_memcpy(p_bias_cube->p_data, bias->p_data, p_bias_cube->n_elements*sizeof(DataType));
+    void set_bias_cube(const LogicalCube<DataType, Layout_CRDB> * const bias) {
+      Util::_our_memcpy(p_bias_cube->get_p_data(), bias->get_p_data(), p_bias_cube->n_elements*sizeof(DataType));
     }
 
     LogicalCube<DataType, Layout_CRDB> * const get_bias_cube() {
@@ -143,7 +142,6 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
     void backward();
 
   protected:
-
     LogicalCubeType * p_model_gradient_cube;
     LogicalCubeType * p_model_cube;
 
@@ -168,10 +166,9 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
     Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
       Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_TRANS_NOTRANS> * p_backward_gemm_updategrad_kernel;
 
-    void initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter filler_param);
+    void initialize_logical_cube(LogicalCubeType * const cube, const cnn::FillerParameter filler_param);
 };
 
 #include "FullyConnectedBridge_impl.hxx"
 
 #endif
-

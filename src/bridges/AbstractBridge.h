@@ -62,13 +62,13 @@ class AbstractBridge : public PhysicalOperator {
     // Bridges which subclass AbstractBridge may override these four methods later
     // (e.g. ConvolutionBridge). Most, however, won't, since only ConvolutionBridge
     // and FullyConnected Bridge have weights that need to be updated
-    virtual void set_model_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * model) {}
+    virtual void set_model_cube(const LogicalCube<InputLayerDataType, InputLayerLayout> * const model) {}
 
     virtual LogicalCube<InputLayerDataType, InputLayerLayout> * const get_model_cube() {
         return NULL;
     }
 
-    virtual void set_bias_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * bias) {}
+    virtual void set_bias_cube(const LogicalCube<InputLayerDataType, InputLayerLayout> * const bias) {}
 
     virtual LogicalCube<InputLayerDataType, InputLayerLayout> * const get_bias_cube() {
         return NULL;

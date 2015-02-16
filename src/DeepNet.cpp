@@ -51,11 +51,11 @@ void write_model_to_file(const BridgeVector bridges, const string model_file){
   for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
     model = (*bridge)->get_model_cube();
     if (model) {
-      fwrite (model->p_data , sizeof(DataType_SFFloat), model->n_elements, pFile);
+      fwrite (model->get_p_data() , sizeof(DataType_SFFloat), model->n_elements, pFile);
     }
     bias = (*bridge)->get_bias_cube();
     if (bias) {
-      fwrite (bias->p_data , sizeof(DataType_SFFloat), bias->n_elements, pFile);
+      fwrite (bias->get_p_data() , sizeof(DataType_SFFloat), bias->n_elements, pFile);
     }
   }
   fclose(pFile);
@@ -69,19 +69,19 @@ void read_model_from_file(BridgeVector & bridges, const string model_file) {
   for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
     model = (*bridge)->get_model_cube();
     if (model) {
-      fread(model->p_data , sizeof(DataType_SFFloat), model->n_elements, pFile);
+      fread(model->get_p_data() , sizeof(DataType_SFFloat), model->n_elements, pFile);
     }
     bias = (*bridge)->get_bias_cube();
     if (bias) {
-      fread(bias->p_data , sizeof(DataType_SFFloat), bias->n_elements, pFile);
+      fread(bias->get_p_data() , sizeof(DataType_SFFloat), bias->n_elements, pFile);
     }
   }
   fclose(pFile);
 }
 
 int find_accuracy(const LogicalCubeFloat * const labels, const LogicalCubeFloat * output) {
-  const float* actual_data = output->p_data;
-  const float* expected_label = labels->p_data;
+  const float * actual_data = output->get_p_data();
+  const float * expected_label = labels->get_p_data();
   int top_k = 1;
   float accuracy = 0;
   int num = output->B;
@@ -189,7 +189,7 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
                 next_layers.push_back(next_layer);
               }
               is_first_conv = false;
-            }else{
+            } else {
               if (grouping != 1 && n_previous_groups == 1) {
                 // in this case, we fork the single input group into multile output groups
                 for (size_t i=0;i<grouping;i++) {
@@ -209,7 +209,7 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
                   next_layers.push_back(next_layer);
                 }
                 is_first_conv = false;
-              }else{
+              } else {
                 cout << "ERROR: Currently we do not support the case where input group is " << n_previous_groups
                   << " and output group is " << grouping << " for CONV layer..." << endl;
                 assert(false);
@@ -231,8 +231,9 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
               next_layer = new LayerFloat(next_data, next_grad);
               bridge = new FunnelBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layers[0],
                 next_layer, &layer_param, &solver_param);
-              for(size_t i=0;i<n_previous_groups;i++){
-                ((FunnelBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>*)bridge)->p_input_layers.push_back(prev_layers[i]);
+              for (size_t i = 0; i < n_previous_groups; i++) {
+                ((FunnelBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
+                  Layout_CRDB>*)bridge)->p_input_layers.push_back(prev_layers[i]);
               }
               bridge->name = "FUNNEL";
               bridges.push_back(bridge);
@@ -394,12 +395,11 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
       // Appending the bridge to our vector of bridges, and updating pointers
       // and values for the next iteration.
       //bridges.push_back(bridge);
-
       input_R = output_R, input_C = output_C, input_D = output_D;
 
       // Swap next_layers with prev_layers and empty next
       prev_layers.clear();
-      for(size_t i=0;i<next_layers.size();i++){
+      for (size_t i = 0; i < next_layers.size(); i++) {
         prev_layers.push_back(next_layers[i]);
       }
       next_layers.clear();
@@ -447,7 +447,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 
       // The last batch may be smaller, but all other batches should be the appropriate size.
       // rs will then contain the real number of entires
-      size_t rs = fread(corpus.images->p_data, sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
+      size_t rs = fread(corpus.images->get_p_data(), sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
       if (rs != corpus.images->n_elements && batch != corpus.num_mini_batches - 1){
 	cout << "Error in reading data from " << corpus.filename << " in batch " << batch << " of " << corpus.num_mini_batches << endl;
 	cout << "read:  " << rs << " expected " << corpus.images->n_elements << endl;
@@ -463,12 +463,12 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       // to make the switching between this and the master branch (that load everything in memory)
       // dynamically and improve code reuse.
       float * const mini_batch = corpus.images->physical_get_RCDslice(0);
-      input_data->p_data = mini_batch;
+      input_data->set_p_data(mini_batch);
 
       softmax->reset_loss();
 
       // initialize labels for this mini batch
-      labels->p_data = corpus.labels->physical_get_RCDslice(corpus_batch_index);
+      labels->set_p_data(corpus.labels->physical_get_RCDslice(corpus_batch_index));
 
       // forward pass
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
@@ -578,16 +578,16 @@ float test_network(const BridgeVector & bridges, const Corpus & corpus, const cn
     Timer t;
     Timer t2;
 
-    fread(corpus.images->p_data, sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
+    fread(corpus.images->get_p_data(), sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
     t_load = t.elapsed();
     t.restart();
     float * const mini_batch = corpus.images->physical_get_RCDslice(0);
-    input_data->p_data = mini_batch;
+    input_data->set_p_data(mini_batch);
 
     softmax->reset_loss();
 
     // initialize labels for this mini batch
-    labels->p_data = corpus.labels->physical_get_RCDslice(corpus_batch_index);
+    labels->set_p_data(corpus.labels->physical_get_RCDslice(corpus_batch_index));
     // forward pass
     for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
       (*bridge)->forward();
@@ -671,12 +671,12 @@ float load_and_test_network(const char * file, const string data_binary, const s
 
   if (model_file != "NA") {
     read_model_from_file(bridges, model_file);
-    return test_network(bridges, *corpus, net_param, solver_param);
+    const float acc = test_network(bridges, *corpus, net_param, solver_param);
+    clean_up(bridges, corpus);
+    return acc;
   } else {
     cout << "No valid model file provided" << endl;
     assert(false);
     return -1;
   }
-
-  clean_up(bridges, corpus);
 }

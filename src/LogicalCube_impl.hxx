@@ -13,6 +13,22 @@
 
 using namespace std;
 
+template<typename T, LayoutType LAYOUT>
+T * const LogicalCube<T, LAYOUT>::get_p_data() const {
+  return p_data;
+}
+
+template<typename T, LayoutType LAYOUT>
+void LogicalCube<T, LAYOUT>::set_p_data(T * const data) {
+#ifdef _DO_ASSERT
+  // p_data cannot be updated if this cube
+  // owns it data. Otherwise, we will have
+  // a memory leak.
+  assert(!own_data);
+#endif
+  p_data = data;
+}
+
 /**************************************/
 /** Begin code for handling lowering **/
 /**************************************/
@@ -21,8 +37,9 @@ LogicalMatrix<T> LogicalCube<T, LAYOUT>::get_logical_matrix(size_t depth_index, 
 #ifdef _DO_ASSERT
   assert(depth_index < D); assert(batch_index < B);
 #endif
-  return LogicalMatrix<T>(&p_data[batch_index*R*C*D + depth_index*R*C], R, C); // Note: for Layout_CRDB only, TODO: support BDRC, the other layout
-};
+  // Note: for Layout_CRDB only, TODO: support BDRC, the other layout
+  return LogicalMatrix<T>(&p_data[batch_index*R*C*D + depth_index*R*C], R, C);
+}
 
 template <typename T, LayoutType LAYOUT>
 template<LoweringType LOWERING>
@@ -186,7 +203,6 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE3, DUMMY>::lower_logica
   // TODO: Lowering type 3, stride > 1, padding > 0
 }
 
-
 /************************************/
 /** End code for handling lowering **/
 /************************************/
@@ -209,18 +225,19 @@ T * LogicalCube<T, LAYOUT>::physical_get_RCDslice(size_t b) {
 
 template<typename T, LayoutType LAYOUT>
 LogicalCube<T, LAYOUT>::LogicalCube(void * _p_data, size_t _R, size_t _C, size_t _D, size_t _B) :
-  p_data(reinterpret_cast<T*>(_p_data)),
   n_elements(_R*_C*_D*_B),
   R(_R), C(_C), D(_D), B(_B),
-  own_data(false) {}
+  own_data(false),
+  p_data(reinterpret_cast<T*>(_p_data)) {}
 
 
 template<typename T, LayoutType LAYOUT>
 LogicalCube<T, LAYOUT>::LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B) :
-  p_data((T*) malloc(sizeof(T)*_R*_C*_D*_B)), // TODO: change to 32byte align
   n_elements(_R*_C*_D*_B),
   R(_R), C(_C), D(_D), B(_B),
-  own_data(true) {}
+  own_data(true),
+  // TODO: change to 32byte align
+  p_data((T*) malloc(sizeof(T)*_R*_C*_D*_B)) {}
 
 template<typename T, LayoutType LAYOUT>
 void LogicalCube<T, LAYOUT>::reset_cube() {

@@ -59,10 +59,10 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*iB,
       1, 1);
 
-  LogicalCube<DataType, Layout_CRDB> lowered_forward_model(p_model_cube->p_data, num_output_features,
+  LogicalCube<DataType, Layout_CRDB> lowered_forward_model(p_model_cube->get_p_data(), num_output_features,
       K*K*iD, 1, 1);
 
-  LogicalCube<DataType, Layout_CRDB> lowered_forward_output(p_output_layer->p_data_cube->p_data,
+  LogicalCube<DataType, Layout_CRDB> lowered_forward_output(p_output_layer->p_data_cube->get_p_data(),
       num_output_features, oR*oC*iB, 1, 1);
 
   p_forward_lower_connector = new Connector<DataType, Layout_CRDB, DataType, Layout_CRDB,
@@ -110,16 +110,16 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
 // non-NULL.
 template <typename DataType, NonLinearFunction FUNC>
 void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
-initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter filler_param) {
+initialize_logical_cube(LogicalCubeType * const cube, const cnn::FillerParameter filler_param) {
   const string type = filler_param.type();
   if (type == "constant") {
-    Util::constant_initialize<DataType>(cube->p_data, (DataType) filler_param.value(), cube->n_elements);
+    Util::constant_initialize<DataType>(cube->get_p_data(), (DataType) filler_param.value(), cube->n_elements);
   } else if (type == "xavier") {
-    Util::xavier_initialize(cube->p_data, cube->n_elements, cube->B);
+    Util::xavier_initialize(cube->get_p_data(), cube->n_elements, cube->B);
   } else if (type == "bernoulli") {
-    Util::bernoulli_initialize(cube->p_data, cube->n_elements, filler_param.value());
+    Util::bernoulli_initialize(cube->get_p_data(), cube->n_elements, filler_param.value());
   } else if (type == "gaussian") {
-    Util::gaussian_initialize(cube->p_data, cube->n_elements, (DataType) filler_param.mean(),
+    Util::gaussian_initialize(cube->get_p_data(), cube->n_elements, (DataType) filler_param.mean(),
         (DataType) filler_param.std());
   } else {
     cout << "ERROR! INITIALIZATION TYPE NOT SUPPORTED!" << endl;
@@ -152,9 +152,9 @@ forward() {
 
   // (0) cast input model and output to matrix
   // This one should be refactored with the matrix interface
-  LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->p_data, num_output_features,
+  LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->get_p_data(), num_output_features,
       K*K*iD, 1, 1);
-  LogicalCube<DataType, Layout_CRDB> lowered_output(p_output_layer->p_data_cube->p_data,
+  LogicalCube<DataType, Layout_CRDB> lowered_output(p_output_layer->p_data_cube->get_p_data(),
       num_output_features, oR*oC*iB, 1, 1);
 
   // (1) do the lowering
@@ -185,11 +185,12 @@ forward() {
   // add bias
   if (bias_term) {
     const size_t output_feature_size = oR*oC;
+    const DataType * const bias_data = p_bias_cube->get_p_data();
     for (size_t o_b = 0; o_b < oB; ++o_b) {
       for (size_t o_d = 0; o_d < oD; ++o_d) {
         const LogicalMatrix<DataType> output_data_slice =
           p_output_layer->p_data_cube->get_logical_matrix(o_d, o_b);
-        DataType bias = p_bias_cube->p_data[o_d];
+        DataType bias = bias_data[o_d];
         for (size_t i = 0; i < output_feature_size; ++i) {
           output_data_slice.p_data[i] += bias;
         }
@@ -249,15 +250,15 @@ backward() {
   // (2) calculate the GEMM between the gradient of output and old kernel to calc the update on grad
   // Note: lowered_model is storing p_model_cube_history, not p_model_cube. We need this for the momentum
   // update.
-  LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->p_data, num_output_features, K*K*iD, 1, 1);
-  LogicalCube<DataType, Layout_CRDB> lowered_model_grad(p_model_gradient_cube->p_data, num_output_features, K*K*iD, 1, 1);
-  LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(p_backward_outputgrad->p_data, num_output_features, oR*oC*iB, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->get_p_data(), num_output_features, K*K*iD, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_model_grad(p_model_gradient_cube->get_p_data(), num_output_features, K*K*iD, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(p_backward_outputgrad->get_p_data(), num_output_features, oR*oC*iB, 1, 1);
 
   // (3) update the bias term, summing over the gradients for each O and B
   if (bias_term) {
     const size_t output_feature_size = oR*oC;
     p_bias_gradient_cube->reset_cube();
-    DataType * const bias_term = p_bias_gradient_cube->p_data;
+    DataType * const bias_data = p_bias_gradient_cube->get_p_data();
     for (size_t o_b = 0; o_b < oB; ++o_b) {
       for (size_t o_d = 0; o_d < oD; ++o_d) {
         const LogicalMatrix<DataType> input_grad_slice = p_output_layer->p_gradient_cube->get_logical_matrix(o_d, o_b);
@@ -265,8 +266,7 @@ backward() {
         for (size_t i = 0; i < output_feature_size; ++i) {
           sum += input_grad_slice.p_data[i];
         }
-        //bias_term[o_d] -= stepsize*sum;
-        bias_term[o_d] += sum;
+        bias_data[o_d] += sum;
       }
     }
   }
@@ -311,8 +311,9 @@ ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType,
   }
   if (bias_term) {
     delete p_bias_cube;
+    delete p_bias_gradient_cube;
   }
-  delete p_model_cube; delete p_forward_lowered_data;
+  delete p_model_cube; delete p_model_gradient_cube; delete p_forward_lowered_data;
   delete p_backward_gemm_updategrad_kernel; delete p_backward_gemm_updateweight_kernel;
   delete p_backward_inputgrad; delete p_forward_gemm_kernel;
   delete p_forward_lower_connector;
