@@ -8,11 +8,12 @@ explore the relative efficiency of GPUs and CPUs for Deep Learning*.
 
 **Why Study CPU versus GPU?** Well, there is an ongoing debate about
 this with lots of passion on both sides! GPU's are wildly [popular
+with
 some](http://www.wired.com/2015/02/hot-yet-little-known-trend-thatll-supercharge-ai/)
-companies that are even rumored to be installing purpose-built
-infrastructures for deep learning; other
+companies that are rumored to be installing purpose-built infrastructures for
+deep learning; other
 [companies](http://wired.com/2014/07/microsoft-adam/) have opted to
-use CPUs and claimed they are cheaper and more efficent. For users
+use CPUs and claimed they are cheaper and more efficient. For users
 outside the web companies, the situation is different: some cloud
 providers don't have GPUs or their GPUs are not as rapidly updated as
 their CPUs. In the lab, GPUs can be expensive to obtain.  In contrast,
@@ -30,7 +31,7 @@ faster than Caffe, see our [benchmark
 page](http://deepdive.stanford.edu/cdw/benchmarking.html). The GPU
 speedup is mostly for non-fundamental reasons.
 
-**New Technques** In the initial version of CcT, CcT's algorithms are
+**New Techniques** In the initial version of CcT, CcT's algorithms are
 identical to Caffe from a statistical point of view. However, CcT uses
 new lowering techniques to speed up convolutions and other layers
 inspired by join processing in relational databases. As everyone
@@ -106,7 +107,7 @@ Known Issues
 
 * OpenBLAS seems to be the fastest, free library. However, OpenBLAS
   has some known issues on MACs. It will compile, but it will may
-  unpredictbly
+  unpredictably
   [crash](https://github.com/xianyi/OpenBLAS/issues/218). On recent OS
   X, you can use the built in BLAS and LAPACK (see Caffe install
   instruction.)
