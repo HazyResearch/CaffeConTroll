@@ -82,9 +82,13 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
   LogicalCubeType * const example_cube = _bridges[0]->get_model_cube();
   if (example_cube != NULL) {
     p_model_cube = new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B);
-      memcpy(p_model_cube->p_data, example_cube->p_data, p_model_cube->n_elements*sizeof(DataType));
+    memcpy(p_model_cube->p_data, example_cube->p_data, p_model_cube->n_elements*sizeof(DataType));
+    p_model_grad = new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B);
+    p_grad_updater = new SGDGradientUpdater<DataType>(p_model_cube->n_elements, p_model_cube->p_data, _solver_param);
+
   } else {
     p_model_cube = NULL;
+    p_model_grad = NULL;
   }
 
   if (example_bridge->bias_term) {
@@ -106,6 +110,7 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
 template<typename DataType, typename BridgeType>
 void ParallelizedBridge<DataType, BridgeType>::forward() {
 
+
   report_forward_last_transfer.reset();
   for (size_t i = 0; i < _data_cubes_lower.size(); ++i) {
     _data_cubes_lower[i]->p_data = p_input_layer->p_data_cube->physical_get_RCDslice(i*n_batch_per_partition);
@@ -115,7 +120,6 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
     // so need more careful review with Firas before changing.
     //    Also, given GEMM reads the model once anyway and is still CPU bound, the current performance
     // should not be terrible
-
     _bridges[i]->set_model_cube(p_model_cube);
     _bridges[i]->set_bias_cube(p_bias_cube);
 
@@ -156,20 +160,26 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
     // result back.
     // TODO: each bridge can hold their gradient, in this way, we can save the first for
     // loop. But I do not really so how this could be a bottleneck...
-    const size_t n_element = p_model_cube->n_elements;
-    DataType * const p_model_data = p_model_cube->p_data;
-    const size_t n_partition = _data_cubes_lower.size();
-    for (size_t i=0;i<n_element;i++) {
-      p_model_data[i] = (-p_model_data[i]) * (n_partition - 1);
-    }
-    for (size_t i = 0; i < n_partition; ++i) {
-      DataType * const p_submodel_data = _bridges[i]->get_model_cube()->p_data;
-      for (size_t j=0;j<n_element;j++) {
-        p_model_data[j] += p_submodel_data[j];
+
+    if(n_partition != 1){
+      p_model_grad->reset_cube(DataType(0.0));
+      const size_t n_element = p_model_grad->n_elements;
+      DataType * const p_grad_data = p_model_grad->p_data;
+      const size_t n_partition = _data_cubes_lower.size();
+      for (size_t i = 0; i < n_partition; ++i) {
+        DataType * const p_subgrad_data = _bridges[i]->get_model_grad_cube()->p_data;
+        for (size_t j=0;j<n_element;j++) {
+          p_grad_data[j] += p_subgrad_data[j];
+        }
       }
+      p_grad_updater->update(p_model_grad->p_data);
+    }else{
+      p_grad_updater->update(_bridges[0]->get_model_grad_cube()->p_data);
     }
+
   }
 
+  // TODO DO SIMILAR THINGS FOR GRADIENT
   if (p_bias_cube != NULL) {
     // do similar things for bias term... Might be better to
     // refactor this to be in the same function as the previous one

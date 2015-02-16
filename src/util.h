@@ -51,11 +51,11 @@ class Util {
       if(regularization_type == "L2"){
         for(int i=0;i<n;i++){ // To is easily compiled to SIMD, so let's 
                               // not over-optimize before it becomes bottleneck
-          gradient[i] -= lambda * current_param[i];
+          gradient[i] += lambda * current_param[i];
         }
       }else if(regularization_type == "L1"){
         for(int i=0;i<n;i++){
-          gradient[i] -= lambda * (current_param[i] > 0 ? 1 : -1);
+          gradient[i] += lambda * (current_param[i] > 0 ? 1 : -1);
         }
       }
     }

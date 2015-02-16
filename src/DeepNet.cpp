@@ -245,10 +245,15 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
             //  FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
             //  (prev_layer, next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
 
-            bridge = new FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layers[0],
-              next_layer, &layer_param, &solver_param);
+            bridge = new ParallelizedBridge<DataType_SFFloat,
+              FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
+              (prev_layers[0], next_layer, &layer_param, &solver_param, 1, 16); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+
+            //bridge = new FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layers[0],
+            //  next_layer, &layer_param, &solver_param);
+            
             bridge->name = layer_param.name();
-            bridge->run_with_n_threads = 16;  // TODO: Add a better abstraction here.
+            bridge->run_with_n_threads = 1;  // TODO: Add a better abstraction here.
             bridges.push_back(bridge);
             next_layers.push_back(next_layer);
         }
@@ -428,7 +433,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 
     // num_mini_batches - 1, because we need one more iteration for the final mini batch
     // (the last mini batch may not be the same size as the rest of the mini batches)
-    for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches - 1; ++batch,
+    for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches ; ++batch,
         corpus_batch_index += corpus.mini_batch_size) {
       cout << "BATCH: " << batch << endl;
 
@@ -456,9 +461,15 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       // forward pass
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
         
+        //std::cout << (*bridge)->name << "    " << (*bridge)->p_output_layer->p_data_cube->n_elements << std::endl;
         (*bridge)->forward();
         //(*bridge)->report_forward();
         //(*bridge)->report_forward_last_transfer.print();
+        //if((*bridge)->name == "relu1"){
+        //  for(int i=0;i< (*bridge)->p_output_layer->p_data_cube->n_elements; i++){
+        //    std::cout << i << "    " << (*bridge)->p_output_layer->p_data_cube->p_data[i] << std::endl;
+        //  }
+        //}
       }
       std::cout << "Forward Pass Time (seconds) : " << t.elapsed() << std::endl;
 

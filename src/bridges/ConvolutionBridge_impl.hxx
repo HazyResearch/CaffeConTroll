@@ -23,18 +23,6 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   stride(layer_param->convolution_param().stride()),
   padding(layer_param->convolution_param().pad()),
   bias_term(layer_param->convolution_param().bias_term()),
-  stepsize(solver_param->base_lr()),
-  momentum(solver_param->momentum()),
-  weight_decay(solver_param->weight_decay()),
-  regularization_type(solver_param->regularization_type()),
-  gamma(solver_param->gamma()),
-  caffe_stepsize(solver_param->stepsize()),
-  i_iter(0),
-  power(solver_param->power()),
-  lr_policy(solver_param->lr_policy()),
-  max_iter(solver_param->max_iter()),
-  solver_type(solver_param->solver_type()),
-  delta(solver_param->delta()),
   weight_filler(layer_param->convolution_param().weight_filler()),
   bias_filler(layer_param->convolution_param().bias_filler()) {
 
@@ -56,16 +44,8 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   p_model_cube = new LogicalCubeType(K, K, iD, num_output_features);
   initialize_logical_cube(p_model_cube, weight_filler);
 
-  // We keep a "cache" of the model weights in order to use the momentum
-  // update. The cache is initialized to 0.
-  p_model_cube_history = new LogicalCubeType(K, K, iD, num_output_features);
-  p_model_cube_history->reset_cube();
-
-  p_model_cube_update = new LogicalCubeType(K, K, iD, num_output_features); 
-  p_model_cube_update->reset_cube();
-
-  p_model_cube_tmp = new LogicalCubeType(K, K, iD, num_output_features); 
-  p_model_cube_tmp->reset_cube();
+  p_model_gradient_cube = new LogicalCubeType(K, K, iD, num_output_features);
+  initialize_logical_cube(p_model_cube, weight_filler);
 
   if (bias_term) {
     p_bias_cube = new LogicalCubeType(1, 1, num_output_features, 1);
@@ -252,11 +232,8 @@ template <typename DataType, NonLinearFunction FUNC>
 void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 backward() {
 
-  i_iter ++;
-  float local_rate = Util::get_learing_rate(lr_policy, stepsize, gamma, i_iter,
-    caffe_stepsize, power, max_iter);
-
-  //std::cout << "ITER " << i_iter << "   STEPSIZE " << local_rate << " under (" << lr_policy << ")" << std::endl;
+  // TODO: DO SIMILAR THINGS FOR BIAS
+  float local_rate = 0.0;
 
   openblas_set_num_threads(run_with_n_threads);
 
@@ -273,10 +250,8 @@ backward() {
   // (2) calculate the GEMM between the gradient of output and old kernel to calc the update on grad
   // Note: lowered_model is storing p_model_cube_history, not p_model_cube. We need this for the momentum
   // update.
-  LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube_history->p_data, num_output_features, K*K*iD, 1, 1);
-  LogicalCube<DataType, Layout_CRDB> lowered_model_current(p_model_cube->p_data, num_output_features, K*K*iD, 1, 1);
-  LogicalCube<DataType, Layout_CRDB> lowered_model_update(p_model_cube_update->p_data, num_output_features, K*K*iD, 1, 1);
-  LogicalCube<DataType, Layout_CRDB> lowered_model_tmp(p_model_cube_tmp->p_data, num_output_features, K*K*iD, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->p_data, num_output_features, K*K*iD, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_model_grad(p_model_gradient_cube->p_data, num_output_features, K*K*iD, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(p_backward_outputgrad->p_data, num_output_features, oR*oC*iB, 1, 1);
 
   // (3) update the bias term, summing over the gradients for each O and B
@@ -300,56 +275,15 @@ backward() {
 
   if(needs_to_calc_backward_grad){
     //    - 2.1 GEMM between the gradient of output and old kernel
-    p_backward_gemm_updategrad_kernel->compute(&lowered_model_current, &lowered_outputgrad, p_backward_inputgrad);
+    p_backward_gemm_updategrad_kernel->compute(&lowered_model, &lowered_outputgrad, p_backward_inputgrad);
     //    - 2.2 undo the lowering (i.e., sum together all grad corresponding to the same unlowered position)
     p_forward_lower_connector->inverse_lower_cube(p_backward_inputgrad, p_input_layer->p_gradient_cube);
   }
 
   // (4) calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
-
-  if(solver_type == 0){ //SGD -- TODO: change to ENUM
-    p_backward_gemm_updateweight_kernel->alpha = -local_rate;
-    p_backward_gemm_updateweight_kernel->beta = momentum;
-    p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
-    if(weight_decay != 0){
-      Util::regularize(regularization_type, lowered_model.n_elements, weight_decay, lowered_model.p_data, p_model_cube->p_data);
-    }
-    Util::math_axpy(p_model_cube->n_elements, 1., p_model_cube_history->p_data, p_model_cube->p_data);
-  }else if (solver_type == 2){ //AdaGrad -- TODO: change to ENUM
-    //std::cout << "ADA" << std::endl;
-    p_backward_gemm_updateweight_kernel->alpha = -1;
-    p_backward_gemm_updateweight_kernel->beta = 0;
-
-    p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model_update);
-    if(weight_decay != 0){
-      Util::regularize(regularization_type, lowered_model_update.n_elements, weight_decay, lowered_model_update.p_data, p_model_cube->p_data);
-    }
-    
-    // optimize this soon
-    for(int i=0;i<lowered_model_update.n_elements;i++){
-      lowered_model.p_data[i] += lowered_model_update.p_data[i] * lowered_model_update.p_data[i];
-      p_model_cube->p_data[i] += local_rate * lowered_model_update.p_data[i] / (sqrt(lowered_model.p_data[i])+delta);
-    }
-  }else if (solver_type == 1){ //Nesterov -- TODO: change to ENUM
-    p_backward_gemm_updateweight_kernel->alpha = 1;
-    p_backward_gemm_updateweight_kernel->beta = 0;
-
-    p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model_update);
-    if(weight_decay != 0){
-      Util::regularize(regularization_type, lowered_model_update.n_elements, weight_decay, lowered_model_update.p_data, p_model_cube->p_data);
-    }
-
-    DataType tmp; // optimize this soon
-    for(int i=0;i<lowered_model_update.n_elements;i++){
-      tmp = lowered_model.p_data[i];
-      lowered_model.p_data[i] = local_rate * lowered_model_update.p_data[i] + momentum * tmp;
-      p_model_cube->p_data[i] -= (1+momentum)*lowered_model.p_data[i] + momentum*tmp;
-    }
-
-  }else{
-    std::cout << "Unsupported solver type " << solver_type << std::endl;
-    assert(false);
-  }
+  p_backward_gemm_updateweight_kernel->alpha = 1.0;
+  p_backward_gemm_updateweight_kernel->beta = 0.0;
+  p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model_grad);
 
   report_backward_updateweight_last_transfer.end();
 
@@ -377,7 +311,7 @@ ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType,
   if (bias_term) {
     delete p_bias_cube;
   }
-  delete p_model_cube; delete p_model_cube_history; delete p_forward_lowered_data;
+  delete p_model_cube; delete p_forward_lowered_data;
   delete p_backward_gemm_updategrad_kernel; delete p_backward_gemm_updateweight_kernel;
   delete p_backward_inputgrad; delete p_forward_gemm_kernel;
   delete p_forward_lower_connector;

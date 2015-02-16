@@ -103,22 +103,12 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
 
     const bool bias_term;
 
-    float stepsize;
-    float momentum;
-    float weight_decay;
-    float gamma;
-    float i_iter;
-    float caffe_stepsize;
-    float power;
-    float max_iter;
-    string regularization_type;
-    string lr_policy;
-
     const cnn::FillerParameter weight_filler;
     const cnn::FillerParameter bias_filler;
 
     void set_model_cube(LogicalCube<DataType, Layout_CRDB> * model) {
-      Util::_our_memcpy(p_model_cube->p_data, model->p_data, p_model_cube->n_elements*sizeof(DataType));
+      p_model_cube->p_data = model->p_data;
+      //Util::_our_memcpy(p_model_cube->p_data, model->p_data, p_model_cube->n_elements*sizeof(DataType));
     }
 
     LogicalCube<DataType, Layout_CRDB> * const get_model_cube() {
@@ -133,6 +123,10 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
       return p_bias_cube;
     }
 
+    LogicalCube<DataType, Layout_CRDB> * const get_model_grad_cube() {
+        return p_model_gradient_cube;
+    }
+
     FullyConnectedBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param,
@@ -145,8 +139,10 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
     void backward();
 
   protected:
+
+    LogicalCubeType * p_model_gradient_cube;
+
     LogicalCubeType * p_model_cube;
-    LogicalCubeType * p_model_cube_history;
     LogicalCubeType * p_bias_cube;
     LogicalCubeType * p_forward_lowered_data;
 
