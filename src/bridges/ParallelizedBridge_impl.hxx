@@ -94,7 +94,7 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
       model_base_learning_rate = _layer_param->blobs_lr(0);
     }
     if(_layer_param->weight_decay_size() != 0){
-      bias_base_learning_rate = _layer_param->weight_decay(0);
+      model_base_regularization = _layer_param->weight_decay(0);
     }
 
   } else {
@@ -111,10 +111,10 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
       p_grad_updater_bias = new SGDGradientUpdater<DataType>(p_bias_cube->n_elements, p_bias_cube->p_data, _solver_param);
     
       if(_layer_param->blobs_lr_size() >1){
-        model_base_learning_rate = _layer_param->blobs_lr(1);
+        bias_base_learning_rate = _layer_param->blobs_lr(1);
       }
       if(_layer_param->weight_decay_size() >1){
-        bias_base_learning_rate = _layer_param->weight_decay(1);
+        bias_base_regularization = _layer_param->weight_decay(1);
       }
 
     } else {
