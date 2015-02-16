@@ -8,39 +8,41 @@ explore the relative efficiency of GPUs and CPUs for Deep Learning*.
 
 **Why Study CPU versus GPU?** Well, there is an ongoing debate about
 this with lots of passion on both sides! GPU's are wildly [popular
+with
 some](http://www.wired.com/2015/02/hot-yet-little-known-trend-thatll-supercharge-ai/)
-with many companies installing purpose-built infrastructure for deep
-learning, but other
+companies that are rumored to be installing purpose-built infrastructures for
+deep learning; other
 [companies](http://wired.com/2014/07/microsoft-adam/) have opted to
-use CPUs. For users outside the web companies, the situation is
-different: some cloud providers don't have GPUs or their GPUs are not
-as rapidly updated as their CPUs. In the lab, GPUs can be expensive to
-obtain.  In contrast, academic labs like ours have CPUs lying around
-for other purposes, so we were curious about how much throughput we
-could get from CPUs for Deep Learning. CcT is our first attempt. Our
-initial results suggest that our CPU code is almost an order of
-magnitude more efficient than Caffe's CPU code. In particular, two 8
-core Haswells deliver roughly 80% of the throughput of a highest end
-GPU (NVidia's Titan). At current consumer prices, which implies that,
-chip-to-chip, the CPU solution costs almost 20% less than a GPU for
-the same throughput. These numbers are *incredibly* rough but fun to
-think about and troll our friends with!  Our GPU code is also slightly
+use CPUs and claimed they are cheaper and more efficient. For users
+outside the web companies, the situation is different: some cloud
+providers don't have GPUs or their GPUs are not as rapidly updated as
+their CPUs. In the lab, GPUs can be expensive to obtain.  In contrast,
+academic labs like ours have CPUs lying around for other purposes, so
+we were curious about how much throughput we could get from CPUs for
+Deep Learning. CcT is our first attempt. Our initial results suggest
+that our CPU code is almost an order of magnitude more efficient than
+Caffe's CPU code. In particular, two 8 core Haswells deliver roughly
+80% of the throughput of a highest end GPU (NVidia's Titan). At
+current consumer prices, this implies that, chip-to-chip, the CPU
+solution costs almost 20% less than a GPU for the same
+throughput. These numbers are *incredibly rough* but are fun to think
+about (and troll our friends with!)  Our GPU code is also slightly
 faster than Caffe, see our [benchmark
-page](http://deepdive.stanford.edu/cdw/benchmarking.html). This
+page](http://deepdive.stanford.edu/cdw/benchmarking.html). The GPU
 speedup is mostly for non-fundamental reasons.
 
-**New Technques** In the initial version, CcT's algorithms are
+**New Techniques** In the initial version of CcT, CcT's algorithms are
 identical to Caffe from a statistical point of view. However, CcT uses
 new lowering techniques to speed up convolutions and other layers
 inspired by join processing in relational databases. As everyone
 agrees, understanding the relational
 [join](http://arxiv.org/abs/1310.3314) is the key to understanding the
 universe. *Yes, that's just more trolling.* In the near future, we
-plan to extend CcT in three directions but welcome feedback:
+plan to extend CcT in a few directions:
 
 * Play with our
   [Hogwild!](http://i.stanford.edu/hazy/papers/hogwild-nips.pdf) ideas
-  that are used in some of these frameworks.
+  that are used in some of deep learning frameworks.
 
 * Explore the trade-off space described in our [DimmWitted
 paper](http://arxiv.org/abs/1403.7550) in the context of Deep
@@ -56,7 +58,7 @@ steps an algorithm take to converge*) and hardware efficiency
   hopefully make it easier to build models and use them in
   applications.
 
-If you have feedback let us know!
+Of course, if you have feedback or challenge problems, let us know!
 
 A Friendly VM
 -------------
@@ -72,24 +74,44 @@ Installation from Source
 
 We cloned Caffe, so we follow nearly identical [install
 instructions](http://caffe.berkeleyvision.org/installation.html).
-Start with their instructions! One difference is that we only support
-OpenBLAS (we don't support Atlas). We use some new features of
-OpenBLAS, and so you'll want to use the included submodule in our git
-repo.
+Start with their instructions! *NB: the .travis.yml should always
+contain a working build script for Ubuntu, if you are confused about
+dependencies.*
+
 
 * Step 1. Install the packages listed at the Caffe link.
 
-* Step 2. Clone our repository including the OpenBLAS submodule.
+* Step 2. Clone our repository 
 
-> git clone --recursive https://github.com/HazyResearch/deepnet.git
+> git clone git@github.com:HazyResearch/CaffeConTroll.git
 
 * Step 3. Copy config.sample to .config and edit .config to contain your paths.
 
-* Step 4. make && make test
+* Step 4. Build the executable.
+
+> make
+
+* Step 5. (Optional) If you want tests, you need to install Google's
+testing infrastructure, glog and gtest, as with Caffe. Then, make the
+test file.
+
+> make test && ./test
+
 
 It's good on a laptop, on a server, or for a snack. It is unclear
-whether CcT can [smell the blood](http://en.wikipedia.org/wiki/Trollhunter) of christian men.
+whether CcT can [smell the
+blood](http://en.wikipedia.org/wiki/Trollhunter) of christian men.
 
+Known Issues
+------------
+
+* OpenBLAS seems to be the fastest, free library. However, OpenBLAS
+  has some known issues on MACs. It will compile, but it will may
+  unpredictably
+  [crash](https://github.com/xianyi/OpenBLAS/issues/218). On recent OS
+  X, you can use the built in BLAS and LAPACK (see Caffe install
+  instruction.)
+  
 Contact
 -------
 

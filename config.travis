@@ -1,16 +1,18 @@
 # This is the setup code. Rename to .config
-# Use absolute paths
 # C compiler
-CC=g++-4.8 # inexplicably
-
+CC=g++-4.8
 
 # use absolute paths
 # directory where lmbd library is installed.
 LMDB_INCLUDE=
 LMDB_DIR=/usr/local/lib
 
-OPENBLAS_INCLUDE=./externals/OpenBLAS/
-OPENBLAS_LIB_DIR=
+BLAS_INCLUDE=./externals/OpenBLAS/
+BLAS_LIB_DIR=
+# BLAS_LIBS=BLAS LAPACK # Mac libararies
+# BLAS_DEFS=-D_USE_ATLAS
+BLAS_LIBS=openblas # OpenBlas
+BLAS_DEFS=-D_USE_OPENBLAS
 
 GTEST_INCLUDE=/usr/include/
 GTEST_LIB_DIR=/usr/local/lib

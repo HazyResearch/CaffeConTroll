@@ -1,19 +1,46 @@
-# This is the setup code. Rename to .config
-# Use absolute paths
+# This is the configuration file that the Makefile
+# will use to compile CcT. We have the following dependencies:
+#   * lmdb
+#   * OpenBLAS or Atlas
+#   * GoogleTest
+#   * google-glog
+#   * google-gflags
+#   * Boost
+#
+# If any of these libraries are not currently part of your
+# LD_LIBRARY_PATH, please use the Makefile variables below
+# to configure the compilation. Remember: use absolute paths!
+
 # C compiler
-CC=clang++ # CC = g++-4.8
+CC=clang++ 
 
-# directory where lmbd library is installed.
-# do not leave these open.
+# absolute path to CcT
+CCT=
+
+# directory where lmdb library is installed (if not in path)
 LMDB_INCLUDE=
-LMDB_DIR=/opt/local/lib
+LMDB_LIB_DIR=
 
-OPENBLAS_INCLUDE=/Users/chrismre/DEVEL/deepnet/externals/OpenBLAS/include
-OPENBLAS_LIB_DIR=/Users/chrismre/DEVEL/deepnet/externals/lib
+# directory where OpenBLAS is installed (if not in path)
+BLAS_INCLUDE=
+BLAS_LIB_DIR=
+BLAS_LIBS=BLAS LAPACK # Mac libararies
+BLAS_DEFS=-D_USE_ATLAS
+# BLAS_LIBS=openblas # OpenBlas
+# BLAS_DEFS=-D_USE_OPENBLAS
 
-GTEST_INCLUDE=/Users/chrismre/DEVEL/deepnet/gtest-1.7.0/include/
-GTEST_LIB_DIR=/Users/chrismre/DEVEL/deepnet/lib/
+# directory where GoogleTest is installed (if not in path)
+GTEST_INCLUDE=
+GTEST_LIB_DIR=
 
-BOOST_INCLUDE=.
-BOOST_LIB_DIR=.
+# directory where google-glog is installed (if not in path)
+GLOG_LIB_DIR=
+GLOG_INCLUDE=
 
+# directory where google-gflags is installed (if not in path)
+GFLAGS_LIB_DIR=
+GFLAGS_INCLUDE=
+
+# directory where Boost C++ Library is installed (if not in path)
+BOOST_LIB_DIR=
+BOOST_INCLUDE=

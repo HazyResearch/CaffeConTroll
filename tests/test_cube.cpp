@@ -79,13 +79,13 @@ class LogicalCubeTest_CRDB : public ::testing::Test {
 };
 
 TEST_F(LogicalCubeTest_CRDB, TestRCDSlice){
-	for(int i=0; i<this->cube_->n_elements; i++){
+	for(size_t i=0; i<this->cube_->n_elements; i++){
 		this->cube_->p_data[i] = i;
   	}
   	
   	DataType_SFFloat * dataptr;
 
-  	for(int b=0;b<this->cube_->B;b++){
+  	for(size_t b=0;b<this->cube_->B;b++){
 		dataptr = this->cube_->physical_get_RCDslice(b);	
 		assert(*dataptr == this->cube_->p_data[b*this->cube_->R*this->cube_->C*this->cube_->D]);		
 	}	

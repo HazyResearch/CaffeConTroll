@@ -222,7 +222,7 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
               next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
               bridge = new FunnelBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layers[0],
                 next_layer, &layer_param, &solver_param);
-              for(int i=0;i<n_previous_groups;i++){
+              for(size_t i=0;i<n_previous_groups;i++){
                 ((FunnelBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>*)bridge)->p_input_layers.push_back(prev_layers[i]);
               }
               bridge->name = "FUNNEL";
@@ -399,7 +399,7 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
        * Swap next_layers with prev_layers and empty next;
        */
       prev_layers.clear();
-      for(int i=0;i<next_layers.size();i++){
+      for(size_t i=0;i<next_layers.size();i++){
         prev_layers.push_back(next_layers[i]);
       }
       next_layers.clear();
@@ -422,7 +422,13 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
   LogicalCubeFloat * const labels = softmax->p_data_labels;
   LogicalCubeFloat * const input_data = first->p_input_layer->p_data_cube;
 
+  float t_load;
+  float t_forward;
+  float t_backward;
+  float t_pass;
+
   Timer t_total;
+  const int display_iter = 50;  
 
   const size_t num_epochs = solver_param.max_iter();
   for (size_t epoch = 0; epoch < num_epochs; ++epoch) {
@@ -435,16 +441,19 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
     // (the last mini batch may not be the same size as the rest of the mini batches)
     for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches ; ++batch,
         corpus_batch_index += corpus.mini_batch_size) {
-      cout << "BATCH: " << batch << endl;
-
       Timer t;
       Timer t2;
 
       // this loading appears to take just ~ 0.1 s for each batch,
       // so double-buffering seems an overkill here because the following operations took seconds...
-      int rs = fread(corpus.images->p_data, sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
+      size_t rs = fread(corpus.images->p_data, sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
+      if (rs != corpus.images->n_elements){
+        std::cout << "Error in reading data" << std::endl;
+        exit(1);
+      }
 
-      std::cout << "Loading Time (seconds)     : " << t.elapsed() << std::endl;
+      t_load = t.elapsed();
+
       t.restart();
       // initialize input_data for this mini batch
       // Ce: Notice the change here compared with the master branch -- this needs to be refactored
@@ -471,7 +480,8 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
         //  }
         //}
       }
-      std::cout << "Forward Pass Time (seconds) : " << t.elapsed() << std::endl;
+
+      t_forward = t.elapsed();
 
       float loss = (softmax->get_loss() / corpus.mini_batch_size);
       int accuracy = find_accuracy(labels, (*--bridges.end())->p_output_layer->p_data_cube);
@@ -482,12 +492,21 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
         (*bridge)->backward();
         //(*bridge)->report_backward();
       }
-      std::cout << "Backward Pass Time (seconds): " << t.elapsed() << std::endl;
+      t_backward = t.elapsed();
       
-      std::cout << "\033[1;31m";
-      std::cout << "Total Time & Loss & Accuracy: " << t2.elapsed() << "    " << loss 
-                << "    " << 1.0*accuracy/corpus.mini_batch_size;
-      std::cout << "\033[0m" << std::endl;
+      t_pass = t2.elapsed();
+
+      if(batch % display_iter == 0){
+        cout << "BATCH: " << batch << endl;
+        std::cout << "Loading Time (seconds)     : " << t_load << std::endl;
+        std::cout << "Forward Pass Time (seconds) : " << t_forward << std::endl;
+        std::cout << "Backward Pass Time (seconds): " << t_backward << std::endl;
+        std::cout << "\033[1;31m";
+        std::cout << "Total Time & Loss & Accuracy: " << t_pass << "    " << loss 
+                  << "    " << 1.0*accuracy/corpus.mini_batch_size;
+        std::cout << "\033[0m" << std::endl;
+      }
+      
     }
 
     fclose(pFile);
@@ -546,18 +565,20 @@ float test_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 
   // num_mini_batches - 1, because we need one more iteration for the final mini batch
   // (the last mini batch may not be the same size as the rest of the mini batches)
-  int batch_accuracy;
+  float t_load;
+  float t_forward;
+  float t_pass;
   int total_accuracy = 0;
+  const int display_iter = 20;
   for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches - 1; ++batch,
       corpus_batch_index += corpus.mini_batch_size) {
-    cout << "BATCH: " << batch << endl;
 
     Timer t;
     Timer t2;
 
     fread(corpus.images->p_data, sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
-    std::cout << "Loading Time (seconds)     : " << t.elapsed() << std::endl;
-
+    t_load = t.elapsed();
+    t.restart();
     float * const mini_batch = corpus.images->physical_get_RCDslice(0);
     input_data->p_data = mini_batch;
 
@@ -571,16 +592,23 @@ float test_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       //(*bridge)->p_output_layer->p_data_cube->reset_cube();
       (*bridge)->forward();
     }
-    std::cout << "Forward Pass Time (seconds) : " << t.elapsed() << std::endl;
+    t_forward = t.elapsed();
 
     float loss = (softmax->get_loss() / corpus.mini_batch_size);
     int batch_accuracy = find_accuracy(labels, softmax->p_output_layer->p_data_cube);
     total_accuracy += batch_accuracy;
 
-    std::cout << "\033[1;31m";
-    std::cout << "Total Time & Loss & Accuracy: " << t2.elapsed() << "    " << loss 
-              << "    " << 1.0*batch_accuracy/corpus.mini_batch_size;
-    std::cout << "\033[0m" << std::endl;
+    t_pass = t2.elapsed();
+
+    if(batch % display_iter == 0){
+      cout << "BATCH: " << batch << endl;
+      std::cout << "Loading Time (seconds)     : " << t_load << std::endl;
+      std::cout << "Forward Pass Time (seconds) : " << t_forward << std::endl;
+      std::cout << "\033[1;31m";
+      std::cout << "Total Time & Loss & Accuracy: " << t_pass << "    " << loss 
+                << "    " << 1.0*batch_accuracy/corpus.mini_batch_size;
+      std::cout << "\033[0m" << std::endl;
+    }
 
   }
   float acc = (1.0*total_accuracy/((corpus.num_mini_batches - 1)*corpus.mini_batch_size));

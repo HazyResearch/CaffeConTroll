@@ -1,13 +1,15 @@
 include .config
 UNAME := $(shell uname)
 
-LIBS=lmdb openblas glog 
+LIBS=lmdb glog $(BLAS_LIBS) 
 LD_BASE=$(foreach l, $(LIBS), -l$l)
 
-INCLUDE_DIRS=$(BOOST_INCLUDE) $(GTEST_INCLUDE) $(LMBD_INCLUDE) $(OPENBLAS_INCLUDE)  
+INCLUDE_DIRS=$(BOOST_INCLUDE) $(GTEST_INCLUDE) $(GLOG_INCLUDE) $(GFLAGS_INCLUDE) \
+	     $(LMDB_INCLUDE) $(BLAS_INCLUDE)
 INCLUDE_STR=$(foreach d, $(INCLUDE_DIRS), -I$d)
 
-LIB_DIRS=$(BOOST_LIB_DIR) $(GTEST_LIB_DIR) $(LMDB_LIBDIR) $(OPENBLAS_LIB_DIR)  
+LIB_DIRS=$(BOOST_LIB_DIR) $(GTEST_LIB_DIR) $(GLOG_LIB_DIR) $(GFLAGS_LIB_DIR) \
+	 $(LMDB_LIB_DIR) $(BLAS_LIB_DIR)
 LIB_STR=$(foreach d, $(LIB_DIRS), -L$d)
 
 # For Mac OS X 10.10 x86_64 Yosemite
@@ -19,6 +21,7 @@ else ifeq ($(UNAME), Linux)
   CFLAGS = -Wall -std=c++11 -Wl,--no-as-needed
   LDFLAGS = $(LD_BASE) -lrt -lboost_program_options
 endif
+CFLAGS += $(BLAS_DEFS)
 
 DEBUG_FLAGS = -g -O0 -DDEBUG
 ifeq ($(UNAME), Darwin)
@@ -27,7 +30,8 @@ endif
 ASSEMBLY_FLAGS= -S
 
 DIR_PARAMS=$(INCLUDE_STR) $(LIB_STR)
-PROTOBUF = `pkg-config --cflags --libs protobuf`
+PROTOBUF     = `pkg-config --cflags protobuf`
+PROTOBUF_LIB = `pkg-config --cflags --libs protobuf`
 WARNING_FLAGS = -Wextra
 PRODUCT_FLAGS = -Ofast
 
@@ -40,43 +44,42 @@ PROTO_COMPILED_SRC=$(PROTO_SRC_DIR)cnn.pb.cc
 # SOURCE FILE FOR MAIN PROGRAM
 TARGET = caffe-ct
 SRC = src/main.cpp src/DeepNet.cpp src/bridges/PhysicalStratum_impl.cpp \
-	  src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp 
+      src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp 
 OBJ_FILES = $(patsubst %.cpp,%.o,$(SRC))
 
 # SOURCE FILE FOR TEST
 TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest -lpthread 
 TEST_SOURCES = src/DeepNet.cpp src/bridges/PhysicalStratum_impl.cpp \
-	src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp tests/test_main.cpp\
-	tests/test_lrn_bridge.cpp tests/test_ReLU_bridge.cpp tests/test_MaxPooling_bridge.cpp\
-	tests/test_connector.cpp tests/test_model_write.cpp	\
-	tests/test_softmax_bridge.cpp tests/test_dropout_bridge.cpp tests/test_cube.cpp\
-	tests/test_report.cpp tests/test_kernel.cpp	tests/test_scanner.cpp \
-	tests/test_fc_bridge.cpp tests/test_grouping.cpp \
-	tests/test_parallelized_convolution.cpp tests/test_dropout_bridge.cpp tests/test_model_write.cpp \
-	tests/test_lenet_network.cpp
+	       src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp tests/test_main.cpp \
+	       tests/test_lrn_bridge.cpp tests/test_ReLU_bridge.cpp tests/test_MaxPooling_bridge.cpp \
+	       tests/test_connector.cpp tests/test_model_write.cpp \
+	       tests/test_softmax_bridge.cpp tests/test_dropout_bridge.cpp tests/test_cube.cpp \
+	       tests/test_report.cpp tests/test_kernel.cpp tests/test_scanner.cpp \
+	       tests/test_fc_bridge.cpp tests/test_grouping.cpp \
+	       tests/test_parallelized_convolution.cpp tests/test_dropout_bridge.cpp tests/test_model_write.cpp \
+	       tests/test_lenet_network.cpp
 
 TEST_OBJ_FILES = $(patsubst %.cpp,%.o,$(TEST_SOURCES))
 TEST_EXECUTABLE=test
 
 .PHONY: all assembly clean product test warning
 
-all: CFLAGS += $(DEBUG_FLAGS)
 all: $(OBJ_FILES) cnn.pb.o
-	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF)
+	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
 release: CFLAGS += $(PRODUCT_FLAGS)
 release: $(OBJ_FILES) cnn.pb.o
-	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF)
+	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
-test: CFLAGS += -O0 -I $(GTEST_INCLUDE)
+test: CFLAGS += -Ofast -I $(GTEST_INCLUDE)
 test: $(TEST_OBJ_FILES) cnn.pb.o 
-	$(CC) $^ -o $(TEST_EXECUTABLE) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF) 
+	$(CC) $^ -o $(TEST_EXECUTABLE) $(CFLAGS) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB) 
 
 %.o: %.cpp $(PROTO_COMPILED_SRC)
-	$(CC) $(CFLAGS) $(DIR_PARAMS) $(TEST_LDFLAGS) $(TEST_BLASFLAGS) $(PROTOBUF) -c $< -o $@
+	$(CC) $(CFLAGS) -Ofast $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $< -o $@
 
 cnn.pb.o: $(PROTO_COMPILED_SRC)
-	$(CC) $(CFLAGS) $(DIR_PARAMS) $(TEST_LDFLAGS) $(TEST_BLASFLAGS) $(PROTOBUF) -c $(PROTO_COMPILED_SRC)
+	$(CC) $(CFLAGS) -Ofast $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $(PROTO_COMPILED_SRC)
 
 $(PROTO_COMPILED_SRC): $(PROTO_SRC_DIR)$(PROTO_SRC)
 	cd $(PROTO_SRC_DIR); $(PROTO_CC) $(PROTO_SRC); cd -

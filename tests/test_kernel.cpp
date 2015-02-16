@@ -115,7 +115,6 @@ class ElemMulKernelTest : public ::testing::Test {
 TYPED_TEST_CASE(ElemMulKernelTest, DTypes);
 
 TYPED_TEST(ElemMulKernelTest, TestCompute){
-  typedef typename TypeParam::T T;
   float expected;
   for(int i=0;i<this->i1R*this->i1C;i++){
         this->cube1->p_data[i] = (rand()%100)/10.0;
@@ -156,7 +155,6 @@ class ElemMulTanhKernelTest : public ::testing::Test {
 TYPED_TEST_CASE(ElemMulTanhKernelTest, DTypes);
 
 TYPED_TEST(ElemMulTanhKernelTest, TestCompute){
-  typedef typename TypeParam::T T;
   float expected;
   for(int i=0;i<this->i1R*this->i1C;i++){
         this->cube1->p_data[i] = (rand()%100)/10.0;
