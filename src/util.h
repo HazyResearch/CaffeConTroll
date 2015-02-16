@@ -62,8 +62,9 @@ class Util {
     /**
      *
      * Acknowledgement: Following code is directly forked from https://github.com/BVLC/caffe/blob/master/src/caffe/solver.cpp#L363 
+     *
      **/
-    static inline float get_learing_rate(std::string lr_policy, float base_lr, float gamma, 
+    static inline float get_learning_rate(std::string lr_policy, float base_lr, float gamma, 
       float iter, float caffe_stepsize, float power, float max_iter){
       float rate, current_step_;
       if (lr_policy == "fixed") {
