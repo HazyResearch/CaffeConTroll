@@ -111,16 +111,38 @@ TYPED_TEST_CASE(ReadWriteTest, DataTypes);
 
 TYPED_TEST(ReadWriteTest, Model) {
   typedef typename TypeParam::T T;
-  srand(1);
-  for (int i=0;i<this->iR*this->iC*this->iD*this->mB;i++) {
-    this->data1->p_data[i] = rand()%10;
-    this->grad1->p_data[i] = 0;
+  std::fstream input("tests/input/conv_forward_in.txt", std::ios_base::in);
+  if (input.is_open()){
+    for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
+      input >> this->data1->p_data[i];
+    }  
   }
+  else{
+    FAIL();
+  }
+  input.close();
+  
+  std::fstream model("tests/input/conv_backward_model.txt", std::ios_base::in);
+  if (model.is_open()){
+    for(int i=0;i<this->iR*this->iC*this->iD*this->oD;i++){
+      model >> this->ConvolutionBridge_->get_model_cube()->p_data[i];
+    }  
+  }
+  else{
+    FAIL();
+  }
+  model.close();
 
-  srand(0);
-  for (int i=0;i<this->k*this->k*this->iD*this->oD;i++) {
-    this->ConvolutionBridge_->get_model_cube()->p_data[i] = rand()%2;
+  std::fstream bias_file("tests/input/conv_bias_in.txt", std::ios_base::in);
+  if (bias_file.is_open()){
+    for(int i=0;i<this->oD;i++){
+      bias_file >> this->ConvolutionBridge_->get_bias_cube()->p_data[i];
+    }  
   }
+  else{
+    FAIL();
+  }
+  bias_file.close();
 
   int oR = this->oR;
   int oC = this->oC;
@@ -128,11 +150,6 @@ TYPED_TEST(ReadWriteTest, Model) {
   for (int i=0;i<oR*oC*this->oD*this->mB;i++) {
     this->data2->p_data[i] = 0;
     this->grad2->p_data[i] = i*0.1;
-  }
-
-  srand(0);
-  for (int i=0;i<this->oD;i++) {
-    this->ConvolutionBridge_->get_bias_cube()->p_data[i] = 0.1*(rand()%10);
   }
 
   vector<AbstractBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> *> bridges;
@@ -151,7 +168,7 @@ TYPED_TEST(ReadWriteTest, Model) {
   }
 
 
-  std::fstream expected_output("tests/conv_backward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/output/conv_backward.txt", std::ios_base::in);
   T output;
   int idx = 0;
   if (expected_output.is_open()) {
@@ -166,7 +183,7 @@ TYPED_TEST(ReadWriteTest, Model) {
   }
   expected_output.close();
 
-  std::fstream expected_bias("tests/conv_bias.txt", std::ios_base::in);
+  std::fstream expected_bias("tests/output/conv_bias.txt", std::ios_base::in);
 
   idx = 0;
   if (expected_bias.is_open()) {
@@ -181,7 +198,7 @@ TYPED_TEST(ReadWriteTest, Model) {
   }
   expected_bias.close();
 
-  std::fstream expected_weights("tests/conv_weights.txt", std::ios_base::in);
+  std::fstream expected_weights("tests/output/conv_weights.txt", std::ios_base::in);
   idx = 0;
   if (expected_weights.is_open()) {
     expected_weights >> output;

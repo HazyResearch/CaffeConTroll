@@ -40,7 +40,7 @@ class MaxPoolingBridgeTest : public ::testing::Test {
           layer2, &layer_param, &solver_param, 4, 1);
     }
 
-    virtual ~MaxPoolingBridgeTest() { delete MaxPoolingBridge_; delete layer1; delete layer2;}
+    virtual ~MaxPoolingBridgeTest() { delete data1; delete data2; delete grad1; delete grad2; delete layer1; delete layer2;}
     ParallelizedBridge<DataType_SFFloat, MaxPoolingBridge<T, Layout_CRDB, T, Layout_CRDB> >* MaxPoolingBridge_;
 
     cnn::SolverParameter solver_param;
@@ -78,14 +78,21 @@ TYPED_TEST(MaxPoolingBridgeTest, TestInitialization) {
 
 TYPED_TEST(MaxPoolingBridgeTest, TestForward) {
   typedef typename TypeParam::T T;
-  srand(1);
-  for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++) {
-    this->data1->p_data[i] = rand()%9;
+  
+  std::fstream input("tests/input/pooling_forward_in.txt", std::ios_base::in);
+  if (input.is_open()){
+    for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
+      input >> this->data1->p_data[i];
+    }  
   }
+  else{
+    FAIL();
+  }
+  input.close();
 
   this->MaxPoolingBridge_->forward();
 
-  std::fstream expected_output("pooling_forward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/output/pooling_forward.txt", std::ios_base::in);
 
   T output;
   int idx = 0;
@@ -97,16 +104,26 @@ TYPED_TEST(MaxPoolingBridgeTest, TestForward) {
       idx++;
     }
   }
+  else{
+    FAIL();
+  }
   expected_output.close();
 }
 
 TYPED_TEST(MaxPoolingBridgeTest, TestBackward) {
   typedef typename TypeParam::T T;
-  srand(1);
-  for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++) {
-    this->data1->p_data[i] = rand()%9;
-    this->grad1->p_data[i] = 0;
+
+  std::fstream input("tests/input/pooling_forward_in.txt", std::ios_base::in);
+  if (input.is_open()){
+    for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
+      input >> this->data1->p_data[i];
+      this->grad1->p_data[i] = 0;
+    }  
   }
+  else{
+    FAIL();
+  }
+  input.close(); 
 
   int oR = this->oR;
   int oC = this->oC;
@@ -119,7 +136,7 @@ TYPED_TEST(MaxPoolingBridgeTest, TestBackward) {
 
   this->MaxPoolingBridge_->backward();
 
-  std::fstream expected_output("tests/pooling_backward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/output/pooling_backward.txt", std::ios_base::in);
 
   T output;
   int idx = 0;

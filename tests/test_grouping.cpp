@@ -3,7 +3,6 @@
 
 TEST(GroupingTest, RunTest) {
 
-  int argc = 3;
   char const * a = "deepnet";
   char const * b = "train";
   char const * c = "tests/imagenet_train/imagenet_solver_2.prototxt";

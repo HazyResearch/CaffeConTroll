@@ -34,7 +34,7 @@ class ReLUBridgeTest : public ::testing::Test {
 
     cnn::SolverParameter solver_param;
 
-    virtual ~ReLUBridgeTest() { delete ReLUBridge_; delete layer1; delete layer2;}
+    virtual ~ReLUBridgeTest() { delete data1; delete data2; delete grad1; delete grad2; delete layer1; delete layer2;}
     ParallelizedBridge<T, ReLUBridge<T, Layout_CRDB, T, Layout_CRDB> >* ReLUBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
@@ -64,19 +64,22 @@ TYPED_TEST(ReLUBridgeTest, TestInitialization) {
 }
 
 TYPED_TEST(ReLUBridgeTest, TestForward) {
-  srand(1);
   typedef typename TypeParam::T T;
-  for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++) {
-    this->data1->p_data[i] = rand()%2 - rand()%2;
-  }
 
-  int oR = this->iR;
-  int oC = this->iC;
-  LogicalCube<T, Layout_CRDB>* out_expected = new LogicalCube<T, Layout_CRDB>(oR, oC, this->iD, this->mB);
+  std::fstream input("tests/input/relu_forward_in.txt", std::ios_base::in);
+  if (input.is_open()){
+    for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
+      input >> this->data1->p_data[i];
+    }  
+  }
+  else{
+    FAIL();
+  }
+  input.close();
 
   this->ReLUBridge_->forward();
 
-  std::fstream expected_output("tests/relu_forward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/output/relu_forward.txt", std::ios_base::in);
 
   T output;
   int idx = 0;
@@ -97,11 +100,16 @@ TYPED_TEST(ReLUBridgeTest, TestForward) {
 TYPED_TEST(ReLUBridgeTest, TestBackward) {
   typedef typename TypeParam::T T;
 
-  srand(1);
-  for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++) {
-    this->data1->p_data[i] = rand()%2 - rand()%2;
-    this->grad1->p_data[i] = 1;
+  std::fstream input("tests/input/relu_forward_in.txt", std::ios_base::in);
+  if (input.is_open()){
+    for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
+      input >> this->data1->p_data[i];
+    }  
   }
+  else{
+    FAIL();
+  }
+  input.close();
 
   int oR = this->iR;
   int oC = this->iC;
@@ -115,7 +123,7 @@ TYPED_TEST(ReLUBridgeTest, TestBackward) {
 
   this->ReLUBridge_->backward();
 
-  std::fstream expected_output("tests/relu_backward.txt", std::ios_base::in);
+  std::fstream expected_output("tests/output/relu_backward.txt", std::ios_base::in);
 
   T output;
   int idx = 0;

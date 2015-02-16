@@ -24,7 +24,7 @@ TEST(LenetTrainTest, RunTest) {
   load_and_train_network(argv[2], data_binary, model_file);
   float acc = load_and_test_network(argv[2], data_binary, model_file);
 
-  std::fstream expected_accuracy("tests/accuracy_train.txt", std::ios_base::in);
+  std::fstream expected_accuracy("tests/output/accuracy_train.txt", std::ios_base::in);
   double output;
   if (expected_accuracy.is_open()) {
     expected_accuracy >> output;  
