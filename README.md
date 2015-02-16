@@ -101,7 +101,16 @@ It's good on a laptop, on a server, or for a snack. It is unclear
 whether CcT can [smell the
 blood](http://en.wikipedia.org/wiki/Trollhunter) of christian men.
 
+Known Issues
+------------
 
+* OpenBLAS seems to be the fastest, free library. However, OpenBLAS
+  has some known issues on MACs. It will compile, but it will may
+  unpredictbly
+  [crash](https://github.com/xianyi/OpenBLAS/issues/218). On recent OS
+  X, you can use the built in BLAS and LAPACK (see Caffe install
+  instruction.)
+  
 Contact
 -------
 
