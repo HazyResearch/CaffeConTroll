@@ -33,7 +33,7 @@ public:
 	/**
 	 * Given a gradient, update the model.
 	 **/
-	virtual void update(DataType * const p_gradient) = 0;
+	virtual void update(DataType * const p_gradient, float base_learning_rate, float base_regularization) = 0;
 
 	void reset_zero(){
 		std::fill(p_model, p_model+n_elements, DataType(0.0));
@@ -76,18 +76,19 @@ public:
 		delete * p_history_updates;
 	}
 
-	void update(DataType * const p_gradient){
+	void update(DataType * const p_gradient, float base_learning_rate, float base_regularization){
 		current_iter ++;
-		const float stepsize = get_stepsize();
+		const float stepsize = get_stepsize() * base_learning_rate;
 		const float momentum = p_solver->momentum();
-		const float lambda = p_solver->weight_decay();
+		const float lambda = p_solver->weight_decay() * base_regularization;
 
 		if(lambda != 0){
     		Util::regularize(p_solver->regularization_type(), n_elements, lambda, 
     			p_gradient, p_model);
   		}
 
-  		std::cout << "STEPSIZE = " << stepsize << " MOMENTUM = " << momentum << std::endl;
+  		std::cout << "STEPSIZE = " << stepsize << " MOMENTUM = " << momentum << " BASE_LR = " 
+  			<< base_learning_rate << " BASE_REG = " << base_regularization << std::endl ;
 
 		for(int i=0;i<n_elements;i++){
 			p_history_updates[i] = stepsize * p_gradient[i] + momentum * p_history_updates[i];
@@ -124,19 +125,17 @@ public:
 		delete * p_history_updates;
 	}
 
-	void update(DataType * const p_gradient){
+	void update(DataType * const p_gradient, float base_learning_rate, float base_regularization){
 		current_iter ++;
-		const float stepsize = get_stepsize();
+		const float stepsize = get_stepsize() * base_learning_rate;
 		const float momentum = p_solver->momentum();
-		const float lambda = p_solver->weight_decay();
+		const float lambda = p_solver->weight_decay() * base_regularization;
 		const float delta = p_solver->delta();
 
 		if(lambda != 0){
     		Util::regularize(p_solver->regularization_type(), n_elements, lambda, 
     			p_gradient, p_model);
   		}
-
-  		std::cout << "STEPSIZE < " << stepsize/delta << " MOMENTUM = " << momentum << std::endl;
 
 		for(int i=0;i<n_elements;i++){
 			p_history_updates[i] += p_gradient[i]*p_gradient[i];
@@ -176,19 +175,17 @@ public:
 		delete * p_history_updates;
 	}
 
-	void update(DataType * const p_gradient){
+	void update(DataType * const p_gradient, float base_learning_rate, float base_regularization){
 		current_iter ++;
-		const float stepsize = get_stepsize();
+		const float stepsize = get_stepsize() * base_learning_rate;
 		const float momentum = p_solver->momentum();
-		const float lambda = p_solver->weight_decay();
+		const float lambda = p_solver->weight_decay() * base_regularization;
 		const float delta = p_solver->delta();
 
 		if(lambda != 0){
     		Util::regularize(p_solver->regularization_type(), n_elements, lambda, 
     			p_gradient, p_model);
   		}
-
-  		std::cout << "STEPSIZE < " << stepsize/delta << " MOMENTUM = " << momentum << std::endl;
 
   		DataType tmp;
 		for(int i=0;i<n_elements;i++){

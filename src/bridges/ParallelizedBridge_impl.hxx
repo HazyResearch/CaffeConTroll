@@ -15,7 +15,11 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
     const cnn::SolverParameter * const _solver_param, size_t _n_partition,
     size_t _n_thread_per_partition) : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_input_layer,
       _output_layer, _layer_param, _solver_param), n_partition(_n_partition), n_batch(_input_layer->dB),
-n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch / n_partition) {
+n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch / n_partition),
+    model_base_learning_rate(1.0),
+    bias_base_learning_rate(1.0),
+    model_base_regularization(1.0),
+    bias_base_regularization(1.0){
 
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();
@@ -86,6 +90,13 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
     p_model_grad = new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B);
     p_grad_updater = new SGDGradientUpdater<DataType>(p_model_cube->n_elements, p_model_cube->p_data, _solver_param);
 
+    if(_layer_param->blobs_lr_size() != 0){
+      model_base_learning_rate = _layer_param->blobs_lr(0);
+    }
+    if(_layer_param->weight_decay_size() != 0){
+      bias_base_learning_rate = _layer_param->weight_decay(0);
+    }
+
   } else {
     p_model_cube = NULL;
     p_model_grad = NULL;
@@ -98,6 +109,14 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
       memcpy(p_bias_cube->p_data, example_bias->p_data, p_bias_cube->n_elements*sizeof(DataType));
       p_bias_grad = new LogicalCubeType(example_bias->R, example_bias->C, example_bias->D, example_bias->B);
       p_grad_updater_bias = new SGDGradientUpdater<DataType>(p_bias_cube->n_elements, p_bias_cube->p_data, _solver_param);
+    
+      if(_layer_param->blobs_lr_size() >1){
+        model_base_learning_rate = _layer_param->blobs_lr(1);
+      }
+      if(_layer_param->weight_decay_size() >1){
+        bias_base_learning_rate = _layer_param->weight_decay(1);
+      }
+
     } else {
       p_bias_cube = NULL;
     }
@@ -174,9 +193,9 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
           p_grad_data[j] += p_subgrad_data[j];
         }
       }
-      p_grad_updater->update(p_model_grad->p_data);
+      p_grad_updater->update(p_model_grad->p_data, model_base_learning_rate, model_base_regularization);
     }else{
-      p_grad_updater->update(_bridges[0]->get_model_grad_cube()->p_data);
+      p_grad_updater->update(_bridges[0]->get_model_grad_cube()->p_data, model_base_learning_rate, model_base_regularization);
     }
 
   }
@@ -194,7 +213,7 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
         p_grad_data[j] += p_subbias_data[j];
       }
     }
-    p_grad_updater_bias->update(p_bias_grad->p_data);
+    p_grad_updater_bias->update(p_bias_grad->p_data, bias_base_learning_rate, bias_base_regularization);
   }
 
   report_backward_updateweight_last_transfer.end();
