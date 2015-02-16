@@ -8,11 +8,12 @@ explore the relative efficiency of GPUs and CPUs for Deep Learning*.
 
 **Why Study CPU versus GPU?** Well, there is an ongoing debate about
 this with lots of passion on both sides! GPU's are wildly [popular
+with
 some](http://www.wired.com/2015/02/hot-yet-little-known-trend-thatll-supercharge-ai/)
-companies that are even rumored to be installing purpose-built
-infrastructures for deep learning; other
+companies that are rumored to be installing purpose-built infrastructures for
+deep learning; other
 [companies](http://wired.com/2014/07/microsoft-adam/) have opted to
-use CPUs and claimed they are cheaper and more efficent. For users
+use CPUs and claimed they are cheaper and more efficient. For users
 outside the web companies, the situation is different: some cloud
 providers don't have GPUs or their GPUs are not as rapidly updated as
 their CPUs. In the lab, GPUs can be expensive to obtain.  In contrast,
@@ -30,7 +31,7 @@ faster than Caffe, see our [benchmark
 page](http://deepdive.stanford.edu/cdw/benchmarking.html). The GPU
 speedup is mostly for non-fundamental reasons.
 
-**New Technques** In the initial version of CcT, CcT's algorithms are
+**New Techniques** In the initial version of CcT, CcT's algorithms are
 identical to Caffe from a statistical point of view. However, CcT uses
 new lowering techniques to speed up convolutions and other layers
 inspired by join processing in relational databases. As everyone
@@ -73,32 +74,24 @@ Installation from Source
 
 We cloned Caffe, so we follow nearly identical [install
 instructions](http://caffe.berkeleyvision.org/installation.html).
-Start with their instructions! One difference is that we only support
-OpenBLAS (we don't support Atlas). We use some new features of
-OpenBLAS, and so you'll want to use the included submodule in our git
-repo. *NB: the .travis.yml should always contain a working build
-script for Ubuntu, if you are confused about dependencies.*
+Start with their instructions! *NB: the .travis.yml should always
+contain a working build script for Ubuntu, if you are confused about
+dependencies.*
 
 
 * Step 1. Install the packages listed at the Caffe link.
 
-* Step 2. Clone our repository including the OpenBLAS submodule.
+* Step 2. Clone our repository 
 
-> git clone --recursive git@github.com:HazyResearch/CaffeConTroll.git
+> git clone git@github.com:HazyResearch/CaffeConTroll.git
 
+* Step 3. Copy config.sample to .config and edit .config to contain your paths.
 
-* Step 3. Compile OpenBlas and install it, e.g., where CCT is the root
-  directory of CcT.
-
-> make FC=gfortran && make install PREFIX=$CCT
-
-* Step 4. Copy config.sample to .config and edit .config to contain your paths.
-
-* Step 5. Build the executable.
+* Step 4. Build the executable.
 
 > make
 
-* Step 6. (Optional) If you want tests, you need to install Google's
+* Step 5. (Optional) If you want tests, you need to install Google's
 testing infrastructure, glog and gtest, as with Caffe. Then, make the
 test file.
 
@@ -109,7 +102,16 @@ It's good on a laptop, on a server, or for a snack. It is unclear
 whether CcT can [smell the
 blood](http://en.wikipedia.org/wiki/Trollhunter) of christian men.
 
+Known Issues
+------------
 
+* OpenBLAS seems to be the fastest, free library. However, OpenBLAS
+  has some known issues on MACs. It will compile, but it will may
+  unpredictably
+  [crash](https://github.com/xianyi/OpenBLAS/issues/218). On recent OS
+  X, you can use the built in BLAS and LAPACK (see Caffe install
+  instruction.)
+  
 Contact
 -------
 

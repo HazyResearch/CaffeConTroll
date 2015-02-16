@@ -1,15 +1,15 @@
 include .config
 UNAME := $(shell uname)
 
-LIBS=lmdb openblas glog 
+LIBS=lmdb glog $(BLAS_LIBS) 
 LD_BASE=$(foreach l, $(LIBS), -l$l)
 
 INCLUDE_DIRS=$(BOOST_INCLUDE) $(GTEST_INCLUDE) $(GLOG_INCLUDE) $(GFLAGS_INCLUDE) \
-	     $(LMDB_INCLUDE) $(OPENBLAS_INCLUDE)
+	     $(LMDB_INCLUDE) $(BLAS_INCLUDE)
 INCLUDE_STR=$(foreach d, $(INCLUDE_DIRS), -I$d)
 
 LIB_DIRS=$(BOOST_LIB_DIR) $(GTEST_LIB_DIR) $(GLOG_LIB_DIR) $(GFLAGS_LIB_DIR) \
-	 $(LMDB_LIB_DIR) $(OPENBLAS_LIB_DIR)
+	 $(LMDB_LIB_DIR) $(BLAS_LIB_DIR)
 LIB_STR=$(foreach d, $(LIB_DIRS), -L$d)
 
 # For Mac OS X 10.10 x86_64 Yosemite
@@ -21,6 +21,7 @@ else ifeq ($(UNAME), Linux)
   CFLAGS = -Wall -std=c++11 -Wl,--no-as-needed
   LDFLAGS = $(LD_BASE) -lrt -lboost_program_options
 endif
+CFLAGS += $(BLAS_DEFS)
 
 DEBUG_FLAGS = -g -O0 -DDEBUG
 ifeq ($(UNAME), Darwin)

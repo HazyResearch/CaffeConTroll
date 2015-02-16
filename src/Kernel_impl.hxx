@@ -6,7 +6,7 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#include "common.h"
+#include "f77blas.h"
 #include "cblas.h" // These two includes are from OpenBlas
 
 #ifndef moka_Kernel_impl_Lowering_hxx

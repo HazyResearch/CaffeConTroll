@@ -153,8 +153,10 @@ template <typename DataType, NonLinearFunction FUNC>
 void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 forward() {
 
+#ifdef OPENBLAS
   openblas_set_num_threads(run_with_n_threads);
-
+#endif
+  
   report_forward_last_transfer.reset();
 
   // (0) cast input model and output to matrix
@@ -241,8 +243,10 @@ template <typename DataType, NonLinearFunction FUNC>
 void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 backward() {
 
+#ifdef OPENBLAS
   openblas_set_num_threads(run_with_n_threads);
-
+#endif
+  
   report_backward_updateweight_last_transfer.reset();
 
   // (1) calculate the gradient of output and store in the buffer
