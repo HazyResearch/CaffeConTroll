@@ -6,14 +6,11 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#include "f77blas.h"
-#include "cblas.h" // These two includes are from OpenBlas
+#include "util.h" // include cblas routines
 
 #ifndef moka_Kernel_impl_Lowering_hxx
 #define moka_Kernel_impl_Lowering_hxx
 
-#define SGEMM_ROWMAJOR(A,B,C,m,n,k,alpha,beta,transf_A,transf_B, lda, ldb, ldc) \
-  BLASFUNC(sgemm)(transf_B, transf_A, n, m, k, alpha, B, ldb, A, lda, beta, C, ldc)
 
 template <typename DataType, KernelConfig KERNELCONFIG>
 Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_GEMM_OpenBlas, KERNELCONFIG>::
@@ -67,37 +64,50 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
   float _alpha = alpha;
   float _beta = beta;
   int LDA, LDB;
-  char N1, N2;
+  CBLAS_TRANSPOSE TA,TB;
 
+  // The convention is that
+  // input_cube_1 is A and
+  // input_cube_2 is B
+  // This code is doing alpha* A*B + beta*C
+  // cout << "HERE: " << KERNELCONFIG << std::endl;
+  // cout << "\tA : " << i1R << " x " << i1C << std::endl;
+  // cout << "\tB : " << i2R << " x " << i2C << std::endl;
+  // cout << "\tC : " << oR << " x " << oC << std::endl;
+  
+  
   if (KERNELCONFIG == KernelConfig_GEMM_NOTRANS_NOTRANS) {
-    N1 = 'N';
-    N2 = 'N';
-    M = static_cast<int>(i1R);
-    N = static_cast<int>(i2C);
-    K = static_cast<int>(i1C);
-    LDA = K;
-    LDB = N;
+    TA = CblasNoTrans;
+    TB = CblasNoTrans;
+    M = i1R; // rows in A and C (sgemm spec) 
+    N = i2C; // cols in B and C
+    K = i1C; // cols in A or rows in B
+    LDA = i1C; //
+    LDB = i2C; //
   } else if (KERNELCONFIG == KernelConfig_GEMM_NOTRANS_TRANS) {
-    N1 = 'N';
-    N2 = 'T';
-    M = static_cast<int>(i1R);
-    N = static_cast<int>(i2R);
-    K = static_cast<int>(i1C);
-    LDA = K;
-    LDB = K;
+    TA = CblasNoTrans;
+    TB = CblasTrans;
+    M = i1R; // A is not transposed
+    N = i2R; // B is transposed
+    K = i1C; // cols in A not transposed 
+    LDA = i1C; // columns in A
+    LDB = i2C; // B is transposed
   } else if (KERNELCONFIG == KernelConfig_GEMM_TRANS_NOTRANS) {
-    N1 = 'T';
-    N2 = 'N';
-    M = static_cast<int>(i1C);
-    N = static_cast<int>(i2C);
-    K = static_cast<int>(i1R);
-    LDA = M;
-    LDB = N;  
+    TA = CblasTrans;
+    TB = CblasNoTrans;
+    M = i1C; // A is transposed
+    N = i2C; // B is not transposed
+    K = i1R; // A is transposed
+    LDA = i1C; // A is transposed 
+    LDB = i2C; // not transposed   
   }
 
-  BLASFUNC(sgemm)(&N2, &N1, &N, &M, &K, &_alpha, p_input2_cube->p_data,
-      &LDB, p_input1_cube->p_data, &LDA, &_beta, p_output_cube->p_data, &N);
-
+  // we reverse A and B here by default
+  cblas_sgemm(CblasRowMajor, TA, TB, M, N, K, _alpha,
+	      p_input1_cube->p_data, LDA,
+	      p_input2_cube->p_data, LDB,
+	      _beta, p_output_cube->p_data, N);
+  
   report_last_lowering.end((i1R*i1C + i2R*i2C)*sizeof(DataType),
       oR*oC*sizeof(DataType), 1.0*M*N*K*2);
   report_history.aggregate(report_last_lowering);

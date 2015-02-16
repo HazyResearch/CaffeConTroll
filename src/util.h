@@ -14,9 +14,9 @@
 #include <random>
 #include <float.h>
 #include <limits>
-#include "cblas.h"
 #include <assert.h>
-#include "cblas.h" // cblas include
+
+#include "cblas.h"
 
 enum InitializerType {
   CONSTANT = 0,
