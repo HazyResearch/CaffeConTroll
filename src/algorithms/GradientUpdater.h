@@ -90,10 +90,12 @@ public:
   		// std::cout << "STEPSIZE = " << stepsize << " MOMENTUM = " << momentum << " BASE_LR = " 
   		//	<< base_learning_rate << " BASE_REG = " << base_regularization << std::endl ;
 
-		for(int i=0;i<n_elements;i++){
-			p_history_updates[i] = stepsize * p_gradient[i] + momentum * p_history_updates[i];
-			p_model[i] -= p_history_updates[i];
-		}
+		Util::math_axpby(n_elements, stepsize, p_gradient, momentum, p_history_updates);
+		Util::math_apply_grad<DataType>(n_elements, p_model, p_history_updates);
+		//for(int i=0;i<n_elements;i++){
+		//	p_history_updates[i] = stepsize * p_gradient[i] + momentum * p_history_updates[i];
+		//	p_model[i] -= p_history_updates[i];
+		//}
 	}
 
 };
@@ -128,7 +130,7 @@ public:
 	void update(DataType * const p_gradient, float base_learning_rate, float base_regularization){
 		current_iter ++;
 		const float stepsize = get_stepsize() * base_learning_rate;
-		const float momentum = p_solver->momentum();
+		//const float momentum = p_solver->momentum();
 		const float lambda = p_solver->weight_decay() * base_regularization;
 		const float delta = p_solver->delta();
 
@@ -180,7 +182,7 @@ public:
 		const float stepsize = get_stepsize() * base_learning_rate;
 		const float momentum = p_solver->momentum();
 		const float lambda = p_solver->weight_decay() * base_regularization;
-		const float delta = p_solver->delta();
+		//const float delta = p_solver->delta();
 
 		if(lambda != 0){
     		Util::regularize(p_solver->regularization_type(), n_elements, lambda, 

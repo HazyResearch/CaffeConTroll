@@ -147,15 +147,25 @@ class Util {
 #ifdef _USE_OPENBLAS
     static inline void math_axpy(const int N, const double alpha, const float * X, float * Y)   { cblas_saxpby(N, alpha, X, 1, 1., Y, 1);}
     static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) { cblas_daxpby(N, alpha, X, 1, 1., Y, 1); }
+    static inline void math_axpby(const int N, const double alpha, const double * X, const double beta, double * Y) { cblas_daxpby(N, alpha, X, 1, beta, Y, 1); }
+    static inline void math_axpby(const int N, const float alpha, const float * X, const float beta, float * Y) { cblas_saxpby(N, alpha, X, 1, beta, Y, 1); }
+    
     static inline void set_num_threads(const int nThreads) { openblas_set_num_threads(nThreads); }
 #elif _USE_ATLAS
     static inline void math_axpy(const int N, const double alpha, const float * X, float * Y)   { catlas_saxpby(N, alpha, X, 1, 1., Y, 1); }
     static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) { catlas_daxpby(N, alpha, X, 1, 1., Y, 1);}
+    static inline void math_axpby(const int N, const double alpha, const double * X, const double beta, double * Y) { catlas_daxpby(N, alpha, X, 1, beta, Y, 1); }
+    static inline void math_axpby(const int N, const float alpha, const float * X, const float beta, float * Y) { catlas_saxpby(N, alpha, X, 1, beta, Y, 1); }
     static inline void set_num_threads(const int nThreads) {       set_num_threads(nThreads); }
-
 #else
       #error "Select a BLAS framework." 
 #endif
+    template<typename T>
+    static inline void math_apply_grad(const int N, T *X, const T *Y) {
+      T *px = X;
+      const T *py = Y;
+      for(int i = N; i > 0; --i, px++,py++) *px -= *py;
+    }
     
     // Note: this is only used for shorts and floats, since _our_memset will only work for ints
     template <typename T>
