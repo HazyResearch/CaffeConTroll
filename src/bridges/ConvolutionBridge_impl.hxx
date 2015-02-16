@@ -153,9 +153,7 @@ template <typename DataType, NonLinearFunction FUNC>
 void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 forward() {
 
-#ifdef OPENBLAS
-  openblas_set_num_threads(run_with_n_threads);
-#endif
+  Util::set_num_threads(run_with_n_threads);
   
   report_forward_last_transfer.reset();
 
@@ -243,9 +241,7 @@ template <typename DataType, NonLinearFunction FUNC>
 void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 backward() {
 
-#ifdef OPENBLAS
-  openblas_set_num_threads(run_with_n_threads);
-#endif
+  Util::set_num_threads(run_with_n_threads);
   
   report_backward_updateweight_last_transfer.reset();
 
