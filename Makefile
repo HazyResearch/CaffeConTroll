@@ -64,7 +64,6 @@ TEST_EXECUTABLE=test
 
 .PHONY: all assembly clean product test warning
 
-all: CFLAGS += -Ofast
 all: $(OBJ_FILES) cnn.pb.o
 	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
@@ -77,10 +76,10 @@ test: $(TEST_OBJ_FILES) cnn.pb.o
 	$(CC) $^ -o $(TEST_EXECUTABLE) $(CFLAGS) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB) 
 
 %.o: %.cpp $(PROTO_COMPILED_SRC)
-	$(CC) $(CFLAGS) $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $< -o $@
+	$(CC) $(CFLAGS) -Ofast $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $< -o $@
 
 cnn.pb.o: $(PROTO_COMPILED_SRC)
-	$(CC) $(CFLAGS) $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $(PROTO_COMPILED_SRC)
+	$(CC) $(CFLAGS) -Ofast $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $(PROTO_COMPILED_SRC)
 
 $(PROTO_COMPILED_SRC): $(PROTO_SRC_DIR)$(PROTO_SRC)
 	cd $(PROTO_SRC_DIR); $(PROTO_CC) $(PROTO_SRC); cd -
