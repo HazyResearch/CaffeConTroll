@@ -73,32 +73,24 @@ Installation from Source
 
 We cloned Caffe, so we follow nearly identical [install
 instructions](http://caffe.berkeleyvision.org/installation.html).
-Start with their instructions! One difference is that we only support
-OpenBLAS (we don't support Atlas). We use some new features of
-OpenBLAS, and so you'll want to use the included submodule in our git
-repo. *NB: the .travis.yml should always contain a working build
-script for Ubuntu, if you are confused about dependencies.*
+Start with their instructions! *NB: the .travis.yml should always
+contain a working build script for Ubuntu, if you are confused about
+dependencies.*
 
 
 * Step 1. Install the packages listed at the Caffe link.
 
-* Step 2. Clone our repository including the OpenBLAS submodule.
+* Step 2. Clone our repository 
 
-> git clone --recursive git@github.com:HazyResearch/CaffeConTroll.git
+> git clone git@github.com:HazyResearch/CaffeConTroll.git
 
+* Step 3. Copy config.sample to .config and edit .config to contain your paths.
 
-* Step 3. Compile OpenBlas and install it, e.g., where CCT is the root
-  directory of CcT.
-
-> make FC=gfortran && make install PREFIX=$CCT
-
-* Step 4. Copy config.sample to .config and edit .config to contain your paths.
-
-* Step 5. Build the executable.
+* Step 4. Build the executable.
 
 > make
 
-* Step 6. (Optional) If you want tests, you need to install Google's
+* Step 5. (Optional) If you want tests, you need to install Google's
 testing infrastructure, glog and gtest, as with Caffe. Then, make the
 test file.
 
