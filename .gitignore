@@ -11,3 +11,5 @@ tags
 lib/
 .config
 *.bin
+*.o
+lock.mdb

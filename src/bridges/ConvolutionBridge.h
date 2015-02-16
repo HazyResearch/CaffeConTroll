@@ -142,6 +142,10 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
         return p_model_gradient_cube;
     }
 
+    LogicalCube<DataType, Layout_CRDB> * const get_bias_grad_cube() {
+        return p_bias_gradient_cube;
+    }
+
     ConvolutionBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param,
@@ -156,10 +160,11 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
   protected:
 
     LogicalCubeType * p_model_gradient_cube;
-
     LogicalCubeType * p_model_cube;
 
+    LogicalCubeType * p_bias_gradient_cube;
     LogicalCubeType * p_bias_cube;
+
     LogicalCubeType * p_forward_lowered_data;
     LogicalCubeType * p_backward_outputgrad;
     LogicalCubeType * p_backward_inputgrad;

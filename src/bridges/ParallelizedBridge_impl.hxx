@@ -96,6 +96,8 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
     if (example_bias != NULL) {
       p_bias_cube = new LogicalCubeType(example_bias->R, example_bias->C, example_bias->D, example_bias->B);
       memcpy(p_bias_cube->p_data, example_bias->p_data, p_bias_cube->n_elements*sizeof(DataType));
+      p_bias_grad = new LogicalCubeType(example_bias->R, example_bias->C, example_bias->D, example_bias->B);
+      p_grad_updater_bias = new SGDGradientUpdater<DataType>(p_bias_cube->n_elements, p_bias_cube->p_data, _solver_param);
     } else {
       p_bias_cube = NULL;
     }
@@ -183,17 +185,16 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
   if (p_bias_cube != NULL) {
     // do similar things for bias term... Might be better to
     // refactor this to be in the same function as the previous one
-    const size_t bias_n_element = p_bias_cube->n_elements;
-    DataType * const p_bias_data = p_bias_cube->p_data;
-    for (size_t i=0;i<bias_n_element;i++) {
-      p_bias_data[i] = (-p_bias_data[i]) * (n_partition - 1);
-    }
+    p_bias_grad->reset_cube(DataType(0.0));
+    const size_t bias_n_element = p_bias_grad->n_elements;
+    DataType * const p_grad_data = p_bias_grad->p_data;
     for (size_t i = 0; i < n_partition; ++i) {
-      DataType * const p_subbias_data = _bridges[i]->get_bias_cube()->p_data;
+      DataType * const p_subbias_data = _bridges[i]->get_bias_grad_cube()->p_data;
       for (size_t j=0;j<bias_n_element;j++) {
-        p_bias_data[j] += p_subbias_data[j];
+        p_grad_data[j] += p_subbias_data[j];
       }
     }
+    p_grad_updater_bias->update(p_bias_grad->p_data);
   }
 
   report_backward_updateweight_last_transfer.end();

@@ -47,6 +47,8 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
   if (bias_term) {
     p_bias_cube = new LogicalCubeType(1, 1, num_output_features, 1);
     initialize_logical_cube(p_bias_cube, bias_filler);
+
+    p_bias_gradient_cube = new LogicalCubeType(1, 1, num_output_features, 1); 
   }
 
   // First, allocate the space we need for lowering
@@ -203,8 +205,6 @@ void FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::
 backward() {
   openblas_set_num_threads(run_with_n_threads);
 
-  float local_rate = 0.0;
-
   report_backward_updateweight_last_transfer.reset();
 
   // (2) calculate the GEMM between the gradient of output and old kernel to calc the update on grad
@@ -218,7 +218,8 @@ backward() {
   // (3) update the bias term, summing over the gradients for each O and B
   if (bias_term) {
     const size_t output_feature_size = oR*oC;
-    DataType * const bias_term = p_bias_cube->p_data;
+    p_bias_gradient_cube->reset_cube();
+    DataType * const bias_term = p_bias_gradient_cube->p_data;
     for (size_t o_b = 0; o_b < oB; ++o_b) {
       for (size_t o_d = 0; o_d < oD; ++o_d) {
         const LogicalMatrix<DataType> input_grad_slice = p_output_layer->p_gradient_cube->get_logical_matrix(o_d, o_b);
@@ -226,7 +227,8 @@ backward() {
         for (size_t i = 0; i < output_feature_size; ++i) {
           sum += input_grad_slice.p_data[i];
         }
-        bias_term[o_d] -= local_rate*sum;
+        //bias_term[o_d] -= stepsize*sum;        // TODO CHANGE BIAS TO THE SAME UDPATE RULE
+        bias_term[o_d] += sum;
       }
     }
   }

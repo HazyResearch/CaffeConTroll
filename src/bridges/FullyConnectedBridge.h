@@ -127,6 +127,10 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
         return p_model_gradient_cube;
     }
 
+    LogicalCube<DataType, Layout_CRDB> * const get_bias_grad_cube() {
+        return p_bias_gradient_cube;
+    }
+
     FullyConnectedBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param,
@@ -141,9 +145,11 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
   protected:
 
     LogicalCubeType * p_model_gradient_cube;
-
     LogicalCubeType * p_model_cube;
+
+    LogicalCubeType * p_bias_gradient_cube;
     LogicalCubeType * p_bias_cube;
+
     LogicalCubeType * p_forward_lowered_data;
 
     size_t mR, mC, mD, mB; /*< Size of the model LogicalCube */

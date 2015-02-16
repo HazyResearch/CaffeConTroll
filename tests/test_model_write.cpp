@@ -4,6 +4,7 @@
 #include "../src/config.h"
 #include "../src/Connector.h"
 #include "../src/bridges/ConvolutionBridge.h"
+#include "../src/bridges/ParallelizedBridge.h"
 #include "test_types.h"
 #include "gtest/gtest.h"
 #include <iostream>
@@ -74,15 +75,20 @@ class ReadWriteTest : public ::testing::Test {
 
       solver_param.set_base_lr(0.01);
       solver_param.set_momentum(0.0);
+      solver_param.set_lr_policy("step");
+      solver_param.set_stepsize(10000);
 
-      ConvolutionBridge_ = new ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>(layer1,
-          layer2, &layer_param, &solver_param);
+      ConvolutionBridge_ = new ParallelizedBridge<T,
+        ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB> >\
+        (layer1, layer2, &layer_param, &solver_param, 1, 1);
       ConvolutionBridge_->needs_to_calc_backward_grad = true;
     }
 
     cnn::SolverParameter solver_param;
 
-    ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>* ConvolutionBridge_;
+    ParallelizedBridge<T,
+      ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>
+    > * ConvolutionBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
     LogicalCube<T, Layout_CRDB>* grad1;

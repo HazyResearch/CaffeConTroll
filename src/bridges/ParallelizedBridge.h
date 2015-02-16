@@ -50,6 +50,8 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
 
     LogicalCubeType * p_model_grad;
 
+    LogicalCubeType * p_bias_grad;
+
     LogicalCubeType * p_bias_cube;
 
     const size_t n_partition;
@@ -58,6 +60,9 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     const size_t n_batch_per_partition;
 
     GradientUpdater<DataType> * p_grad_updater;
+
+    GradientUpdater<DataType> * p_grad_updater_bias;
+
 
     ParallelizedBridge(Layer<DataType, Layout_CRDB> * const _input_layer,
         Layer<DataType, Layout_CRDB> * const _output_layer,

@@ -45,11 +45,12 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   initialize_logical_cube(p_model_cube, weight_filler);
 
   p_model_gradient_cube = new LogicalCubeType(K, K, iD, num_output_features);
-  initialize_logical_cube(p_model_cube, weight_filler);
 
   if (bias_term) {
     p_bias_cube = new LogicalCubeType(1, 1, num_output_features, 1);
     initialize_logical_cube(p_bias_cube, bias_filler);
+
+    p_bias_gradient_cube = new LogicalCubeType(1, 1, num_output_features, 1); 
   }
 
   // First, allocate the space we need for lowering
@@ -232,9 +233,6 @@ template <typename DataType, NonLinearFunction FUNC>
 void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 backward() {
 
-  // TODO: DO SIMILAR THINGS FOR BIAS
-  float local_rate = 0.0;
-
   openblas_set_num_threads(run_with_n_threads);
 
   report_backward_updateweight_last_transfer.reset();
@@ -257,7 +255,8 @@ backward() {
   // (3) update the bias term, summing over the gradients for each O and B
   if (bias_term) {
     const size_t output_feature_size = oR*oC;
-    DataType * const bias_term = p_bias_cube->p_data;
+    p_bias_gradient_cube->reset_cube();
+    DataType * const bias_term = p_bias_gradient_cube->p_data;
     for (size_t o_b = 0; o_b < oB; ++o_b) {
       for (size_t o_d = 0; o_d < oD; ++o_d) {
         const LogicalMatrix<DataType> input_grad_slice = p_output_layer->p_gradient_cube->get_logical_matrix(o_d, o_b);
@@ -265,7 +264,8 @@ backward() {
         for (size_t i = 0; i < output_feature_size; ++i) {
           sum += input_grad_slice.p_data[i];
         }
-        bias_term[o_d] -= local_rate*sum;
+        //bias_term[o_d] -= stepsize*sum;
+        bias_term[o_d] += sum;
       }
     }
   }
