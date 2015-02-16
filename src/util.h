@@ -98,11 +98,23 @@ class Util {
     }
 
     static inline void math_axpy(const int N, const double alpha, const float * X, float * Y) {
+#ifdef _USE_OPENBLAS
       cblas_saxpby(N, alpha, X, 1, 1., Y, 1);
+#elif _USE_ATLAS
+      catlas_saxpby(N, alpha, X, 1, 1., Y, 1);
+#else
+      #error "Select a BLAS framework." 
+#endif
     }
 
     static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) {
+#ifdef _OPENBLAS      
       cblas_daxpby(N, alpha, X, 1, 1., Y, 1);
+#elif _USE_ATLAS
+      catlas_daxpby(N, alpha, X, 1, 1., Y, 1);
+#else
+      #error "Select a BLAS framework."      
+#endif
     }
 
     // Note: this is only used for shorts and floats, since _our_memset will only work for ints

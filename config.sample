@@ -1,7 +1,7 @@
 # This is the configuration file that the Makefile
 # will use to compile CcT. We have the following dependencies:
 #   * lmdb
-#   * OpenBLAS
+#   * OpenBLAS or Atlas
 #   * GoogleTest
 #   * google-glog
 #   * google-gflags
@@ -22,8 +22,10 @@ LMDB_INCLUDE=
 LMDB_LIB_DIR=
 
 # directory where OpenBLAS is installed (if not in path)
-OPENBLAS_INCLUDE=
-OPENBLAS_LIB_DIR=
+BLAS_INCLUDE=
+BLAS_LIB_DIR=
+# BLAS_LIB=BLAS LAPACK # Installed Atlas (installed on Mac)
+# BLAS_LIB=openblas    # OpenBlas
 
 # directory where GoogleTest is installed (if not in path)
 GTEST_INCLUDE=
