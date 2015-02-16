@@ -61,6 +61,9 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
 
       solver_param.set_base_lr(0.01);
       solver_param.set_momentum(0.0);
+      solver_param.set_lr_policy("step");
+      solver_param.set_stepsize(10000);
+
 
       // TODO: set #partition to 8 does not halt
       ParallelizedConvolutionBridge_ = new ParallelizedBridge<DataType_SFFloat,

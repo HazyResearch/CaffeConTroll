@@ -20,9 +20,6 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
   // value set to K. (We assert that they are equal in initialize.)
   K(iR), num_output_features(layer_param->inner_product_param().num_output()),
   stride(1), padding(0), bias_term(layer_param->inner_product_param().bias_term()),
-  stepsize(solver_param->base_lr()), momentum(solver_param->momentum()),
-  weight_decay(solver_param->weight_decay()),
-  regularization_type(solver_param->regularization_type()),
   weight_filler(layer_param->inner_product_param().weight_filler()),
   bias_filler(layer_param->inner_product_param().bias_filler()) {
 
@@ -44,12 +41,14 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
   p_model_cube = new LogicalCubeType(K, K, iD, num_output_features);
   initialize_logical_cube(p_model_cube, weight_filler);
 
-  p_model_cube_history = new LogicalCubeType(K, K, iD, num_output_features);
-  p_model_cube_history->reset_cube();
+  p_model_gradient_cube = new LogicalCubeType(K, K, iD, num_output_features);
+  p_model_gradient_cube->reset_cube();
 
   if (bias_term) {
     p_bias_cube = new LogicalCubeType(1, 1, num_output_features, 1);
     initialize_logical_cube(p_bias_cube, bias_filler);
+
+    p_bias_gradient_cube = new LogicalCubeType(1, 1, num_output_features, 1); 
   }
 
   // First, allocate the space we need for lowering
@@ -77,8 +76,8 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
                                       Layout_CRDB, Kernel_GEMM_OpenBlas,
                                       KernelConfig_GEMM_NOTRANS_TRANS>(&lowered_forward_output,
                                           p_forward_lowered_data, &lowered_forward_model);
-  p_backward_gemm_updateweight_kernel->alpha = -stepsize;
-  p_backward_gemm_updateweight_kernel->beta = 1.;
+  p_backward_gemm_updateweight_kernel->alpha = 1.0;
+  p_backward_gemm_updateweight_kernel->beta = 0.0;
 
   p_backward_gemm_updategrad_kernel = new Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB,
                                     DataType_SFFloat, Layout_CRDB, Kernel_GEMM_OpenBlas,
@@ -208,20 +207,20 @@ backward() {
 
   
   report_backward_updateweight_last_transfer.reset();
-  // (1) calculate the gradient of output and store in the buffer
 
   // (2) calculate the GEMM between the gradient of output and old kernel to calc the update on grad
   // Note: lowered_model is storing p_model_cube_history, not p_model_cube. We need this for the momentum
   // update.
-  LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube_history->p_data, num_output_features, K*K*iD, 1, 1);
-  LogicalCube<DataType, Layout_CRDB> lowered_model_current(p_model_cube->p_data, num_output_features, K*K*iD, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->p_data, num_output_features, K*K*iD, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_model_grad(p_model_gradient_cube->p_data, num_output_features, K*K*iD, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(p_output_layer->p_gradient_cube->p_data,
       num_output_features, oR*oC*iB, 1, 1);
 
   // (3) update the bias term, summing over the gradients for each O and B
   if (bias_term) {
     const size_t output_feature_size = oR*oC;
-    DataType * const bias_term = p_bias_cube->p_data;
+    p_bias_gradient_cube->reset_cube();
+    DataType * const bias_term = p_bias_gradient_cube->p_data;
     for (size_t o_b = 0; o_b < oB; ++o_b) {
       for (size_t o_d = 0; o_d < oD; ++o_d) {
         const LogicalMatrix<DataType> input_grad_slice = p_output_layer->p_gradient_cube->get_logical_matrix(o_d, o_b);
@@ -229,26 +228,23 @@ backward() {
         for (size_t i = 0; i < output_feature_size; ++i) {
           sum += input_grad_slice.p_data[i];
         }
-        bias_term[o_d] -= stepsize*sum;
+        //bias_term[o_d] -= stepsize*sum;        // TODO CHANGE BIAS TO THE SAME UDPATE RULE
+        bias_term[o_d] += sum;
       }
     }
   }
   // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
   p_output_layer->p_gradient_cube->template remap_output<LOWERING_TYPE1>(oB, num_output_features, oR*oC );
   //    - 2.1 GEMM between the gradient of output and old kernel
-  p_backward_gemm_updategrad_kernel->compute(&lowered_model_current, &lowered_outputgrad, p_backward_inputgrad);
+  p_backward_gemm_updategrad_kernel->compute(&lowered_model, &lowered_outputgrad, p_backward_inputgrad);
   //    - 2.2 undo the lowering (i.e., sum together all grad corresponding to the same unlowered position)
   p_forward_lower_connector->inverse_lower_cube(p_backward_inputgrad, p_input_layer->p_gradient_cube);
   // (4) calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
-  p_backward_gemm_updateweight_kernel->alpha = -stepsize;
-  p_backward_gemm_updateweight_kernel->beta = momentum;
+  p_backward_gemm_updateweight_kernel->alpha = 1.0;
+  p_backward_gemm_updateweight_kernel->beta = 0.0;
   // Performing weight update:
 
-  // Step 1: V_{t+1} = \muV_{t} - \alpha \grad W
-  // Remember: lowered_model refers to p_model_cube_history
-  p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model);
-  // Step 2: W_{t+1} = V_{t+1} + W_{t}
-  Util::math_axpy(p_model_cube->n_elements, 1., p_model_cube_history->p_data, p_model_cube->p_data);
+  p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model_grad);
 
   report_backward_updateweight_last_transfer.end();
 

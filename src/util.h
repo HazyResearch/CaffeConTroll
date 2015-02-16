@@ -14,7 +14,9 @@
 #include <random>
 #include <float.h>
 #include <limits>
-#include "cblas.h" // cblas include
+#include <assert.h>
+
+#include "cblas.h"
 
 enum InitializerType {
   CONSTANT = 0,
@@ -41,6 +43,52 @@ typedef string DataType_String; /*< String-type data only for deubgging/unit tes
 
 class Util {
   public:
+
+    template<typename T>
+    static inline void regularize(std::string regularization_type,
+        const size_t n, float lambda, T * const gradient, const T * const current_param){
+      if(regularization_type == "L2"){
+        for(int i=0;i<n;i++){ // To is easily compiled to SIMD, so let's 
+                              // not over-optimize before it becomes bottleneck
+          gradient[i] += lambda * current_param[i];
+        }
+      }else if(regularization_type == "L1"){
+        for(int i=0;i<n;i++){
+          gradient[i] += lambda * (current_param[i] > 0 ? 1 : -1);
+        }
+      }
+    }
+
+    /**
+     *
+     * Acknowledgement: Following code is directly forked from https://github.com/BVLC/caffe/blob/master/src/caffe/solver.cpp#L363 
+     *
+     **/
+    static inline float get_learning_rate(std::string lr_policy, float base_lr, float gamma, 
+      float iter, float caffe_stepsize, float power, float max_iter){
+      float rate, current_step_;
+      if (lr_policy == "fixed") {
+        rate = base_lr;
+      } else if (lr_policy == "step") {
+        current_step_ = (int)(iter / caffe_stepsize);
+        rate = base_lr * pow(gamma, current_step_);
+      } else if (lr_policy == "exp") {
+        rate = base_lr * pow(gamma, iter);
+      } else if (lr_policy == "inv") {
+        rate = base_lr * pow(1.0 + gamma * iter, -power);
+      } else if (lr_policy == "multistep") {
+        std::cout << "ERROR: We are currently not supporting `multistep` right now." << std::endl;
+        assert(false);
+      } else if (lr_policy == "poly") {
+        rate = base_lr * pow(1.0 - (iter / max_iter), power);
+      } else if (lr_policy == "sigmoid") {
+        rate = base_lr * (1.0 / (1.0 + exp(-gamma * (iter -caffe_stepsize))));
+      } else {
+        std::cout << "Unknown learning rate policy: " << lr_policy;
+        assert(false);
+      }
+      return rate;
+    }
 
     // memcpy doesn't inline with clang++/g++, so we use this instead
     // (Shamelessly stolen from https://software.intel.com/en-us/articles/memcpy-performance)
@@ -100,15 +148,25 @@ class Util {
 #ifdef _USE_OPENBLAS
     static inline void math_axpy(const int N, const double alpha, const float * X, float * Y)   { cblas_saxpby(N, alpha, X, 1, 1., Y, 1);}
     static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) { cblas_daxpby(N, alpha, X, 1, 1., Y, 1); }
+    static inline void math_axpby(const int N, const double alpha, const double * X, const double beta, double * Y) { cblas_daxpby(N, alpha, X, 1, beta, Y, 1); }
+    static inline void math_axpby(const int N, const float alpha, const float * X, const float beta, float * Y) { cblas_saxpby(N, alpha, X, 1, beta, Y, 1); }
+    
     static inline void set_num_threads(const int nThreads) { openblas_set_num_threads(nThreads); }
 #elif _USE_ATLAS
     static inline void math_axpy(const int N, const double alpha, const float * X, float * Y)   { catlas_saxpby(N, alpha, X, 1, 1., Y, 1); }
     static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) { catlas_daxpby(N, alpha, X, 1, 1., Y, 1);}
+    static inline void math_axpby(const int N, const double alpha, const double * X, const double beta, double * Y) { catlas_daxpby(N, alpha, X, 1, beta, Y, 1); }
+    static inline void math_axpby(const int N, const float alpha, const float * X, const float beta, float * Y) { catlas_saxpby(N, alpha, X, 1, beta, Y, 1); }
     static inline void set_num_threads(const int nThreads) {       set_num_threads(nThreads); }
-
 #else
       #error "Select a BLAS framework." 
 #endif
+    template<typename T>
+    static inline void math_apply_grad(const int N, T *X, const T *Y) {
+      T *px = X;
+      const T *py = Y;
+      for(int i = N; i > 0; --i, px++,py++) *px -= *py;
+    }
     
     // Note: this is only used for shorts and floats, since _our_memset will only work for ints
     template <typename T>

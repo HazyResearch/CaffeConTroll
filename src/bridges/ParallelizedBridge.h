@@ -9,6 +9,7 @@
 #ifndef moka_ParallelizedBridge_h
 #define moka_ParallelizedBridge_h
 
+#include "../algorithms/GradientUpdater.h"
 #include "AbstractBridge.h"
 #include "PhysicalStratum.h"
 #include "ConvolutionBridge.h"
@@ -47,12 +48,27 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
                                         add optimization to share without copying) is the job
                                         of ParallelizedConvolutionBridge not its caller. **/
 
+    LogicalCubeType * p_model_grad;
+
+    LogicalCubeType * p_bias_grad;
+
     LogicalCubeType * p_bias_cube;
+
+    float model_base_learning_rate;
+    float bias_base_learning_rate;
+    float model_base_regularization;
+    float bias_base_regularization;
+
 
     const size_t n_partition;
     const size_t n_batch;
     const size_t n_thread_per_partition;
     const size_t n_batch_per_partition;
+
+    GradientUpdater<DataType> * p_grad_updater;
+
+    GradientUpdater<DataType> * p_grad_updater_bias;
+
 
     ParallelizedBridge(Layer<DataType, Layout_CRDB> * const _input_layer,
         Layer<DataType, Layout_CRDB> * const _output_layer,

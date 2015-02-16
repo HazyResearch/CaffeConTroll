@@ -105,11 +105,11 @@ message SolverParameter {
   // Display the cost averaged over the last average_cost iterations
   // optional int32 average_loss = 33 [default = 1];
   optional int32 max_iter = 7; // the maximum number of iterations
-  // optional string lr_policy = 8; // The learning rate decay policy.
-  // optional float gamma = 9; // The parameter to compute the learning rate.
-  // optional float power = 10; // The parameter to compute the learning rate.
+  optional string lr_policy = 8; // The learning rate decay policy.
+  optional float gamma = 9; // The parameter to compute the learning rate.
+  optional float power = 10; // The parameter to compute the learning rate.
   optional float momentum = 11; // The momentum value.
-  optional float weight_decay = 12; // The weight decay.
+  optional float weight_decay = 12 [default = 0]; // The weight decay.
   // regularization types supported: L1 and L2
   // controlled by weight_decay
   optional string regularization_type = 29 [default = "L2"];
@@ -138,12 +138,12 @@ message SolverParameter {
   // Solver type
   enum SolverType {
     SGD = 0;
-    // NESTEROV = 1;
-    // ADAGRAD = 2;
+    NESTEROV = 1;
+    ADAGRAD = 2;
   }
   optional SolverType solver_type = 30 [default = SGD];
   // numerical stability for AdaGrad
-  // optional float delta = 31 [default = 1e-8];
+  optional float delta = 31 [default = 1e-8];
 
   // If true, print information about the state of the net that may help with
   // debugging learning problems.
@@ -251,6 +251,7 @@ message LayerParameter {
   optional LayerType type = 5; // the layer type from the enum above
   
   repeated float blobs_lr = 7;
+  repeated float weight_decay = 8;
 
   // optional AccuracyParameter accuracy_param = 27;
   // optional ArgMaxParameter argmax_param = 23;
