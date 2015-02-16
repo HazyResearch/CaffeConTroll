@@ -1,12 +1,12 @@
-//  Connector_imple_Lowering_type2.hxx
+//  Connector_impl_Lowering_type2.hxx
 //  moka
 //
 //  Created by Ce Zhang on 1/14/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#ifndef moka_Connector_imple_Lowering_type2_hxx
-#define moka_Connector_imple_Lowering_type2_hxx
+#ifndef moka_Connector_impl_Lowering_type2_hxx
+#define moka_Connector_impl_Lowering_type2_hxx
 
 template<typename DataType, LayoutType InputLayout>
 Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE2>::
@@ -26,8 +26,8 @@ Connector(const InputLogicalCubeType  * const p_input_cube, const OutputLogicalC
 #ifdef _DO_ASSERT
   assert(oD==1);
   assert(oB==1);
-  assert(oR==kernel_size*kernel_size*iD);
-  assert(oC==(iR-kernel_size+1)*(iC-kernel_size+1)*iB);
+  assert(oR==kernel_size*kernel_size*iB);
+  assert(oC==iD);
 #endif
   report_constructor.end(0, 0, 0);
 }
@@ -53,11 +53,10 @@ lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeTyp
   assert(p_output_cube->B == oB);
 #endif
 
-  for (size_t kd = 0; kd < iD; kd++) {
-    for (size_t ib = 0; ib < iB; ib++) {
-      const LogicalMatrix<DataType> m = p_input_cube->get_logical_matrix(kd, ib);
-      p_output_cube->template lower_logical_matrix<LOWERING_TYPE2>(&m, ib, kd, kernel_size,
-          stride);
+  for (size_t i_b = 0; i_b < iB; ++i_b) {
+    for (size_t i_d = 0; i_d < iD; ++i_d) {
+      const LogicalMatrix<DataType> m = p_input_cube->get_logical_matrix(i_d, i_b);
+      p_output_cube->template lower_logical_matrix<LOWERING_TYPE1>(&m, i_b, i_d, kernel_size);
     }
   }
 

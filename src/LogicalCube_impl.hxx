@@ -170,20 +170,33 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::lower_logica
   }
 }
 
+// Lowering type 2, stride == 1, padding == 0 (Doesn't depend on stride or padding)
 template<typename T, LayoutType LAYOUT>
 template<typename DUMMY>
 void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE2, DUMMY>::lower_logical_matrix(const LogicalCube<T,
     LAYOUT>& cube, const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i,
     const size_t kernel_size) {
-  // TODO: Lowering type 2, stride == 1, padding == 0
+  // d_i determines the column that we start at
+  // b_i determines the row that we start at
+  // read elements sequentially (in row-major order) but lay out values in column-major order
+  const size_t row_base = b_i * kernel_size * kernel_size;
+  const size_t col_base = d_i;
+  const T * m_data = input_matrix->p_data;
+  const size_t width = input_matrix->C;
+
+  const size_t n_elements = input_matrix->n_elements;
+  for (size_t i = 0; i < n_elements; ++i) {
+    cube.p_data[col_base + (row_base + i)*width] = m_data[i];
+  }
 }
 
+// Lowering type 2, stride > 1, padding > 0 (Doesn't depend on stride or padding)
 template<typename T, LayoutType LAYOUT>
 template<typename DUMMY>
 void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE2, DUMMY>::lower_logical_matrix(const LogicalCube<T,
     LAYOUT>& cube, const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i,
     const int kernel_size, const int stride, const int padding) {
-  // TODO: Lowering type 2, stride > 1, padding > 0
+  // No-op
 }
 
 template<typename T, LayoutType LAYOUT>
