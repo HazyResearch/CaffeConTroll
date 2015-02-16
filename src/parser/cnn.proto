@@ -251,6 +251,7 @@ message LayerParameter {
   optional LayerType type = 5; // the layer type from the enum above
   
   repeated float blobs_lr = 7;
+  repeated float weight_decay = 8;
 
   // optional AccuracyParameter accuracy_param = 27;
   // optional ArgMaxParameter argmax_param = 23;
