@@ -19,8 +19,11 @@
 #include "util.h"
 #include <algorithm>
 
+using namespace std;
+
 typedef LogicalCube<DataType_SFFloat, Layout_CRDB> LogicalCubeFloat;
-typedef std::vector<AbstractBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> *> BridgeVector;
+typedef Layer<DataType_SFFloat, Layout_CRDB> LayerFloat;
+typedef vector<AbstractBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> *> BridgeVector;
 
 void load_and_train_network(const char * file, const std::string data_binary, const std::string model_file);
 

@@ -70,7 +70,7 @@ TYPED_TEST(ReLUBridgeTest, TestForward) {
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
       input >> this->data1->p_data[i];
-    }  
+    }
   }
   else{
     FAIL();
@@ -104,7 +104,7 @@ TYPED_TEST(ReLUBridgeTest, TestBackward) {
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
       input >> this->data1->p_data[i];
-    }  
+    }
   }
   else{
     FAIL();

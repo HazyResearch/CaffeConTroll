@@ -74,6 +74,8 @@ class SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public A
     SoftmaxLossBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
         DataLabelsLogicalCubeType * const _p_data_labels);
 
+    ~SoftmaxLossBridge();
+
     void forward();
 
     void backward();

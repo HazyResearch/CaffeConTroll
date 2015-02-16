@@ -19,11 +19,11 @@ class ScannerTANHTest : public ::testing::Test {
 
 	ScannerTANHTest(){
 		cube_ = new LogicalCube<T, LAYOUT>(4, 5, 3, 2);
-		scanner_ = new Scanner<T, LAYOUT, FUNC_TANH>(cube_);	
+		scanner_ = new Scanner<T, LAYOUT, FUNC_TANH>(cube_);
 	}
 	virtual ~ScannerTANHTest() { delete cube_; delete scanner_; }
-	Scanner<T, LAYOUT, FUNC_TANH>*  scanner_;
 	LogicalCube<T, LAYOUT>* cube_;
+	Scanner<T, LAYOUT, FUNC_TANH>*  scanner_;
 };
 
 typedef ::testing::Types<FloatBDRC, FloatCRDB> DataTypes;
@@ -39,7 +39,7 @@ TYPED_TEST(ScannerTANHTest, TestApply) {
 
 	for(int i=0; i<this->cube_->n_elements; i++){
 		EXPECT_NEAR(this->cube_->p_data[i], tanh(i), EPS);
-	}   
+	}
 }
 
 template <typename TypeParam>
@@ -52,8 +52,8 @@ class ScannerNO_FUNCTest : public ::testing::Test {
 		scanner_ = new Scanner<T, LAYOUT, FUNC_NOFUNC>(cube_);
 	}
 	virtual ~ScannerNO_FUNCTest() { delete cube_; delete scanner_; }
-	Scanner<T, LAYOUT, FUNC_NOFUNC>*  scanner_;
 	LogicalCube<T, LAYOUT>* cube_;
+	Scanner<T, LAYOUT, FUNC_NOFUNC>*  scanner_;
 };
 
 
@@ -67,5 +67,5 @@ TYPED_TEST(ScannerNO_FUNCTest, TestApply) {
 
 	for(int i=0; i<this->cube_->n_elements; i++){
 		EXPECT_NEAR(this->cube_->p_data[i], i, EPS);
-	}   
+	}
 }

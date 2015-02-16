@@ -17,9 +17,10 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer,
     _p_output_layer, _layer_param, _solver_param),
   K(layer_param->convolution_param().kernel_size()),
-  num_output_features(_p_output_layer->dD), // We are missing the abstraction of Logical Plan -- that is
-                                            // why we cannot use layer_param here when there is grouping.
-                                            // layer_param is the user input, not the Logical Plan
+  // We are missing the abstraction of Logical Plan -- that is
+  // why we cannot use layer_param here when there is grouping.
+  // layer_param is the user input, not the Logical Plan
+  num_output_features(_p_output_layer->dD),
   stride(layer_param->convolution_param().stride()),
   padding(layer_param->convolution_param().pad()),
   bias_term(layer_param->convolution_param().bias_term()),
@@ -50,7 +51,7 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
     p_bias_cube = new LogicalCubeType(1, 1, num_output_features, 1);
     initialize_logical_cube(p_bias_cube, bias_filler);
 
-    p_bias_gradient_cube = new LogicalCubeType(1, 1, num_output_features, 1); 
+    p_bias_gradient_cube = new LogicalCubeType(1, 1, num_output_features, 1);
   }
 
   // First, allocate the space we need for lowering
@@ -146,7 +147,7 @@ void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Data
 forward() {
 
   Util::set_num_threads(run_with_n_threads);
-  
+
   report_forward_last_transfer.reset();
 
   // (0) cast input model and output to matrix
@@ -234,7 +235,7 @@ void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Data
 backward() {
 
   Util::set_num_threads(run_with_n_threads);
-  
+
   report_backward_updateweight_last_transfer.reset();
 
   // (1) calculate the gradient of output and store in the buffer

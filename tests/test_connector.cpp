@@ -18,7 +18,7 @@ void simple_lowering(LogicalCube<T, LAYOUT>* in, LogicalCube<T, Layout_CRDB>* ou
         for(size_t ib=0;ib<in->B;ib++) {
           for(size_t cr=0;cr<(in->R-k)/s+1;cr++) {
             for(size_t cc=0;cc<(in->C-k)/s+1;cc++) {
-                *out->logical_get(outr, outc, 0, 0) = 
+                *out->logical_get(outr, outc, 0, 0) =
               *in->logical_get(cr*s+kr, cc*s+kc, kd, ib);
               outc ++;
             }
@@ -36,10 +36,10 @@ class ConnectorTest : public ::testing::Test {
  	typedef typename TypeParam::T T;
   ConnectorTest(){
   	input_cube = new LogicalCube<T, TypeParam::LAYOUT>(R,C,D,B);
- 	
+
 	output_cube = new LogicalCube<T, Layout_CRDB>(k*k*D,((R-k)/s+1)*((C-k)/s+1)*B,1,1);
-  	connector_ = new Connector<T, TypeParam::LAYOUT, T, Layout_CRDB, LOWERING_TYPE1>(input_cube, output_cube, 
-		k, p, s);	
+        connector_ = new Connector<T, TypeParam::LAYOUT, T, Layout_CRDB, LOWERING_TYPE1>(input_cube, output_cube,
+		k, p, s);
   }
 
   virtual ~ConnectorTest() { delete connector_; }
@@ -80,15 +80,15 @@ TYPED_TEST(ConnectorTest, TestLowering){
       for(int d=0;d<this->input_cube->D;d++){
         for(int b=0;b<this->input_cube->B;b++){
           *this->input_cube->logical_get(r,c,d,b) = rand()%10;
-        } 
-      }   
+        }
+      }
     }
   }
 
   LogicalCube<T, Layout_CRDB>* expected_output = new LogicalCube<T, Layout_CRDB>(k*k*D,oR*oC*B,1,1);
   simple_lowering<T,TypeParam::LAYOUT>(this->input_cube,expected_output,k,s);
 
-  int n = this->output_cube->n_elements; 
+  int n = this->output_cube->n_elements;
   this->connector_->lower_cube(this->input_cube, this->output_cube);
 
   for(int i=0; i<n; i++){
@@ -100,12 +100,12 @@ TYPED_TEST(ConnectorTest, TestLowering){
 //TODO -- Check for inverse lowering
 /*
 TYPED_TEST(ConnectorTest, TestInverseLowering){
-	for(int i=0; i<this->output_cube->n_elements; i++){
-		this->output_cube->p_data[i] = i;
-  	}
+  for(int i=0; i<this->output_cube->n_elements; i++){
+    this->output_cube->p_data[i] = i;
+  }
 
 
- 	typedef typename TypeParam::T T;
+  typedef typename TypeParam::T T;
   LogicalCube<T, Layout_CRDB> input_expected(5, 5, 3, 1);
 
   this->connector_->inverse_lower_cube(this->output_cube, this->input_cube);
@@ -115,16 +115,16 @@ TYPED_TEST(ConnectorTest, TestInverseLowering){
 
   cout << "Inverse Lowered Cube" << endl;
   this->input_cube->logical_print();
-	if (TypeParam::LAYOUT == Layout_CRDB){
-	  	for(int i=0; i<this->output_cube->n_elements; i++){
-	  		*input_expected.logical_get((i/24)%3+(i/2)%2, (i/8)%3+(i%2), i/72, (i/4)%2) += *this->output_cube->logical_get(i/8,i%8,0,0);
-		}
+  if (TypeParam::LAYOUT == Layout_CRDB){
+    for(int i=0; i<this->output_cube->n_elements; i++){
+      *input_expected.logical_get((i/24)%3+(i/2)%2, (i/8)%3+(i%2), i/72, (i/4)%2) += *this->output_cube->logical_get(i/8,i%8,0,0);
+    }
 
-		for(int i=0; i<this->input_cube->n_elements; i++){
-	  		//EXPECT_NEAR(input_expected.p_data[i], this->input_cube->p_data[i],EPS);
-		}
+    for(int i=0; i<this->input_cube->n_elements; i++){
+      //EXPECT_NEAR(input_expected.p_data[i], this->input_cube->p_data[i],EPS);
+    }
 
-	}
+  }
 }
 */
 

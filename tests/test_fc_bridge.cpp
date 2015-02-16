@@ -61,11 +61,11 @@ class FCBridgeTest : public ::testing::Test {
           layer2c, &layer_param, &solver_param);
     }
 
-    virtual ~FCBridgeTest() { 
+    virtual ~FCBridgeTest() {
       delete data1; delete data2; delete grad1; delete grad2; delete layer1; delete layer2;
       delete data1c; delete data2c; delete grad1c; delete grad2c; delete layer1c; delete layer2c;
     }
-    
+
     ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>* ConvolutionBridge_;
     FullyConnectedBridge< T, Layout_CRDB, T, Layout_CRDB>* FullyConnectedBridge_;
 
@@ -118,20 +118,20 @@ TYPED_TEST(FCBridgeTest, TestForward) {
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
       input >> this->data1->p_data[i];
       this->data1c->p_data[i] = this->data1->p_data[i];
-    }  
+    }
   }
   else{
     FAIL();
   }
   input.close();
-  
+
   std::fstream model("tests/input/conv_model.txt", std::ios_base::in);
   if (model.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->oD;i++){
       model >> this->ConvolutionBridge_->get_model_cube()->p_data[i];
-    this->FullyConnectedBridge_->get_model_cube()->p_data[i] = 
+    this->FullyConnectedBridge_->get_model_cube()->p_data[i] =
       this->ConvolutionBridge_->get_model_cube()->p_data[i];
-    }  
+    }
   }
   else{
     FAIL();
@@ -142,9 +142,9 @@ TYPED_TEST(FCBridgeTest, TestForward) {
   if (bias_file.is_open()){
     for(int i=0;i<this->oD;i++){
       bias_file >> this->ConvolutionBridge_->get_bias_cube()->p_data[i];
-    this->FullyConnectedBridge_->get_bias_cube()->p_data[i] = 
+    this->FullyConnectedBridge_->get_bias_cube()->p_data[i] =
       this->ConvolutionBridge_->get_bias_cube()->p_data[i];
-    }  
+    }
   }
   else{
     FAIL();
@@ -170,20 +170,20 @@ TYPED_TEST(FCBridgeTest, TestBackward) {
       this->data1c->p_data[i] = this->data1->p_data[i];
       this->grad1->p_data[i] = 0;
       this->grad1c->p_data[i] = this->grad1->p_data[i];
-    }  
+    }
   }
   else{
     FAIL();
   }
   input.close();
-  
+
   std::fstream model("tests/input/conv_backward_model.txt", std::ios_base::in);
   if (model.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->oD;i++){
       model >> this->ConvolutionBridge_->get_model_cube()->p_data[i];
-    this->FullyConnectedBridge_->get_model_cube()->p_data[i] = 
+    this->FullyConnectedBridge_->get_model_cube()->p_data[i] =
       this->ConvolutionBridge_->get_model_cube()->p_data[i];
-    }  
+    }
   }
   else{
     FAIL();
@@ -194,15 +194,15 @@ TYPED_TEST(FCBridgeTest, TestBackward) {
   if (bias_file.is_open()){
     for(int i=0;i<this->oD;i++){
       bias_file >> this->ConvolutionBridge_->get_bias_cube()->p_data[i];
-    this->FullyConnectedBridge_->get_bias_cube()->p_data[i] = 
+    this->FullyConnectedBridge_->get_bias_cube()->p_data[i] =
       this->ConvolutionBridge_->get_bias_cube()->p_data[i];
-    }  
+    }
   }
   else{
     FAIL();
   }
   bias_file.close();
- 
+
   int oR = this->oR;
   int oC = this->oC;
 
@@ -223,14 +223,14 @@ TYPED_TEST(FCBridgeTest, TestBackward) {
   for (int i=0;i<this->iR*this->iC*this->iD*this->mB;i++) {
     EXPECT_NEAR(this->grad1->p_data[i], this->grad1c->p_data[i], EPS);
   }
-  
+
   for (int i=0;i<this->oD;i++) {
-    EXPECT_NEAR(this->FullyConnectedBridge_->get_bias_cube()->p_data[i], 
+    EXPECT_NEAR(this->FullyConnectedBridge_->get_bias_cube()->p_data[i],
       this->ConvolutionBridge_->get_bias_cube()->p_data[i], EPS);
   }
 
   for (int i=0;i<this->k*this->k*this->iD*this->oD;i++) {
-    EXPECT_NEAR(this->FullyConnectedBridge_->get_model_cube()->p_data[i], 
+    EXPECT_NEAR(this->FullyConnectedBridge_->get_model_cube()->p_data[i],
       this->ConvolutionBridge_->get_model_cube()->p_data[i], EPS);
   }
 

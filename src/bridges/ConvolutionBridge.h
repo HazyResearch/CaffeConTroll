@@ -28,7 +28,6 @@ enum ConvolutionBridgeType {
  *   - LAYERTYPE defines {GPU, CPU} x {Types of lowering}
  *   - FUNC defines the non-linear function that will be applied to the output
  *     - {No func, TANH}
- *     - TODO: We need ReLU, etc.
  **/
 template
 <ConvolutionBridgeType LAYERTYPE, NonLinearFunction FUNC,

@@ -24,7 +24,7 @@ TEST(GroupingTest, RunTest) {
   construct_network(bridges, *corpus, net_param, solver_param);
 
   // First, test the execution order
-  EXPECT_EQ(bridges[0]->name, "conv1"); // The dupliate here is where grouping happens
+  EXPECT_EQ(bridges[0]->name, "conv1"); // The duplicate here is where grouping happens
   EXPECT_EQ(bridges[1]->name, "conv1");
   EXPECT_EQ(bridges[2]->name, "relu1");
   EXPECT_EQ(bridges[3]->name, "relu1");

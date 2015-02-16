@@ -107,4 +107,10 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward()
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
 }
 
+template <typename DataType>
+SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::~SoftmaxLossBridge() {
+  // For now, this is the best place to free the memory associated with data labels
+  delete p_data_labels;
+}
+
 #endif

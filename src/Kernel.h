@@ -38,13 +38,13 @@ public:
     typedef LogicalCube<Input2DataType, Input2Layout> Input2LogicalCubeType;
     typedef LogicalCube<OutputDataType, OutputLayout> OutputLogicalCubeType;
 
-    const size_t i1R, i1C, i1D, i1B; /*< Size of the input LogicalCube 1 */
-    const size_t i2R, i2C, i2D, i2B; /*< Size of the input LogicalCube 2 */
-    const size_t oR, oC, oD, oB; /*< Size of the output LogicalCube */
+    const size_t i1R, i1C, i1D, i1B; // Size of the input LogicalCube.
+    const size_t i2R, i2C, i2D, i2B; // Size of the input LogicalCube.
+    const size_t oR, oC, oD, oB; // Size of the output LogicalCub.
 
-    Report report_constructor; /*< Performance reporter for constructor function. */
-    Report report_last_lowering; /*< Performance reporter for the last run of transfer() function. */
-    Report report_history; /*< Performance reporter for all transfer() functions aggregated. */
+    Report report_constructor; // Performance reporter for constructor function.
+    Report report_last_lowering; // Performance reporter for the last run of transfer() function.
+    Report report_history; // Performance reporter for all transfer() functions aggregated.
 
     /**
      * Similar to Connector()'s constructor.
@@ -52,14 +52,14 @@ public:
     Kernel(const Input1LogicalCubeType * const p_input1_cube,
            const Input2LogicalCubeType * const p_input2_cube,
            const OutputLogicalCubeType * const p_output_cube){
-        std::cerr << "ERROR: Using a kernel with unsupported Layout or DataType." << std::endl;
+        cerr << "ERROR: Using a kernel with unsupported Layout or DataType." << endl;
         assert(false);
     }
 
     void compute(const Input1LogicalCubeType * const p_input1_cube,
                   const Input2LogicalCubeType * const p_input2_cube,
                   OutputLogicalCubeType * const p_output_cube){
-        std::cerr << "ERROR: Using a kernel with unsupported Layout or DataType." << std::endl;
+        cerr << "ERROR: Using a kernel with unsupported Layout or DataType." << endl;
         assert(false);
     }
 
@@ -121,7 +121,6 @@ public:
            const OutputLogicalCubeType * const p_output_cube);
 
     void compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube, OutputLogicalCubeType * const p_output_cube);
-
 };
 
 

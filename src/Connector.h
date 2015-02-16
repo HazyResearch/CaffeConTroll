@@ -23,15 +23,15 @@ class Connector {
     typedef LogicalCube<InputDataType, InputLayout> InputLogicalCubeType;
     typedef LogicalCube<OutputDataType, OutputLayout> OutputLogicalCubeType;
 
-    const size_t iR, iC, iD, iB; /*< Size of the input LogicalCube */
-    const size_t oR, oC, oD, oB; /*< Size of the output LogicalCube */
+    const size_t iR, iC, iD, iB; // Size of the input LogicalCube
+    const size_t oR, oC, oD, oB; // Size of the output LogicalCube
 
-    Report report_constructor; /*< Performance reporter for constructor function. */
-    Report report_last_lowering; /*< Performance reporter for the last run of transfer() function. */
-    Report report_history; /*< Performance reporter for all transfer() functions aggregated. */
+    Report report_constructor; // Performance reporter for constructor function.
+    Report report_last_lowering; // Performance reporter for the last run of transfer() function.
+    Report report_history; // Performance reporter for all transfer() functions aggregated.
 
-    Report report_last_inverse_lowering; /*< Performance reporter for the last run of inverse_lower_cube() function. */
-    Report report_inverse_history; /*< Performance reporter for all inverse_lower_cube() functions aggregated. */
+    Report report_last_inverse_lowering; // Performance reporter for the last run of inverse_lower_cube() function.
+    Report report_inverse_history; // Performance reporter for all inverse_lower_cube() functions aggregated.
 
     /**
      * The constructor of a connector allocates necessary memory for
@@ -45,7 +45,7 @@ class Connector {
      **/
     Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
         const size_t _kernel_size, const size_t _padding, const size_t _stride) {
-      std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
+      cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << endl;
       assert(false);
     }
 
@@ -55,7 +55,7 @@ class Connector {
      *
      **/
     void lower_cube(InputLogicalCubeType * p_input_cube, OutputLogicalCubeType * p_output_cube) {
-      std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
+      cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << endl;
       assert(false);
     }
 
@@ -64,7 +64,7 @@ class Connector {
      * p_input_cube.
      **/
     void inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube) {
-      std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
+      cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << endl;
       assert(false);
     }
 
@@ -135,7 +135,6 @@ class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE2> {
     void lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
 
     void inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube);
-
 };
 
 #include "Connector_impl_Lowering_type1.hxx"
