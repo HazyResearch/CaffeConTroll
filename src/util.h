@@ -14,9 +14,7 @@
 #include <random>
 #include <float.h>
 #include <limits>
-// These two includes are from OpenBlas
-#include "common.h"
-#include "cblas.h"
+#include "cblas.h" // cblas include
 
 enum InitializerType {
   CONSTANT = 0,
