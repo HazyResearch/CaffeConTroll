@@ -109,7 +109,8 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward()
 
 template <typename DataType>
 SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::~SoftmaxLossBridge() {
-  // For now, this is the best place to free the memory associated with data labels
+  // For now, this is the best place to free the memory associated with data labels,
+  // since only one bridge will have a pointer to the data labels
   delete p_data_labels;
 }
 

@@ -52,7 +52,7 @@ void FunnelBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
     }
   }
 
-  report_forward_last_transfer.end(1.0*iB*iD*iR*iC*sizeof(DataType), 
+  report_forward_last_transfer.end(1.0*iB*iD*iR*iC*sizeof(DataType),
           iB*iD*pooled_height*pooled_width*(sizeof(DataType)+sizeof(size_t)), 0);
   report_forward_history.aggregate(report_forward_last_transfer);
 }
@@ -69,7 +69,7 @@ void FunnelBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
   p_input_layer->p_gradient_cube->reset_cube();
 
   size_t real_depth;
-  for(int i_cube = 0; i_cube < p_input_layers.size(); i_cube ++){
+  for(int i_cube = 0; i_cube < p_input_layers.size(); i_cube++){
     LogicalCube<DataType, Layout_CRDB> * real_input_cube = p_input_layers[i_cube]->p_gradient_cube;
     for (size_t b_i = 0; b_i < iB; ++b_i) {
       for (size_t d_i = 0; d_i < iD; ++d_i) {

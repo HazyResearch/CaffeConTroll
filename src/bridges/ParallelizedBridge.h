@@ -16,8 +16,6 @@
 #include <thread>
 #include <vector>
 
-using std::vector;
-
 // For now, we only support Layout_CRDB
 template<typename DataType, typename BridgeType>
 class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> {

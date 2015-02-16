@@ -23,12 +23,12 @@
 template
 <typename DataType, LayoutType DataLayout>
 class Layer {
-public:
+  public:
     static Layer<DataType, DataLayout> * make_layer(const int N, const int I, const int B, const int K, const int O) {
-        return new Layer<DataType, DataLayout>(
-           new LogicalCube<DataType, DataLayout>(N, N, I, B),
-           new LogicalCube<DataType, DataLayout>(N, N, I, B)
-        );
+      return new Layer<DataType, DataLayout>(
+          new LogicalCube<DataType, DataLayout>(N, N, I, B),
+          new LogicalCube<DataType, DataLayout>(N, N, I, B)
+          );
     }
 
     typedef LogicalCube<DataType, DataLayout> DataLogicalCubeType;
@@ -40,16 +40,19 @@ public:
     const size_t dR, dC, dD, dB;
     const size_t gR, gC, gD, gB;
 
-    Layer(DataLogicalCubeType * const _p_data_cube,
-          GradientLogicalCubeType * const _p_gradient_cube) :
-        p_data_cube(_p_data_cube),
-        p_gradient_cube(_p_gradient_cube),
-        dR(_p_data_cube->R), dC(_p_data_cube->C), dD(_p_data_cube->D), dB(_p_data_cube->B),
-        gR(_p_gradient_cube->R), gC(_p_gradient_cube->C), gD(_p_gradient_cube->D), gB(_p_gradient_cube->B)
-    {
+    Layer(DataLogicalCubeType * const _p_data_cube, GradientLogicalCubeType * const _p_gradient_cube) :
+      p_data_cube(_p_data_cube), p_gradient_cube(_p_gradient_cube),
+      dR(_p_data_cube->R), dC(_p_data_cube->C),
+      dD(_p_data_cube->D), dB(_p_data_cube->B),
+      gR(_p_gradient_cube->R), gC(_p_gradient_cube->C),
+      gD(_p_gradient_cube->D), gB(_p_gradient_cube->B) {
 #ifdef _DO_ASSERT
         assert(dR==gR); assert(dC==gC); assert(dD==gD); assert(dB==gB);
 #endif
+      }
+
+    ~Layer() {
+      delete p_data_cube; delete p_gradient_cube;
     }
 };
 

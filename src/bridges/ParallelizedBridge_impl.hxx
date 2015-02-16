@@ -109,7 +109,7 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
       memcpy(p_bias_cube->p_data, example_bias->p_data, p_bias_cube->n_elements*sizeof(DataType));
       p_bias_grad = new LogicalCubeType(example_bias->R, example_bias->C, example_bias->D, example_bias->B);
       p_grad_updater_bias = new SGDGradientUpdater<DataType>(p_bias_cube->n_elements, p_bias_cube->p_data, _solver_param);
-    
+
       if(_layer_param->blobs_lr_size() >1){
         bias_base_learning_rate = _layer_param->blobs_lr(1);
       }
@@ -209,7 +209,7 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
     DataType * const p_grad_data = p_bias_grad->p_data;
     for (size_t i = 0; i < n_partition; ++i) {
       DataType * const p_subbias_data = _bridges[i]->get_bias_grad_cube()->p_data;
-      for (size_t j=0;j<bias_n_element;j++) {
+      for (size_t j = 0; j < bias_n_element; j++) {
         p_grad_data[j] += p_subbias_data[j];
       }
     }
@@ -231,12 +231,16 @@ ParallelizedBridge<DataType, BridgeType>::~ParallelizedBridge() {
     delete (*layer);
   }
 
-  for (auto cube = _data_cubes_lower.begin(); cube != _data_cubes_lower.end(); ++cube) {
-    delete (*cube);
+  for (auto bridge = _bridges.begin(); bridge != _bridges.end(); ++bridge) {
+    delete (*bridge);
   }
 
-  for (auto cube = _grad_cubes_lower.begin(); cube != _grad_cubes_lower.end(); ++cube) {
-    delete (*cube);
+  if (p_model_cube) {
+    delete p_model_cube;
+  }
+
+  if (p_bias_cube) {
+    delete p_bias_cube;
   }
 }
 

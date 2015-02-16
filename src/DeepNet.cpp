@@ -6,20 +6,12 @@ inline size_t compute_conv_next_layer_dimension(const size_t R_i, const size_t K
   return (R_i + 2 * padding - K) / stride + 1;
 }
 
-void clean_up(BridgeVector & bridges, Corpus * const corpus, vector<LayerFloat *> & prev_layers,
-    vector<LayerFloat *> & next_layers) {
+void clean_up(BridgeVector & bridges, Corpus * const corpus) {
+  delete bridges.front()->p_input_layer;
   for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
     delete (*bridge);
+    delete (*bridge)->p_output_layer;
   }
-
-  for (auto layer = prev_layers.begin(); layer != prev_layers.end(); ++layer) {
-    delete (*layer);
-  }
-
-  for (auto layer = next_layers.begin(); layer != next_layers.end(); ++layer) {
-    delete (*layer);
-  }
-
   delete corpus;
 }
 
@@ -121,12 +113,12 @@ int find_accuracy(const LogicalCubeFloat * const labels, const LogicalCubeFloat 
 // This takes in the bridge vector (which has been initialized to be empty in load_and_train_network)
 // and builds up a list of bridges in the vector in the order in which they will be executed in the forward
 // pass. Only the bridges variable is modified.
-void construct_network(BridgeVector & bridges, Corpus & corpus, vector<LayerFloat *> & prev_layers,
-    vector<LayerFloat *> & next_layers, const cnn::NetParameter & net_param,
+void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetParameter & net_param,
   const cnn::SolverParameter & solver_param) {
   size_t input_R = corpus.n_rows, input_C = corpus.n_cols, input_D = corpus.dim, B = corpus.mini_batch_size;
           //, last_B = corpus.last_batch_size;
 
+  vector<LayerFloat *> prev_layers, next_layers;
   // Create the Logical Cubes for the initial data layer
   LogicalCubeFloat * prev_data = new LogicalCubeFloat(corpus.images->physical_get_RCDslice(0), input_R, input_C, input_D, B);
   LogicalCubeFloat * prev_grad = new LogicalCubeFloat(input_R, input_C, input_D, B);
@@ -531,8 +523,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 }
 
 Corpus * load_network(const char * file, const string & data_binary, cnn::SolverParameter & solver_param,
-    cnn::NetParameter & net_param, BridgeVector & bridges, vector<LayerFloat *> & prev_layers,
-    vector<LayerFloat *> & next_layers, bool train) {
+    cnn::NetParameter & net_param, BridgeVector & bridges, bool train) {
 
   if (Parser::read_proto_from_text_file(file, &solver_param) &&
   Parser::read_net_params_from_text_file(solver_param.net(), &net_param)) {
@@ -549,7 +540,7 @@ Corpus * load_network(const char * file, const string & data_binary, cnn::Solver
     cout << "CORPUS LAST BATCH SIZE: " << corpus.last_batch_size << endl;
 #endif
 
-    construct_network(bridges, *corpus, prev_layers, next_layers, net_param, solver_param);
+    construct_network(bridges, *corpus, net_param, solver_param);
 
     return corpus;
   } else {
@@ -599,8 +590,6 @@ float test_network(const BridgeVector & bridges, const Corpus & corpus, const cn
     labels->p_data = corpus.labels->physical_get_RCDslice(corpus_batch_index);
     // forward pass
     for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
-      //(*bridge)->p_input_layer->p_gradient_cube->reset_cube();
-      //(*bridge)->p_output_layer->p_data_cube->reset_cube();
       (*bridge)->forward();
     }
     t_forward = t.elapsed();
@@ -659,9 +648,8 @@ float test_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 void load_and_train_network(const char * file, const string data_binary, const string model_file) {
 
   BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
-  vector<LayerFloat *> prev_layers, next_layers;
-  Corpus * const corpus = load_network(file, data_binary, solver_param, net_param, bridges,
-      prev_layers, next_layers, true);
+  Corpus * const corpus = load_network(file, data_binary, solver_param, net_param,
+      bridges, true);
 
   // Now, the bridges vector is fully populated
   train_network(bridges, *corpus, net_param, solver_param);
@@ -671,15 +659,15 @@ void load_and_train_network(const char * file, const string data_binary, const s
     write_model_to_file(bridges, model_file);
   }
   // Clean up!
-  clean_up(bridges, corpus, prev_layers, next_layers);
+  clean_up(bridges, corpus);
 }
 
 float load_and_test_network(const char * file, const string data_binary, const string model_file) {
 
   BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
   vector<LayerFloat *> prev_layers, next_layers;
-  Corpus * const corpus = load_network(file, data_binary, solver_param, net_param, bridges,
-      prev_layers, next_layers, false);
+  Corpus * const corpus = load_network(file, data_binary, solver_param, net_param,
+      bridges, false);
 
   if (model_file != "NA") {
     read_model_from_file(bridges, model_file);
@@ -690,5 +678,5 @@ float load_and_test_network(const char * file, const string data_binary, const s
     return -1;
   }
 
-  clean_up(bridges, corpus, prev_layers, next_layers);
+  clean_up(bridges, corpus);
 }
