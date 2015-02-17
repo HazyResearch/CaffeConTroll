@@ -42,6 +42,9 @@ void read_from_file(LogicalCube<float, Layout_CRDB> * cube, std::ostream & input
             cube->p_data[idx++] = element;
         }
     }
+    else{
+        FAIL();
+    }
 }
 
 #endif
