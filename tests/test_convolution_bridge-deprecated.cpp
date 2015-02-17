@@ -120,12 +120,8 @@ TYPED_TEST(ConvolutionBridgeTest, TestForward) {
     T output;
     int idx = 0;
     if (expected_output.is_open()) {
-      expected_output >> output;
-      while (!expected_output.eof()) {
-        EXPECT_NEAR(this->data2->p_data[idx], output, EPS);
-        expected_output >> output;
-        idx++;
-      }
+      while (expected_output >> output) 
+        EXPECT_NEAR(this->data2->p_data[idx++], output, EPS);
     }else{
       FAIL();
     }
@@ -168,12 +164,8 @@ TYPED_TEST(ConvolutionBridgeTest, TestBackward) {
   T output;
   int idx = 0;
   if (expected_output.is_open()) {
-    expected_output >> output;
-    while (!expected_output.eof()) {
-      EXPECT_NEAR(this->grad1->p_data[idx], output, EPS);
-      expected_output >> output;
-      idx++;
-    }
+    while (expected_output >> output) 
+      EXPECT_NEAR(this->grad1->p_data[idx++], output, EPS);
   }else{
     FAIL();
   }
@@ -183,12 +175,8 @@ TYPED_TEST(ConvolutionBridgeTest, TestBackward) {
 
   idx = 0;
   if (expected_bias.is_open()) {
-    expected_bias >> output;
-    while (!expected_bias.eof()) {
-      EXPECT_NEAR(this->ConvolutionBridge_->get_bias_cube()->p_data[idx], output, EPS);
-      expected_bias >> output;
-      idx++;
-    }
+    while (expected_bias >> output) 
+      EXPECT_NEAR(this->ConvolutionBridge_->get_bias_cube()->p_data[idx++], output, EPS); 
   }else{
     FAIL();
   }
@@ -197,12 +185,8 @@ TYPED_TEST(ConvolutionBridgeTest, TestBackward) {
   std::fstream expected_weights("tests/conv_weights.txt", std::ios_base::in);
   idx = 0;
   if (expected_weights.is_open()) {
-    expected_weights >> output;
-    while (!expected_weights.eof()) {
-      EXPECT_NEAR(this->ConvolutionBridge_->get_model_cube()->p_data[idx], output, 0.9);
-      expected_weights >> output;
-      idx++;
-    }
+    while (expected_weights >> output) 
+      EXPECT_NEAR(this->ConvolutionBridge_->get_model_cube()->p_data[idx++], output, 0.9);
   }else{
     FAIL();
   }

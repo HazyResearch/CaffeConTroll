@@ -83,11 +83,8 @@ TYPED_TEST(dropoutBridgeTest, TestForward) {
   int m;
   int idx = 0;
   if (mask_cube_file.is_open()) {
-    mask_cube_file >> m;
-    while (!mask_cube_file.eof()) {
-      this->dropoutBridge_->mask_cube->p_data[idx] = m;
-      mask_cube_file >> m;
-      idx++;
+    while (mask_cube_file >> m) {
+      this->dropoutBridge_->mask_cube->p_data[idx++] = m;
     }
   }else{
     FAIL();
@@ -101,11 +98,8 @@ TYPED_TEST(dropoutBridgeTest, TestForward) {
   T output;
   idx = 0;
   if (expected_output.is_open()) {
-    expected_output >> output;
-    while (!expected_output.eof()) {
-      EXPECT_NEAR(this->data2->p_data[idx], output, EPS);
-      expected_output >> output;
-      idx++;
+    while (expected_output >> output) {
+      EXPECT_NEAR(this->data2->p_data[idx++], output, EPS);
     }
   }else{
     FAIL();
@@ -135,11 +129,8 @@ TYPED_TEST(dropoutBridgeTest, TestBackward) {
   int m;
   int idx = 0;
   if (mask_cube_file.is_open()) {
-    mask_cube_file >> m;
-    while (!mask_cube_file.eof()) {
-      this->dropoutBridge_->mask_cube->p_data[idx] = m;
-      mask_cube_file >> m;
-      idx++;
+    while (mask_cube_file >> m) {
+      this->dropoutBridge_->mask_cube->p_data[idx++] = m;
     }
   }else{
     FAIL();
@@ -155,11 +146,8 @@ TYPED_TEST(dropoutBridgeTest, TestBackward) {
   T output;
   idx = 0;
   if (expected_output.is_open()) {
-    expected_output >> output;
-    while (!expected_output.eof()) {
-      EXPECT_NEAR(this->grad1->p_data[idx], output, EPS);
-      expected_output >> output;
-      idx++;
+    while (expected_output >> output) {
+      EXPECT_NEAR(this->grad1->p_data[idx++], output, EPS);
     }
   }else{
     FAIL();
