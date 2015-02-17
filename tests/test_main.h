@@ -34,7 +34,7 @@ void compare_to_expected(LogicalCube<float, Layout_CRDB> * actual, std::ostream 
     }
 }
 
-void read_from_file(LogicalCube<float, Layout_CRDB> * cube, std::ostream & input){
+void read_from_file(LogicalCube<float, Layout_CRDB> * cube, std::istream & input){
     float element;
     int idx = 0;
     if(input.is_open()){
