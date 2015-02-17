@@ -14,8 +14,8 @@
 #include "util.h"
 
 enum LayoutType {
-    Layout_CRDB = 0,
-    Layout_BDRC = 1
+  Layout_CRDB = 0,
+  Layout_BDRC = 1
 };
 
 /*
@@ -33,16 +33,15 @@ enum LayoutType {
  */
 template <typename T, LayoutType LAYOUT>
 class LogicalCube {
-public:
+  public:
 
-    T* /*const*/ p_data; //TODO: fix this later, when we don't have to update p_data for each mini-batch
     const size_t n_elements;
 
     const size_t R;
     const size_t C;
     const size_t D;
-    /*const*/ size_t B; //TODO: fix this later, too, for the same reason
-    bool own_data;
+    /*const*/ size_t B; //TODO: create getter and setter
+    const bool own_data;
 
     /**
      * Constructor that points to existing data.
@@ -59,6 +58,13 @@ public:
     LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B);
 
     ~LogicalCube();
+
+    T * const get_p_data() const;
+    /**
+     * Update p_data to point to data.
+     * (Note: only allowed if own_data set to false)
+     **/
+    void set_p_data(T * const data);
 
     /**
      * Get the pointer that points to the physical position
@@ -104,37 +110,43 @@ public:
      *
      **/
     void logical_print() const;
+
+    /**
+     * Print to STDOUT the raw values
+     * stored in p_data in sequential order.
+     **/
     void physical_print() const;
 
     LogicalMatrix<T> get_logical_matrix(size_t depth_index, size_t batch_index) const;
 
     template<LoweringType LOWERING>
-    void lower_logical_matrix(const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i,
-        const size_t kernel_size);
+      void lower_logical_matrix(const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i,
+          const size_t kernel_size);
 
     template<LoweringType LOWERING>
-    void lower_logical_matrix(const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i,
-        const size_t kernel_size, const size_t stride, const size_t padding);
+      void lower_logical_matrix(const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i,
+          const size_t kernel_size, const size_t stride, const size_t padding);
 
     template<LoweringType LOWERING>
-    void remap_output(const size_t O, const size_t B, const size_t kernel_size);
-
+      void remap_output(const size_t O, const size_t B, const size_t kernel_size);
 
     void reset_cube();
+
     void reset_cube(const T val);
 
     double size_in_GBytes(){
-        return 1.0*R*C*D*B*sizeof(T)/1024/1024/1024;
+      return 1.0*R*C*D*B*sizeof(T)/1024/1024/1024;
     }
 
-private:
+  private:
+    T * p_data; // p_data is not const, because we may have to update it per batch
 
     /**
      * Functions used for logical_get for different Layout.
      * For each Layout, we have one such function, that is why TYPECONSTRAINT is void
      **/
     template<LayoutType LAYOUT2, typename TYPECONSTRAINT = void>
-    struct LogicalFetcher {};
+      struct LogicalFetcher {};
 
     /**
      * Functions used forphysical_get_RCslice for diffent Layout.
@@ -142,22 +154,22 @@ private:
      * compilation error.
      **/
     template<LayoutType LAYOUT2, typename TYPECONSTRAINT = typename std::enable_if<LAYOUT2 == Layout_CRDB>::type>
-    struct PhysicalFetcher {};
+      struct PhysicalFetcher {};
 
     template<typename TYPECONSTRAINT>
-    struct LogicalFetcher<Layout_CRDB, TYPECONSTRAINT> {
+      struct LogicalFetcher<Layout_CRDB, TYPECONSTRAINT> {
         inline static T * logical_get(const LogicalCube<T, LAYOUT>& cube, size_t r, size_t c, size_t d, size_t b);
-    };
+      };
 
     template<typename TYPECONSTRAINT>
-    struct LogicalFetcher<Layout_BDRC, TYPECONSTRAINT> {
+      struct LogicalFetcher<Layout_BDRC, TYPECONSTRAINT> {
         inline static T * logical_get(const LogicalCube<T, LAYOUT>& cube, size_t r, size_t c, size_t d, size_t b);
-    };
+      };
 
     template<typename TYPECONSTRAINT>
-    struct PhysicalFetcher<Layout_CRDB, TYPECONSTRAINT> {
+      struct PhysicalFetcher<Layout_CRDB, TYPECONSTRAINT> {
         inline static T * physical_get_RCDslice(const LogicalCube<T, LAYOUT>& cube, size_t b);
-    };
+      };
 
     /**
      * LoweringHelper: Use the same trick as before with LogicalFetcher to
@@ -165,43 +177,43 @@ private:
      * LOWERING_TYPE1, LOWERING_TYPE2, and LOWERING_TYPE3.
      ****/
     template<LoweringType LOWERING, typename DUMMY = void>
-    struct LoweringHelper {};
+      struct LoweringHelper {};
 
     template<typename DUMMY>
-    struct LoweringHelper<LOWERING_TYPE1, DUMMY> {
-      inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
-          const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const size_t kernel_size);
+      struct LoweringHelper<LOWERING_TYPE1, DUMMY> {
+        inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
+            const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const size_t kernel_size);
 
-      inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
-          const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const int kernel_size,
-          const int stride, const int padding);
+        inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
+            const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const int kernel_size,
+            const int stride, const int padding);
 
-      inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size);
-    };
-
-    template<typename DUMMY>
-    struct LoweringHelper<LOWERING_TYPE2, DUMMY> {
-      inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
-          const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const size_t kernel_size);
-
-      inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
-          const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const int kernel_size,
-          const int stride, const int padding);
-
-      inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size);
-    };
+        inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size);
+      };
 
     template<typename DUMMY>
-    struct LoweringHelper<LOWERING_TYPE3, DUMMY> {
-      inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
-          const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const size_t kernel_size);
+      struct LoweringHelper<LOWERING_TYPE2, DUMMY> {
+        inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
+            const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const size_t kernel_size);
 
-      inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
-          const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const int kernel_size,
-          const int stride, const int padding);
+        inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
+            const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const int kernel_size,
+            const int stride, const int padding);
 
-      inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size);
-    };
+        inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size);
+      };
+
+    template<typename DUMMY>
+      struct LoweringHelper<LOWERING_TYPE3, DUMMY> {
+        inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
+            const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const size_t kernel_size);
+
+        inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
+            const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const int kernel_size,
+            const int stride, const int padding);
+
+        inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size);
+      };
 };
 
 #include "LogicalCube_impl.hxx"

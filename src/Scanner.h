@@ -32,12 +32,12 @@ public:
     Report report_history; /*< Performance reporter for all transfer() functions aggregated. */
 
     Scanner(const LogicalCubeType * const p_cube){
-        std::cerr << "ERROR: Using a scanner with unsupported Layout or DataType." << std::endl;
+        cerr << "ERROR: Using a scanner with unsupported Layout or DataType." << endl;
         assert(false);
     }
 
     void apply(LogicalCubeType * const p_cube){
-        std::cerr << "ERROR: Using a scanner with unsupported Layout or DataType." << std::endl;
+        cerr << "ERROR: Using a scanner with unsupported Layout or DataType." << endl;
         assert(false);
     }
 

@@ -61,7 +61,7 @@ class FunnelBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Abstra
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_input_layer;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_output_layer;
 
-    std::vector<Layer<DataType, Layout_CRDB>* > p_input_layers;
+    vector<Layer<DataType, Layout_CRDB> *> p_input_layers;
 
     /* Re-declare these typedefs */
     typedef Layer<DataType, Layout_CRDB> InputLayerType;
@@ -77,12 +77,8 @@ class FunnelBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Abstra
     void backward();
 
   protected:
-    LogicalCube<size_t, Layout_CRDB> * max_index;
-
     size_t pooled_height;
     size_t pooled_width;
-    size_t kernel_size;
-    size_t stride;
 };
 
 #include "FunnelBridge_impl.hxx"

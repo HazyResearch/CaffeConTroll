@@ -13,7 +13,7 @@
 #include <cmath>
 #include <cstring>
 
-const double ESP2 = 0.1;  // We increase this threshold becasue 
+const double ESP2 = 0.1;  // We increase this threshold becasue
                           // of the fastPrecisePow function that we are using.
 
 template <typename TypeParam>
@@ -42,7 +42,7 @@ class LRNBridgeTest : public ::testing::Test {
 
     cnn::SolverParameter solver_param;
 
-    virtual ~LRNBridgeTest() { delete data1; delete data2; delete grad1; delete grad2; delete layer1; delete layer2;}
+    virtual ~LRNBridgeTest() { delete layer1; delete layer2; delete LRNBridge_; }
     ParallelizedBridge<DataType_SFFloat, LRNBridge<T, Layout_CRDB, T, Layout_CRDB> >* LRNBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
@@ -76,12 +76,12 @@ TYPED_TEST(LRNBridgeTest, TestInitialization){
 
 TYPED_TEST(LRNBridgeTest, TestForward){
   typedef typename TypeParam::T T;
-
+  T * const data1 = this->data1->get_p_data();
   std::fstream input("tests/input/lrn_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
-      input >> this->data1->p_data[i];
-    }  
+      input >> data1[i];
+    }
   }
   else{
     FAIL();
@@ -94,10 +94,11 @@ TYPED_TEST(LRNBridgeTest, TestForward){
 
   T output;
   int idx = 0;
+  const T * const data2 = this->data2->get_p_data();
   if (expected_output.is_open()) {
     expected_output >> output;
     while (!expected_output.eof()) {
-      EXPECT_NEAR(this->data2->p_data[idx], output, ESP2);
+      EXPECT_NEAR(data2[idx], output, ESP2);
       expected_output >> output;
       idx++;
     }
@@ -113,9 +114,10 @@ TYPED_TEST(LRNBridgeTest, TestBackward){
 
   std::fstream input("tests/input/lrn_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
+    T * const data1 = this->data1->get_p_data();
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
-      input >> this->data1->p_data[i];
-    }  
+      input >> data1[i];
+    }
   }
   else{
     FAIL();
@@ -129,9 +131,10 @@ TYPED_TEST(LRNBridgeTest, TestBackward){
 
   std::fstream grad("tests/input/lrn_backward_in.txt", std::ios_base::in);
   if (grad.is_open()){
+    T * const grad2 = this->grad2->get_p_data();
     for(int i=0;i<oR*oC*this->iD*this->mB;i++){
-      grad >> this->grad2->p_data[i];
-    }  
+      grad >> grad2[i];
+    }
   }
   else{
     FAIL();
@@ -143,10 +146,11 @@ TYPED_TEST(LRNBridgeTest, TestBackward){
   std::fstream expected_output("tests/output/lrn_backward.txt", std::ios_base::in);
   T output;
   int idx = 0;
+  const T * const grad1 = this->grad1->get_p_data();
   if (expected_output.is_open()) {
     expected_output >> output;
     while (!expected_output.eof()) {
-      EXPECT_NEAR(this->grad1->p_data[idx], output, ESP2);
+      EXPECT_NEAR(grad1[idx], output, ESP2);
       expected_output >> output;
       idx++;
     }

@@ -13,7 +13,7 @@
  * algorithm like AdaGrad. However, the caller of
  * this function should not deal with it.
  *
- * Also, this class does not know the structure of 
+ * Also, this class does not know the structure of
  * the model -- in the eye of a GradientUpdater, they
  * are just a list of parameters.
  *
@@ -21,14 +21,13 @@
 template<class DataType>
 class GradientUpdater{
 public:
+	const int n_elements; /*< # elements in the model. */
+
+	DataType * const p_model; /*< pointer to the model to update */
+
+	const cnn::SolverParameter * const p_solver; /*< object that contains solver parameters. */
 
 	int current_iter; /*< start from 0, every update inc by 1 */
-
-	const int n_elements; /*< # elements in the model. */
-	
-	DataType * const p_model; /*< pointer to the model to update */
-	
-	const cnn::SolverParameter * const p_solver; /*< object that contains solver parameters. */
 
 	/**
 	 * Given a gradient, update the model.
@@ -40,28 +39,24 @@ public:
 	}
 
 	float get_stepsize(){
-		return Util::get_learning_rate(p_solver->lr_policy(), p_solver->base_lr(), p_solver->gamma(), 
+		return Util::get_learning_rate(p_solver->lr_policy(), p_solver->base_lr(), p_solver->gamma(),
 			current_iter, p_solver->stepsize(), p_solver->power(), p_solver->max_iter());
 	}
 
 	GradientUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver) :
-		n_elements(_n_elements), p_model(_p_model), p_solver(_p_solver), current_iter(0){}
+		n_elements(_n_elements), p_model(_p_model), p_solver(_p_solver), current_iter(0) {}
 
+        virtual ~GradientUpdater() {}
 };
 
 
 template<class DataType>
 class SGDGradientUpdater : public GradientUpdater<DataType> {
 public:
-
 	using GradientUpdater<DataType>::current_iter;
-
-	using GradientUpdater<DataType>::n_elements; 
-	
+	using GradientUpdater<DataType>::n_elements;
 	using GradientUpdater<DataType>::p_model;
-	
 	using GradientUpdater<DataType>::p_solver;
-
 	using GradientUpdater<DataType>::get_stepsize;
 
 	DataType * p_history_updates;	/*< Update History */
@@ -73,7 +68,7 @@ public:
 	}
 
 	~SGDGradientUpdater(){
-		delete * p_history_updates;
+		delete p_history_updates;
 	}
 
 	void update(DataType * const p_gradient, float base_learning_rate, float base_regularization){
@@ -83,12 +78,12 @@ public:
 		const float lambda = p_solver->weight_decay() * base_regularization;
 
 		if(lambda != 0){
-    		Util::regularize(p_solver->regularization_type(), n_elements, lambda, 
-    			p_gradient, p_model);
+                  Util::regularize(p_solver->regularization_type(), n_elements, lambda,
+                      p_gradient, p_model);
   		}
 
-  		// std::cout << "STEPSIZE = " << stepsize << " MOMENTUM = " << momentum << " BASE_LR = " 
-  		//	<< base_learning_rate << " BASE_REG = " << base_regularization << std::endl ;
+                // std::cout << "STEPSIZE = " << stepsize << " MOMENTUM = " << momentum << " BASE_LR = "
+                //	<< base_learning_rate << " BASE_REG = " << base_regularization << std::endl ;
 
 		Util::math_axpby(n_elements, stepsize, p_gradient, momentum, p_history_updates);
 		Util::math_apply_grad<DataType>(n_elements, p_model, p_history_updates);
@@ -104,15 +99,10 @@ public:
 template<class DataType>
 class AdaGradUpdater : public GradientUpdater<DataType> {
 public:
-
 	using GradientUpdater<DataType>::current_iter;
-
-	using GradientUpdater<DataType>::n_elements; 
-	
+	using GradientUpdater<DataType>::n_elements;
 	using GradientUpdater<DataType>::p_model;
-	
 	using GradientUpdater<DataType>::p_solver;
-
 	using GradientUpdater<DataType>::get_stepsize;
 
 	DataType * p_history_updates;	/*< Update History */
@@ -135,10 +125,10 @@ public:
 		const float delta = p_solver->delta();
 
 		if(lambda != 0){
-		  Util::regularize(p_solver->regularization_type(), n_elements, lambda, 
-				   p_gradient, p_model);
+                  Util::regularize(p_solver->regularization_type(), n_elements, lambda,
+                      p_gradient, p_model);
   		}
-		
+
 		for(int i=0;i<n_elements;i++){
 			p_history_updates[i] += p_gradient[i]*p_gradient[i];
 			p_model[i] -= stepsize / (sqrt(p_history_updates[i])+delta) * p_gradient[i];
@@ -154,15 +144,10 @@ public:
 template<class DataType>
 class NesterovUpdater : public GradientUpdater<DataType> {
 public:
-
 	using GradientUpdater<DataType>::current_iter;
-
-	using GradientUpdater<DataType>::n_elements; 
-	
+	using GradientUpdater<DataType>::n_elements;
 	using GradientUpdater<DataType>::p_model;
-	
 	using GradientUpdater<DataType>::p_solver;
-
 	using GradientUpdater<DataType>::get_stepsize;
 
 	DataType * p_history_updates;	/*< Update History */
@@ -185,8 +170,8 @@ public:
 		//const float delta = p_solver->delta();
 
 		if(lambda != 0){
-    		Util::regularize(p_solver->regularization_type(), n_elements, lambda, 
-    			p_gradient, p_model);
+                  Util::regularize(p_solver->regularization_type(), n_elements, lambda,
+                      p_gradient, p_model);
   		}
 
   		DataType tmp;
@@ -199,7 +184,5 @@ public:
 	}
 
 };
-
-
 
 #endif

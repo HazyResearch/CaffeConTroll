@@ -9,31 +9,6 @@
 #ifndef moka_LRNBridge_impl_hxx
 #define moka_LRNBridge_impl_hxx
 
-/**
- * This function is from
- * http://martin.ankerl.com/2012/01/25/optimized-approximative-pow-in-c-and-cpp/
- **/
-inline double fastPrecisePow(double a, double b) {
-  int e = (int) b;
-  union {
-    double d;
-    int x[2];
-  } u = { a };
-  u.x[1] = (int)((b - e) * (u.x[1] - 1072632447) + 1072632447);
-  u.x[0] = 0;
-
-  double r = 1.0;
-  while (e) {
-    if (e & 1) {
-      r *= a;
-    }
-    a *= a;
-    e >>= 1;
-  }
-
-  return r * u.d;
-}
-
 template <typename DataType>
 LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::LRNBridge(InputLayerType * const _p_input_layer,
     OutputLayerType * const _p_output_layer, const cnn::LayerParameter * const _layer_param,
@@ -82,10 +57,10 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
 
   const int iRiC = iR*iC;
 
-  DataType * p_denoms = denoms->p_data;
-  DataType * p_output = p_output_layer->p_data_cube->p_data;
+  DataType * p_denoms = denoms->get_p_data();
+  DataType * p_output = p_output_layer->p_data_cube->get_p_data();
   DataType * p_input, * p_input_toremove, * p_input_toadd, * p_input_tmp, *p_input_all;
-  p_input_all = p_input_layer->p_data_cube->p_data;
+  p_input_all = p_input_layer->p_data_cube->get_p_data();
 
   // first, fill in p_denoms with the sum
   for (int i_b = 0; i_b < _iB; ++i_b) {
@@ -139,12 +114,12 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
   }
 
   // then do normalization
-  p_denoms = denoms->p_data;
-  p_output = p_output_layer->p_data_cube->p_data;
+  p_denoms = denoms->get_p_data();
+  p_output = p_output_layer->p_data_cube->get_p_data();
   const size_t n_elements = _iB*_iD*_iC*_iR;
   for (size_t i = 0; i < n_elements; ++i) {
     *p_denoms = alpha_over_size*(*p_denoms) + 1;
-    *p_output = (*p_input_all)/fastPrecisePow(*p_denoms, beta);
+    *p_output = (*p_input_all)/Util::fastPrecisePow(*p_denoms, beta);
     p_output ++;
     p_denoms ++;
     p_input_all ++;

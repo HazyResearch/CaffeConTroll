@@ -24,7 +24,7 @@ template
 class AbstractBridge : public PhysicalOperator {
   public:
 
-    std::string name;   // lets give Bridge a name
+    string name; // let's give Bridge a name
 
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
@@ -47,14 +47,14 @@ class AbstractBridge : public PhysicalOperator {
     bool bias_term;
 
     void report_forward(){
-        std::cout << std::endl;
-        std::cout << "## FOWARD REPORT OF LAYER " << name << " ##" << std::endl;
+        cout << endl;
+        cout << "## FOWARD REPORT OF LAYER " << name << " ##" << endl;
         report_forward_last_transfer.print();
     }
 
     void report_backward(){
-        std::cout << std::endl;
-        std::cout << "## BACKWARD REPORT OF LAYER " << name << " ##" << std::endl;
+        cout << endl;
+        cout << "## BACKWARD REPORT OF LAYER " << name << " ##" << endl;
         report_backward_updateweight_last_transfer.print();
     }
 
@@ -62,13 +62,13 @@ class AbstractBridge : public PhysicalOperator {
     // Bridges which subclass AbstractBridge may override these four methods later
     // (e.g. ConvolutionBridge). Most, however, won't, since only ConvolutionBridge
     // and FullyConnected Bridge have weights that need to be updated
-    virtual void set_model_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * model) {}
+    virtual void set_model_cube(const LogicalCube<InputLayerDataType, InputLayerLayout> * const model) {}
 
     virtual LogicalCube<InputLayerDataType, InputLayerLayout> * const get_model_cube() {
         return NULL;
     }
 
-    virtual void set_bias_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * bias) {}
+    virtual void set_bias_cube(const LogicalCube<InputLayerDataType, InputLayerLayout> * const bias) {}
 
     virtual LogicalCube<InputLayerDataType, InputLayerLayout> * const get_bias_cube() {
         return NULL;
@@ -105,6 +105,9 @@ class AbstractBridge : public PhysicalOperator {
         oD(_p_output_layer->p_data_cube->D), oB(_p_output_layer->p_data_cube->B),
         p_input_layer(_p_input_layer), p_output_layer(_p_output_layer), layer_param(NULL), solver_param(NULL),
         bias_term(false) {} // no-op, initialize only
+
+    // This needs to be virtual, so we can delete the subclass bridges
+    virtual ~AbstractBridge() {}
 };
 
 #endif
