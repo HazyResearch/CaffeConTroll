@@ -99,15 +99,15 @@ TYPED_TEST(ConvolutionBridgeTest, TestForward) {
   typedef typename TypeParam::T T;
   srand(1);
   for (int i=0;i<this->iR*this->iC*this->iD*this->mB;i++) {
-    this->data1->p_data[i] = rand()%10;
+    this->data1->get_p_data()[i] = rand()%10;
   }
   srand(0);
   for (int i=0;i<this->k*this->k*this->iD*this->oD;i++) {
-    this->ConvolutionBridge_->get_model_cube()->p_data[i] = rand()%10;
+    this->ConvolutionBridge_->get_model_cube()->get_p_data()[i] = rand()%10;
   }
   srand(0);
   for (int i=0;i<this->oD;i++) {
-    this->ConvolutionBridge_->get_bias_cube()->p_data[i] = 0.1*(rand()%10);
+    this->ConvolutionBridge_->get_bias_cube()->get_p_data()[i] = 0.1*(rand()%10);
   }
 
   int oR = this->oR;
@@ -122,7 +122,7 @@ TYPED_TEST(ConvolutionBridgeTest, TestForward) {
     if (expected_output.is_open()) {
       expected_output >> output;
       while (!expected_output.eof()) {
-        EXPECT_NEAR(this->data2->p_data[idx], output, EPS);
+        EXPECT_NEAR(this->data2->get_p_data()[idx], output, EPS);
         expected_output >> output;
         idx++;
       }
@@ -138,26 +138,26 @@ TYPED_TEST(ConvolutionBridgeTest, TestBackward) {
   typedef typename TypeParam::T T;
   srand(1);
   for (int i=0;i<this->iR*this->iC*this->iD*this->mB;i++) {
-    this->data1->p_data[i] = rand()%10;
-    this->grad1->p_data[i] = 0;
+    this->data1->get_p_data()[i] = rand()%10;
+    this->grad1->get_p_data()[i] = 0;
   }
 
   srand(0);
   for (int i=0;i<this->k*this->k*this->iD*this->oD;i++) {
-    this->ConvolutionBridge_->get_model_cube()->p_data[i] = rand()%2;
+    this->ConvolutionBridge_->get_model_cube()->get_p_data()[i] = rand()%2;
   }
 
   int oR = this->oR;
   int oC = this->oC;
 
   for (int i=0;i<oR*oC*this->oD*this->mB;i++) {
-    this->data2->p_data[i] = 0;
-    this->grad2->p_data[i] = i*0.1;
+    this->data2->get_p_data()[i] = 0;
+    this->grad2->get_p_data()[i] = i*0.1;
   }
 
   srand(0);
   for (int i=0;i<this->oD;i++) {
-    this->ConvolutionBridge_->get_bias_cube()->p_data[i] = 0.1*(rand()%10);
+    this->ConvolutionBridge_->get_bias_cube()->get_p_data()[i] = 0.1*(rand()%10);
   }
 
   this->ConvolutionBridge_->forward();
@@ -170,7 +170,7 @@ TYPED_TEST(ConvolutionBridgeTest, TestBackward) {
   if (expected_output.is_open()) {
     expected_output >> output;
     while (!expected_output.eof()) {
-      EXPECT_NEAR(this->grad1->p_data[idx], output, EPS);
+      EXPECT_NEAR(this->grad1->get_p_data()[idx], output, EPS);
       expected_output >> output;
       idx++;
     }
@@ -185,7 +185,7 @@ TYPED_TEST(ConvolutionBridgeTest, TestBackward) {
   if (expected_bias.is_open()) {
     expected_bias >> output;
     while (!expected_bias.eof()) {
-      EXPECT_NEAR(this->ConvolutionBridge_->get_bias_cube()->p_data[idx], output, EPS);
+      EXPECT_NEAR(this->ConvolutionBridge_->get_bias_cube()->get_p_data()[idx], output, EPS);
       expected_bias >> output;
       idx++;
     }
@@ -199,7 +199,7 @@ TYPED_TEST(ConvolutionBridgeTest, TestBackward) {
   if (expected_weights.is_open()) {
     expected_weights >> output;
     while (!expected_weights.eof()) {
-      EXPECT_NEAR(this->ConvolutionBridge_->get_model_cube()->p_data[idx], output, 0.9);
+      EXPECT_NEAR(this->ConvolutionBridge_->get_model_cube()->get_p_data()[idx], output, 0.9);
       expected_weights >> output;
       idx++;
     }

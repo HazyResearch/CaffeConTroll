@@ -31,7 +31,7 @@ class softmaxBridgeTest : public ::testing::Test {
     softmaxBridge_ = new SoftmaxLossBridge<T, Layout_CRDB, T, Layout_CRDB>(layer1, layer2, label);
    }
 
-  	virtual ~softmaxBridgeTest() { delete data1; delete data2; delete grad1; delete grad2; delete layer1; delete layer2;}
+  	virtual ~softmaxBridgeTest() { delete layer1; delete layer2; delete softmaxBridge_; }
     SoftmaxLossBridge<T, Layout_CRDB, T, Layout_CRDB>* softmaxBridge_;
 
   	LogicalCube<T, Layout_CRDB>* data1;
@@ -67,7 +67,7 @@ TYPED_TEST(softmaxBridgeTest, TestForward){
     std::fstream input("tests/input/softmax_forward_in.txt", std::ios_base::in);
     if (input.is_open()){
         for(int i=0;i<this->iD*this->mB;i++){
-          input >> this->data1->p_data[i];
+          input >> this->data1->get_p_data()[i];
         }
     }
     else{
@@ -78,7 +78,7 @@ TYPED_TEST(softmaxBridgeTest, TestForward){
     std::fstream label_file("tests/input/softmax_label.txt", std::ios_base::in);
     if (label_file.is_open()){
         for(int i=0;i<this->mB;i++){
-          label_file >> this->label->p_data[i];
+          label_file >> this->label->get_p_data()[i];
         }
     }
     else{
@@ -107,7 +107,7 @@ TYPED_TEST(softmaxBridgeTest, TestBackward){
     std::fstream label_file("tests/input/softmax_label.txt", std::ios_base::in);
     if (label_file.is_open()){
         for(int i=0;i<this->mB;i++){
-          label_file >> this->label->p_data[i];
+          label_file >> this->label->get_p_data()[i];
         }
     }
     else{
@@ -120,7 +120,7 @@ TYPED_TEST(softmaxBridgeTest, TestBackward){
     std::fstream output_file("tests/input/softmax_backward_in.txt", std::ios_base::in);
     if (output_file.is_open()){
         for(int i=0;i<this->iD*this->mB;i++){
-          output_file >> this->data2->p_data[i];
+          output_file >> this->data2->get_p_data()[i];
         }
     }
     else{
@@ -137,7 +137,7 @@ TYPED_TEST(softmaxBridgeTest, TestBackward){
     if (expected_output.is_open()) {
         expected_output >> output;
         while (!expected_output.eof()) {
-            EXPECT_NEAR(this->grad1->p_data[idx], output, EPS);
+            EXPECT_NEAR(this->grad1->get_p_data()[idx], output, EPS);
             expected_output >> output;
             idx++;
         }

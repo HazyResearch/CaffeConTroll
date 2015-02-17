@@ -33,12 +33,12 @@ TYPED_TEST_CASE(ScannerTANHTest, DataTypes);
 TYPED_TEST(ScannerTANHTest, TestApply) {
 
 	for(int i=0; i<this->cube_->n_elements; i++){
-		this->cube_->p_data[i] = i;
+		this->cube_->get_p_data()[i] = i;
 	}
 	this->scanner_->apply(this->cube_);
 
 	for(int i=0; i<this->cube_->n_elements; i++){
-		EXPECT_NEAR(this->cube_->p_data[i], tanh(i), EPS);
+		EXPECT_NEAR(this->cube_->get_p_data()[i], tanh(i), EPS);
 	}
 }
 
@@ -61,11 +61,11 @@ TYPED_TEST_CASE(ScannerNO_FUNCTest, DataTypes);
 
 TYPED_TEST(ScannerNO_FUNCTest, TestApply) {
 	for(int i=0; i<this->cube_->n_elements; i++){
-		this->cube_->p_data[i] = i;
+		this->cube_->get_p_data()[i] = i;
 	}
 	this->scanner_->apply(this->cube_);
 
 	for(int i=0; i<this->cube_->n_elements; i++){
-		EXPECT_NEAR(this->cube_->p_data[i], i, EPS);
+		EXPECT_NEAR(this->cube_->get_p_data()[i], i, EPS);
 	}
 }

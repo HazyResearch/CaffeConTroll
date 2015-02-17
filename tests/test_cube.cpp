@@ -24,7 +24,7 @@ typedef ::testing::Types<FloatCRDB, FloatBDRC> DataTypes;
 
 TYPED_TEST_CASE(LogicalCubeTest, DataTypes);
 
-TYPED_TEST(LogicalCubeTest, TestInitialization) {	
+TYPED_TEST(LogicalCubeTest, TestInitialization) {
   EXPECT_TRUE(this->cube_);
   EXPECT_EQ(this->cube_->B, 2);
   EXPECT_EQ(this->cube_->D, 3);
@@ -36,7 +36,7 @@ TYPED_TEST(LogicalCubeTest, TestInitialization) {
 TYPED_TEST(LogicalCubeTest, TestLogicalFetcher) {
 
   for(int i=0; i<this->cube_->n_elements; i++){
-		this->cube_->p_data[i] = i;
+		this->cube_->get_p_data()[i] = i;
   }
   typedef typename TypeParam::T T;
   T * dataptr;
@@ -45,11 +45,11 @@ TYPED_TEST(LogicalCubeTest, TestLogicalFetcher) {
 			for(int c=0;c<this->cube_->C;c++){
 				for(int d=0;d<this->cube_->D;d++){
 					for(int b=0;b<this->cube_->B;b++){
-						dataptr = this->cube_->logical_get(r,c,d,b);	
-						int actual = this->cube_->p_data[b + d*this->cube_->B + r*this->cube_->B*this->cube_->D + c*this->cube_->B*this->cube_->R*this->cube_->D];
+						dataptr = this->cube_->logical_get(r,c,d,b);
+						int actual = this->cube_->get_p_data()[b + d*this->cube_->B + r*this->cube_->B*this->cube_->D + c*this->cube_->B*this->cube_->R*this->cube_->D];
 						EXPECT_EQ(*dataptr, actual);
-					}	
-				}		
+					}
+				}
 			}
 		}
    }
@@ -59,14 +59,14 @@ TYPED_TEST(LogicalCubeTest, TestLogicalFetcher) {
 			for(int c=0;c<this->cube_->C;c++){
 				for(int d=0;d<this->cube_->D;d++){
 					for(int b=0;b<this->cube_->B;b++){
-						dataptr = this->cube_->logical_get(r,c,d,b);	
-						int actual = this->cube_->p_data[c + r*this->cube_->C + d*this->cube_->R*this->cube_->C + b*this->cube_->R*this->cube_->C*this->cube_->D];
+						dataptr = this->cube_->logical_get(r,c,d,b);
+						int actual = this->cube_->get_p_data()[c + r*this->cube_->C + d*this->cube_->R*this->cube_->C + b*this->cube_->R*this->cube_->C*this->cube_->D];
 						EXPECT_EQ(*dataptr, actual);
-					}		
-				}		
+					}
+				}
 			}
 		}
-   }	  
+   }
 }
 
 // Testing RCD Slice -- implemented only for CRDB Layout
@@ -80,14 +80,14 @@ class LogicalCubeTest_CRDB : public ::testing::Test {
 
 TEST_F(LogicalCubeTest_CRDB, TestRCDSlice){
 	for(size_t i=0; i<this->cube_->n_elements; i++){
-		this->cube_->p_data[i] = i;
+		this->cube_->get_p_data()[i] = i;
   	}
-  	
+
   	DataType_SFFloat * dataptr;
 
   	for(size_t b=0;b<this->cube_->B;b++){
-		dataptr = this->cube_->physical_get_RCDslice(b);	
-		assert(*dataptr == this->cube_->p_data[b*this->cube_->R*this->cube_->C*this->cube_->D]);		
-	}	
+		dataptr = this->cube_->physical_get_RCDslice(b);
+		assert(*dataptr == this->cube_->get_p_data()[b*this->cube_->R*this->cube_->C*this->cube_->D]);
+	}
 }
 

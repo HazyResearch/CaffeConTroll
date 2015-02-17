@@ -77,7 +77,6 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
     stratum.executors.push_back((PhysicalOperator *)_bridges[ib]);
   }
 
-
   // create the master model for this parallel bridge
   assert(_bridges.size() >= 1); // we need at least one partition.
   BridgeType * const example_bridge = _bridges[0]; // get one convbrdige as example
@@ -101,6 +100,7 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
   } else {
     p_model_cube = NULL;
     p_model_grad = NULL;
+    p_grad_updater = NULL;
   }
 
   if (example_bridge->bias_term) {
@@ -120,9 +120,13 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
 
     } else {
       p_bias_cube = NULL;
+      p_bias_grad = NULL;
+      p_grad_updater_bias = NULL;
     }
   } else {
     p_bias_cube = NULL;
+    p_bias_grad = NULL;
+    p_grad_updater_bias = NULL;
   }
 
   report_backward_updateweight_constructor.end(0, 0, 0);
@@ -195,7 +199,7 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
         }
       }
       p_grad_updater->update(p_model_grad->get_p_data(), model_base_learning_rate, model_base_regularization);
-    }else{
+    } else {
       p_grad_updater->update(_bridges[0]->get_model_grad_cube()->get_p_data(), model_base_learning_rate, model_base_regularization);
     }
 
@@ -238,10 +242,14 @@ ParallelizedBridge<DataType, BridgeType>::~ParallelizedBridge() {
 
   if (p_model_cube) {
     delete p_model_cube;
+    delete p_model_grad;
+    delete p_grad_updater;
   }
 
   if (p_bias_cube) {
     delete p_bias_cube;
+    delete p_bias_grad;
+    delete p_grad_updater_bias;
   }
 }
 

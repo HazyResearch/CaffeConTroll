@@ -21,7 +21,6 @@
 template<class DataType>
 class GradientUpdater{
 public:
-
 	const int n_elements; /*< # elements in the model. */
 
 	DataType * const p_model; /*< pointer to the model to update */
@@ -45,23 +44,19 @@ public:
 	}
 
 	GradientUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver) :
-		n_elements(_n_elements), p_model(_p_model), p_solver(_p_solver), current_iter(0){}
+		n_elements(_n_elements), p_model(_p_model), p_solver(_p_solver), current_iter(0) {}
 
+        virtual ~GradientUpdater() {}
 };
 
 
 template<class DataType>
 class SGDGradientUpdater : public GradientUpdater<DataType> {
 public:
-
 	using GradientUpdater<DataType>::current_iter;
-
 	using GradientUpdater<DataType>::n_elements;
-
 	using GradientUpdater<DataType>::p_model;
-
 	using GradientUpdater<DataType>::p_solver;
-
 	using GradientUpdater<DataType>::get_stepsize;
 
 	DataType * p_history_updates;	/*< Update History */
@@ -73,7 +68,7 @@ public:
 	}
 
 	~SGDGradientUpdater(){
-		delete * p_history_updates;
+		delete p_history_updates;
 	}
 
 	void update(DataType * const p_gradient, float base_learning_rate, float base_regularization){
@@ -104,15 +99,10 @@ public:
 template<class DataType>
 class AdaGradUpdater : public GradientUpdater<DataType> {
 public:
-
 	using GradientUpdater<DataType>::current_iter;
-
 	using GradientUpdater<DataType>::n_elements;
-
 	using GradientUpdater<DataType>::p_model;
-
 	using GradientUpdater<DataType>::p_solver;
-
 	using GradientUpdater<DataType>::get_stepsize;
 
 	DataType * p_history_updates;	/*< Update History */
@@ -154,15 +144,10 @@ public:
 template<class DataType>
 class NesterovUpdater : public GradientUpdater<DataType> {
 public:
-
 	using GradientUpdater<DataType>::current_iter;
-
 	using GradientUpdater<DataType>::n_elements;
-
 	using GradientUpdater<DataType>::p_model;
-
 	using GradientUpdater<DataType>::p_solver;
-
 	using GradientUpdater<DataType>::get_stepsize;
 
 	DataType * p_history_updates;	/*< Update History */
@@ -199,7 +184,5 @@ public:
 	}
 
 };
-
-
 
 #endif

@@ -92,7 +92,7 @@ TYPED_TEST(ConnectorTest, TestLowering){
   this->connector_->lower_cube(this->input_cube, this->output_cube);
 
   for(int i=0; i<n; i++){
-    EXPECT_NEAR(this->output_cube->p_data[i],  expected_output->p_data[i],EPS);
+    EXPECT_NEAR(this->output_cube->get_p_data()[i],  expected_output->get_p_data()[i],EPS);
   }
 
 }
@@ -101,7 +101,7 @@ TYPED_TEST(ConnectorTest, TestLowering){
 /*
 TYPED_TEST(ConnectorTest, TestInverseLowering){
   for(int i=0; i<this->output_cube->n_elements; i++){
-    this->output_cube->p_data[i] = i;
+    this->output_cube->get_p_data()[i] = i;
   }
 
 
@@ -121,7 +121,7 @@ TYPED_TEST(ConnectorTest, TestInverseLowering){
     }
 
     for(int i=0; i<this->input_cube->n_elements; i++){
-      //EXPECT_NEAR(input_expected.p_data[i], this->input_cube->p_data[i],EPS);
+      //EXPECT_NEAR(input_expected.p_data[i], this->input_cube->get_p_data()[i],EPS);
     }
 
   }

@@ -35,14 +35,14 @@ Corpus * read_corpus_from_lmdb(const cnn::NetParameter & net_param, const string
     }
   }
   cout << "No data layer present in prototxt file!" << endl;
-  assert(false);
+  exit(1);
   return NULL;
 }
 
 // TODO (Shubham): Need to be refactored a bit on the basis of how these features
-// would actually be used.Should we have a separate test function?
+// would actually be used. Should we have a separate test function?
 void write_model_to_file(const BridgeVector bridges, const string model_file){
-  FILE * pFile = fopen (model_file.c_str(), "wb");
+  FILE * pFile = fopen(model_file.c_str(), "wb");
   if(!pFile)
     throw runtime_error("Error opening " + model_file);
 
@@ -51,11 +51,11 @@ void write_model_to_file(const BridgeVector bridges, const string model_file){
   for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
     model = (*bridge)->get_model_cube();
     if (model) {
-      fwrite (model->get_p_data() , sizeof(DataType_SFFloat), model->n_elements, pFile);
+      fwrite (model->get_p_data(), sizeof(DataType_SFFloat), model->n_elements, pFile);
     }
     bias = (*bridge)->get_bias_cube();
     if (bias) {
-      fwrite (bias->get_p_data() , sizeof(DataType_SFFloat), bias->n_elements, pFile);
+      fwrite (bias->get_p_data(), sizeof(DataType_SFFloat), bias->n_elements, pFile);
     }
   }
   fclose(pFile);
@@ -63,17 +63,19 @@ void write_model_to_file(const BridgeVector bridges, const string model_file){
 
 void read_model_from_file(BridgeVector & bridges, const string model_file) {
   FILE * pFile;
-  pFile = fopen (model_file.c_str(), "rb");
+  pFile = fopen(model_file.c_str(), "rb");
   LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
   LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
   for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
     model = (*bridge)->get_model_cube();
     if (model) {
-      fread(model->get_p_data() , sizeof(DataType_SFFloat), model->n_elements, pFile);
+      // TODO: check return value
+      fread(model->get_p_data(), sizeof(DataType_SFFloat), model->n_elements, pFile);
     }
     bias = (*bridge)->get_bias_cube();
     if (bias) {
-      fread(bias->get_p_data() , sizeof(DataType_SFFloat), bias->n_elements, pFile);
+      // TODO: check return value
+      fread(bias->get_p_data(), sizeof(DataType_SFFloat), bias->n_elements, pFile);
     }
   }
   fclose(pFile);
@@ -165,7 +167,7 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
             output_D = layer_param.convolution_param().num_output();
             if (output_D % grouping != 0) {
               cout << "ERROR: Currently we only support the input depth \% grouping == 0." << endl;
-              assert(false);
+              exit(1);
             }
             output_D /= grouping;
 
@@ -212,7 +214,7 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
               } else {
                 cout << "ERROR: Currently we do not support the case where input group is " << n_previous_groups
                   << " and output group is " << grouping << " for CONV layer..." << endl;
-                assert(false);
+                exit(1);
               }
             }
         }
@@ -370,7 +372,7 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
             if (n_previous_groups != 1) {
               cout << "ERROR: Currently, we only support FC layer to connect " <<
                 "between multiple input groups to a single output group." << endl;
-                assert(false);
+                exit(1);
             }
 
             next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
@@ -389,7 +391,7 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
         break;
         default:
         cout << "This layer type is not supported: "<< layer_type << "!" << endl;
-        assert(false);
+        exit(1);
       }
 
       // Appending the bridge to our vector of bridges, and updating pointers
@@ -434,9 +436,10 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
   for (size_t epoch = 0; epoch < num_epochs; ++epoch) {
     cout << "EPOCH: " << epoch << endl;
 
-    FILE * pFile = fopen (corpus.filename.c_str(), "rb");
-    if(!pFile)
+    FILE * pFile = fopen(corpus.filename.c_str(), "rb");
+    if (!pFile) {
       throw runtime_error("Error opening the corpus file: " + corpus.filename);
+    }
 
     // num_mini_batches - 1, because we need one more iteration for the final mini batch
     // (the last mini batch may not be the same size as the rest of the mini batches)
@@ -578,6 +581,7 @@ float test_network(const BridgeVector & bridges, const Corpus & corpus, const cn
     Timer t;
     Timer t2;
 
+    // TODO: check return value
     fread(corpus.images->get_p_data(), sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
     t_load = t.elapsed();
     t.restart();
@@ -676,7 +680,7 @@ float load_and_test_network(const char * file, const string data_binary, const s
     return acc;
   } else {
     cout << "No valid model file provided" << endl;
-    assert(false);
+    exit(1);
     return -1;
   }
 }

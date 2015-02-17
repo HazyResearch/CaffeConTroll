@@ -313,7 +313,9 @@ ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType,
     delete p_bias_cube;
     delete p_bias_gradient_cube;
   }
-  delete p_model_cube; delete p_model_gradient_cube; delete p_forward_lowered_data;
+  // delete p_model_cube;
+  delete p_model_gradient_cube;
+  delete p_forward_lowered_data;
   delete p_backward_gemm_updategrad_kernel; delete p_backward_gemm_updateweight_kernel;
   delete p_backward_inputgrad; delete p_forward_gemm_kernel;
   delete p_forward_lower_connector;

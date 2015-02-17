@@ -34,7 +34,7 @@ class ReLUBridgeTest : public ::testing::Test {
 
     cnn::SolverParameter solver_param;
 
-    virtual ~ReLUBridgeTest() { delete data1; delete data2; delete grad1; delete grad2; delete layer1; delete layer2;}
+    virtual ~ReLUBridgeTest() { delete layer1; delete layer2; delete ReLUBridge_; }
     ParallelizedBridge<T, ReLUBridge<T, Layout_CRDB, T, Layout_CRDB> >* ReLUBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
@@ -67,9 +67,10 @@ TYPED_TEST(ReLUBridgeTest, TestForward) {
   typedef typename TypeParam::T T;
 
   std::fstream input("tests/input/relu_forward_in.txt", std::ios_base::in);
+  T * const data1 = this->data1->get_p_data();
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
-      input >> this->data1->p_data[i];
+      input >> data1[i];
     }
   }
   else{
@@ -83,10 +84,11 @@ TYPED_TEST(ReLUBridgeTest, TestForward) {
 
   T output;
   int idx = 0;
+  const T * data2 = this->data2->get_p_data();
   if (expected_output.is_open()) {
     expected_output >> output;
     while (!expected_output.eof()) {
-      EXPECT_NEAR(this->data2->p_data[idx], output, EPS);
+      EXPECT_NEAR(data2[idx], output, EPS);
       expected_output >> output;
       idx++;
     }
@@ -100,10 +102,11 @@ TYPED_TEST(ReLUBridgeTest, TestForward) {
 TYPED_TEST(ReLUBridgeTest, TestBackward) {
   typedef typename TypeParam::T T;
 
+  T * const data1 = this->data1->get_p_data();
   std::fstream input("tests/input/relu_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
-      input >> this->data1->p_data[i];
+      input >> data1[i];
     }
   }
   else{
@@ -114,9 +117,11 @@ TYPED_TEST(ReLUBridgeTest, TestBackward) {
   int oR = this->iR;
   int oC = this->iC;
 
+  T * const data2 = this->data2->get_p_data();
+  T * const grad2 = this->grad2->get_p_data();
   for(int i=0;i<oR*oC*this->iD*this->mB;i++) {
-    this->data2->p_data[i] = 1;
-    this->grad2->p_data[i] = i;
+    data2[i] = 1;
+    grad2[i] = i;
   }
 
   this->ReLUBridge_->forward();
@@ -127,10 +132,11 @@ TYPED_TEST(ReLUBridgeTest, TestBackward) {
 
   T output;
   int idx = 0;
+  const T * const grad1 = this->grad1->get_p_data();
   if (expected_output.is_open()) {
     expected_output >> output;
     while (!expected_output.eof()) {
-      EXPECT_NEAR(this->grad1->p_data[idx], output, EPS);
+      EXPECT_NEAR(grad1[idx], output, EPS);
       expected_output >> output;
       idx++;
     }
