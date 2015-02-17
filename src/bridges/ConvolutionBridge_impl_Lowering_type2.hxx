@@ -9,7 +9,7 @@
 #ifndef moka_ConvolutionBridge_Lowering2_impl_hxx
 #define moka_ConvolutionBridge_Lowering2_impl_hxx
 
-// Constructor for convolution layer
+// Constructor for convolution layer, lowering type 2
 template <typename DataType, NonLinearFunction FUNC>
 ConvolutionBridge<CPU_CONV_LOWERINGTYPE2, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
@@ -17,17 +17,13 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer,
     _p_output_layer, _layer_param, _solver_param),
   K(layer_param->convolution_param().kernel_size()),
-  //num_output_features(layer_param->convolution_param().num_output()),
-  num_output_features(_p_output_layer->dD), // We are missing the abstraction of Logical Plan -- that is
-                                            // why we cannot use layer_param here when there is grouping.
-                                            // layer_param is the user input, not the Logical Plan
+  // We are missing the abstraction of Logical Plan -- that is
+  // why we cannot use layer_param here when there is grouping.
+  // layer_param is the user input, not the Logical Plan
+  num_output_features(_p_output_layer->dD),
   stride(layer_param->convolution_param().stride()),
   padding(layer_param->convolution_param().pad()),
   bias_term(layer_param->convolution_param().bias_term()),
-  stepsize(solver_param->base_lr()),
-  momentum(solver_param->momentum()),
-  weight_decay(solver_param->weight_decay()),
-  regularization_type(solver_param->regularization_type()),
   weight_filler(layer_param->convolution_param().weight_filler()),
   bias_filler(layer_param->convolution_param().bias_filler()) {
 
@@ -49,14 +45,13 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   p_model_cube = new LogicalCubeType(K, K, iD, num_output_features);
   initialize_logical_cube(p_model_cube, weight_filler);
 
-  // We keep a "cache" of the model weights in order to use the momentum
-  // update. The cache is initialized to 0.
-  p_model_cube_history = new LogicalCubeType(K, K, iD, num_output_features);
-  p_model_cube_history->reset_cube();
+  p_model_gradient_cube = new LogicalCubeType(K, K, iD, num_output_features);
 
   if (bias_term) {
     p_bias_cube = new LogicalCubeType(1, 1, num_output_features, 1);
     initialize_logical_cube(p_bias_cube, bias_filler);
+
+    p_bias_gradient_cube = new LogicalCubeType(1, 1, num_output_features, 1);
   }
 
   // First, allocate the space we need for lowering
@@ -99,8 +94,6 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
                                       Layout_CRDB, Kernel_GEMM_OpenBlas,
                                       KernelConfig_GEMM_NOTRANS_TRANS>(&lowered_forward_output,
                                           &lowered_forward_data, p_forward_lowered_model);
-  p_backward_gemm_updateweight_kernel->alpha = -stepsize;
-  p_backward_gemm_updateweight_kernel->beta = momentum;
 
   p_backward_gemm_updategrad_kernel = new Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB,
                                     DataType_SFFloat, Layout_CRDB, Kernel_GEMM_OpenBlas,
@@ -131,6 +124,22 @@ initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter
   }
 }
 
+template <typename T>
+void simple_conv(LogicalCube<T, Layout_CRDB> * const in, LogicalCube<T, Layout_CRDB> * const out, const int K) {
+  for (int y = 0; y < out->R; y++) {
+    for (int x = 0; x < out->C; x++) {
+      for (int p = 0; p < K; p++) {
+        for (int q = 0; q < K; q++) {
+          int in_y = y + p;
+          int in_x = x + q;
+          *out->logical_get(y, x, 0, 0) +=
+            *in->logical_get(in_y, in_x, 0, 0);
+        }
+      }
+    }
+  }
+}
+
 /**
  * This function does the following:
  *
@@ -157,15 +166,19 @@ forward() {
   // (0) cast input model and output to matrix
   // This one should be refactored with the matrix interface
   LogicalCube<DataType, Layout_CRDB> lowered_data(p_input_layer->p_data_cube->p_data, iD,
-      iR * iC * iB, 1, 1);
+      iR*iC*iB, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_gemm_output(num_output_features*K*K, iR*iC*iB, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_output(p_output_layer->p_data_cube->p_data,
-       num_output_features * K * K, iR * iC * iB, 1, 1);
+      num_output_features, oR*oC*iB, 1, 1);
 
   // (1) do the lowering. For Lowering Type 2, we lower the model, not the data
-  p_forward_lower_connector->lower_cube(p_input_layer->p_model_cube, p_forward_lowered_model);
+  p_forward_lower_connector->lower_cube(p_model_cube, p_forward_lowered_model);
 
   // (2) call GEMM kernel
-  p_forward_gemm_kernel->compute(p_forward_lowered_model, &lowered_data, &lowered_output);
+  p_forward_gemm_kernel->compute(p_forward_lowered_model, &lowered_data, &lowered_gemm_output);
+
+  // (3) perform convolution on lowered_gemm_output to get lowered_output
+  simple_conv(&lowered_gemm_output, &lowered_output, K);
 
   // Right now the output we get is of the form:
   // [(b_0, d_0), (b_1, d_0), ... , (b_n, d_0)
@@ -251,57 +264,42 @@ backward() {
   }
 
   // (2) calculate the GEMM between the gradient of output and old kernel to calc the update on grad
-  // Note: lowered_model is storing p_model_cube_history, not p_model_cube. We need this for the momentum
-  // update.
-
-  // TODO: p_model_cube_history needs to also be lowered the same way as p_model_cube
-  LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube_history->p_data, num_output_features,
-      K*K*iD, 1, 1);
-  LogicalCube<DataType, Layout_CRDB> lowered_model_current(p_model_cube->p_data, num_output_features,
-      K*K*iD, 1, 1);
-
-  LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(p_backward_outputgrad->p_data, num_output_features,
-      oR*oC*iB, 1, 1);
-  LogicalCube<DataType, Layout_CRDB> lowered_data(p_input_layer->p_data_cube->p_data, iD,
-      iR * iC * iB, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->p_data, num_output_features, K*K*iD, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_model_grad(p_model_gradient_cube->p_data, num_output_features, K*K*iD, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(p_backward_outputgrad->p_data, num_output_features, oR*oC*iB, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_data(p_input_layer->p_data_cube->p_data, iD, iR*iC*iB, 1, 1);
 
   // (3) update the bias term, summing over the gradients for each O and B
   if (bias_term) {
     const size_t output_feature_size = oR*oC;
-    DataType * const bias_term = p_bias_cube->p_data;
+    p_bias_gradient_cube->reset_cube();
+    DataType * const bias_data = p_bias_gradient_cube->p_data;
     for (size_t o_b = 0; o_b < oB; ++o_b) {
       for (size_t o_d = 0; o_d < oD; ++o_d) {
-        const LogicalMatrix<DataType> input_grad_slice =
-          p_output_layer->p_gradient_cube->get_logical_matrix(o_d, o_b);
+        const LogicalMatrix<DataType> input_grad_slice = p_output_layer->p_gradient_cube->get_logical_matrix(o_d, o_b);
         DataType sum = DataType(0.0);
         for (size_t i = 0; i < output_feature_size; ++i) {
           sum += input_grad_slice.p_data[i];
         }
-        bias_term[o_d] -= stepsize*sum;
+        bias_data[o_d] += sum;
       }
     }
   }
 
   // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
-  p_backward_outputgrad->template remap_output<LOWERING_TYPE2>(oB, num_output_features, oR * oC);
+  p_backward_outputgrad->template remap_output<LOWERING_TYPE2>(oB, num_output_features, oR*oC);
 
   if (needs_to_calc_backward_grad) {
     //    - 2.1 GEMM between the gradient of output and old kernel
-    p_backward_gemm_updategrad_kernel->compute(&lowered_model_current, &lowered_outputgrad,
-        p_backward_inputgrad);
+    p_backward_gemm_updategrad_kernel->compute(&lowered_model, &lowered_outputgrad, p_backward_inputgrad);
     //    - 2.2 undo the lowering (i.e., sum together all grad corresponding to the same unlowered position)
     p_forward_lower_connector->inverse_lower_cube(p_backward_inputgrad, p_input_layer->p_gradient_cube);
   }
 
   // (4) calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
-  p_backward_gemm_updateweight_kernel->alpha = -stepsize;
-  p_backward_gemm_updateweight_kernel->beta = momentum;
-  // Performing weight update:
-  // Step 1: V_{t+1} = \muV_{t} - \alpha \grad W
-  // Remember: lowered_model refers to p_model_cube_history
-  p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, &lowered_data, &lowered_model);
-  // Step 2: W_{t+1} = V_{t+1} + W_{t}
-  Util::math_axpy(p_model_cube->n_elements, 1., p_model_cube_history->p_data, p_model_cube->p_data);
+  p_backward_gemm_updateweight_kernel->alpha = 1.0;
+  p_backward_gemm_updateweight_kernel->beta = 0.0;
+  p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, &lowered_data, &lowered_model_grad);
 
   report_backward_updateweight_last_transfer.end();
 
@@ -329,7 +327,7 @@ ConvolutionBridge<CPU_CONV_LOWERINGTYPE2, FUNC, DataType, Layout_CRDB, DataType,
   if (bias_term) {
     delete p_bias_cube;
   }
-  delete p_model_cube; delete p_model_cube_history; delete p_forward_lowered_model;
+  delete p_model_cube; delete p_forward_lowered_model;
   delete p_backward_gemm_updategrad_kernel; delete p_backward_gemm_updateweight_kernel;
   delete p_backward_inputgrad; delete p_forward_gemm_kernel;
   delete p_forward_lower_connector;

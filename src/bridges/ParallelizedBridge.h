@@ -56,7 +56,6 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
 
     LogicalCubeType * p_bias_cube;
 
-
     const size_t n_partition;
     const size_t n_batch;
     const size_t n_thread_per_partition;

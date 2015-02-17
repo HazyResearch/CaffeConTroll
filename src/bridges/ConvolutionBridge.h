@@ -160,7 +160,6 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     void backward();
 
   protected:
-
     LogicalCubeType * p_model_gradient_cube;
     LogicalCubeType * p_model_cube;
     LogicalCubeType * p_model_cube_shadow;
@@ -244,11 +243,6 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE2, FUNC, DataType, Layout_CRDB, Dat
 
     const bool bias_term;
 
-    const float stepsize;
-    const float momentum;
-    const float weight_decay;
-    const string regularization_type;
-
     const cnn::FillerParameter weight_filler;
     const cnn::FillerParameter bias_filler;
 
@@ -280,9 +274,12 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE2, FUNC, DataType, Layout_CRDB, Dat
     void backward();
 
   protected:
+    LogicalCubeType * p_model_gradient_cube;
     LogicalCubeType * p_model_cube;
-    LogicalCubeType * p_model_cube_history;
+
+    LogicalCubeType * p_bias_gradient_cube;
     LogicalCubeType * p_bias_cube;
+
     LogicalCubeType * p_forward_lowered_model;
     LogicalCubeType * p_backward_outputgrad;
     LogicalCubeType * p_backward_inputgrad;
@@ -310,7 +307,7 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE2, FUNC, DataType, Layout_CRDB, Dat
     void initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter filler_param);
 };
 
-#include "ConvolutionBridge_Lowering1_impl.hxx"
-#include "ConvolutionBridge_Lowering2_impl.hxx"
+#include "ConvolutionBridge_impl_Lowering_type1.hxx"
+#include "ConvolutionBridge_impl_Lowering_type2.hxx"
 
 #endif

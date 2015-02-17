@@ -24,10 +24,12 @@ Connector(const InputLogicalCubeType  * const p_input_cube, const OutputLogicalC
   report_inverse_history.reset();
 
 #ifdef _DO_ASSERT
-  assert(oD==1);
-  assert(oB==1);
-  assert(oR==kernel_size*kernel_size*iB);
-  assert(oC==iD);
+  assert(oD == 1);
+  assert(oB == 1);
+  assert(iR == kernel_size);
+  assert(iC == kernel_size);
+  assert(oR == kernel_size*kernel_size*iB);
+  assert(oC == iD);
 #endif
   report_constructor.end(0, 0, 0);
 }
@@ -53,10 +55,11 @@ lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeTyp
   assert(p_output_cube->B == oB);
 #endif
 
+  p_output_cube->reset_cube();
   for (size_t i_b = 0; i_b < iB; ++i_b) {
     for (size_t i_d = 0; i_d < iD; ++i_d) {
       const LogicalMatrix<DataType> m = p_input_cube->get_logical_matrix(i_d, i_b);
-      p_output_cube->template lower_logical_matrix<LOWERING_TYPE1>(&m, i_b, i_d, kernel_size);
+      p_output_cube->template lower_logical_matrix<LOWERING_TYPE2>(&m, i_b, i_d, kernel_size);
     }
   }
 

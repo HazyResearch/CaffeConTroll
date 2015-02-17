@@ -68,6 +68,27 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output
   free(temp_buffer);
 }
 
+template<typename T, LayoutType LAYOUT>
+template<typename DUMMY>
+void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE2, DUMMY>::remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C,
+    const size_t kernel_size) {
+
+  T* temp_buffer = (T*) malloc(sizeof(T)*cube.R*cube.C*cube.B*cube.D);
+  Util::_our_memcpy(temp_buffer, cube.p_data, sizeof(T)*cube.R*cube.C*cube.B*cube.D);
+
+  size_t dst_index = 0;
+  for (size_t c_i = 0; c_i < C; ++c_i) {
+    const size_t src_index_base = c_i*kernel_size;
+    for (size_t r_i = 0; r_i < R; ++r_i) {
+      const size_t src_index = src_index_base + r_i*C*kernel_size;
+      Util::_our_memcpy(&cube.p_data[dst_index], &temp_buffer[src_index], sizeof(T)*kernel_size);
+      dst_index += kernel_size;
+    }
+  }
+
+  free(temp_buffer);
+}
+
 template <typename T, LayoutType LAYOUT>
 template<LoweringType LOWERING>
 void LogicalCube<T, LAYOUT>::lower_logical_matrix(const LogicalMatrix<T> * const input_matrix,
@@ -182,7 +203,7 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE2, DUMMY>::lower_logica
   const size_t row_base = b_i * kernel_size * kernel_size;
   const size_t col_base = d_i;
   const T * m_data = input_matrix->p_data;
-  const size_t width = input_matrix->C;
+  const size_t width = cube.C;
 
   const size_t n_elements = input_matrix->n_elements;
   for (size_t i = 0; i < n_elements; ++i) {

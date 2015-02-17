@@ -95,8 +95,6 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
                                       Layout_CRDB, Kernel_GEMM_OpenBlas,
                                       KernelConfig_GEMM_NOTRANS_TRANS>(&lowered_forward_output,
                                           p_forward_lowered_data, &lowered_forward_model);
-  p_backward_gemm_updateweight_kernel->alpha = -stepsize;
-  p_backward_gemm_updateweight_kernel->beta = momentum;
 
   p_backward_gemm_updategrad_kernel = new Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB,
                                     DataType_SFFloat, Layout_CRDB, Kernel_GEMM_OpenBlas,
@@ -249,8 +247,6 @@ backward() {
   }
 
   // (2) calculate the GEMM between the gradient of output and old kernel to calc the update on grad
-  // Note: lowered_model is storing p_model_cube_history, not p_model_cube. We need this for the momentum
-  // update.
   LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->get_p_data(), num_output_features, K*K*iD, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_model_grad(p_model_gradient_cube->get_p_data(), num_output_features, K*K*iD, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(p_backward_outputgrad->get_p_data(), num_output_features, oR*oC*iB, 1, 1);
@@ -267,8 +263,7 @@ backward() {
         for (size_t i = 0; i < output_feature_size; ++i) {
           sum += input_grad_slice.p_data[i];
         }
-        //bias_term[o_d] -= stepsize*sum;
-        bias_term[o_d] += sum;
+        bias_data[o_d] += sum;
       }
     }
   }
