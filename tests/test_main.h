@@ -21,4 +21,27 @@ struct FloatBDRC {
 	static const LayoutType LAYOUT = Layout_BDRC;
 };
 
+void compare_to_expected(LogicalCube<float, Layout_CRDB> * actual, std::ostream & expected){
+    float output;
+    int idx = 0;
+    if(expected.is_open()){
+        while(expected >> output){
+            EXPECT_NEAR(actual->p_data[idx++], output, EPS);
+        }
+    }
+    else{
+        FAIL();
+    }
+}
+
+void read_from_file(LogicalCube<float, Layout_CRDB> * cube, std::ostream & input){
+    float element;
+    int idx = 0;
+    if(input.is_open()){
+        while (input >> element) {
+            cube->p_data[idx++] = element;
+        }
+    }
+}
+
 #endif
