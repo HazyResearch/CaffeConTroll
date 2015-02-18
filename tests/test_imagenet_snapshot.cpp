@@ -15,7 +15,7 @@ void check_local_rate(const string & filename, const float stepsize) {
   if(i.fail()) { std::cout << "Failed to open file!" << filename << std::endl; exit(-1); }
   f.parse(i);
   i.close();
-  EXPECT_NEAR(f.local_rate, stepsize, 0.);
+  EXPECT_NEAR(f.local_rate, stepsize, 1e-8);
 }
 
 TEST(ImageNetSnapshotTest, RunTest) {
