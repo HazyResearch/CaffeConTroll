@@ -9,12 +9,20 @@
 #include "test_types.h"
 #include "snapshot_parser.h"
 
+void check_local_rate(const string & filename, const float stepsize) {
+  update_file f;
+  std::ifstream i("tests/imagenet_train/snapshot_update/" + filename);
+  if(i.fail()) { std::cout << "Failed to open file!" << filename << std::endl; exit(-1); }
+  f.parse(i);
+  i.close();
+  EXPECT_NEAR(f.local_rate, stepsize, 0.);
+}
 
 TEST(ImageNetSnapshotTest, RunTest) {
 
   BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
-  // char const * file = "tests/imagenet_train/imagenet_solver_2.prototxt";
-  char const * file = "tests/imagenet_train/imagenet_snapshot_solver.prototxt";
+  char const * file = "tests/imagenet_train/imagenet_solver_2.prototxt";
+  // char const * file = "tests/imagenet_train/imagenet_snapshot_solver.prototxt";
   const std::string data_binary = "imagenet.bin";
 
   Corpus * corpus = load_network(file, data_binary, solver_param, net_param, bridges, true);
@@ -46,7 +54,7 @@ TEST(ImageNetSnapshotTest, RunTest) {
 
     // num_mini_batches - 1, because we need one more iteration for the final mini batch
     // (the last mini batch may not be the same size as the rest of the mini batches)
-    for (size_t batch = 0, corpus_batch_index = 0; batch < corpus->num_mini_batches ; ++batch,
+    for (size_t batch = 0, corpus_batch_index = 0; batch < corpus->num_mini_batches; ++batch,
         corpus_batch_index += corpus->mini_batch_size) {
       Timer t;
       Timer t2;
@@ -97,7 +105,36 @@ TEST(ImageNetSnapshotTest, RunTest) {
 
       // backward pass
       t.restart();
+      string prev_name = ""; int update_counter = -2;
       for (auto bridge = bridges.rbegin(); bridge != bridges.rend(); ++bridge) {
+        Bridge * const curr_bridge = *bridge;
+        const string name = curr_bridge->name;
+        const int iter = epoch + batch;
+        if (name != prev_name && curr_bridge->get_model_cube() != NULL) {
+          update_counter += 2; // for now we assume that there's always a bias cube
+        }
+        if (curr_bridge->get_model_cube() != NULL) {
+          // yes this code is janky :(, but, for now, it works
+          // TODO: instead of hard-coding the number "15", we need
+          // to calculate the number of *layers* that have weights/biasses
+          // to be updated. (Weights and biases need to be counted separately.)
+          // NOTE: iter is only valid because we renamed the files to be 0-indexed
+          // instead of timestamped. That should also be fixed in the snapshot
+          // generation code.
+          string filename = "" + to_string(iter) + "_" + name + "_PID" + to_string(15 - (update_counter + 1)) + "_UPDATE_";
+          GradientUpdater<float> * const model_updater = curr_bridge->get_model_updater();
+          const float model_stepsize = model_updater->get_stepsize();
+
+          check_local_rate(filename, model_stepsize);
+        }
+        if (curr_bridge->get_bias_cube() != NULL) {
+          string filename = "" + to_string(iter) + "_" + name + "_PID" + to_string(15 - update_counter) + "_UPDATE_";
+          GradientUpdater<float> * const bias_updater = curr_bridge->get_bias_updater();
+          const float bias_stepsize = bias_updater->get_stepsize();
+
+          check_local_rate(filename, bias_stepsize);
+        }
+        prev_name = name;
         (*bridge)->backward();
         //(*bridge)->report_backward();
       }

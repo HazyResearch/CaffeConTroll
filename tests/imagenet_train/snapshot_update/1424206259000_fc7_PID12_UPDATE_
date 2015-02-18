@@ -1,0 +1,10 @@
+LEARNING_RATE
+global_rate 0.01
+param_rate 1
+local_rate 0.01
+momentum 0.9
+REGULARIZATION
+type L2
+global_regu 0.0005
+param_regu 1
+local_regu 0.0005

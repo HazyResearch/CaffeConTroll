@@ -13,7 +13,7 @@
  * algorithm like AdaGrad. However, the caller of
  * this function should not deal with it.
  *
- * Also, this class does not know the structure of 
+ * Also, this class does not know the structure of
  * the model -- in the eye of a GradientUpdater, they
  * are just a list of parameters.
  *
@@ -25,9 +25,9 @@ public:
 	int current_iter; /*< start from 0, every update inc by 1 */
 
 	const int n_elements; /*< # elements in the model. */
-	
+
 	DataType * const p_model; /*< pointer to the model to update */
-	
+
 	const cnn::SolverParameter * const p_solver; /*< object that contains solver parameters. */
 
 	/**
@@ -40,7 +40,7 @@ public:
 	}
 
 	float get_stepsize(){
-		return Util::get_learning_rate(p_solver->lr_policy(), p_solver->base_lr(), p_solver->gamma(), 
+		return Util::get_learning_rate(p_solver->lr_policy(), p_solver->base_lr(), p_solver->gamma(),
 			current_iter, p_solver->stepsize(), p_solver->power(), p_solver->max_iter());
 	}
 
@@ -56,10 +56,10 @@ public:
 
 	using GradientUpdater<DataType>::current_iter;
 
-	using GradientUpdater<DataType>::n_elements; 
-	
+	using GradientUpdater<DataType>::n_elements;
+
 	using GradientUpdater<DataType>::p_model;
-	
+
 	using GradientUpdater<DataType>::p_solver;
 
 	using GradientUpdater<DataType>::get_stepsize;
@@ -83,11 +83,11 @@ public:
 		const float lambda = p_solver->weight_decay() * base_regularization;
 
 		if(lambda != 0){
-    		Util::regularize(p_solver->regularization_type(), n_elements, lambda, 
+    		Util::regularize(p_solver->regularization_type(), n_elements, lambda,
     			p_gradient, p_model);
   		}
 
-  		// std::cout << "STEPSIZE = " << stepsize << " MOMENTUM = " << momentum << " BASE_LR = " 
+  		// std::cout << "STEPSIZE = " << stepsize << " MOMENTUM = " << momentum << " BASE_LR = "
   		//	<< base_learning_rate << " BASE_REG = " << base_regularization << std::endl ;
 
 		Util::math_axpby(n_elements, stepsize, p_gradient, momentum, p_history_updates);
@@ -107,10 +107,10 @@ public:
 
 	using GradientUpdater<DataType>::current_iter;
 
-	using GradientUpdater<DataType>::n_elements; 
-	
+	using GradientUpdater<DataType>::n_elements;
+
 	using GradientUpdater<DataType>::p_model;
-	
+
 	using GradientUpdater<DataType>::p_solver;
 
 	using GradientUpdater<DataType>::get_stepsize;
@@ -135,10 +135,10 @@ public:
 		const float delta = p_solver->delta();
 
 		if(lambda != 0){
-		  Util::regularize(p_solver->regularization_type(), n_elements, lambda, 
+		  Util::regularize(p_solver->regularization_type(), n_elements, lambda,
 				   p_gradient, p_model);
   		}
-		
+
 		for(int i=0;i<n_elements;i++){
 			p_history_updates[i] += p_gradient[i]*p_gradient[i];
 			p_model[i] -= stepsize / (sqrt(p_history_updates[i])+delta) * p_gradient[i];
@@ -157,10 +157,10 @@ public:
 
 	using GradientUpdater<DataType>::current_iter;
 
-	using GradientUpdater<DataType>::n_elements; 
-	
+	using GradientUpdater<DataType>::n_elements;
+
 	using GradientUpdater<DataType>::p_model;
-	
+
 	using GradientUpdater<DataType>::p_solver;
 
 	using GradientUpdater<DataType>::get_stepsize;
@@ -185,7 +185,7 @@ public:
 		//const float delta = p_solver->delta();
 
 		if(lambda != 0){
-    		Util::regularize(p_solver->regularization_type(), n_elements, lambda, 
+    		Util::regularize(p_solver->regularization_type(), n_elements, lambda,
     			p_gradient, p_model);
   		}
 

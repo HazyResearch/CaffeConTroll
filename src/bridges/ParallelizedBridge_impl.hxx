@@ -21,6 +21,8 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
     model_base_regularization(1.0),
     bias_base_regularization(1.0){
 
+  assert(n_batch_per_partition > 0);
+
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();
   report_forward_history.reset();
@@ -109,7 +111,7 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
       memcpy(p_bias_cube->p_data, example_bias->p_data, p_bias_cube->n_elements*sizeof(DataType));
       p_bias_grad = new LogicalCubeType(example_bias->R, example_bias->C, example_bias->D, example_bias->B);
       p_grad_updater_bias = new SGDGradientUpdater<DataType>(p_bias_cube->n_elements, p_bias_cube->p_data, _solver_param);
-    
+
       if(_layer_param->blobs_lr_size() >1){
         bias_base_learning_rate = _layer_param->blobs_lr(1);
       }
