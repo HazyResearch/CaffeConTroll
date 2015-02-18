@@ -51,7 +51,8 @@ OBJ_FILES = $(patsubst %.cpp,%.o,$(SRC))
 TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest -lpthread 
 TEST_SOURCES = src/DeepNet.cpp src/bridges/PhysicalStratum_impl.cpp \
 	       src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp tests/test_main.cpp \
-	       tests/test_lrn_bridge.cpp tests/test_ReLU_bridge.cpp tests/test_MaxPooling_bridge.cpp \
+	       tests/test_imagenet_snapshot.cpp
+	       #tests/test_lrn_bridge.cpp tests/test_ReLU_bridge.cpp tests/test_MaxPooling_bridge.cpp \
 	       tests/test_connector.cpp tests/test_model_write.cpp \
 	       tests/test_softmax_bridge.cpp tests/test_dropout_bridge.cpp tests/test_cube.cpp \
 	       tests/test_report.cpp tests/test_kernel.cpp tests/test_scanner.cpp \
@@ -65,21 +66,21 @@ TEST_EXECUTABLE=test
 .PHONY: all assembly clean product test warning
 
 all: $(OBJ_FILES) cnn.pb.o
-	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
+	$(CC) $^ -o $(TARGET) $(DEBUG_FLAGS) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
 release: CFLAGS += $(PRODUCT_FLAGS)
 release: $(OBJ_FILES) cnn.pb.o
 	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
-test: CFLAGS += -Ofast -I $(GTEST_INCLUDE)
+test: CFLAGS += -O0 -g -I $(GTEST_INCLUDE)
 test: $(TEST_OBJ_FILES) cnn.pb.o 
-	$(CC) $^ -o $(TEST_EXECUTABLE) $(CFLAGS) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB) 
+	$(CC) $^ -o $(TEST_EXECUTABLE) $(DEBUG_FLAGS) $(CFLAGS) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB) 
 
 %.o: %.cpp $(PROTO_COMPILED_SRC)
-	$(CC) $(CFLAGS) -Ofast $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $< -o $@
+	$(CC) $(CFLAGS) -O0 -g $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $< -o $@
 
 cnn.pb.o: $(PROTO_COMPILED_SRC)
-	$(CC) $(CFLAGS) -Ofast $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $(PROTO_COMPILED_SRC)
+	$(CC) $(CFLAGS) -O0 -g $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $(PROTO_COMPILED_SRC)
 
 $(PROTO_COMPILED_SRC): $(PROTO_SRC_DIR)$(PROTO_SRC)
 	cd $(PROTO_SRC_DIR); $(PROTO_CC) $(PROTO_SRC); cd -

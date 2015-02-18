@@ -13,8 +13,8 @@
 TEST(ImageNetSnapshotTest, RunTest) {
 
   BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
-  char const * file = "tests/imagenet_train/imagenet_solver_2.prototxt";
-  // char const * file = "tests/imagenet_train/imagenet_snapshot_solver.prototxt";
+  // char const * file = "tests/imagenet_train/imagenet_solver_2.prototxt";
+  char const * file = "tests/imagenet_train/imagenet_snapshot_solver.prototxt";
   const std::string data_binary = "imagenet.bin";
 
   Corpus * corpus = load_network(file, data_binary, solver_param, net_param, bridges, true);
