@@ -19,7 +19,7 @@ Corpus * read_corpus_from_lmdb(const cnn::NetParameter & net_param, const string
       if (layer_param.include(0).phase() == 0) { // training phase
         return new Corpus(layer_param, data_binary);
       }
-    }  
+    }
   }
   else{
     const cnn::LayerParameter layer_param = net_param.layers(1);
@@ -27,7 +27,7 @@ Corpus * read_corpus_from_lmdb(const cnn::NetParameter & net_param, const string
       if (layer_param.include(0).phase() == 1) { // testing phase
         return new Corpus(layer_param, data_binary);
       }
-    }  
+    }
   }
   cout << "No data layer present in prototxt file!" << endl;
   assert(false);
@@ -38,19 +38,19 @@ Corpus * read_corpus_from_lmdb(const cnn::NetParameter & net_param, const string
 /// Should we have a separate test function?
 void write_model_to_file(const BridgeVector bridges, const string model_file){
   FILE * pFile = fopen (model_file.c_str(), "wb");
-  if(!pFile) 
+  if(!pFile)
     throw runtime_error("Error opening " + model_file);
-  
+
   LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
   LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
   for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
     model = (*bridge)->get_model_cube();
     if(model){
-      fwrite (model->p_data , sizeof(DataType_SFFloat), model->n_elements, pFile);  
+      fwrite (model->p_data , sizeof(DataType_SFFloat), model->n_elements, pFile);
     }
     bias = (*bridge)->get_bias_cube();
     if(bias){
-      fwrite (bias->p_data , sizeof(DataType_SFFloat), bias->n_elements, pFile); 
+      fwrite (bias->p_data , sizeof(DataType_SFFloat), bias->n_elements, pFile);
     }
   }
   fclose(pFile);
@@ -64,11 +64,11 @@ void read_model_from_file(BridgeVector & bridges, const string model_file){
   for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
     model = (*bridge)->get_model_cube();
     if(model){
-      fread(model->p_data , sizeof(DataType_SFFloat), model->n_elements, pFile);  
+      fread(model->p_data , sizeof(DataType_SFFloat), model->n_elements, pFile);
     }
     bias = (*bridge)->get_bias_cube();
     if(bias){
-      fread(bias->p_data , sizeof(DataType_SFFloat), bias->n_elements, pFile); 
+      fread(bias->p_data , sizeof(DataType_SFFloat), bias->n_elements, pFile);
     }
   }
   fclose(pFile);
@@ -173,7 +173,7 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
               }
              }
 
-            std::cout << "Constructing CONV layer with Grouping = " << grouping << 
+            std::cout << "Constructing CONV layer with Grouping = " << grouping <<
               " (# Input Grouping=" << n_previous_groups << ")" << std::endl;
 
             output_R = compute_conv_next_layer_dimension(input_R, K, padding, stride),
@@ -186,8 +186,8 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
             output_D /= grouping;
 
             if(grouping == n_previous_groups){
-              // if input group == output group, then for each 
-              // input group, create a separate bridge and a 
+              // if input group == output group, then for each
+              // input group, create a separate bridge and a
               // seperate output bridge
               for(size_t i=0;i<n_previous_groups;i++){
                 // for each group, create bridges
@@ -225,7 +225,7 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
                 is_first_conv = false;
               }else{
                 std::cout << "ERROR: Currently we do not support the case where input group is " << n_previous_groups
-                  << " and output group is " << grouping << " for CONV layer..." << std::endl; 
+                  << " and output group is " << grouping << " for CONV layer..." << std::endl;
                 assert(false);
               }
             }
@@ -236,8 +236,8 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
 
             if(n_previous_groups != 1){
               // if the previous group of this fully-connected layer contains multiple
-              // groups, then it's the time to unify them! To do this, we introduce a 
-              // bridge whose only role is a funnel 
+              // groups, then it's the time to unify them! To do this, we introduce a
+              // bridge whose only role is a funnel
               std::cout << "Constructing FUNNEL layer with grouping 1 (# Input Grouping=" << n_previous_groups << ")" << std::endl;
               output_R = input_R; output_C = input_C; output_D = input_D * n_previous_groups;
               next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
@@ -274,7 +274,7 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
 
             //bridge = new FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layers[0],
             //  next_layer, &layer_param, &solver_param);
-            
+
             bridge->name = layer_param.name();
             bridge->run_with_n_threads = 16;  // TODO: Add a better abstraction here.
             bridges.push_back(bridge);
@@ -412,7 +412,7 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
       // Appending the bridge to our vector of bridges, and updating pointers
       // and values for the next iteration.
       //bridges.push_back(bridge);
-      
+
       input_R = output_R, input_C = output_C, input_D = output_D;
       //prev_data = next_data, prev_grad = next_grad;
       //prev_layer = next_layer;
@@ -451,16 +451,16 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
   float t_pass;
 
   Timer t_total;
-  const int display_iter = 50;  
+  const int display_iter = 50;
 
   const size_t num_epochs = solver_param.max_iter();
   for (size_t epoch = 0; epoch < num_epochs; ++epoch) {
     cout << "EPOCH: " << epoch << endl;
 
     FILE * pFile = fopen (corpus.filename.c_str(), "rb");
-    if(!pFile) 
+    if(!pFile)
       throw runtime_error("Error opening the corpus file: " + corpus.filename);
-    
+
     // num_mini_batches - 1, because we need one more iteration for the final mini batch
     // (the last mini batch may not be the same size as the rest of the mini batches)
     for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches ; ++batch,
@@ -473,7 +473,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       size_t rs = fread(corpus.images->p_data, sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
       if (rs != corpus.images->n_elements && batch != corpus.num_mini_batches - 1){
 	std::cout << "Error in reading data from " << corpus.filename << " in batch " << batch << " of " << corpus.num_mini_batches << std::endl;
-	std::cout << "read:  " << rs << " expected " << corpus.images->n_elements << std::endl;		
+	std::cout << "read:  " << rs << " expected " << corpus.images->n_elements << std::endl;
         exit(1);
       }
 
@@ -494,7 +494,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 
       // forward pass
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
-        
+
         //std::cout << (*bridge)->name << "    " << (*bridge)->p_output_layer->p_data_cube->n_elements << std::endl;
         (*bridge)->forward();
         //(*bridge)->report_forward();
@@ -518,7 +518,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
         //(*bridge)->report_backward();
       }
       t_backward = t.elapsed();
-      
+
       t_pass = t2.elapsed();
 
       if(batch % display_iter == 0){
@@ -527,11 +527,11 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
         std::cout << "Forward Pass Time (seconds) : " << t_forward << std::endl;
         std::cout << "Backward Pass Time (seconds): " << t_backward << std::endl;
         std::cout << "\033[1;31m";
-        std::cout << "Total Time & Loss & Accuracy: " << t_pass << "    " << loss 
+        std::cout << "Total Time & Loss & Accuracy: " << t_pass << "    " << loss
                   << "    " << 1.0*accuracy/corpus.mini_batch_size;
         std::cout << "\033[0m" << std::endl;
       }
-      
+
     }
 
     fclose(pFile);
@@ -588,7 +588,7 @@ float test_network(const BridgeVector & bridges, const Corpus & corpus, const cn
   FILE * pFile = fopen(corpus.filename.c_str(), "rb");
   if(!pFile)
       throw runtime_error("Error opening the corpus file: " + corpus.filename);
-    
+
   // num_mini_batches - 1, because we need one more iteration for the final mini batch
   // (the last mini batch may not be the same size as the rest of the mini batches)
   float t_load;
@@ -631,7 +631,7 @@ float test_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       std::cout << "Loading Time (seconds)     : " << t_load << std::endl;
       std::cout << "Forward Pass Time (seconds) : " << t_forward << std::endl;
       std::cout << "\033[1;31m";
-      std::cout << "Total Time & Loss & Accuracy: " << t_pass << "    " << loss 
+      std::cout << "Total Time & Loss & Accuracy: " << t_pass << "    " << loss
                 << "    " << 1.0*batch_accuracy/corpus.mini_batch_size;
       std::cout << "\033[0m" << std::endl;
     }
@@ -680,7 +680,7 @@ void load_and_train_network(const char * file, const string data_binary, const s
   // Now, the bridges vector is fully populated
   train_network(bridges, *corpus, net_param, solver_param);
   if(model_file == "NA")
-    write_model_to_file(bridges, "deepnetmodel.bin");  
+    write_model_to_file(bridges, "deepnetmodel.bin");
   else
     write_model_to_file(bridges, model_file);
   // Step 4:
@@ -693,12 +693,12 @@ float load_and_test_network(const char * file, const string data_binary, const s
   Corpus * corpus = load_network(file, data_binary, solver_param, net_param, bridges, false);
 
   if(model_file != "NA"){
-    read_model_from_file(bridges, model_file); 
-    return test_network(bridges, *corpus, net_param, solver_param); 
+    read_model_from_file(bridges, model_file);
+    return test_network(bridges, *corpus, net_param, solver_param);
   }
   else{
     cout << "No valid model file provided" << endl;
     assert(false);
     return -1;
-  }  
+  }
 }
