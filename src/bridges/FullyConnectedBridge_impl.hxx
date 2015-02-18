@@ -48,7 +48,7 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
     p_bias_cube = new LogicalCubeType(1, 1, num_output_features, 1);
     initialize_logical_cube(p_bias_cube, bias_filler);
 
-    p_bias_gradient_cube = new LogicalCubeType(1, 1, num_output_features, 1); 
+    p_bias_gradient_cube = new LogicalCubeType(1, 1, num_output_features, 1);
   }
 
   // First, allocate the space we need for lowering
@@ -124,9 +124,9 @@ initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter
 template <typename DataType>
 void FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::
 forward() {
-  Util::set_num_threads(run_with_n_threads);
+  // Util::set_num_threads(run_with_n_threads);
 
-  
+
   report_forward_last_transfer.reset();
 
   // (0) cast input model and output to matrix
@@ -203,9 +203,9 @@ forward() {
 template <typename DataType>
 void FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::
 backward() {
-  Util::set_num_threads(run_with_n_threads);
+  // Util::set_num_threads(run_with_n_threads);
 
-  
+
   report_backward_updateweight_last_transfer.reset();
 
   // (2) calculate the GEMM between the gradient of output and old kernel to calc the update on grad

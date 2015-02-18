@@ -152,13 +152,13 @@ public:
 };
 
 class forward_file : public our_file {
+public:
   double loss;
   int nModels, nInputs, nOutputs;
-  blob_map *model; // these are the modesl
+  blob_map *model; // these are the models
   blob_map *input;
   blob_map *output;
 
-public:
   void parse(std::istream &in) {
     // getStatement(in, szForward);
     getKey(in, szLoss, loss);
@@ -179,9 +179,10 @@ const std::string szMG("MODEL_GRADIENT_BLOBS");
 const std::string szIG("INPUT_GRADIENT_BLOBS");
 
 class backward_file : public our_file {
+public:
   blob_map *model_g; int nModels; // model gradients
   blob_map *input_g; int nIGs; // input gradients
-public:
+
   void parse(std::istream &in) {
     std::cerr << "parsing backward file" << std::endl;
     model_g = parse_blob_map_star(in, szMG, nModels);
@@ -203,9 +204,9 @@ const std::string szType("type"), szGlobalRegu("global_regu"), szParamRegu("para
 
 class update_file : public our_file {
 
+public:
   double global_rate, param_rate, local_rate, momentum;
 
-public:
   void parse(std::istream &in) {
     std::cerr << "parsing update file" << std::endl;
     getStatement(in,szLearn);
@@ -224,10 +225,10 @@ public:
 };
 class regularized_update_file : public update_file {
 
+public:
   std::string regularization;
   double global_regu, param_regu, local_regu;
 
-public:
   void parse(std::istream &in) {
     std::cerr << "parsing regularized update file" << std::endl;
     update_file::parse(in);

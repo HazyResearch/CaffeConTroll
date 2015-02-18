@@ -17,6 +17,7 @@
 #include "PhysicalOperator.h"
 #include "../Layer.h"
 #include "../parser/cnn.pb.h"
+#include "../algorithms/GradientUpdater.h"
 
 template
 <typename InputLayerDataType, LayoutType InputLayerLayout,
@@ -82,6 +83,14 @@ class AbstractBridge : public PhysicalOperator {
         return NULL;
     }
 
+    // Need these for snapshot tests
+    virtual GradientUpdater<InputLayerDataType> * const get_model_updater() {
+        return NULL;
+    }
+
+    virtual GradientUpdater<InputLayerDataType> * const get_bias_updater() {
+        return NULL;
+    }
 
     // First constructor, which takes in a cnn::LayerParameter as a third argument. This will
     // be used when initializing from a *.prototxt file

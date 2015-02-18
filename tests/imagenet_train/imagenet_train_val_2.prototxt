@@ -7,7 +7,7 @@ layers {
   data_param {
     source: "tests/imagenet_train/ilsvrc12_train_1_lmdb"
     backend: LMDB
-    batch_size: 16
+    batch_size: 1
   }
   transform_param {
     crop_size: 227
@@ -24,7 +24,7 @@ layers {
   data_param {
     source: "tests/imagenet_train/ilsvrc12_train_1_lmdb"
     backend: LMDB
-    batch_size: 16
+    batch_size: 1
   }
   transform_param {
     crop_size: 227

@@ -1,4 +1,5 @@
 #include "DeepNet.h"
+#include <algorithm>
 
 using namespace std;
 
@@ -197,7 +198,7 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
 
                 bridge = new ParallelizedBridge<DataType_SFFloat,
                   ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
-                  (prev_layers[i], next_layer, &layer_param, &solver_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+                  (prev_layers[i], next_layer, &layer_param, &solver_param, min<size_t>(16, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
                 bridge->name = layer_param.name();
                 bridge->needs_to_calc_backward_grad = !is_first_conv; // for the first CONV layer, do not need to calc grad for backward step
                 bridges.push_back(bridge);
@@ -215,7 +216,7 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
 
                   bridge = new ParallelizedBridge<DataType_SFFloat,
                     ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
-                    (prev_layers[0], next_layer, &layer_param, &solver_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+                    (prev_layers[0], next_layer, &layer_param, &solver_param, min<size_t>(16, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
                   bridge->name = layer_param.name();
                   bridge->needs_to_calc_backward_grad = !is_first_conv; // for the first CONV layer, do not need to calc grad for backward step
 
@@ -266,11 +267,11 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
 
             //bridge = new ParallelizedBridge<DataType_SFFloat,
             //  FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
-            //  (prev_layer, next_layer, &layer_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+            //  (prev_layer, next_layer, &layer_param, min<size_t>(16, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
 
             bridge = new ParallelizedBridge<DataType_SFFloat,
               FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
-              (prev_layers[0], next_layer, &layer_param, &solver_param, 1, 16); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+              (prev_layers[0], next_layer, &layer_param, &solver_param, min<size_t>(1, corpus.mini_batch_size), 16); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
 
             //bridge = new FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layers[0],
             //  next_layer, &layer_param, &solver_param);
@@ -299,7 +300,7 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
 
               bridge = new ParallelizedBridge<DataType_SFFloat,
                 MaxPoolingBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >(prev_layers[i],
-                    next_layer, &layer_param, &solver_param, 16, 1);
+                    next_layer, &layer_param, &solver_param, min<size_t>(16, corpus.mini_batch_size), 1);
               bridge->name = layer_param.name();
               bridges.push_back(bridge);
               next_layers.push_back(next_layer);
@@ -321,7 +322,7 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
 
               bridge = new ParallelizedBridge<DataType_SFFloat,
                 ReLUBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
-                (prev_layers[i], next_layer, &layer_param, &solver_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+                (prev_layers[i], next_layer, &layer_param, &solver_param, min<size_t>(16, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
               bridge->name = layer_param.name();
 
               bridges.push_back(bridge);
@@ -349,7 +350,7 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
               //       DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, &layer_param);
               bridge = new ParallelizedBridge<DataType_SFFloat,
                 LRNBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
-                (prev_layers[i], next_layer, &layer_param, &solver_param, 16, 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+                (prev_layers[i], next_layer, &layer_param, &solver_param, min<size_t>(16, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
               bridge->name = layer_param.name();
 
               bridges.push_back(bridge);

@@ -31,7 +31,7 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_backward_updateweight_last_transfer;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_backward_updateweight_history;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::needs_to_calc_backward_grad;
-    
+
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::layer_param;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::solver_param;
 
@@ -54,16 +54,16 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
 
     LogicalCubeType * p_bias_cube;
 
-    float model_base_learning_rate;
-    float bias_base_learning_rate;
-    float model_base_regularization;
-    float bias_base_regularization;
-
 
     const size_t n_partition;
     const size_t n_batch;
     const size_t n_thread_per_partition;
     const size_t n_batch_per_partition;
+
+    float model_base_learning_rate;
+    float bias_base_learning_rate;
+    float model_base_regularization;
+    float bias_base_regularization;
 
     GradientUpdater<DataType> * p_grad_updater;
 
@@ -87,6 +87,15 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     LogicalCube<DataType, Layout_CRDB> * const get_bias_cube(){
         return p_bias_cube;
     }
+
+    GradientUpdater<DataType> * const get_model_updater() {
+        return p_grad_updater;
+    }
+
+    GradientUpdater<DataType> * const get_bias_updater() {
+        return p_grad_updater_bias;
+    }
+
 
   protected:
     vector<LogicalCubeType *> _data_cubes_lower;
