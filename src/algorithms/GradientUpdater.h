@@ -30,22 +30,24 @@ public:
 
 	const cnn::SolverParameter * const p_solver; /*< object that contains solver parameters. */
 
+	float base_learning_rate, base_regularization;
 	/**
 	 * Given a gradient, update the model.
 	 **/
-	virtual void update(DataType * const p_gradient, float base_learning_rate, float base_regularization) = 0;
+	virtual void update(DataType * const p_gradient) = 0;
 
 	void reset_zero(){
 		std::fill(p_model, p_model+n_elements, DataType(0.0));
 	}
 
 	float get_stepsize(){
-		return Util::get_learning_rate(p_solver->lr_policy(), p_solver->base_lr(), p_solver->gamma(),
+		return base_learning_rate*Util::get_learning_rate(p_solver->lr_policy(), p_solver->base_lr(), p_solver->gamma(),
 			current_iter, p_solver->stepsize(), p_solver->power(), p_solver->max_iter());
 	}
+	float get_weight_decay() {return p_solver->weight_decay() * base_regularization;} 
 
-	GradientUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver) :
-		n_elements(_n_elements), p_model(_p_model), p_solver(_p_solver), current_iter(0){}
+ GradientUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver, float _blr, float _br) :
+	n_elements(_n_elements), p_model(_p_model), p_solver(_p_solver), current_iter(0), base_learning_rate(_blr), base_regularization(_br){}
 
 };
 
@@ -63,11 +65,13 @@ public:
 	using GradientUpdater<DataType>::p_solver;
 
 	using GradientUpdater<DataType>::get_stepsize;
+ 	using GradientUpdater<DataType>::get_weight_decay;
 
+	
 	DataType * p_history_updates;	/*< Update History */
 
-	SGDGradientUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver) :
-		GradientUpdater<DataType>(_n_elements, _p_model, _p_solver),
+ SGDGradientUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver, float _blr, float _br) :
+	GradientUpdater<DataType>(_n_elements, _p_model, _p_solver, _blr, _br),
 		p_history_updates(new DataType[_n_elements]){
 		std::fill(p_history_updates, p_history_updates+n_elements, DataType(0.0));
 	}
@@ -76,12 +80,12 @@ public:
 		delete * p_history_updates;
 	}
 
-	void update(DataType * const p_gradient, float base_learning_rate, float base_regularization){
-		current_iter ++;
-		const float stepsize = get_stepsize() * base_learning_rate;
+	void update(DataType * const p_gradient){
+		++ current_iter;
+		const float stepsize = get_stepsize();
 		const float momentum = p_solver->momentum();
-		const float lambda = p_solver->weight_decay() * base_regularization;
-
+		const float lambda   = get_weight_decay();
+		
 		if(lambda != 0){
     		Util::regularize(p_solver->regularization_type(), n_elements, lambda,
     			p_gradient, p_model);
@@ -114,6 +118,7 @@ public:
 	using GradientUpdater<DataType>::p_solver;
 
 	using GradientUpdater<DataType>::get_stepsize;
+ 	using GradientUpdater<DataType>::get_weight_decay;
 
 	DataType * p_history_updates;	/*< Update History */
 
@@ -127,11 +132,11 @@ public:
 		delete * p_history_updates;
 	}
 
-	void update(DataType * const p_gradient, float base_learning_rate, float base_regularization){
+	void update(DataType * const p_gradient){
 		current_iter ++;
-		const float stepsize = get_stepsize() * base_learning_rate;
+		const float stepsize = get_stepsize();
 		//const float momentum = p_solver->momentum();
-		const float lambda = p_solver->weight_decay() * base_regularization;
+		const float lambda = get_weight_decay();
 		const float delta = p_solver->delta();
 
 		if(lambda != 0){
@@ -164,7 +169,8 @@ public:
 	using GradientUpdater<DataType>::p_solver;
 
 	using GradientUpdater<DataType>::get_stepsize;
-
+ 	using GradientUpdater<DataType>::get_weight_decay;
+	
 	DataType * p_history_updates;	/*< Update History */
 
 	NesterovUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver) :
@@ -177,11 +183,11 @@ public:
 		delete * p_history_updates;
 	}
 
-	void update(DataType * const p_gradient, float base_learning_rate, float base_regularization){
+	void update(DataType * const p_gradient){
 		current_iter ++;
-		const float stepsize = get_stepsize() * base_learning_rate;
+		const float stepsize = get_stepsize();
 		const float momentum = p_solver->momentum();
-		const float lambda = p_solver->weight_decay() * base_regularization;
+		const float lambda = get_weight_decay();
 		//const float delta = p_solver->delta();
 
 		if(lambda != 0){
