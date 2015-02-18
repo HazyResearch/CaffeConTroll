@@ -5,6 +5,7 @@
 //  Created by Firas Abuzaid on 2/8/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
+#include <csignal> // or signal.h if C code
 
 #ifndef moka_ParallelizedBridge_impl_hxx
 #define moka_ParallelizedBridge_impl_hxx
@@ -90,7 +91,6 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
     p_model_cube = new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B);
     memcpy(p_model_cube->p_data, example_cube->p_data, p_model_cube->n_elements*sizeof(DataType));
     p_model_grad = new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B);
-    p_grad_updater = new SGDGradientUpdater<DataType>(p_model_cube->n_elements, p_model_cube->p_data, _solver_param);
 
     if(_layer_param->blobs_lr_size() != 0){
       model_base_learning_rate = _layer_param->blobs_lr(0);
@@ -98,6 +98,8 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
     if(_layer_param->weight_decay_size() != 0){
       model_base_regularization = _layer_param->weight_decay(0);
     }
+    p_grad_updater = new SGDGradientUpdater<DataType>(p_model_cube->n_elements, p_model_cube->p_data,
+						      _solver_param, model_base_learning_rate, model_base_regularization);
 
   } else {
     p_model_cube = NULL;
@@ -110,8 +112,7 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
       p_bias_cube = new LogicalCubeType(example_bias->R, example_bias->C, example_bias->D, example_bias->B);
       memcpy(p_bias_cube->p_data, example_bias->p_data, p_bias_cube->n_elements*sizeof(DataType));
       p_bias_grad = new LogicalCubeType(example_bias->R, example_bias->C, example_bias->D, example_bias->B);
-      p_grad_updater_bias = new SGDGradientUpdater<DataType>(p_bias_cube->n_elements, p_bias_cube->p_data, _solver_param);
-
+      
       if(_layer_param->blobs_lr_size() >1){
         bias_base_learning_rate = _layer_param->blobs_lr(1);
       }
@@ -119,6 +120,8 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
         bias_base_regularization = _layer_param->weight_decay(1);
       }
 
+      p_grad_updater_bias = new SGDGradientUpdater<DataType>(p_bias_cube->n_elements, p_bias_cube->p_data,
+							     _solver_param, bias_base_learning_rate, bias_base_regularization);
     } else {
       p_bias_cube = NULL;
     }
@@ -195,9 +198,9 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
           p_grad_data[j] += p_subgrad_data[j];
         }
       }
-      p_grad_updater->update(p_model_grad->p_data, model_base_learning_rate, model_base_regularization);
+      p_grad_updater->update(p_model_grad->p_data);
     }else{
-      p_grad_updater->update(_bridges[0]->get_model_grad_cube()->p_data, model_base_learning_rate, model_base_regularization);
+      p_grad_updater->update(_bridges[0]->get_model_grad_cube()->p_data);
     }
 
   }
@@ -206,8 +209,11 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
   if (p_bias_cube != NULL) {
     // do similar things for bias term... Might be better to
     // refactor this to be in the same function as the previous one
+    if(n_partition > 1) {
     p_bias_grad->reset_cube(DataType(0.0));
     const size_t bias_n_element = p_bias_grad->n_elements;
+    const size_t n_partition = _data_cubes_lower.size();
+   
     DataType * const p_grad_data = p_bias_grad->p_data;
     for (size_t i = 0; i < n_partition; ++i) {
       DataType * const p_subbias_data = _bridges[i]->get_bias_grad_cube()->p_data;
@@ -215,7 +221,10 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
         p_grad_data[j] += p_subbias_data[j];
       }
     }
-    p_grad_updater_bias->update(p_bias_grad->p_data, bias_base_learning_rate, bias_base_regularization);
+    p_grad_updater_bias->update(p_grad_data);
+    } else {
+      p_grad_updater_bias->update(_bridges[0]->get_bias_grad_cube()->p_data);
+    }
   }
 
   report_backward_updateweight_last_transfer.end();
