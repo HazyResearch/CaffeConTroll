@@ -26,6 +26,9 @@ void load_and_train_network(const char * file, const std::string data_binary, co
 
 float load_and_test_network(const char * file, const std::string data_binary, const std::string model_file);
 
+Corpus * load_network(const char * file, const string & data_binary, cnn::SolverParameter & solver_param,
+    cnn::NetParameter & net_param, BridgeVector & bridges, bool train);
+
 Corpus * read_corpus_from_lmdb(const cnn::NetParameter & net_param, const std::string data_binary, bool train);
 
 void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetParameter & net_param,
