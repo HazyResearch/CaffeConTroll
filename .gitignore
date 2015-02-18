@@ -1,0 +1,20 @@
+-# binaries
+caffe-ct
+test
+tests/test
+*.bin
+# Personal Makefile configuration
+.config
+# Residual compilation files
+.DS_Store
+*.DSYM
+*.pb.cc
+*.pb.h
+*.o
+# Swap files
+*.swp
+*~
+# ctags
+tags
+# Personal libraries
+lib/

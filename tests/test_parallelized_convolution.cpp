@@ -157,12 +157,10 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestForward){
     T output;
     int idx = 0;
     if (expected_output.is_open()) {
-      expected_output >> output;
-      while (!expected_output.eof()) {
-        EXPECT_NEAR(this->data2->p_data[idx], output, EPS);
-        expected_output >> output;
-        idx++;
-      }
+ 
+      while (expected_output >> output) 
+        EXPECT_NEAR(this->data2->p_data[idx++], output, EPS);
+        
     }else{
       FAIL();
     }
@@ -226,12 +224,8 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
   int idx = 0;
 
   if (expected_output.is_open()) {
-    expected_output >> output;
-    while (!expected_output.eof()) {
-      EXPECT_NEAR(this->grad1->p_data[idx], output, EPS);
-      expected_output >> output;
-      idx++;
-    }
+    while (expected_output >> output) 
+      EXPECT_NEAR(this->grad1->p_data[idx++], output, EPS);
   }else{
     FAIL();
   }
@@ -245,11 +239,9 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
   // TODO: I feel like this test is trivial -- please add some
   // non-trivial test case for bias term such that I can debug the bias term...
   if (expected_bias.is_open()) {
-    expected_bias >> output;
-    while (!expected_bias.eof()) {
+    while (expected_bias >> output) {
       float actual_bias = this->ParallelizedConvolutionBridge_->p_bias_cube->p_data[idx];
       EXPECT_NEAR(actual_bias, output, EPS);
-      expected_bias >> output;
       idx++;
     }
   }else{
@@ -262,11 +254,9 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
   idx = 0;
 
   if (expected_weights.is_open()) {
-    expected_weights >> output;
-    while (!expected_weights.eof()) {
+    while (expected_weights >> output) {
       float actual_weight = this->ParallelizedConvolutionBridge_->p_model_cube->p_data[idx];
       EXPECT_NEAR(actual_weight, output, EPS);
-      expected_weights >> output;
       idx++;
     }
   }else{

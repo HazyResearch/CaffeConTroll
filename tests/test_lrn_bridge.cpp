@@ -95,11 +95,8 @@ TYPED_TEST(LRNBridgeTest, TestForward){
   T output;
   int idx = 0;
   if (expected_output.is_open()) {
-    expected_output >> output;
-    while (!expected_output.eof()) {
-      EXPECT_NEAR(this->data2->p_data[idx], output, ESP2);
-      expected_output >> output;
-      idx++;
+    while (expected_output >> output) {
+      EXPECT_NEAR(this->data2->p_data[idx++], output, ESP2);
     }
   }else{
     FAIL();
@@ -144,11 +141,8 @@ TYPED_TEST(LRNBridgeTest, TestBackward){
   T output;
   int idx = 0;
   if (expected_output.is_open()) {
-    expected_output >> output;
-    while (!expected_output.eof()) {
-      EXPECT_NEAR(this->grad1->p_data[idx], output, ESP2);
-      expected_output >> output;
-      idx++;
+    while (expected_output >> output) {
+      EXPECT_NEAR(this->grad1->p_data[idx++], output, ESP2);
     }
   }else{
     FAIL();
