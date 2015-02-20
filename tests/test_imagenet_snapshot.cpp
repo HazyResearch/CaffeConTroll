@@ -54,7 +54,7 @@ TEST(ImageNetSnapshotTest, RunTest) {
 
     // num_mini_batches - 1, because we need one more iteration for the final mini batch
     // (the last mini batch may not be the same size as the rest of the mini batches)
-    for (size_t batch = 0, corpus_batch_index = 0; batch < corpus->num_mini_batches; ++batch,
+    for (size_t batch = 0, corpus_batch_index = 0; batch < 1; ++batch,
         corpus_batch_index += corpus->mini_batch_size) {
       Timer t;
       Timer t2;
@@ -121,14 +121,14 @@ TEST(ImageNetSnapshotTest, RunTest) {
           // NOTE: iter is only valid because we renamed the files to be 0-indexed
           // instead of timestamped. That should also be fixed in the snapshot
           // generation code.
-          string filename = "" + to_string(iter) + "_" + name + "_PID" + to_string(15 - (update_counter + 1)) + "_UPDATE_";
+          string filename = "" + to_string(iter) + "_" + name + "_PID0" + "_UPDATE_";
           GradientUpdater<float> * const model_updater = curr_bridge->get_model_updater();
           const float model_stepsize = model_updater->get_stepsize();
 
           check_local_rate(filename, model_stepsize);
         }
         if (curr_bridge->get_bias_cube() != NULL) {
-          string filename = "" + to_string(iter) + "_" + name + "_PID" + to_string(15 - update_counter) + "_UPDATE_";
+          string filename = "" + to_string(iter) + "_" + name + "_PID1" + "_UPDATE_";
           GradientUpdater<float> * const bias_updater = curr_bridge->get_bias_updater();
           const float bias_stepsize = bias_updater->get_stepsize();
 
