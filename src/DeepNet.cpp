@@ -147,10 +147,31 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
         // scope" error.)
         {
           case cnn::LayerParameter_LayerType_CONVOLUTION:
-          const size_t K = layer_param.convolution_param().kernel_size(),
+            const size_t K = layer_param.convolution_param().kernel_size(),
                   padding = layer_param.convolution_param().pad(),
-                  stride = layer_param.convolution_param().stride(),
-                  grouping = layer_param.convolution_param().group();
+                  stride = layer_param.convolution_param().stride();
+            size_t grouping = layer_param.convolution_param().group();
+
+            /*
+             * This is for syntax compatability with Caffe about grouping.
+             * In the protocol buf file, if layer A, B, C has grouping 1, 2, 2,
+             * in Caffe, A is also partition'ed into two groups... Without
+             * the following fix, we need the syntax to be 2, 2, 2 to do 
+             * the same thing. The following fix makes sure the syntax is
+             * consistent. 
+             */
+             size_t next_conv_layer = i_layer;
+             while((++next_conv_layer) < num_layers){
+              const cnn::LayerParameter next_layer_param = net_param.layers(next_conv_layer);
+              const cnn::LayerParameter_LayerType next_layer_type = next_layer_param.type();
+              if(next_layer_type == cnn::LayerParameter_LayerType_CONVOLUTION){
+                size_t next_grouping = next_layer_param.convolution_param().group();
+                if(grouping == 1 && next_grouping != 1){
+                  grouping = next_grouping;
+                }
+                break;
+              }
+             }
 
             std::cout << "Constructing CONV layer with Grouping = " << grouping << 
               " (# Input Grouping=" << n_previous_groups << ")" << std::endl;
