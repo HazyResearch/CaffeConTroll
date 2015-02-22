@@ -9,12 +9,31 @@
 #include "test_types.h"
 #include "../snapshot-parser/simple_parse.h"
 
-void check_local_rate(const string & filename, const float stepsize) {
-  std::ifstream i("tests/imagenet_train/snapshot_update/" + filename);
-  if(i.fail()) { std::cout << "Failed to open file!" << filename << std::endl; exit(-1); }
-  update_file f(i);
-  i.close();
-  EXPECT_NEAR(f.get_local_rate(), stepsize, 1e-8);
+void check_update(const string & filename, GradientUpdater<float> * const updater) {
+ std::ifstream i("tests/imagenet_train/snapshot_update/" + filename);
+ if (i.fail()) { std::cout << "Failed to open file!" << filename << std::endl; exit(-1); }
+ update_file f(i);
+ i.close();
+
+ const float stepsize = updater->get_stepsize();
+ EXPECT_NEAR(f.get_local_rate(), stepsize, 1e-8);
+ if (dynamic_cast<SGDGradientUpdater<float> *>(updater)) {
+   const float momentum = ((SGDGradientUpdater<float> *) updater)->get_momentum();
+   EXPECT_NEAR(f.get_momentum(), momentum, 1e-8);
+ } else if (dynamic_cast<NesterovUpdater<float> *>(updater)) {
+   const float momentum = ((NesterovUpdater<float> *) updater)->get_momentum();
+   EXPECT_NEAR(f.get_momentum(), momentum, 1e-8);
+ }
+}
+
+void check_regularization(const string & filename, GradientUpdater<float> * const updater) {
+ std::ifstream i("tests/imagenet_train/snapshot_update/" + filename);
+ if (i.fail()) { std::cout << "Failed to open file!" << filename << std::endl; exit(-1); }
+ regularized_update_file r(i);
+ i.close();
+
+ const float decay = updater->get_weight_decay();
+ EXPECT_NEAR(r.get_local_regu(), decay, 1e-8);
 }
 
 TEST(ImageNetSnapshotTest, RunTest) {
@@ -48,7 +67,7 @@ TEST(ImageNetSnapshotTest, RunTest) {
     cout << "EPOCH: " << epoch << endl;
 
     FILE * pFile = fopen (corpus->filename.c_str(), "rb");
-    if(!pFile)
+    if (!pFile)
       throw runtime_error("Error opening the corpus file: " + corpus->filename);
 
     // num_mini_batches - 1, because we need one more iteration for the final mini batch
@@ -61,7 +80,7 @@ TEST(ImageNetSnapshotTest, RunTest) {
       // The last batch may be smaller, but all other batches should be the appropriate size.
       // rs will then contain the real number of entires
       size_t rs = fread(corpus->images->p_data, sizeof(DataType_SFFloat), corpus->images->n_elements, pFile);
-      if (rs != corpus->images->n_elements && batch != corpus->num_mini_batches - 1){
+      if (rs != corpus->images->n_elements && batch != corpus->num_mini_batches - 1) {
         std::cout << "Error in reading data from " << corpus->filename << " in batch " << batch << " of " << corpus->num_mini_batches << std::endl;
         std::cout << "read:  " << rs << " expected " << corpus->images->n_elements << std::endl;
         exit(1);
@@ -84,17 +103,13 @@ TEST(ImageNetSnapshotTest, RunTest) {
 
       // forward pass
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
-
-        //std::cout << (*bridge)->name << "    " << (*bridge)->p_output_layer->p_data_cube->n_elements << std::endl;
-        (*bridge)->forward();
-
-        //(*bridge)->report_forward();
-        //(*bridge)->report_forward_last_transfer.print();
-        //if((*bridge)->name == "relu1"){
-        //  for(int i=0;i< (*bridge)->p_output_layer->p_data_cube->n_elements; i++){
-        //    std::cout << i << "    " << (*bridge)->p_output_layer->p_data_cube->p_data[i] << std::endl;
-        //  }
-        //}
+        Bridge * const curr_bridge = *bridge;
+        const LogicalCube<float, Layout_CRDB> * const input = curr_bridge->p_input_layer->p_data_cube;
+        if (curr_bridge->get_model_cube() != NULL) {
+          const LogicalCube<float, Layout_CRDB> * const model = curr_bridge->get_model_cube();
+        }
+        curr_bridge->forward();
+        const LogicalCube<float, Layout_CRDB> * const output = curr_bridge->p_output_layer->p_data_cube;
       }
 
       t_forward = t.elapsed();
@@ -121,27 +136,30 @@ TEST(ImageNetSnapshotTest, RunTest) {
           // instead of timestamped. That should also be fixed in the snapshot
           // generation code.
           string filename = "" + to_string(iter) + "_" + name + "_PID0" + "_UPDATE_";
+	  string filename_regu = "" + to_string(iter) + "_" + name + "_PID0" + "_REGU_";
           GradientUpdater<float> * const model_updater = curr_bridge->get_model_updater();
-          const float model_stepsize = model_updater->get_stepsize();
-
-          check_local_rate(filename, model_stepsize);
+          // const float model_stepsize = model_updater->get_stepsize();
+          check_update(filename, model_updater);
+	  check_regularization(filename_regu, model_updater);
         }
+
         if (curr_bridge->get_bias_cube() != NULL) {
           string filename = "" + to_string(iter) + "_" + name + "_PID1" + "_UPDATE_";
+	  string filename_regu = "" + to_string(iter) + "_" + name + "_PID1" + "_REGU_";
           GradientUpdater<float> * const bias_updater = curr_bridge->get_bias_updater();
-          const float bias_stepsize = bias_updater->get_stepsize();
-
-          check_local_rate(filename, bias_stepsize);
-        }
+          // const float bias_stepsize = bias_updater->get_stepsize()i;
+          check_update(filename, bias_updater);
+          check_regularization(filename_regu, bias_updater);
+	}
         prev_name = name;
         (*bridge)->backward();
-        //(*bridge)->report_backward();
       }
+
       t_backward = t.elapsed();
 
       t_pass = t2.elapsed();
 
-      if(batch % display_iter == 0){
+      if (batch % display_iter == 0) {
         cout << "BATCH: " << batch << endl;
         std::cout << "Loading Time (seconds)     : " << t_load << std::endl;
         std::cout << "Forward Pass Time (seconds) : " << t_forward << std::endl;
@@ -161,13 +179,5 @@ TEST(ImageNetSnapshotTest, RunTest) {
     cout << "Average Time (seconds) per Epoch: " << t_total.elapsed()/(epoch+1) << endl;
   }
   cout << "Total Time (seconds): " << t_total.elapsed() << endl;
-
-  // double output;
-  // if (expected_accuracy.is_open()) {
-  //   expected_accuracy >> output;
-  //   EXPECT_NEAR(acc, output, 0.05);
-  // }else{
-  //   FAIL();
-  // }
 
 }

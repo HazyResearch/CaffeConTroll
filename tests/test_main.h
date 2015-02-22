@@ -7,6 +7,7 @@
 #include <cstdlib>
 
 #include "test_main.h"
+#include "../snapshot-parser/simple_parse.h"
 
 using std::cout;
 using std::endl;
@@ -21,28 +22,38 @@ struct FloatBDRC {
 	static const LayoutType LAYOUT = Layout_BDRC;
 };
 
-void compare_to_expected(LogicalCube<float, Layout_CRDB> * actual, std::ostream & expected){
+void compare_to_expected(const LogicalCube<float, Layout_CRDB> * const actual, const blob_map * const bm) {
+   //  float output;
+   //  int idx = 0;
+   //  if (expected.is_open()) {
+   //      while(expected >> output) {
+   //          EXPECT_NEAR(actual->p_data[idx++], output, EPS);
+   //      }
+   //  } else {
+   //      FAIL();
+   //  }
+}
+
+void compare_to_expected(const LogicalCube<float, Layout_CRDB> * const actual, std::ostream & expected) {
     float output;
     int idx = 0;
-    if(expected.is_open()){
-        while(expected >> output){
+    if (expected.is_open()) {
+        while(expected >> output) {
             EXPECT_NEAR(actual->p_data[idx++], output, EPS);
         }
-    }
-    else{
+    } else {
         FAIL();
     }
 }
 
-void read_from_file(LogicalCube<float, Layout_CRDB> * cube, std::istream & input){
+void read_from_file(LogicalCube<float, Layout_CRDB> * cube, std::istream & input) {
     float element;
     int idx = 0;
-    if(input.is_open()){
+    if (input.is_open()) {
         while (input >> element) {
             cube->p_data[idx++] = element;
         }
-    }
-    else{
+    } else {
         FAIL();
     }
 }

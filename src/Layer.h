@@ -47,6 +47,7 @@ public:
         dR(_p_data_cube->R), dC(_p_data_cube->C), dD(_p_data_cube->D), dB(_p_data_cube->B),
         gR(_p_gradient_cube->R), gC(_p_gradient_cube->C), gD(_p_gradient_cube->D), gB(_p_gradient_cube->B)
     {
+
 #ifdef _DO_ASSERT
         assert(dR==gR); assert(dC==gC); assert(dD==gD); assert(dB==gB);
 #endif
