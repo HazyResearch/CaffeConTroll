@@ -1,4 +1,4 @@
-net: "tests/imagenet_train/train_val_snapshot.prototxt"
+net: "tests/imagenet_train/imagenet_snapshot_train_val.prototxt"
 test_iter: 1
 test_interval: 1000
 base_lr: 0.01
@@ -11,4 +11,4 @@ momentum: 0.9
 weight_decay: 0.0005
 # snapshot: 10000
 # snapshot_prefix: "models/bvlc_alexnet/caffe_alexnet_train"
-# solver_mode: CPU
+solver_mode: CPU

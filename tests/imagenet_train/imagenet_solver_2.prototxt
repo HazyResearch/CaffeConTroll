@@ -7,3 +7,4 @@ stepsize: 100000
 max_iter: 10 
 momentum: 0
 weight_decay: 0.0005
+solver_mode: CPU
