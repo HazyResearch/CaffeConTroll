@@ -1,3 +1,6 @@
 [submodule "externals/OpenBLAS"]
 	path = externals/OpenBLAS
 	url = git://github.com/xianyi/OpenBLAS.git
+[submodule "snapshot-parser"]
+	path = snapshot-parser
+	url = git@github.com:HazyResearch/snapshot-parser.git

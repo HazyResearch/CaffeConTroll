@@ -7,15 +7,14 @@
 #include "../src/Connector.h"
 #include "../src/bridges/DropoutBridge.h"
 #include "test_types.h"
-#include "snapshot_parser.h"
+#include "../snapshot-parser/simple_parse.h"
 
 void check_local_rate(const string & filename, const float stepsize) {
-  update_file f;
   std::ifstream i("tests/imagenet_train/snapshot_update/" + filename);
   if(i.fail()) { std::cout << "Failed to open file!" << filename << std::endl; exit(-1); }
-  f.parse(i);
+  update_file f(i);
   i.close();
-  EXPECT_NEAR(f.local_rate, stepsize, 1e-8);
+  EXPECT_NEAR(f.get_local_rate(), stepsize, 1e-8);
 }
 
 TEST(ImageNetSnapshotTest, RunTest) {
