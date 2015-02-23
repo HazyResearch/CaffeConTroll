@@ -20,6 +20,13 @@ void compare_to_expected(const LogicalCube<float, Layout_CRDB> * const actual,
    }
 }
 
+void copy_blob_to_cube(const LogicalCube<float, Layout_CRDB> * const cube,
+    const blob_map & blob) {
+   assert(cube->n_elements == blob.nValues);
+   Util::_our_memcpy(cube->p_data, blob.values, blob.nValues*sizeof(float));
+}
+
+
 void check_update(const string & filename, GradientUpdater<float> * const updater) {
  std::ifstream i(filename);
  if (i.fail()) { std::cout << "Failed to open file!" << filename << std::endl; exit(-1); }
@@ -120,6 +127,16 @@ TEST(ImageNetSnapshotTest, RunTest) {
       labels->p_data = corpus->labels->physical_get_RCDslice(corpus_batch_index);
       const int iter = epoch + batch;
 
+      // force inputs for first layer
+      const string data_filename = forward_file::generate_filename(snapshot_dir, iter, "data");
+      std::ifstream i(data_filename);
+      if (i.fail()) { std::cout << "Failed to open file!" << data_filename << std::endl; exit(-1); }
+      forward_file ff(i);
+      i.close();
+
+      Bridge * const first = (Bridge *) bridges.front();
+      copy_blob_to_cube(first->p_input_layer->p_data_cube, ff.get_output()[0]);
+
       // forward pass
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
         Bridge * const curr_bridge = *bridge;
@@ -153,6 +170,9 @@ TEST(ImageNetSnapshotTest, RunTest) {
         const LogicalCube<float, Layout_CRDB> * const output = curr_bridge->p_output_layer->p_data_cube;
         cout << curr_bridge->name << " FORWARD output" << endl;
         compare_to_expected(output, ff.get_output()[0]);
+
+        // force inputs for next layer
+        copy_blob_to_cube(output, ff.get_output()[0]);
       }
 
       t_forward = t.elapsed();

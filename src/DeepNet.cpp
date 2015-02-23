@@ -443,8 +443,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
   SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> * const softmax =
     (SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> *) bridges.back();
 
-  AbstractBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> * const first =
-    (AbstractBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> *) bridges.front();
+  Bridge * const first = (Bridge *) bridges.front();
 
   LogicalCubeFloat * const labels = softmax->p_data_labels;
   LogicalCubeFloat * const input_data = first->p_input_layer->p_data_cube;
