@@ -48,8 +48,14 @@ void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
   const DataType * const input_data = p_input_layer->p_data_cube->p_data;
   DataType * const output_data = p_output_layer->p_data_cube->p_data;
 
-  for (size_t i = 0; i < num_elements; ++i) {
-    output_data[i] = input_data[i] * mask[i] * scale;
+  // in the training phase, we apply the mask
+  if (DeepNet::train()) {
+    for (size_t i = 0; i < num_elements; ++i) {
+      output_data[i] = input_data[i] * mask[i] * scale;
+    }
+  // in the testing phase, we simply copy from input to output
+  } else {
+    Util::_our_memcpy(output_data, input_data, num_elements*sizeof(DataType));
   }
 
   report_forward_last_transfer.end();

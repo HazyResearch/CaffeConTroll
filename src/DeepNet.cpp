@@ -3,6 +3,9 @@
 
 using namespace std;
 
+// Declare train_ here, since it's a static variable (linker error otherwise)
+bool DeepNet::train_;
+
 // computes the output dimension for any convolution layer
 inline size_t compute_conv_next_layer_dimension(const size_t R_i, const size_t K,
     const size_t padding, const size_t stride ) {
@@ -12,17 +15,15 @@ inline size_t compute_conv_next_layer_dimension(const size_t R_i, const size_t K
 // load training data into Corpus object, return Corpus object
 // Note: we assume that the very first layer in the .protoxt
 // file specifies the data layer
-// TODO: also read in test set
-Corpus * read_corpus_from_lmdb(const cnn::NetParameter & net_param, const string data_binary, bool train) {
-  if (train){
+Corpus * DeepNet::read_corpus_from_lmdb(const cnn::NetParameter & net_param, const string data_binary, bool train) {
+  if (train) {
     const cnn::LayerParameter layer_param = net_param.layers(0);
     if (layer_param.type() == cnn::LayerParameter_LayerType_DATA) {
       if (layer_param.include(0).phase() == 0) { // training phase
         return new Corpus(layer_param, data_binary);
       }
     }
-  }
-  else{
+  } else {
     const cnn::LayerParameter layer_param = net_param.layers(1);
     if (layer_param.type() == cnn::LayerParameter_LayerType_DATA) {
       if (layer_param.include(0).phase() == 1) { // testing phase
@@ -75,7 +76,7 @@ void read_model_from_file(BridgeVector & bridges, const string model_file){
   fclose(pFile);
 }
 
-int find_accuracy(const LogicalCubeFloat * const labels, const LogicalCubeFloat * output) {
+int DeepNet::find_accuracy(const LogicalCubeFloat * const labels, const LogicalCubeFloat * output) {
   const float* actual_data = output->p_data;
   const float* expected_label = labels->p_data;
   int top_k = 1;
@@ -109,7 +110,7 @@ int find_accuracy(const LogicalCubeFloat * const labels, const LogicalCubeFloat 
 // This takes in the bridge vector (which has been initialized to be empty in load_and_train_network)
 // and builds up a list of bridges in the vector in the order in which they will be executed in the forward
 // pass. Only the bridges variable is modified.
-void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetParameter & net_param,
+void DeepNet::construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetParameter & net_param,
   const cnn::SolverParameter & solver_param) {
   size_t input_R = corpus.n_rows, input_C = corpus.n_cols, input_D = corpus.dim, B = corpus.mini_batch_size;
           //, last_B = corpus.last_batch_size;
@@ -157,9 +158,9 @@ void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetPa
              * This is for syntax compatability with Caffe about grouping.
              * In the protocol buf file, if layer A, B, C has grouping 1, 2, 2,
              * in Caffe, A is also partition'ed into two groups... Without
-             * the following fix, we need the syntax to be 2, 2, 2 to do 
+             * the following fix, we need the syntax to be 2, 2, 2 to do
              * the same thing. The following fix makes sure the syntax is
-             * consistent. 
+             * consistent.
              */
              size_t next_conv_layer = i_layer;
              while((++next_conv_layer) < num_layers){
@@ -510,7 +511,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       t_forward = t.elapsed();
 
       float loss = (softmax->get_loss() / corpus.mini_batch_size);
-      int accuracy = find_accuracy(labels, (*--bridges.end())->p_output_layer->p_data_cube);
+      int accuracy = DeepNet::find_accuracy(labels, (*--bridges.end())->p_output_layer->p_data_cube);
 
       // backward pass
       t.restart();
@@ -545,12 +546,16 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 
 }
 
-Corpus * load_network(const char * file, const string & data_binary, cnn::SolverParameter & solver_param,
+Corpus * DeepNet::load_network(const char * file, const string & data_binary, cnn::SolverParameter & solver_param,
     cnn::NetParameter & net_param, BridgeVector & bridges, bool train) {
+
+  // not necessary if being called from load_and_(train|test)_network,
+  // but necessary for certain tests
+  DeepNet::train_ = train;
 
   if (Parser::read_proto_from_text_file(file, &solver_param) &&
   Parser::read_net_params_from_text_file(solver_param.net(), &net_param)) {
-    Corpus * corpus = read_corpus_from_lmdb(net_param, data_binary, train);
+    Corpus * corpus = DeepNet::read_corpus_from_lmdb(net_param, data_binary, train);
 
 #ifdef _DO_WARNING
     cout << "Corpus train loaded" << endl;
@@ -563,7 +568,7 @@ Corpus * load_network(const char * file, const string & data_binary, cnn::Solver
     cout << "CORPUS LAST BATCH SIZE: " << corpus.last_batch_size << endl;
 #endif
 
-    construct_network(bridges, *corpus, net_param, solver_param);
+    DeepNet::construct_network(bridges, *corpus, net_param, solver_param);
 
     return corpus;
   } else {
@@ -615,14 +620,12 @@ float test_network(const BridgeVector & bridges, const Corpus & corpus, const cn
     labels->p_data = corpus.labels->physical_get_RCDslice(corpus_batch_index);
     // forward pass
     for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
-      //(*bridge)->p_input_layer->p_gradient_cube->reset_cube();
-      //(*bridge)->p_output_layer->p_data_cube->reset_cube();
       (*bridge)->forward();
     }
     t_forward = t.elapsed();
 
     float loss = (softmax->get_loss() / corpus.mini_batch_size);
-    int batch_accuracy = find_accuracy(labels, softmax->p_output_layer->p_data_cube);
+    int batch_accuracy = DeepNet::find_accuracy(labels, softmax->p_output_layer->p_data_cube);
     total_accuracy += batch_accuracy;
 
     t_pass = t2.elapsed();
@@ -672,10 +675,11 @@ float test_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 //      Compute backward pass for last batch (again, might not have the same
 //                                            size as the rest of batches)
 //
-void load_and_train_network(const char * file, const string data_binary, const string model_file) {
+void DeepNet::load_and_train_network(const char * file, const string data_binary, const string model_file) {
+  DeepNet::train_ = true;
 
   BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
-  Corpus * corpus = load_network(file, data_binary, solver_param, net_param, bridges, true);
+  Corpus * corpus = DeepNet::load_network(file, data_binary, solver_param, net_param, bridges, true);
 
   // Step 3:
   // Now, the bridges vector is fully populated
@@ -688,10 +692,11 @@ void load_and_train_network(const char * file, const string data_binary, const s
   // Clean up! TODO: free the allocated bridges, layers, and cubes
 }
 
-float load_and_test_network(const char * file, const string data_binary, const string model_file) {
+float DeepNet::load_and_test_network(const char * file, const string data_binary, const string model_file) {
+  DeepNet::train_ = false;
 
   BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
-  Corpus * corpus = load_network(file, data_binary, solver_param, net_param, bridges, false);
+  Corpus * corpus = DeepNet::load_network(file, data_binary, solver_param, net_param, bridges, false);
 
   if(model_file != "NA"){
     read_model_from_file(bridges, model_file);

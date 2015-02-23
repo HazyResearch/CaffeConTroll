@@ -53,7 +53,7 @@ TEST(ImageNetSnapshotTest, RunTest) {
   char const * file = "tests/imagenet_train/imagenet_snapshot_solver.prototxt";
   const std::string data_binary = "imagenet.bin";
 
-  Corpus * corpus = load_network(file, data_binary, solver_param, net_param, bridges, true);
+  Corpus * corpus = DeepNet::load_network(file, data_binary, solver_param, net_param, bridges, true);
 
   SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> * const softmax =
     (SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> *) bridges.back();
@@ -158,7 +158,7 @@ TEST(ImageNetSnapshotTest, RunTest) {
       t_forward = t.elapsed();
 
       float loss = (softmax->get_loss() / corpus->mini_batch_size);
-      int accuracy = find_accuracy(labels, (*--bridges.end())->p_output_layer->p_data_cube);
+      int accuracy = DeepNet::find_accuracy(labels, (*--bridges.end())->p_output_layer->p_data_cube);
 
       // backward pass
       t.restart();

@@ -35,9 +35,9 @@ int main(int argc, const char * argv[]) {
   boost::program_options::notify(vm);
 
   if (string(argv[1]) == "train") {
-    load_and_train_network(argv[2], data_binary, model_file);
+    DeepNet::load_and_train_network(argv[2], data_binary, model_file);
   } else if (string(argv[1]) == "test") {
-    load_and_test_network(argv[2], data_binary, model_file);
+    DeepNet::load_and_test_network(argv[2], data_binary, model_file);
   }
 
   return 0;

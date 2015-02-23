@@ -10,6 +10,7 @@
 #define moka_Dropout_Bridge_h
 
 #include "AbstractBridge.h"
+#include "../DeepNet.h"
 #include "../util.h"
 
 template
