@@ -22,16 +22,12 @@ struct FloatBDRC {
 	static const LayoutType LAYOUT = Layout_BDRC;
 };
 
-void compare_to_expected(const LogicalCube<float, Layout_CRDB> * const actual, const blob_map * const bm) {
-   //  float output;
-   //  int idx = 0;
-   //  if (expected.is_open()) {
-   //      while(expected >> output) {
-   //          EXPECT_NEAR(actual->p_data[idx++], output, EPS);
-   //      }
-   //  } else {
-   //      FAIL();
-   //  }
+void compare_to_expected(const LogicalCube<float, Layout_CRDB> * const actual,
+    const blob_map & const expected) {
+   EXPECT_NEAR(actual->n_elements, expected.nValues, 0);
+   for (int i = 0; i < expected.nValues; ++i) {
+     EXPECT_NEAR(actual->p_data[i], expected[i], EPS);
+   }
 }
 
 void compare_to_expected(const LogicalCube<float, Layout_CRDB> * const actual, std::ostream & expected) {

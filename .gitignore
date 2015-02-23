@@ -3,6 +3,7 @@ caffe-ct
 test
 tests/test
 *.bin
+*.mdb
 # Personal Makefile configuration
 .config
 # Residual compilation files

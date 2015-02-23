@@ -1,16 +1,20 @@
-#include "../src/DeepNet.h"
+#include "test_types.h"
+#include "test_main.h"
 #include "gtest/gtest.h"
+
+#include "../src/DeepNet.h"
 #include "../src/Kernel.h"
 #include "../src/LogicalCube.h"
 #include "../src/Layer.h"
 #include "../src/config.h"
 #include "../src/Connector.h"
 #include "../src/bridges/DropoutBridge.h"
-#include "test_types.h"
 #include "../snapshot-parser/simple_parse.h"
 
+const string snapshot_dir("data/snapshots/");
+
 void check_update(const string & filename, GradientUpdater<float> * const updater) {
- std::ifstream i("tests/imagenet_train/snapshot_update/" + filename);
+ std::ifstream i(filename);
  if (i.fail()) { std::cout << "Failed to open file!" << filename << std::endl; exit(-1); }
  update_file f(i);
  i.close();
@@ -27,7 +31,7 @@ void check_update(const string & filename, GradientUpdater<float> * const update
 }
 
 void check_regularization(const string & filename, GradientUpdater<float> * const updater) {
- std::ifstream i("tests/imagenet_train/snapshot_update/" + filename);
+ std::ifstream i(filename);
  if (i.fail()) { std::cout << "Failed to open file!" << filename << std::endl; exit(-1); }
  regularized_update_file r(i);
  i.close();
@@ -60,6 +64,13 @@ TEST(ImageNetSnapshotTest, RunTest) {
 
   Timer t_total;
   const int display_iter = 50;
+
+  std::ifstream i(metadata_file::generate_filename(snapshot_dir));
+  if (i.fail()) { std::cout << "Failed to open file!" << filename << std::endl; exit(-1); }
+  metadata_file mf(i);
+  i.close();
+
+  const int num_params = mf.nParams;
 
   const size_t num_epochs = solver_param.max_iter();
   for (size_t epoch = 0; epoch < num_epochs; ++epoch) {
@@ -99,16 +110,33 @@ TEST(ImageNetSnapshotTest, RunTest) {
 
       // initialize labels for this mini batch
       labels->p_data = corpus->labels->physical_get_RCDslice(corpus_batch_index);
+      const int iter = epoch + batch;
 
       // forward pass
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
         Bridge * const curr_bridge = *bridge;
+
+        std::ifstream i(forward_file::generate_filename(snapshot_dir, iter, curr_bridge->name));
+        if (i.fail()) { std::cout << "Failed to open file!" << filename << std::endl; exit(-1); }
+        forward_file ff(i);
+        i.close();
+
         const LogicalCube<float, Layout_CRDB> * const input = curr_bridge->p_input_layer->p_data_cube;
+        compare_to_expected(input, ff.get_input()[0]);
+
         if (curr_bridge->get_model_cube() != NULL) {
           const LogicalCube<float, Layout_CRDB> * const model = curr_bridge->get_model_cube();
+          compare_to_expected(model, ff.get_model()[0]);
         }
+
+        if (curr_bridge->get_bias_cube() != NULL) {
+          const LogicalCube<float, Layout_CRDB> * const bias = curr_bridge->get_bias_cube();
+          compare_to_expected(bias, ff.get_model()[1]);
+        }
+
         curr_bridge->forward();
         const LogicalCube<float, Layout_CRDB> * const output = curr_bridge->p_output_layer->p_data_cube;
+        compare_to_expected(output, ff.get_output()[0]);
       }
 
       t_forward = t.elapsed();
@@ -118,35 +146,44 @@ TEST(ImageNetSnapshotTest, RunTest) {
 
       // backward pass
       t.restart();
-      string prev_name = ""; int update_counter = -2;
+      string prev_name = ""; int param_id = -2;
       for (auto bridge = bridges.rbegin(); bridge != bridges.rend(); ++bridge) {
         Bridge * const curr_bridge = *bridge;
         const string name = curr_bridge->name;
-        const int iter = epoch + batch;
-        if (name != prev_name && curr_bridge->get_model_cube() != NULL) {
-          update_counter += 2; // for now we assume that there's always a bias cube
+        std::ifstream i(backward_file::generate_filename(snapshot_dir, iter, bridge->name));
+        if (i.fail()) { std::cout << "Failed to open file!" << filename << std::endl; exit(-1); }
+        backward_file bf(i);
+        i.close();
+
+        const LogicalCube<float, Layout_CRDB> * const input_grad = curr_bridge->p_input_layer->p_gradient_cube;
+        compare_to_expected(input_grad, bf.get_input_g()[0]);
+
+        if (curr_bridge->get_model_grad_cube() != NULL) {
+          const LogicalCube<float, Layout_CRDB> * const model_grad = curr_bridge->get_model_grad_cube();
+          compare_to_expected(model_grad, bf.get_model_g()[0]);
         }
+
+        if (curr_bridge->get_bias_grad_cube() != NULL) {
+          const LogicalCube<float, Layout_CRDB> * const bias_grad = curr_bridge->get_bias_grad_cube();
+          compare_to_expected(bias_grad, bf.get_model_g()[1]);
+        }
+
+        if (name != prev_name && curr_bridge->get_model_cube() != NULL) {
+          param_id += 2; // for now we assume that there's always a bias cube
+        }
+
         if (curr_bridge->get_model_cube() != NULL) {
-          // yes this code is janky :(, but, for now, it works
-          // TODO: instead of hard-coding the number "15", we need
-          // to calculate the number of *layers* that have weights/biasses
-          // to be updated. (Weights and biases need to be counted separately.)
-          // NOTE: iter is only valid because we renamed the files to be 0-indexed
-          // instead of timestamped. That should also be fixed in the snapshot
-          // generation code.
-          string filename = "" + to_string(iter) + "_" + name + "_PID0" + "_UPDATE_";
-	  string filename_regu = "" + to_string(iter) + "_" + name + "_PID0" + "_REGU_";
+          string filename = update_file::generate_filename(snapshot_dir, iter, name, 0);
+	  string filename_regu = regularized_update_file::generate_filename(snapshot_dir, iter, name, 0);
           GradientUpdater<float> * const model_updater = curr_bridge->get_model_updater();
-          // const float model_stepsize = model_updater->get_stepsize();
           check_update(filename, model_updater);
 	  check_regularization(filename_regu, model_updater);
         }
 
         if (curr_bridge->get_bias_cube() != NULL) {
-          string filename = "" + to_string(iter) + "_" + name + "_PID1" + "_UPDATE_";
-	  string filename_regu = "" + to_string(iter) + "_" + name + "_PID1" + "_REGU_";
+          string filename = update_file::generate_filename(snapshot_dir, iter, name, 1);
+	  string filename_regu = regularized_update_file::generate_filename(snapshot_dir, iter, name, 1);
           GradientUpdater<float> * const bias_updater = curr_bridge->get_bias_updater();
-          // const float bias_stepsize = bias_updater->get_stepsize()i;
           check_update(filename, bias_updater);
           check_regularization(filename_regu, bias_updater);
 	}
