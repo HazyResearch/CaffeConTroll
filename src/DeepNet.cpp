@@ -4,7 +4,9 @@
 using namespace std;
 
 // Declare train_ here, since it's a static variable (linker error otherwise)
-bool DeepNet::train_;
+// We set it to true, since we want to train by default. This is also useful
+// for testing (e.g. DropoutTest).
+bool DeepNet::train_ = true;
 
 // computes the output dimension for any convolution layer
 inline size_t compute_conv_next_layer_dimension(const size_t R_i, const size_t K,

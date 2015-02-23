@@ -62,7 +62,6 @@ void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
   report_forward_history.aggregate(report_forward_last_transfer);
 }
 
-
 /**
  * Implements Dropout in the backward direction.
  **/

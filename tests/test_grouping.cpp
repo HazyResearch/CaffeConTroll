@@ -18,10 +18,10 @@ TEST(GroupingTest, RunTest) {
 
   cnn::NetParameter net_param;
   Parser::read_net_params_from_text_file(solver_param.net(), &net_param);
-  Corpus * corpus = read_corpus_from_lmdb(net_param, data_binary, true);
+  Corpus * corpus = DeepNet::read_corpus_from_lmdb(net_param, data_binary, true);
 
   BridgeVector bridges;
-  construct_network(bridges, *corpus, net_param, solver_param);
+  DeepNet::construct_network(bridges, *corpus, net_param, solver_param);
 
   // First, test the execution order
   EXPECT_EQ(bridges[0]->name, "conv1"); // The dupliate here is where grouping happens
@@ -116,6 +116,5 @@ TEST(GroupingTest, RunTest) {
   EXPECT_EQ(bridges[21]->oD, 384/2);
   EXPECT_EQ(bridges[24]->oD, 256/2);
   EXPECT_EQ(bridges[25]->oD, 256/2);
-
 
 }
