@@ -130,21 +130,28 @@ TEST(ImageNetSnapshotTest, RunTest) {
         forward_file ff(i);
         i.close();
 
+        cout << curr_bridge->name << " FORWARD" << endl;
+
         const LogicalCube<float, Layout_CRDB> * const input = curr_bridge->p_input_layer->p_data_cube;
+        cout << curr_bridge->name << " FORWARD input" << endl;
         compare_to_expected(input, ff.get_input()[0]);
 
         if (curr_bridge->get_model_cube() != NULL) {
           const LogicalCube<float, Layout_CRDB> * const model = curr_bridge->get_model_cube();
+          cout << curr_bridge->name << " FORWARD model" << endl;
           compare_to_expected(model, ff.get_model()[0]);
         }
 
         if (curr_bridge->get_bias_cube() != NULL) {
           const LogicalCube<float, Layout_CRDB> * const bias = curr_bridge->get_bias_cube();
+          cout << curr_bridge->name << " FORWARD bias" << endl;
           compare_to_expected(bias, ff.get_model()[1]);
         }
 
         curr_bridge->forward();
+
         const LogicalCube<float, Layout_CRDB> * const output = curr_bridge->p_output_layer->p_data_cube;
+        cout << curr_bridge->name << " FORWARD output" << endl;
         compare_to_expected(output, ff.get_output()[0]);
       }
 
