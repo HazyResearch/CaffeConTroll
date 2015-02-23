@@ -22,8 +22,10 @@ void compare_to_expected(const LogicalCube<float, Layout_CRDB> * const actual,
 
 void copy_blob_to_cube(const LogicalCube<float, Layout_CRDB> * const cube,
     const blob_map & blob) {
-   assert(cube->n_elements == blob.nValues);
-   Util::_our_memcpy(cube->p_data, blob.values, blob.nValues*sizeof(float));
+   assert((int) cube->n_elements == blob.nValues);
+   for (int i = 0; i < blob.nValues; ++i) {
+     cube->p_data[i] = blob.values[i];
+   }
 }
 
 
