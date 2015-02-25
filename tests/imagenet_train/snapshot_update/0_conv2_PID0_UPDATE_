@@ -1,5 +1,0 @@
-LEARNING_RATE
-global_rate 0.01
-param_rate 1
-local_rate 0.01
-momentum 0
