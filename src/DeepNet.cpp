@@ -353,7 +353,7 @@ void DeepNet::construct_network(BridgeVector & bridges, Corpus & corpus, const c
               //       DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, &layer_param);
               bridge = new ParallelizedBridge<DataType_SFFloat,
                 LRNBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
-                (prev_layers[i], next_layer, &layer_param, &solver_param, min<size_t>(16, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+                (prev_layers[i], next_layer, &layer_param, &solver_param, min<size_t>(1, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
               bridge->name = layer_param.name();
 
               bridges.push_back(bridge);
@@ -475,8 +475,8 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       // rs will then contain the real number of entires
       size_t rs = fread(corpus.images->p_data, sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
       if (rs != corpus.images->n_elements && batch != corpus.num_mini_batches - 1){
-	std::cout << "Error in reading data from " << corpus.filename << " in batch " << batch << " of " << corpus.num_mini_batches << std::endl;
-	std::cout << "read:  " << rs << " expected " << corpus.images->n_elements << std::endl;
+	      std::cout << "Error in reading data from " << corpus.filename << " in batch " << batch << " of " << corpus.num_mini_batches << std::endl;
+	      std::cout << "read:  " << rs << " expected " << corpus.images->n_elements << std::endl;
         exit(1);
       }
 
