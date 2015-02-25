@@ -16,7 +16,8 @@ void compare_to_expected(const LogicalCube<float, Layout_CRDB> * const actual,
     const blob_map & expected) {
    EXPECT_NEAR(actual->n_elements, expected.nValues, 0);
    for (int i = 0; i < expected.nValues; ++i) {
-     EXPECT_NEAR(actual->p_data[i], expected.values[i], EPS);
+     EXPECT_NEAR(actual->p_data[i], expected.values[i], EPS*fabs(expected.values[i])); 
+      // TODO: Firas -- if you want, you change EPS to even smaller, it can be 0.0001 or smaller 
    }
 }
 
