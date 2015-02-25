@@ -15,11 +15,11 @@ LIB_STR=$(foreach d, $(LIB_DIRS), -L$d)
 # For Mac OS X 10.10 x86_64 Yosemite
 ifeq ($(UNAME), Darwin)
   CFLAGS = -Wall -std=c++11
-  LDFLAGS = $(LD_BASE) -lboost_program_options-mt
+  LDFLAGS = $(LD_BASE) -lboost_program_options-mt -lboost_serialization
 # For Ubuntu 12.04 x86_64 (raiders3 machine)
 else ifeq ($(UNAME), Linux)
   CFLAGS = -Wall -std=c++11 -Wl,--no-as-needed
-  LDFLAGS = $(LD_BASE) -lrt -lboost_program_options
+  LDFLAGS = $(LD_BASE) -lrt -lboost_program_options -lboost_serialization
 endif
 CFLAGS += $(BLAS_DEFS)
 

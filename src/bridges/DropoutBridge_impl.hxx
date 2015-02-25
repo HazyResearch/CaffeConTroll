@@ -55,7 +55,11 @@ void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
     }
   // in the testing phase, we simply copy from input to output
   } else {
-    Util::_our_memcpy(output_data, input_data, num_elements*sizeof(DataType));
+    for (size_t i = 0; i < num_elements; ++i) {
+      output_data[i] = input_data[i];
+    }
+    // TODO: there may be an issue with memcpy, need to test it
+    // Util::_our_memcpy(output_data, input_data, num_elements*sizeof(DataType));
   }
 
   report_forward_last_transfer.end();

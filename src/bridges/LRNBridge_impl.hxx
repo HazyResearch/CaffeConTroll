@@ -144,7 +144,11 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
   const size_t n_elements = _iB*_iD*_iC*_iR;
   for (size_t i = 0; i < n_elements; ++i) {
     *p_denoms = alpha_over_size*(*p_denoms) + 1;
+#ifdef _FASTPOW
     *p_output = (*p_input_all)/fastPrecisePow(*p_denoms, beta);
+#else
+    *p_output = (*p_input_all)/pow(*p_denoms, beta);
+#endif
     p_output ++;
     p_denoms ++;
     p_input_all ++;
