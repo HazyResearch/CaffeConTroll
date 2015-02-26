@@ -171,7 +171,6 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
   const DataType alpha_over_size = alpha / local_size;
   const int norm_window = (int) local_size / 2;
 
-  int ct = 0;
   for (size_t o_b = 0; o_b < iB; ++o_b) {
     for (int o_d = 0; o_d < iD; ++o_d) {
       for (size_t o_c = 0; o_c < iC; ++o_c) {

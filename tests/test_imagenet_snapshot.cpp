@@ -16,11 +16,11 @@ void compare_to_expected(const LogicalCube<float, Layout_CRDB> * const actual,
     const blob_map & expected) {
    EXPECT_NEAR(actual->n_elements, expected.nValues, 0);
    for (int i = 0; i < expected.nValues; ++i) {
-     if(fabs(actual->p_data[i]) < 0.00001){  // when the value is too small, relative 
+     if(fabs(actual->p_data[i]) < 0.00001){  // when the value is too small, relative
                                                   // error does not make much sense
        EXPECT_NEAR(actual->p_data[i], expected.values[i], 0.0000001);
      }else{ // when the value is too large, absolute error does not make much sense
-       EXPECT_NEAR(actual->p_data[i], expected.values[i], EPS*fabs(expected.values[i])); 
+       EXPECT_NEAR(actual->p_data[i], expected.values[i], EPS*fabs(expected.values[i]));
      }
    }
 }
@@ -63,7 +63,7 @@ void check_regularization(const string & filename, GradientUpdater<float> * cons
 TEST(ImageNetSnapshotTest, RunTest) {
 
   BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
-  char const * file = "tests/imagenet_train/imagenet_snapshot_solver.prototxt";
+  char const * file = "tests/imagenet_train/solver/imagenet_snapshot_solver_10_iters_1_batch.prototxt";
   const std::string data_binary = "imagenet.bin";
 
   Corpus * corpus = DeepNet::load_network(file, data_binary, solver_param, net_param, bridges, true);
@@ -177,6 +177,8 @@ TEST(ImageNetSnapshotTest, RunTest) {
 
         curr_bridge->forward();
 
+        // we don't compare the output of the last layer, because Caffe outputs the loss, while we output
+        // the probabilities
         if (curr_bridge != bridges.back()) {
           const LogicalCube<float, Layout_CRDB> * const output = curr_bridge->p_output_layer->p_data_cube;
           cout << curr_bridge->name << " FORWARD output" << endl;
@@ -217,8 +219,9 @@ TEST(ImageNetSnapshotTest, RunTest) {
         cout << curr_bridge->name << " BACKWARD" << endl;
         cerr << curr_bridge->name << " BACKWARD" << endl;
 
-        const LogicalCube<float, Layout_CRDB> * const output_grad = curr_bridge->p_output_layer->p_gradient_cube;
-        if(curr_bridge->name != "relu1"){ //TODO: Firas, fix relu's snapshot
+        // we don't compare the output grad for the last layer, either, for the same reasons as above
+        if (curr_bridge != bridges.back()) {
+          const LogicalCube<float, Layout_CRDB> * const output_grad = curr_bridge->p_output_layer->p_gradient_cube;
           cout << curr_bridge->name << " BACKWARD output grad" << endl;
           cerr << curr_bridge->name << " BACKWARD output grad" << endl;
           compare_to_expected(output_grad, bf.get_output_g()[0]);

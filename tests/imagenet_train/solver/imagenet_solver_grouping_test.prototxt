@@ -1,0 +1,9 @@
+net: "tests/imagenet_train/train_val/imagenet_train_val_grouping_test.prototxt"
+test_iter: 1000
+test_interval: 1000
+base_lr: 0.01
+lr_policy: "step"
+stepsize: 100000
+max_iter: 450000
+momentum: 0
+weight_decay: 0.0005

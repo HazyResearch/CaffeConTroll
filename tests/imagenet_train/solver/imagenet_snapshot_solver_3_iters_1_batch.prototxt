@@ -1,4 +1,4 @@
-net: "tests/imagenet_train/imagenet_snapshot_train_val_no_grouping.prototxt"
+net: "tests/imagenet_train/train_val/imagenet_snapshot_train_val_group_1_batch_1.prototxt"
 test_iter: 1
 test_interval: 1000
 base_lr: 0.01

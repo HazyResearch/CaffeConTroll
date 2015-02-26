@@ -5,7 +5,7 @@ TEST(GroupingTest, RunTest) {
 
   char const * a = "deepnet";
   char const * b = "train";
-  char const * c = "tests/imagenet_train/imagenet_solver_2.prototxt";
+  char const * c = "tests/imagenet_train/solver/imagenet_solver_grouping_test.prototxt";
   char const * argv[3];
   argv[0] = a;
   argv[1] = b;

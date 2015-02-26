@@ -65,7 +65,7 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() 
       output_data[i + i_b*iD] = exp(single_input_batch[i] - max)/denom;
     }
 
-    loss += log(denom) - single_input_batch[static_cast<int>(ground_truth[i_b])] + max;
+    loss -= log(output_data[static_cast<int>(ground_truth[i_b]) + i_b*iD]);
   }
 
   report_forward_last_transfer.end();
