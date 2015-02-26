@@ -28,7 +28,7 @@ TEST(LenetTrainTest, RunTest) {
   double output;
   if (expected_accuracy.is_open()) {
     expected_accuracy >> output;
-    EXPECT_NEAR(acc, output, 0.05);
+    EXPECT_NEAR(acc, output, 0.02);
   }else{
     FAIL();
   }

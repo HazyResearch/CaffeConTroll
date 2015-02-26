@@ -32,15 +32,20 @@ void _backward(PhysicalOperator * const bridge);
  * an PhysicalOperator.
  **/
 class PhysicalStratum : public PhysicalOperator {
-  public:
+  protected:
+    size_t executor_bound;
 
+  public:
     vector<PhysicalOperator *> executors; // STL overhead is not that crucial here,
                                           // so we just use a vector
     PhysicalStratum();
 
     void forward();
-
     void backward();
+
+    void set_executor_bound(size_t _executor_bound) {
+      executor_bound = _executor_bound;
+    }
 };
 
 #endif

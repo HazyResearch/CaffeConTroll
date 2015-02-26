@@ -23,6 +23,11 @@ template
 <typename InputLayerDataType, LayoutType InputLayerLayout,
   typename OutputLayerDataType, LayoutType OutputLayerLayout>
 class AbstractBridge : public PhysicalOperator {
+  protected:
+    // the size of the current training batch
+    // always <= iB
+    size_t curr_B;
+
   public:
 
     std::string name;   // lets give Bridge a name
@@ -92,12 +97,16 @@ class AbstractBridge : public PhysicalOperator {
         return NULL;
     }
 
+    void set_curr_batch_size(const size_t _curr_B) {
+      curr_B = _curr_B;
+    }
+
     // First constructor, which takes in a cnn::LayerParameter as a third argument. This will
     // be used when initializing from a *.prototxt file
     AbstractBridge<InputLayerDataType, InputLayerLayout,
       OutputLayerDataType, OutputLayerLayout>(InputLayerType * const _p_input_layer,
           OutputLayerType * const _p_output_layer, const cnn::LayerParameter * const _layer_param,
-          const cnn::SolverParameter * const _solver_param) :
+          const cnn::SolverParameter * const _solver_param) : curr_B(_p_input_layer->p_data_cube->B),
         iR(_p_input_layer->p_data_cube->R), iC(_p_input_layer->p_data_cube->C), iD(_p_input_layer->p_data_cube->D),
         iB(_p_input_layer->p_data_cube->B), oR(_p_output_layer->p_data_cube->R), oC(_p_output_layer->p_data_cube->C),
         oD(_p_output_layer->p_data_cube->D), oB(_p_output_layer->p_data_cube->B),
@@ -108,7 +117,7 @@ class AbstractBridge : public PhysicalOperator {
     // (Used only for Softmax)
     AbstractBridge<InputLayerDataType, InputLayerLayout,
       OutputLayerDataType, OutputLayerLayout>(InputLayerType * const _p_input_layer,
-          OutputLayerType * const _p_output_layer) :
+          OutputLayerType * const _p_output_layer) : curr_B(_p_input_layer->p_data_cube->B),
         iR(_p_input_layer->p_data_cube->R), iC(_p_input_layer->p_data_cube->C), iD(_p_input_layer->p_data_cube->D),
         iB(_p_input_layer->p_data_cube->B), oR(_p_output_layer->p_data_cube->R), oC(_p_output_layer->p_data_cube->C),
         oD(_p_output_layer->p_data_cube->D), oB(_p_output_layer->p_data_cube->B),

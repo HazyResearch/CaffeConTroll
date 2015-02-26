@@ -128,9 +128,9 @@ void DeepNet::construct_network(BridgeVector & bridges, Corpus & corpus, const c
 
   const size_t num_layers = net_param.layers_size();
 
-  AbstractBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> * bridge = NULL;
-  LogicalCube<DataType_SFFloat, Layout_CRDB> * next_data = NULL;
-  LogicalCube<DataType_SFFloat, Layout_CRDB> * next_grad = NULL;
+  Bridge * bridge = NULL;
+  LogicalCubeFloat * next_data = NULL;
+  LogicalCubeFloat * next_grad = NULL;
   Layer<DataType_SFFloat, Layout_CRDB> * next_layer = NULL;
 
   size_t output_R = input_R, output_C = input_C, output_D = input_D;
@@ -464,19 +464,19 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
     if(!pFile)
       throw runtime_error("Error opening the corpus file: " + corpus.filename);
 
-    // num_mini_batches - 1, because we need one more iteration for the final mini batch
-    // (the last mini batch may not be the same size as the rest of the mini batches)
-    for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches ; ++batch,
+    for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches; ++batch,
         corpus_batch_index += corpus.mini_batch_size) {
       Timer t;
       Timer t2;
+
+      const size_t curr_batch_size = (batch == corpus.num_mini_batches - 1) ? corpus.last_batch_size : corpus.mini_batch_size;
 
       // The last batch may be smaller, but all other batches should be the appropriate size.
       // rs will then contain the real number of entires
       size_t rs = fread(corpus.images->p_data, sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
       if (rs != corpus.images->n_elements && batch != corpus.num_mini_batches - 1){
-	      std::cout << "Error in reading data from " << corpus.filename << " in batch " << batch << " of " << corpus.num_mini_batches << std::endl;
-	      std::cout << "read:  " << rs << " expected " << corpus.images->n_elements << std::endl;
+        std::cout << "Error in reading data from " << corpus.filename << " in batch " << batch << " of " << corpus.num_mini_batches << std::endl;
+        std::cout << "read:  " << rs << " expected " << corpus.images->n_elements << std::endl;
         exit(1);
       }
 
@@ -497,16 +497,10 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 
       // forward pass
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
-
-        //std::cout << (*bridge)->name << "    " << (*bridge)->p_output_layer->p_data_cube->n_elements << std::endl;
+        (*bridge)->set_curr_batch_size(curr_batch_size);
         (*bridge)->forward();
         //(*bridge)->report_forward();
         //(*bridge)->report_forward_last_transfer.print();
-        //if((*bridge)->name == "relu1"){
-        //  for(int i=0;i< (*bridge)->p_output_layer->p_data_cube->n_elements; i++){
-        //    std::cout << i << "    " << (*bridge)->p_output_layer->p_data_cube->p_data[i] << std::endl;
-        //  }
-        //}
       }
 
       t_forward = t.elapsed();
@@ -517,6 +511,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       // backward pass
       t.restart();
       for (auto bridge = bridges.rbegin(); bridge != bridges.rend(); ++bridge) {
+        (*bridge)->set_curr_batch_size(curr_batch_size);
         (*bridge)->backward();
         //(*bridge)->report_backward();
       }

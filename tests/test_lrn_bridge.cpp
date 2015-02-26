@@ -13,8 +13,8 @@
 #include <cmath>
 #include <cstring>
 
-const double ESP2 = 0.1;  // We increase this threshold becasue 
-                          // of the fastPrecisePow function that we are using.
+// const double ESP2 = 0.001;  // We increase this threshold becasue
+                            // of the fastPrecisePow function that we are using.
 
 template <typename TypeParam>
 class LRNBridgeTest : public ::testing::Test {
@@ -81,7 +81,7 @@ TYPED_TEST(LRNBridgeTest, TestForward){
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
       input >> this->data1->p_data[i];
-    }  
+    }
   }
   else{
     FAIL();
@@ -96,7 +96,7 @@ TYPED_TEST(LRNBridgeTest, TestForward){
   int idx = 0;
   if (expected_output.is_open()) {
     while (expected_output >> output) {
-      EXPECT_NEAR(this->data2->p_data[idx++], output, ESP2);
+      EXPECT_NEAR(this->data2->p_data[idx++], output, EPS);
     }
   }else{
     FAIL();
@@ -112,7 +112,7 @@ TYPED_TEST(LRNBridgeTest, TestBackward){
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
       input >> this->data1->p_data[i];
-    }  
+    }
   }
   else{
     FAIL();
@@ -128,7 +128,7 @@ TYPED_TEST(LRNBridgeTest, TestBackward){
   if (grad.is_open()){
     for(int i=0;i<oR*oC*this->iD*this->mB;i++){
       grad >> this->grad2->p_data[i];
-    }  
+    }
   }
   else{
     FAIL();
@@ -142,7 +142,7 @@ TYPED_TEST(LRNBridgeTest, TestBackward){
   int idx = 0;
   if (expected_output.is_open()) {
     while (expected_output >> output) {
-      EXPECT_NEAR(this->grad1->p_data[idx++], output, ESP2);
+      EXPECT_NEAR(this->grad1->p_data[idx++], output, EPS);
     }
   }else{
     FAIL();

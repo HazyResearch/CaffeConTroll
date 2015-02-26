@@ -101,12 +101,12 @@ TEST(ImageNetSnapshotTest, RunTest) {
     if (!pFile)
       throw runtime_error("Error opening the corpus file: " + corpus->filename);
 
-    // num_mini_batches - 1, because we need one more iteration for the final mini batch
-    // (the last mini batch may not be the same size as the rest of the mini batches)
     for (size_t batch = 0, corpus_batch_index = 0; batch < 1; ++batch,
         corpus_batch_index += corpus->mini_batch_size) {
       Timer t;
       Timer t2;
+
+      const size_t curr_batch_size = (batch == corpus->num_mini_batches - 1) ? corpus->last_batch_size : corpus->mini_batch_size;
 
       // The last batch may be smaller, but all other batches should be the appropriate size.
       // rs will then contain the real number of entires
@@ -145,6 +145,7 @@ TEST(ImageNetSnapshotTest, RunTest) {
 
       // forward pass
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
+        curr_bridge->set_curr_batch_size(curr_batch_size);
         Bridge * const curr_bridge = *bridge;
 
         const string forward_filename = forward_file::generate_filename(snapshot_dir, iter, curr_bridge->name);
@@ -209,6 +210,8 @@ TEST(ImageNetSnapshotTest, RunTest) {
       string prev_name = ""; int param_id = -2;
       for (auto bridge = bridges.rbegin(); bridge != bridges.rend(); ++bridge) {
         Bridge * const curr_bridge = *bridge;
+        curr_bridge->set_curr_batch_size(curr_batch_size);
+
         const string name = curr_bridge->name;
         const string backward_filename = backward_file::generate_filename(snapshot_dir, iter, curr_bridge->name);
         std::ifstream i(backward_filename);

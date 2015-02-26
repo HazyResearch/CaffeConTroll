@@ -32,14 +32,15 @@ void PhysicalStratum::forward() {
   // TODO: benchmark to see whether we want more sophisticated
   //       thread pool.
   vector<thread> threads;
-  for (size_t i = 0; i < executors.size(); i++) {
+  for (size_t i = 0; i < executor_bound; i++) {
     threads.push_back(thread(_forward, executors[i]));
   }
-  for (size_t i = 0; i < executors.size(); i++) {
+  for (size_t i = 0; i < executor_bound; i++) {
     threads[i].join();
   }
   report_forward_last_transfer.end();
-  for (size_t i = 0; i < executors.size(); i++) {
+
+  for (size_t i = 0; i < executor_bound; i++) {
     report_forward_last_transfer.aggregate_onlystat(executors[i]->report_forward_last_transfer);
   }
   report_forward_history.aggregate(report_forward_last_transfer);
@@ -48,14 +49,16 @@ void PhysicalStratum::forward() {
 void PhysicalStratum::backward() {
   report_backward_updateweight_last_transfer.reset();
   vector<thread> threads;
-  for (size_t i = 0; i < executors.size(); i++) {
+
+  for (size_t i = 0; i < executor_bound; i++) {
     threads.push_back(thread(_backward, executors[i]));
   }
-  for (size_t i = 0; i < executors.size(); i++) {
+  for (size_t i = 0; i < executor_bound; i++) {
     threads[i].join();
   }
   report_backward_updateweight_last_transfer.end();
-  for (size_t i = 0; i < executors.size(); i++) {
+
+  for (size_t i = 0; i < executor_bound; i++) {
     report_backward_updateweight_last_transfer.aggregate_onlystat(executors[i]->report_backward_updateweight_last_transfer);
   }
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);

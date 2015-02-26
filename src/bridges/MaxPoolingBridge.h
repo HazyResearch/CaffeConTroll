@@ -39,6 +39,9 @@ class MaxPoolingBridge : public AbstractBridge<InputLayerDataType, InputLayerLay
  */
 template <typename DataType>
 class MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> {
+  protected:
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::curr_B;
+
   public:
     /* Re-declare these member fields so that they don't have to be resolved using vtable lookups */
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_forward_constructor;

@@ -78,12 +78,12 @@ TYPED_TEST(MaxPoolingBridgeTest, TestInitialization) {
 
 TYPED_TEST(MaxPoolingBridgeTest, TestForward) {
   typedef typename TypeParam::T T;
-  
+
   std::fstream input("tests/input/pooling_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
       input >> this->data1->p_data[i];
-    }  
+    }
   }
   else{
     FAIL();
@@ -116,12 +116,12 @@ TYPED_TEST(MaxPoolingBridgeTest, TestBackward) {
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
       input >> this->data1->p_data[i];
       this->grad1->p_data[i] = 0;
-    }  
+    }
   }
   else{
     FAIL();
   }
-  input.close(); 
+  input.close();
 
   int oR = this->oR;
   int oC = this->oC;
@@ -139,7 +139,7 @@ TYPED_TEST(MaxPoolingBridgeTest, TestBackward) {
   T output;
   int idx = 0;
   if (expected_output.is_open()) {
-    while (expected_output >> output) 
+    while (expected_output >> output)
       EXPECT_NEAR(this->grad1->p_data[idx++], output, EPS);
   }else{
     FAIL();
