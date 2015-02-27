@@ -454,7 +454,12 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
   float t_pass;
 
   Timer t_total;
+
+#ifdef _DETAILED_PROFILING
+  const int display_iter = 1;
+#else
   const int display_iter = 50;
+#endif
 
   const size_t num_epochs = solver_param.max_iter();
   for (size_t epoch = 0; epoch < num_epochs; ++epoch) {
@@ -464,8 +469,15 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
     if(!pFile)
       throw runtime_error("Error opening the corpus file: " + corpus.filename);
 
+#ifdef _DETAILED_PROFILING
+    // for profiling run, it is confusing and does not make sense to run the last batch
+    for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches - 1; ++batch,
+        corpus_batch_index += corpus.mini_batch_size) {
+#else
     for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches; ++batch,
         corpus_batch_index += corpus.mini_batch_size) {
+#endif
+
       Timer t;
       Timer t2;
 
@@ -499,8 +511,9 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
         (*bridge)->set_curr_batch_size(curr_batch_size);
         (*bridge)->forward();
-        //(*bridge)->report_forward();
-        //(*bridge)->report_forward_last_transfer.print();
+#ifdef _DETAILED_PROFILING
+        (*bridge)->report_forward();
+#endif
       }
 
       t_forward = t.elapsed();
@@ -513,7 +526,9 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       for (auto bridge = bridges.rbegin(); bridge != bridges.rend(); ++bridge) {
         (*bridge)->set_curr_batch_size(curr_batch_size);
         (*bridge)->backward();
-        //(*bridge)->report_backward();
+#ifdef _DETAILED_PROFILING
+        (*bridge)->report_backward();
+#endif
       }
       t_backward = t.elapsed();
 
@@ -521,10 +536,10 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 
       if(batch % display_iter == 0){
         cout << "BATCH: " << batch << endl;
+        std::cout << "\033[1;31m";
         std::cout << "Loading Time (seconds)     : " << t_load << std::endl;
         std::cout << "Forward Pass Time (seconds) : " << t_forward << std::endl;
         std::cout << "Backward Pass Time (seconds): " << t_backward << std::endl;
-        std::cout << "\033[1;31m";
         std::cout << "Total Time & Loss & Accuracy: " << t_pass << "    " << loss
                   << "    " << 1.0*accuracy/corpus.mini_batch_size;
         std::cout << "\033[0m" << std::endl;
