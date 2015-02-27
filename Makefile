@@ -65,6 +65,7 @@ TEST_EXECUTABLE=test
 
 .PHONY: all assembly clean product test warning
 
+all: CFLAGS += -O0 -g 
 all: $(OBJ_FILES) cnn.pb.o
 	$(CC) $^ -o $(TARGET) $(DEBUG_FLAGS) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
@@ -72,15 +73,19 @@ release: CFLAGS += $(PRODUCT_FLAGS)
 release: $(OBJ_FILES) cnn.pb.o
 	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
+profile: CFLAGS += -D_DETAILED_PROFILING $(PRODUCT_FLAGS)
+profile: $(OBJ_FILES) cnn.pb.o
+	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
+
 test: CFLAGS += -O0 -g -I $(GTEST_INCLUDE)
 test: $(TEST_OBJ_FILES) cnn.pb.o 
 	$(CC) $^ -o $(TEST_EXECUTABLE) $(DEBUG_FLAGS) $(CFLAGS) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB) 
 
 %.o: %.cpp $(PROTO_COMPILED_SRC)
-	$(CC) $(CFLAGS) -O0 -g $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $< -o $@
+	$(CC) $(CFLAGS) $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $< -o $@
 
 cnn.pb.o: $(PROTO_COMPILED_SRC)
-	$(CC) $(CFLAGS) -O0 -g $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $(PROTO_COMPILED_SRC)
+	$(CC) $(CFLAGS) $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $(PROTO_COMPILED_SRC)
 
 $(PROTO_COMPILED_SRC): $(PROTO_SRC_DIR)$(PROTO_SRC)
 	cd $(PROTO_SRC_DIR); $(PROTO_CC) $(PROTO_SRC); cd -
