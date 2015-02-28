@@ -63,23 +63,34 @@ TEST_SOURCES = src/DeepNet.cpp src/bridges/PhysicalStratum_impl.cpp \
 TEST_OBJ_FILES = $(patsubst %.cpp,%.o,$(TEST_SOURCES))
 TEST_EXECUTABLE=test
 
+SNAPSHOT_SOURCES = src/DeepNet.cpp src/bridges/PhysicalStratum_impl.cpp \
+                   src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp tests/test_main.cpp \
+                   snapshot-parser/simple_parse.cpp tests/test_imagenet_snapshot.cpp \
+
+SNAPSHOT_OBJ_FILES = $(patsubst %.cpp,%.o,$(SNAPSHOT_SOURCES))
+SNAPSHOT_EXECUTABLE=snapshot
+
 .PHONY: all assembly clean product test warning
 
-all: CFLAGS += -O0 -g 
+all: CFLAGS += $(DEBUG_FLAGS) 
 all: $(OBJ_FILES) cnn.pb.o
-	$(CC) $^ -o $(TARGET) $(DEBUG_FLAGS) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
+	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
 release: CFLAGS += $(PRODUCT_FLAGS)
 release: $(OBJ_FILES) cnn.pb.o
 	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
-profile: CFLAGS += -D_DETAILED_PROFILING $(PRODUCT_FLAGS)
+profile: CFLAGS += -D_DETAILED_PROFILING -D_FASTPOW  $(PRODUCT_FLAGS)
 profile: $(OBJ_FILES) cnn.pb.o
 	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
-test: CFLAGS += -O0 -g -I $(GTEST_INCLUDE)
+test: CFLAGS += $(DEBUG_FLAGS) -I $(GTEST_INCLUDE)
 test: $(TEST_OBJ_FILES) cnn.pb.o 
-	$(CC) $^ -o $(TEST_EXECUTABLE) $(DEBUG_FLAGS) $(CFLAGS) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB) 
+	$(CC) $^ -o $(TEST_EXECUTABLE) $(CFLAGS) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB) 
+
+snapshot: CFLAGS += $(PRODUCT_FLAGS) -I $(GTEST_INCLUDE)
+snapshot: $(SNAPSHOT_OBJ_FILES) cnn.pb.o
+	$(CC) $^ -o $(SNAPSHOT_EXECUTABLE) $(CFLAGS) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB) 
 
 %.o: %.cpp $(PROTO_COMPILED_SRC)
 	$(CC) $(CFLAGS) $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $< -o $@
@@ -102,4 +113,6 @@ clean:
 	rm -f $(TEST_OBJ_FILES)
 	rm -f $(OBJ_FILES)
 	rm -f $(TEST_EXECUTABLE)
+	rm -f $(SNAPSHOT_OBJ_FILES)
+	rm -f $(SNAPSHOT_EXECUTABLE)
 	rm -f tests/toprocess.bin tests/model.bin

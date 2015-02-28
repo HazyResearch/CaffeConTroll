@@ -145,8 +145,8 @@ TEST(ImageNetSnapshotTest, RunTest) {
 
       // forward pass
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
-        curr_bridge->set_curr_batch_size(curr_batch_size);
         Bridge * const curr_bridge = *bridge;
+        curr_bridge->set_curr_batch_size(curr_batch_size);
 
         const string forward_filename = forward_file::generate_filename(snapshot_dir, iter, curr_bridge->name);
         std::ifstream i(forward_filename);

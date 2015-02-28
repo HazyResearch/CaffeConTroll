@@ -4,6 +4,7 @@ recipients:
 - shubhamg@stanford.edu
 - chrismre@stanford.edu
 - fabuzaid@stanford.edu
+- czhang@cs.wisc.edu
 on_failure: change
 
 language: cpp
