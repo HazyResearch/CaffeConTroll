@@ -147,7 +147,8 @@ forward() {
 
   // TODO: for some reason, I'm getting a Bus error
   // because of this. (Also happening in FullyConnectedBridge)
-  // Util::set_num_threads(run_with_n_threads);
+  
+  Util::set_num_threads(run_with_n_threads);
 
   report_forward_last_transfer.reset();
 
