@@ -259,7 +259,7 @@ layers {
   bottom: "fc6"
   top: "fc6"
   dropout_param {
-    dropout_ratio: 0
+    dropout_ratio: 0.1
   }
 }
 layers {
@@ -293,7 +293,7 @@ layers {
   bottom: "fc7"
   top: "fc7"
   dropout_param {
-    dropout_ratio: 0
+    dropout_ratio: 0.1
   }
 }
 layers {
