@@ -171,22 +171,26 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
   const DataType alpha_over_size = alpha / local_size;
   const int norm_window = (int) local_size / 2;
 
-  DataType input_grad;
   for (size_t o_b = 0; o_b < iB; ++o_b) {
     for (int o_d = 0; o_d < iD; ++o_d) {
       for (size_t o_c = 0; o_c < iC; ++o_c) {
         for (size_t o_r = 0; o_r < iR; ++o_r) {
           const DataType denom_no_exponent = *denoms->logical_get(o_r, o_c, o_d, o_b);
+          
 #ifdef _FASTPOW
           const DataType denom = fastPrecisePow(denom_no_exponent, beta);
-          const DataType denom_n1 = 1.0/fastPrecisePow(denom_no_exponent, beta + 1);
+          const DataType denom_n1 = fastPrecisePow(denom_no_exponent, - beta - 1);
 #else
           const DataType denom = pow(denom_no_exponent, beta);
           const DataType denom_n1 = pow(denom_no_exponent, - beta - 1);
 #endif
           const DataType output_grad = *p_output_layer->p_gradient_cube->logical_get(o_r, o_c, o_d, o_b);
           const DataType window_data = *p_input_layer->p_data_cube->logical_get(o_r, o_c, o_d, o_b);
-          input_grad = beta * denom_n1 * alpha_over_size * 2 * window_data;
+
+          DataType input_grad;
+          DataType input_grad2;
+          input_grad2 = beta * denom_n1 * alpha_over_size * 2 * window_data;
+
           for (int i = -norm_window; i <= norm_window; ++i) {
             const int channel = o_d + i;
             if (channel < 0 || channel >= iD) {
@@ -195,9 +199,9 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
             const DataType input_data = *p_input_layer->p_data_cube->logical_get(o_r, o_c, channel, o_b);
 
             if(i==0){
-              input_grad = 1.0/denom -  input_grad * input_data;
+              input_grad = 1.0/denom -  input_grad2 * input_data;
             }else{
-              input_grad = - input_grad * input_data;
+              input_grad = - input_grad2 * input_data;
             }
 
             *p_input_layer->p_gradient_cube->logical_get(o_r, o_c, channel, o_b) += input_grad * output_grad;
