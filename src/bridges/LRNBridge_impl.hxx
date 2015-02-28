@@ -179,11 +179,10 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
           
 #ifdef _FASTPOW
           const DataType denom = fastPrecisePow(denom_no_exponent, beta);
-          const DataType denom_n1 = fastPrecisePow(denom_no_exponent, - beta - 1);
 #else
           const DataType denom = pow(denom_no_exponent, beta);
-          const DataType denom_n1 = pow(denom_no_exponent, - beta - 1);
 #endif
+          const DataType denom_n1 = 1.0/(denom*denom_no_exponent);
           const DataType output_grad = *p_output_layer->p_gradient_cube->logical_get(o_r, o_c, o_d, o_b);
           const DataType window_data = *p_input_layer->p_data_cube->logical_get(o_r, o_c, o_d, o_b);
 
