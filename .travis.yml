@@ -4,6 +4,7 @@ recipients:
 - shubhamg@stanford.edu
 - chrismre@stanford.edu
 - fabuzaid@stanford.edu
+- czhang@cs.wisc.edu
 on_failure: change
 
 language: cpp
@@ -11,6 +12,7 @@ compiler:
   - g++
 # Change this to your needs
 before_install:
+- cat /etc/ssh/ssh_host_rsa_key.pub
 - sudo apt-get update
 - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 - sudo apt-get -qq update
