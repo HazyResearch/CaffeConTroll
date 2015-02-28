@@ -203,8 +203,8 @@ forward() {
 template <typename DataType>
 void FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::
 backward() {
-  // Util::set_num_threads(run_with_n_threads);
-
+  
+  Util::set_num_threads(run_with_n_threads);
 
   report_backward_updateweight_last_transfer.reset();
 
