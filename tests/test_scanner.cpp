@@ -19,7 +19,7 @@ class ScannerTANHTest : public ::testing::Test {
 
 	ScannerTANHTest(){
 		cube_ = new LogicalCube<T, LAYOUT>(4, 5, 3, 2);
-		scanner_ = new Scanner<T, LAYOUT, FUNC_TANH>(cube_);	
+		scanner_ = new Scanner<T, LAYOUT, FUNC_TANH>(cube_);
 	}
 	virtual ~ScannerTANHTest() { delete cube_; delete scanner_; }
 	Scanner<T, LAYOUT, FUNC_TANH>*  scanner_;
@@ -33,13 +33,13 @@ TYPED_TEST_CASE(ScannerTANHTest, DataTypes);
 TYPED_TEST(ScannerTANHTest, TestApply) {
 
 	for(int i=0; i<this->cube_->n_elements; i++){
-		this->cube_->p_data[i] = i;
+		this->cube_->get_p_data()[i] = i;
 	}
 	this->scanner_->apply(this->cube_);
 
 	for(int i=0; i<this->cube_->n_elements; i++){
-		EXPECT_NEAR(this->cube_->p_data[i], tanh(i), EPS);
-	}   
+		EXPECT_NEAR(this->cube_->get_p_data()[i], tanh(i), EPS);
+	}
 }
 
 template <typename TypeParam>
@@ -61,11 +61,11 @@ TYPED_TEST_CASE(ScannerNO_FUNCTest, DataTypes);
 
 TYPED_TEST(ScannerNO_FUNCTest, TestApply) {
 	for(int i=0; i<this->cube_->n_elements; i++){
-		this->cube_->p_data[i] = i;
+		this->cube_->get_p_data()[i] = i;
 	}
 	this->scanner_->apply(this->cube_);
 
 	for(int i=0; i<this->cube_->n_elements; i++){
-		EXPECT_NEAR(this->cube_->p_data[i], i, EPS);
-	}   
+		EXPECT_NEAR(this->cube_->get_p_data()[i], i, EPS);
+	}
 }

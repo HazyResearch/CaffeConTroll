@@ -82,7 +82,7 @@ TYPED_TEST(MaxPoolingBridgeTest, TestForward) {
   std::fstream input("tests/input/pooling_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
-      input >> this->data1->p_data[i];
+      input >> this->data1->get_p_data()[i];
     }
   }
   else{
@@ -98,7 +98,7 @@ TYPED_TEST(MaxPoolingBridgeTest, TestForward) {
   int idx = 0;
   if (expected_output.is_open()) {
     while (expected_output >> output) {
-      EXPECT_NEAR(this->data2->p_data[idx], output, EPS);
+      EXPECT_NEAR(this->data2->get_p_data()[idx], output, EPS);
       idx++;
     }
   }
@@ -114,8 +114,8 @@ TYPED_TEST(MaxPoolingBridgeTest, TestBackward) {
   std::fstream input("tests/input/pooling_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
-      input >> this->data1->p_data[i];
-      this->grad1->p_data[i] = 0;
+      input >> this->data1->get_p_data()[i];
+      this->grad1->get_p_data()[i] = 0;
     }
   }
   else{
@@ -127,7 +127,7 @@ TYPED_TEST(MaxPoolingBridgeTest, TestBackward) {
   int oC = this->oC;
 
   for(int i=0;i<oR*oC*this->iD*this->mB;i++) {
-    this->grad2->p_data[i] = i;
+    this->grad2->get_p_data()[i] = i;
   }
 
   this->MaxPoolingBridge_->forward();
@@ -140,7 +140,7 @@ TYPED_TEST(MaxPoolingBridgeTest, TestBackward) {
   int idx = 0;
   if (expected_output.is_open()) {
     while (expected_output >> output)
-      EXPECT_NEAR(this->grad1->p_data[idx++], output, EPS);
+      EXPECT_NEAR(this->grad1->get_p_data()[idx++], output, EPS);
   }else{
     FAIL();
   }

@@ -38,8 +38,8 @@ Corpus * DeepNet::read_corpus_from_lmdb(const cnn::NetParameter & net_param, con
   return NULL;
 }
 
-//// Shubham: Need to be refactored a bit on the basis of how these features would actually be used.
-/// Should we have a separate test function?
+// TODO: Need to be refactored a bit on the basis of how these features would actually be used.
+// Should we have a separate test function?
 void write_model_to_file(const BridgeVector bridges, const string model_file){
   FILE * pFile = fopen (model_file.c_str(), "wb");
   if(!pFile)
@@ -50,11 +50,11 @@ void write_model_to_file(const BridgeVector bridges, const string model_file){
   for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
     model = (*bridge)->get_model_cube();
     if(model){
-      fwrite (model->p_data , sizeof(DataType_SFFloat), model->n_elements, pFile);
+      fwrite(model->get_p_data(), sizeof(DataType_SFFloat), model->n_elements, pFile);
     }
     bias = (*bridge)->get_bias_cube();
     if(bias){
-      fwrite (bias->p_data , sizeof(DataType_SFFloat), bias->n_elements, pFile);
+      fwrite(bias->get_p_data(), sizeof(DataType_SFFloat), bias->n_elements, pFile);
     }
   }
   fclose(pFile);
@@ -68,19 +68,19 @@ void read_model_from_file(BridgeVector & bridges, const string model_file){
   for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
     model = (*bridge)->get_model_cube();
     if(model){
-      fread(model->p_data , sizeof(DataType_SFFloat), model->n_elements, pFile);
+      fread(model->get_p_data(), sizeof(DataType_SFFloat), model->n_elements, pFile);
     }
     bias = (*bridge)->get_bias_cube();
     if(bias){
-      fread(bias->p_data , sizeof(DataType_SFFloat), bias->n_elements, pFile);
+      fread(bias->get_p_data(), sizeof(DataType_SFFloat), bias->n_elements, pFile);
     }
   }
   fclose(pFile);
 }
 
 int DeepNet::find_accuracy(const LogicalCubeFloat * const labels, const LogicalCubeFloat * output) {
-  const float* actual_data = output->p_data;
-  const float* expected_label = labels->p_data;
+  const float * actual_data = output->get_p_data();
+  const float * expected_label = labels->get_p_data();
   int top_k = 1;
   float accuracy = 0;
   int num = output->B;
@@ -485,7 +485,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 
       // The last batch may be smaller, but all other batches should be the appropriate size.
       // rs will then contain the real number of entires
-      size_t rs = fread(corpus.images->p_data, sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
+      size_t rs = fread(corpus.images->get_p_data(), sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
       if (rs != corpus.images->n_elements && batch != corpus.num_mini_batches - 1){
         std::cout << "Error in reading data from " << corpus.filename << " in batch " << batch << " of " << corpus.num_mini_batches << std::endl;
         std::cout << "read:  " << rs << " expected " << corpus.images->n_elements << std::endl;
@@ -500,12 +500,12 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       // to make the switching between this and the master branch (that load everything in memory)
       // dynamically and improve code reuse.
       float * const mini_batch = corpus.images->physical_get_RCDslice(0);
-      input_data->p_data = mini_batch;
+      input_data->set_p_data(mini_batch);
 
       softmax->reset_loss();
 
       // initialize labels for this mini batch
-      labels->p_data = corpus.labels->physical_get_RCDslice(corpus_batch_index);
+      labels->set_p_data(corpus.labels->physical_get_RCDslice(corpus_batch_index));
 
       // forward pass
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
@@ -619,16 +619,16 @@ float test_network(const BridgeVector & bridges, const Corpus & corpus, const cn
     Timer t;
     Timer t2;
 
-    fread(corpus.images->p_data, sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
+    fread(corpus.images->get_p_data(), sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
     t_load = t.elapsed();
     t.restart();
     float * const mini_batch = corpus.images->physical_get_RCDslice(0);
-    input_data->p_data = mini_batch;
+    input_data->set_p_data(mini_batch);
 
     softmax->reset_loss();
 
     // initialize labels for this mini batch
-    labels->p_data = corpus.labels->physical_get_RCDslice(corpus_batch_index);
+    labels->set_p_data(corpus.labels->physical_get_RCDslice(corpus_batch_index));
     // forward pass
     for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
       (*bridge)->forward();

@@ -93,7 +93,7 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
   p_input_cube->reset_cube();
 
   size_t out_index = 0;
-  const DataType * const output_data = p_output_cube->p_data;
+  const DataType * const output_data = p_output_cube->get_p_data();
 
   const size_t data_output_width = (iR + 2 * padding - kernel_size) / stride + 1;  // the number of rows in the output gradient cube
   const size_t data_output_height = (iC + 2 * padding - kernel_size) / stride + 1; // the number of cols in the output gradient cube

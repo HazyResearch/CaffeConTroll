@@ -51,7 +51,7 @@ void simple_mult3(LogicalCube<T, Layout_CRDB>* in1, LogicalCube<T, Layout_CRDB>*
 typedef ::testing::Types<FloatCRDB> DTypes;
 
 template <typename TypeParam>
-class BlasNNKernelTest : public ::testing::Test { 
+class BlasNNKernelTest : public ::testing::Test {
  protected:
   typedef typename TypeParam::T T;
   BlasNNKernelTest(){
@@ -76,19 +76,19 @@ TYPED_TEST_CASE(BlasNNKernelTest, DTypes);
 TYPED_TEST(BlasNNKernelTest, TestCompute){
   typedef typename TypeParam::T T;
 	for(int i=0;i<this->i1R*this->i1C;i++){
-        this->cube1->p_data[i] = (rand()%100)/10.0;
+        this->cube1->get_p_data()[i] = (rand() % 100)/10.0;
     }
     for(int i=0;i<this->i1C*this->i2C;i++){
-        this->cube2->p_data[i] = (rand()%100)/10.0; 
+        this->cube2->get_p_data()[i] = (rand() % 100)/10.0;
     }
 
-  LogicalCube<T, Layout_CRDB>* out_expected = new LogicalCube<T, Layout_CRDB>(this->i1R, this->i2C, 1, 1); 
-  
+  LogicalCube<T, Layout_CRDB>* out_expected = new LogicalCube<T, Layout_CRDB>(this->i1R, this->i2C, 1, 1);
+
   this->kernel_->compute(this->cube1, this->cube2, this->cube3);
   simple_mult<T>(this->cube1,this->cube2,out_expected);
 
   for(int i=0; i<6; i++){
-    EXPECT_NEAR(this->cube3->p_data[i], out_expected->p_data[i], EPS);
+    EXPECT_NEAR(this->cube3->get_p_data()[i], out_expected->get_p_data()[i], EPS);
   }
 }
 
@@ -117,24 +117,24 @@ TYPED_TEST_CASE(ElemMulKernelTest, DTypes);
 TYPED_TEST(ElemMulKernelTest, TestCompute){
   float expected;
   for(int i=0;i<this->i1R*this->i1C;i++){
-        this->cube1->p_data[i] = (rand()%100)/10.0;
+        this->cube1->get_p_data()[i] = (rand() % 100)/10.0;
     }
 
   for(int i=0;i<this->i1R*this->i1C;i++){
-      this->cube2->p_data[i] = (rand()%100)/10.0; 
+      this->cube2->get_p_data()[i] = (rand() % 100)/10.0;
   }
 
   this->kernel_->compute(this->cube1, this->cube2, this->cube3);
 
   for(int i=0;i<this->i1R*this->i1C;i++){
-    expected = this->cube1->p_data[i] * this->cube2->p_data[i];
-    EXPECT_NEAR(this->cube3->p_data[i],expected,EPS);
+    expected = this->cube1->get_p_data()[i] * this->cube2->get_p_data()[i];
+    EXPECT_NEAR(this->cube3->get_p_data()[i],expected,EPS);
   }
 }
 
 template <typename TypeParam>
 class ElemMulTanhKernelTest : public ::testing::Test {
- typedef typename TypeParam::T T; 
+ typedef typename TypeParam::T T;
  protected:;
   ElemMulTanhKernelTest(){
     cube1 = new LogicalCube<T, Layout_CRDB>(i1R, i1C, 1, 1);
@@ -157,25 +157,25 @@ TYPED_TEST_CASE(ElemMulTanhKernelTest, DTypes);
 TYPED_TEST(ElemMulTanhKernelTest, TestCompute){
   float expected;
   for(int i=0;i<this->i1R*this->i1C;i++){
-        this->cube1->p_data[i] = (rand()%100)/10.0;
+        this->cube1->get_p_data()[i] = (rand() % 100)/10.0;
     }
 
   for(int i=0;i<this->i1R*this->i1C;i++){
-      this->cube2->p_data[i] = (rand()%100)/10.0; 
+      this->cube2->get_p_data()[i] = (rand() % 100)/10.0;
   }
 
   this->kernel_->compute(this->cube1, this->cube2, this->cube3);
 
   for(int i=0;i<this->i1R*this->i1C;i++){
-    expected = this->cube2->p_data[i]*(1 - pow(this->cube1->p_data[i],2));
-    EXPECT_NEAR(this->cube3->p_data[i],expected,EPS);
+    expected = this->cube2->get_p_data()[i]*(1 - pow(this->cube1->get_p_data()[i],2));
+    EXPECT_NEAR(this->cube3->get_p_data()[i],expected,EPS);
   }
 }
 
 template <typename TypeParam>
 class BlasTNKernelTest : public ::testing::Test {
  protected:
-  typedef typename TypeParam::T T; 
+  typedef typename TypeParam::T T;
   BlasTNKernelTest(){
     cube1 = new LogicalCube<T, Layout_CRDB>(5, 2, 1, 1);
     cube2 = new LogicalCube<T, Layout_CRDB>(5, 3, 1, 1);
@@ -195,19 +195,19 @@ TYPED_TEST_CASE(BlasTNKernelTest, DTypes);
 TYPED_TEST(BlasTNKernelTest, TestCompute){
   typedef typename TypeParam::T T;
   for(int i=0;i<10;i++){
-        this->cube1->p_data[i] = 1.0*i;
+        this->cube1->get_p_data()[i] = 1.0*i;
     }
     for(int i=0;i<15;i++){
-        this->cube2->p_data[i] = 3.14/(i+1); 
+        this->cube2->get_p_data()[i] = 3.14/(i+1);
     }
 
-  LogicalCube<T, Layout_CRDB>* out_expected = new LogicalCube<T, Layout_CRDB>(2, 3, 1, 1); 
-  
+  LogicalCube<T, Layout_CRDB>* out_expected = new LogicalCube<T, Layout_CRDB>(2, 3, 1, 1);
+
   this->kernel_->compute(this->cube1, this->cube2, this->cube3);
   simple_mult2<T>(this->cube1,this->cube2,out_expected);
 
   for(int i=0; i<6; i++){
-    EXPECT_NEAR(this->cube3->p_data[i], out_expected->p_data[i], EPS);
+    EXPECT_NEAR(this->cube3->get_p_data()[i], out_expected->get_p_data()[i], EPS);
   }
 }
 
@@ -235,18 +235,18 @@ TYPED_TEST_CASE(BlasNTKernelTest, DTypes);
 TYPED_TEST(BlasNTKernelTest, TestCompute){
   typedef typename TypeParam::T T;
   for(int i=0;i<10;i++){
-        this->cube1->p_data[i] = 1.0*i;
+        this->cube1->get_p_data()[i] = 1.0*i;
     }
     for(int i=0;i<15;i++){
-        this->cube2->p_data[i] = 3.14/(i+1); 
+        this->cube2->get_p_data()[i] = 3.14/(i+1);
     }
 
-  LogicalCube<T, Layout_CRDB>* out_expected = new LogicalCube<T, Layout_CRDB>(2, 3, 1, 1); 
-  
+  LogicalCube<T, Layout_CRDB>* out_expected = new LogicalCube<T, Layout_CRDB>(2, 3, 1, 1);
+
   this->kernel_->compute(this->cube1, this->cube2, this->cube3);
   simple_mult3<T>(this->cube1,this->cube2,out_expected);
 
   for(int i=0; i<6; i++){
-    EXPECT_NEAR(this->cube3->p_data[i], out_expected->p_data[i], EPS);
+    EXPECT_NEAR(this->cube3->get_p_data()[i], out_expected->get_p_data()[i], EPS);
   }
 }

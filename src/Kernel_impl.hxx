@@ -74,12 +74,12 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
   // cout << "\tA : " << i1R << " x " << i1C << std::endl;
   // cout << "\tB : " << i2R << " x " << i2C << std::endl;
   // cout << "\tC : " << oR << " x " << oC << std::endl;
-  
-  
+
+
   if (KERNELCONFIG == KernelConfig_GEMM_NOTRANS_NOTRANS) {
     TA = CblasNoTrans;
     TB = CblasNoTrans;
-    M = i1R; // rows in A and C (sgemm spec) 
+    M = i1R; // rows in A and C (sgemm spec)
     N = i2C; // cols in B and C
     K = i1C; // cols in A or rows in B
     LDA = i1C; //
@@ -89,7 +89,7 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
     TB = CblasTrans;
     M = i1R; // A is not transposed
     N = i2R; // B is transposed
-    K = i1C; // cols in A not transposed 
+    K = i1C; // cols in A not transposed
     LDA = i1C; // columns in A
     LDB = i2C; // B is transposed
   } else if (KERNELCONFIG == KernelConfig_GEMM_TRANS_NOTRANS) {
@@ -98,16 +98,16 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
     M = i1C; // A is transposed
     N = i2C; // B is not transposed
     K = i1R; // A is transposed
-    LDA = i1C; // A is transposed 
-    LDB = i2C; // not transposed   
+    LDA = i1C; // A is transposed
+    LDB = i2C; // not transposed
   }
 
   // we reverse A and B here by default
   cblas_sgemm(CblasRowMajor, TA, TB, M, N, K, _alpha,
-	      p_input1_cube->p_data, LDA,
-	      p_input2_cube->p_data, LDB,
-	      _beta, p_output_cube->p_data, N);
-  
+	      p_input1_cube->get_p_data(), LDA,
+	      p_input2_cube->get_p_data(), LDB,
+	      _beta, p_output_cube->get_p_data(), N);
+
   report_last_lowering.end((i1R*i1C + i2R*i2C)*sizeof(DataType),
       oR*oC*sizeof(DataType), 1.0*M*N*K*2);
   report_history.aggregate(report_last_lowering);
@@ -139,13 +139,15 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
   report_last_lowering.reset();
 
   size_t i = 0; // TODO: change to SIMD (actuall the following one is so easy to be vectorized by the compiler with -O3...)
-  for (i=0;i<i1n_elements;i++) {
+  DataType * const output_data = p_output_cube->get_p_data();
+  const DataType * const input1_data = p_input1_cube->get_p_data();
+  const DataType * const input2_data = p_input2_cube->get_p_data();
+  for (i = 0; i < i1n_elements; i++) {
     if (KERNELCONFIG == KernelConfig_NONE) { // this should be optimized out by the compiler with -O3
-      p_output_cube->p_data[i] =
-        p_input1_cube->p_data[i] * p_input2_cube->p_data[i];
+      output_data[i] = input1_data[i] * input2_data[i];
     } else if (KERNELCONFIG == KernelConfig_TANHGRAD_ON_INPUT1) {
-      p_output_cube->p_data[i] =
-        (1-p_input1_cube->p_data[i]*p_input1_cube->p_data[i]) * p_input2_cube->p_data[i];
+      output_data[i] =
+        (1 - input1_data[i] * input1_data[i]) * input2_data[i];
     } else {
       std::cerr << "ERROR: Not supported KernelConfig!" << std::endl;
       assert(false);

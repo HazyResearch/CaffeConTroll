@@ -42,11 +42,11 @@ class Corpus {
     size_t last_batch_size;
 
     // n_rows x n_cols x dim x n_images
-    LogicalCube<DataType_SFFloat, Layout_CRDB>* images;
+    LogicalCube<DataType_SFFloat, Layout_CRDB> * images;
     // 1 x 1 x 1 x n_images
-    LogicalCube<DataType_SFFloat, Layout_CRDB>* labels;
+    LogicalCube<DataType_SFFloat, Layout_CRDB> * labels;
     // n_rows x n_cols x dim x 1
-    LogicalCube<DataType_SFFloat, Layout_CRDB>* mean;
+    LogicalCube<DataType_SFFloat, Layout_CRDB> * mean;
 
     std::string filename;
 

@@ -91,7 +91,7 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
   LogicalCubeType * const example_cube = _bridges[0]->get_model_cube();
   if (example_cube != NULL) {
     p_model_cube = new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B);
-    memcpy(p_model_cube->p_data, example_cube->p_data, p_model_cube->n_elements*sizeof(DataType));
+    memcpy(p_model_cube->get_p_data(), example_cube->get_p_data(), p_model_cube->n_elements*sizeof(DataType));
     p_model_grad = new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B);
 
     if (_layer_param->blobs_lr_size() != 0) {
@@ -100,7 +100,7 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
     if (_layer_param->weight_decay_size() != 0) {
       model_base_regularization = _layer_param->weight_decay(0);
     }
-    p_grad_updater = new SGDGradientUpdater<DataType>(p_model_cube->n_elements, p_model_cube->p_data,
+    p_grad_updater = new SGDGradientUpdater<DataType>(p_model_cube->n_elements, p_model_cube->get_p_data(),
 						      _solver_param, model_base_learning_rate, model_base_regularization);
   } else {
     p_model_cube = NULL;
@@ -111,7 +111,7 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
     LogicalCubeType * const example_bias = _bridges[0]->get_bias_cube();
     if (example_bias != NULL) {
       p_bias_cube = new LogicalCubeType(example_bias->R, example_bias->C, example_bias->D, example_bias->B);
-      memcpy(p_bias_cube->p_data, example_bias->p_data, p_bias_cube->n_elements*sizeof(DataType));
+      memcpy(p_bias_cube->get_p_data(), example_bias->get_p_data(), p_bias_cube->n_elements*sizeof(DataType));
       p_bias_grad = new LogicalCubeType(example_bias->R, example_bias->C, example_bias->D, example_bias->B);
 
       if (_layer_param->blobs_lr_size() >1) {
@@ -121,7 +121,7 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
         bias_base_regularization = _layer_param->weight_decay(1);
       }
 
-      p_grad_updater_bias = new SGDGradientUpdater<DataType>(p_bias_cube->n_elements, p_bias_cube->p_data,
+      p_grad_updater_bias = new SGDGradientUpdater<DataType>(p_bias_cube->n_elements, p_bias_cube->get_p_data(),
 							     _solver_param, bias_base_learning_rate, bias_base_regularization);
     } else {
       p_bias_cube = NULL;
@@ -149,7 +149,7 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
   for (size_t b = 0, i = 0; i < num_partitions; ++i, b += num_per_partition) {
     const size_t n_batch_this_partition = (extra_partition && i == num_partitions - 1) ? curr_B % num_partitions : num_per_partition;
 
-    _data_cubes_lower[i]->p_data = p_input_layer->p_data_cube->physical_get_RCDslice(b);
+    _data_cubes_lower[i]->set_p_data(p_input_layer->p_data_cube->physical_get_RCDslice(b));
 
     // We share a model pointer across all workers
     _bridges[i]->set_model_cube(p_model_cube);
@@ -203,17 +203,17 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
     if (n_partition != 1) {
       p_model_grad->reset_cube(DataType(0.0));
       const size_t n_element = p_model_grad->n_elements;
-      DataType * const p_grad_data = p_model_grad->p_data;
+      DataType * const p_grad_data = p_model_grad->get_p_data();
       const size_t n_partition = _data_cubes_lower.size();
       for (size_t i = 0; i < n_partition; ++i) {
-        DataType * const p_subgrad_data = _bridges[i]->get_model_grad_cube()->p_data;
+        DataType * const p_subgrad_data = _bridges[i]->get_model_grad_cube()->get_p_data();
         for (size_t j=0;j<n_element;j++) {
           p_grad_data[j] += p_subgrad_data[j];
         }
       }
-      p_grad_updater->update(p_model_grad->p_data);
+      p_grad_updater->update(p_model_grad->get_p_data());
     } else {
-      p_grad_updater->update(_bridges[0]->get_model_grad_cube()->p_data);
+      p_grad_updater->update(_bridges[0]->get_model_grad_cube()->get_p_data());
     }
 
   }
@@ -226,16 +226,16 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
       const size_t bias_n_element = p_bias_grad->n_elements;
       const size_t n_partition = _data_cubes_lower.size();
 
-      DataType * const p_grad_data = p_bias_grad->p_data;
+      DataType * const p_grad_data = p_bias_grad->get_p_data();
       for (size_t i = 0; i < n_partition; ++i) {
-        DataType * const p_subbias_data = _bridges[i]->get_bias_grad_cube()->p_data;
+        DataType * const p_subbias_data = _bridges[i]->get_bias_grad_cube()->get_p_data();
         for (size_t j=0;j<bias_n_element;j++) {
           p_grad_data[j] += p_subbias_data[j];
         }
       }
       p_grad_updater_bias->update(p_grad_data);
     } else {
-      p_grad_updater_bias->update(_bridges[0]->get_bias_grad_cube()->p_data);
+      p_grad_updater_bias->update(_bridges[0]->get_bias_grad_cube()->get_p_data());
     }
   }
 
