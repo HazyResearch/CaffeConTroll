@@ -18,6 +18,7 @@ before_install:
 - sudo apt-get -qq install g++-4.8
 - sudo apt-get install libopenblas-base libopenblas-dev libblas-dev 
 - dpkg-query -L libblas-dev
+- cat /usr/include/cblas.h
 - sudo apt-get install libgtest-dev
 - "git clone git://gitorious.org/mdb/mdb.git && cd mdb/libraries/liblmdb && make && sudo make install; cd -"
 - sudo apt-get install gfortran
