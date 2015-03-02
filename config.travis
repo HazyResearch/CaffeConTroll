@@ -9,10 +9,10 @@ LMDB_DIR=/usr/local/lib
 
 BLAS_INCLUDE=/usr/local/include
 BLAS_LIB_DIR=/usr/lib/
-BLAS_LIBS=blas lapack # Mac libararies
-BLAS_DEFS=-D_USE_ATLAS
-# BLAS_LIBS=openblas # OpenBlas
-# BLAS_DEFS=-D_USE_OPENBLAS
+#BLAS_LIBS=blas lapack # Mac libararies
+#BLAS_DEFS=-D_USE_ATLAS
+BLAS_LIBS=openblas # OpenBlas
+BLAS_DEFS=-D_USE_OPENBLAS
 
 GTEST_INCLUDE=/usr/include/
 GTEST_LIB_DIR=/usr/local/lib
