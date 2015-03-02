@@ -145,18 +145,30 @@ class Util {
       }
     }
 
+    static inline void math_axpy(const int N, const float  alpha, const float  * X, float * Y)  { cblas_saxpy(N, alpha, X, 1, Y, 1); }
+   static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) { cblas_daxpy(N, alpha, X, 1, Y, 1); }
+
 #ifdef _USE_OPENBLAS
-    static inline void math_axpy(const int N, const double alpha, const float * X, float * Y)   { cblas_saxpy(N, alpha, X, 1, Y, 1);}
-    static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) { cblas_daxpy(N, alpha, X, 1, Y, 1); }
     static inline void math_axpby(const int N, const double alpha, const double * X, const double beta, double * Y) { cblas_daxpby(N, alpha, X, 1, beta, Y, 1); }
     static inline void math_axpby(const int N, const float alpha, const float * X, const float beta, float * Y) { cblas_saxpby(N, alpha, X, 1, beta, Y, 1); }
     static inline void set_num_threads(const int nThreads) { openblas_set_num_threads(nThreads); }
 #elif _USE_ATLAS
-    static inline void math_axpy(const int N, const double alpha, const float * X, float * Y)   { catlas_saxpy(N, alpha, X, 1, Y, 1); }
-    static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) { catlas_daxpy(N, alpha, X, 1, Y, 1);}
     static inline void math_axpby(const int N, const double alpha, const double * X, const double beta, double * Y) { catlas_daxpby(N, alpha, X, 1, beta, Y, 1); }
     static inline void math_axpby(const int N, const float alpha, const float * X, const float beta, float * Y) { catlas_saxpby(N, alpha, X, 1, beta, Y, 1); }
     static inline void set_num_threads(const int nThreads) {  set_num_threads(nThreads); }
+#elif _VANILLA_BLAS
+    #warning "[PERFORMANCE WARNING] Using hand-written BLAS calls. Hope you have a good compiler!"
+    static inline void math_axpby(const int N, const double alpha, const double * X, const double beta, double * Y) {
+      for(int i = N; i > 0; X++, Y++, --i) {
+	*Y = alpha**X + beta* *Y;
+      }
+    }
+    static inline void math_axpby(const int N, const float alpha, const float * X, const float beta, float * Y) {
+      for(int i = N; i > 0; X++, Y++, --i) {
+	*Y = alpha**X + beta* *Y;
+      }
+    }
+    static inline void set_num_threads(const int nThreads) {   }
 #else
       #error "Select a BLAS framework."
 #endif
