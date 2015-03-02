@@ -1,17 +1,20 @@
+<img src="cct_logo.png" width=200 align=left></img>
+
 Overview
 --------
 
 Caffe con Troll (CcT) is a clone of the uber popular Caffe framework
 for Deep Learning. CcT is intended to be compatible with Caffe. We're
 academics, which means that CcT is built for a research purpose: *to
-explore the relative efficiency of GPUs and CPUs for Deep Learning*.
+explore the relative efficiency of GPUs and CPUs for Deep
+Learning*. However, in our system you can use both at once!
 
 **Why Study CPU versus GPU?** Well, there is an ongoing debate about
 this with lots of passion on both sides! GPU's are wildly [popular
 with
 some](http://www.wired.com/2015/02/hot-yet-little-known-trend-thatll-supercharge-ai/)
-companies that are rumored to be installing purpose-built infrastructures for
-deep learning; other
+companies that are rumored to be installing purpose-built
+infrastructures for deep learning; other
 [companies](http://wired.com/2014/07/microsoft-adam/) have opted to
 use CPUs and claimed they are cheaper and more efficient. For users
 outside the web companies, the situation is different: some cloud
@@ -21,15 +24,11 @@ academic labs like ours have CPUs lying around for other purposes, so
 we were curious about how much throughput we could get from CPUs for
 Deep Learning. CcT is our first attempt. Our initial results suggest
 that our CPU code is almost an order of magnitude more efficient than
-Caffe's CPU code. In particular, two 8 core Haswells deliver roughly
-80% of the throughput of a highest end GPU (NVidia's Titan). At
-current consumer prices, this implies that, chip-to-chip, the CPU
-solution costs almost 20% less than a GPU for the same
-throughput. These numbers are *incredibly rough* but are fun to think
-about (and troll our friends with!)  Our GPU code is also slightly
-faster than Caffe, see our [benchmark
-page](http://deepdive.stanford.edu/cdw/benchmarking.html). The GPU
-speedup is mostly for non-fundamental reasons.
+Caffe's CPU code. In particular, on Amazon, two 8-core haswells
+deliver the same throughput as the GPU. And three 8-core Haswells
+deliver roughly the throughput of a highest end GPU (NVidia's
+Titan). Since GPU instances have GPUs and CPUs, we can go even faster
+by combining the two! 
 
 **New Techniques** In the initial version of CcT, CcT's algorithms are
 identical to Caffe from a statistical point of view. However, CcT uses
@@ -74,8 +73,8 @@ Installation from Source
 
 We cloned Caffe, so we follow nearly identical [install
 instructions](http://caffe.berkeleyvision.org/installation.html).
-Start with their instructions! *NB: the .travis.yml should always
-contain a working build script for Ubuntu, if you are confused about
+Start with their instructions! *NB: the .travis.yml contains a working
+build script for Ubuntu 12.04, if you are confused about
 dependencies.*
 
 
@@ -98,19 +97,23 @@ test file.
 > make test && ./test
 
 
-It's good on a laptop, on a server, or for a snack. It is unclear
-whether CcT can [smell the
-blood](http://en.wikipedia.org/wiki/Trollhunter) of christian men.
+It's good on a laptop, on a server, or for a snack. We strive for [Morgan's
+Maxim](http://en.wikipedia.org/wiki/Poe%27s_law), _"Any sufficiently advanced troll is indistinguishable from a genuine kook."_
 
 Known Issues
 ------------
+* It is unclear whether CcT can [smell the
+blood](http://en.wikipedia.org/wiki/Trollhunter) of christian
+men.
 
 * OpenBLAS seems to be the fastest, free library. However, OpenBLAS
-  has some known issues on MACs. It will compile, but it will may
-  unpredictably
+  has some known issues on Mac. It will compile, but it will unpredictably
   [crash](https://github.com/xianyi/OpenBLAS/issues/218). On recent OS
   X, you can use the built in BLAS and LAPACK (see Caffe install
   instruction.)
+
+* If you use Vanilla BLAS, ATLAS, or the installed Apple's BLAS
+  libraries CcT may be slower.
   
 Contact
 -------
