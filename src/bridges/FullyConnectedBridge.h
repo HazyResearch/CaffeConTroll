@@ -114,7 +114,7 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
     }
 
     LogicalCube<DataType, Layout_CRDB> * const get_model_cube() {
-      return p_model_cube;
+      return p_model_cube_shadow;
     }
 
     void set_bias_cube(LogicalCube<DataType, Layout_CRDB> * bias) {
@@ -148,6 +148,7 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
 
     LogicalCubeType * p_model_gradient_cube;
     LogicalCubeType * p_model_cube;
+    LogicalCubeType * p_model_cube_shadow;
 
     LogicalCubeType * p_bias_gradient_cube;
     LogicalCubeType * p_bias_cube;

@@ -40,7 +40,7 @@ class MaxPoolingBridgeTest : public ::testing::Test {
           layer2, &layer_param, &solver_param, 4, 1);
     }
 
-    virtual ~MaxPoolingBridgeTest() { delete data1; delete data2; delete grad1; delete grad2; delete layer1; delete layer2;}
+    virtual ~MaxPoolingBridgeTest() { delete layer1; delete layer2; }
     ParallelizedBridge<DataType_SFFloat, MaxPoolingBridge<T, Layout_CRDB, T, Layout_CRDB> >* MaxPoolingBridge_;
 
     cnn::SolverParameter solver_param;

@@ -36,7 +36,7 @@ class dropoutBridgeTest : public ::testing::Test {
     cnn::SolverParameter solver_param;
 
 
-    virtual ~dropoutBridgeTest() { delete data1; delete data2; delete grad1; delete grad2; delete layer1; delete layer2;}
+    virtual ~dropoutBridgeTest() { delete layer1; delete layer2; }
     DropoutBridge<T, Layout_CRDB, T, Layout_CRDB>* dropoutBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;

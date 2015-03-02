@@ -26,7 +26,7 @@ public:
 };
 
 TEST_F(ReportTest, TestReportGetDataGB){
-	ASSERT_NEAR(r_.get_data_GB(), bytes_to_GBytes(r_.n_data_read_byte+r_.n_data_write_byte), EPS);	
+	ASSERT_NEAR(r_.get_data_GB(), bytes_to_GBytes(r_.n_data_read_byte+r_.n_data_write_byte), EPS);
 }
 
 TEST_F(ReportTest, TestReportGetThroughputGB){

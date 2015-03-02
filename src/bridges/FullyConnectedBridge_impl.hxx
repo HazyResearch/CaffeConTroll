@@ -38,8 +38,10 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
   assert(iB == oB); assert(num_output_features == oD);
 #endif
 
-  p_model_cube = new LogicalCubeType(K, K, iD, num_output_features);
-  initialize_logical_cube(p_model_cube, weight_filler);
+  p_model_cube = new LogicalCubeType(NULL, K, K, iD, num_output_features);
+
+  p_model_cube_shadow = new LogicalCubeType(K, K, iD, num_output_features);
+  initialize_logical_cube(p_model_cube_shadow, weight_filler);
 
   p_model_gradient_cube = new LogicalCubeType(K, K, iD, num_output_features);
   p_model_gradient_cube->reset_cube();
@@ -56,7 +58,7 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
   p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*iB,
       1, 1);
 
-  LogicalCube<DataType, Layout_CRDB> lowered_forward_model(p_model_cube->get_p_data(), num_output_features,
+  LogicalCube<DataType, Layout_CRDB> lowered_forward_model(p_model_cube_shadow->get_p_data(), num_output_features,
       K*K*iD, 1, 1);
 
   LogicalCube<DataType, Layout_CRDB> lowered_forward_output(p_output_layer->p_data_cube->get_p_data(),
@@ -124,11 +126,13 @@ initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter
 template <typename DataType>
 void FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::
 forward() {
-
   Util::set_num_threads(run_with_n_threads);
 
   report_forward_last_transfer.reset();
 
+  if (p_model_cube->get_p_data() == NULL) {
+    p_model_cube->set_p_data(p_model_cube_shadow->get_p_data());
+  }
   // (0) cast input model and output to matrix
   // This one should be refactored with the matrix interface
   LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->get_p_data(), num_output_features,
@@ -205,7 +209,6 @@ forward() {
 template <typename DataType>
 void FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::
 backward() {
-
   Util::set_num_threads(run_with_n_threads);
 
   report_backward_updateweight_last_transfer.reset();
@@ -264,8 +267,9 @@ FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::
 ~FullyConnectedBridge() {
   if (bias_term) {
     delete p_bias_cube;
+    delete p_bias_gradient_cube;
   }
-  delete p_model_cube; delete p_forward_lowered_data;
+  delete p_model_cube_shadow; delete p_model_gradient_cube; delete p_forward_lowered_data;
   delete p_backward_gemm_updategrad_kernel; delete p_backward_gemm_updateweight_kernel;
   delete p_backward_inputgrad; delete p_forward_gemm_kernel;
   delete p_forward_lower_connector;

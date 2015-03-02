@@ -123,6 +123,9 @@ class AbstractBridge : public PhysicalOperator {
         oD(_p_output_layer->p_data_cube->D), oB(_p_output_layer->p_data_cube->B),
         p_input_layer(_p_input_layer), p_output_layer(_p_output_layer), layer_param(NULL), solver_param(NULL),
         bias_term(false) {} // no-op, initialize only
+
+    // This needs to be virtual, so we can delete the subclass bridges
+    virtual ~AbstractBridge() {}
 };
 
 #endif

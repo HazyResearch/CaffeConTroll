@@ -129,7 +129,7 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     }
 
     LogicalCube<DataType, Layout_CRDB> * const get_model_cube() {
-      return p_model_cube;
+      return p_model_cube_shadow;
     }
 
     void set_bias_cube(LogicalCube<DataType, Layout_CRDB> * bias) {
@@ -163,6 +163,7 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
 
     LogicalCubeType * p_model_gradient_cube;
     LogicalCubeType * p_model_cube;
+    LogicalCubeType * p_model_cube_shadow;
 
     LogicalCubeType * p_bias_gradient_cube;
     LogicalCubeType * p_bias_cube;

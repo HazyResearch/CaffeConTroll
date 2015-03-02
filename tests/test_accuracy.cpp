@@ -50,7 +50,7 @@ TYPED_TEST(LenetTest, RunTest) {
     pFile = fopen (corpus->filename.c_str(), "rb");
 
     for (size_t batch = 0, corpus_batch_index = 0; batch < corpus->num_mini_batches - 1; ++batch,
-      corpus_batch_index += corpus->mini_batch_size) {
+        corpus_batch_index += corpus->mini_batch_size) {
       fread(corpus->images->get_p_data(), sizeof(DataType_SFFloat), corpus->images->n_elements, pFile);
 
       float * const mini_batch = corpus->images->physical_get_RCDslice(0);
@@ -66,7 +66,7 @@ TYPED_TEST(LenetTest, RunTest) {
         (*bridge)->p_output_layer->p_data_cube->reset_cube();
         (*bridge)->forward();
       }
-       total_accuracy += find_accuracy(labels, softmax->p_output_layer->p_data_cube);
+      total_accuracy += find_accuracy(labels, softmax->p_output_layer->p_data_cube);
     }
 
     std::fstream expected_accuracy("tests/accuracy_train.txt", std::ios_base::in);

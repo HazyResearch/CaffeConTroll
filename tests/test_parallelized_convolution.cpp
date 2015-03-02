@@ -74,7 +74,7 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
       ParallelizedConvolutionBridge_->needs_to_calc_backward_grad = true;
     }
 
-    virtual ~ParallelizedConvolutionBridgeTest() {delete data1; delete data2; delete grad1; delete grad2; delete layer1; delete layer2;}
+    virtual ~ParallelizedConvolutionBridgeTest() { delete layer1; delete layer2; }
     ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
               Layout_CRDB, DataType_SFFloat, Layout_CRDB> >* ParallelizedConvolutionBridge_;

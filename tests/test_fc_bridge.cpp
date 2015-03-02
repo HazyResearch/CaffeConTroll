@@ -61,10 +61,7 @@ class FCBridgeTest : public ::testing::Test {
           layer2c, &layer_param, &solver_param);
     }
 
-    virtual ~FCBridgeTest() {
-      delete data1; delete data2; delete grad1; delete grad2; delete layer1; delete layer2;
-      delete data1c; delete data2c; delete grad1c; delete grad2c; delete layer1c; delete layer2c;
-    }
+    virtual ~FCBridgeTest() { delete layer1; delete layer2; delete layer1c; delete layer2c; }
 
     ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>* ConvolutionBridge_;
     FullyConnectedBridge< T, Layout_CRDB, T, Layout_CRDB>* FullyConnectedBridge_;

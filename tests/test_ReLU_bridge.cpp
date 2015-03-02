@@ -34,7 +34,7 @@ class ReLUBridgeTest : public ::testing::Test {
 
     cnn::SolverParameter solver_param;
 
-    virtual ~ReLUBridgeTest() { delete data1; delete data2; delete grad1; delete grad2; delete layer1; delete layer2;}
+    virtual ~ReLUBridgeTest() { delete layer1; delete layer2; }
     ParallelizedBridge<T, ReLUBridge<T, Layout_CRDB, T, Layout_CRDB> >* ReLUBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;

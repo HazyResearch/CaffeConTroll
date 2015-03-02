@@ -244,5 +244,32 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
 }
 
+template<typename DataType, typename BridgeType>
+ParallelizedBridge<DataType, BridgeType>::~ParallelizedBridge() {
+  for (auto layer = _partitioned_layers_lower.begin(); layer != _partitioned_layers_lower.end(); ++layer) {
+    delete (*layer);
+  }
+
+  for (auto layer = _partitioned_layers_higher.begin(); layer != _partitioned_layers_higher.end(); ++layer) {
+    delete (*layer);
+  }
+
+  for (auto bridge = _bridges.begin(); bridge != _bridges.end(); ++bridge) {
+    delete (*bridge);
+  }
+
+  if (p_model_cube) {
+    delete p_model_cube;
+    delete p_model_grad;
+    delete p_grad_updater;
+  }
+
+  if (p_bias_cube) {
+    delete p_bias_cube;
+    delete p_bias_grad;
+    delete p_grad_updater_bias;
+  }
+}
+
 #endif
 
