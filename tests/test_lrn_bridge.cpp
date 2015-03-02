@@ -42,7 +42,7 @@ class LRNBridgeTest : public ::testing::Test {
 
     cnn::SolverParameter solver_param;
 
-    virtual ~LRNBridgeTest() { delete data1; delete data2; delete grad1; delete grad2; delete layer1; delete layer2;}
+    virtual ~LRNBridgeTest() { delete layer1; delete layer2; }
     ParallelizedBridge<DataType_SFFloat, LRNBridge<T, Layout_CRDB, T, Layout_CRDB> >* LRNBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
@@ -80,7 +80,7 @@ TYPED_TEST(LRNBridgeTest, TestForward){
   std::fstream input("tests/input/lrn_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
-      input >> this->data1->p_data[i];
+      input >> this->data1->get_p_data()[i];
     }
   }
   else{
@@ -96,7 +96,7 @@ TYPED_TEST(LRNBridgeTest, TestForward){
   int idx = 0;
   if (expected_output.is_open()) {
     while (expected_output >> output) {
-      EXPECT_NEAR(this->data2->p_data[idx++], output, EPS);
+      EXPECT_NEAR(this->data2->get_p_data()[idx++], output, EPS);
     }
   }else{
     FAIL();
@@ -111,7 +111,7 @@ TYPED_TEST(LRNBridgeTest, TestBackward){
   std::fstream input("tests/input/lrn_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
-      input >> this->data1->p_data[i];
+      input >> this->data1->get_p_data()[i];
     }
   }
   else{
@@ -127,7 +127,7 @@ TYPED_TEST(LRNBridgeTest, TestBackward){
   std::fstream grad("tests/input/lrn_backward_in.txt", std::ios_base::in);
   if (grad.is_open()){
     for(int i=0;i<oR*oC*this->iD*this->mB;i++){
-      grad >> this->grad2->p_data[i];
+      grad >> this->grad2->get_p_data()[i];
     }
   }
   else{
@@ -142,7 +142,7 @@ TYPED_TEST(LRNBridgeTest, TestBackward){
   int idx = 0;
   if (expected_output.is_open()) {
     while (expected_output >> output) {
-      EXPECT_NEAR(this->grad1->p_data[idx++], output, EPS);
+      EXPECT_NEAR(this->grad1->get_p_data()[idx++], output, EPS);
     }
   }else{
     FAIL();

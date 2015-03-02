@@ -36,7 +36,7 @@ class dropoutBridgeTest : public ::testing::Test {
     cnn::SolverParameter solver_param;
 
 
-    virtual ~dropoutBridgeTest() { delete data1; delete data2; delete grad1; delete grad2; delete layer1; delete layer2;}
+    virtual ~dropoutBridgeTest() { delete layer1; delete layer2; }
     DropoutBridge<T, Layout_CRDB, T, Layout_CRDB>* dropoutBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
@@ -71,8 +71,8 @@ TYPED_TEST(dropoutBridgeTest, TestForward) {
   std::fstream input("tests/input/dropout_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
-      input >> this->data1->p_data[i];
-    }  
+      input >> this->data1->get_p_data()[i];
+    }
   }
   else{
     FAIL();
@@ -84,7 +84,7 @@ TYPED_TEST(dropoutBridgeTest, TestForward) {
   int idx = 0;
   if (mask_cube_file.is_open()) {
     while (mask_cube_file >> m) {
-      this->dropoutBridge_->mask_cube->p_data[idx++] = m;
+      this->dropoutBridge_->mask_cube->get_p_data()[idx++] = m;
     }
   }else{
     FAIL();
@@ -99,7 +99,7 @@ TYPED_TEST(dropoutBridgeTest, TestForward) {
   idx = 0;
   if (expected_output.is_open()) {
     while (expected_output >> output) {
-      EXPECT_NEAR(this->data2->p_data[idx++], output, EPS);
+      EXPECT_NEAR(this->data2->get_p_data()[idx++], output, EPS);
     }
   }else{
     FAIL();
@@ -117,8 +117,8 @@ TYPED_TEST(dropoutBridgeTest, TestBackward) {
   std::fstream grad("tests/input/dropout_backward_in.txt", std::ios_base::in);
   if (grad.is_open()){
     for(int i=0;i<oR*oC*this->iD*this->mB;i++){
-      grad >> this->grad2->p_data[i];
-    }  
+      grad >> this->grad2->get_p_data()[i];
+    }
   }
   else{
     FAIL();
@@ -130,7 +130,7 @@ TYPED_TEST(dropoutBridgeTest, TestBackward) {
   int idx = 0;
   if (mask_cube_file.is_open()) {
     while (mask_cube_file >> m) {
-      this->dropoutBridge_->mask_cube->p_data[idx++] = m;
+      this->dropoutBridge_->mask_cube->get_p_data()[idx++] = m;
     }
   }else{
     FAIL();
@@ -147,7 +147,7 @@ TYPED_TEST(dropoutBridgeTest, TestBackward) {
   idx = 0;
   if (expected_output.is_open()) {
     while (expected_output >> output) {
-      EXPECT_NEAR(this->grad1->p_data[idx++], output, EPS);
+      EXPECT_NEAR(this->grad1->get_p_data()[idx++], output, EPS);
     }
   }else{
     FAIL();

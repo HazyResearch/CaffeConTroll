@@ -27,7 +27,7 @@ void compare_to_expected(const LogicalCube<float, Layout_CRDB> * const actual, s
     int idx = 0;
     if (expected.is_open()) {
         while(expected >> output) {
-            EXPECT_NEAR(actual->p_data[idx++], output, EPS);
+            EXPECT_NEAR(actual->get_p_data()[idx++], output, EPS);
         }
     } else {
         FAIL();
@@ -39,7 +39,7 @@ void read_from_file(LogicalCube<float, Layout_CRDB> * cube, std::istream & input
     int idx = 0;
     if (input.is_open()) {
         while (input >> element) {
-            cube->p_data[idx++] = element;
+            cube->get_p_data()[idx++] = element;
         }
     } else {
         FAIL();

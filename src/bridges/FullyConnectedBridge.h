@@ -110,16 +110,15 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
     const cnn::FillerParameter bias_filler;
 
     void set_model_cube(LogicalCube<DataType, Layout_CRDB> * model) {
-      p_model_cube->p_data = model->p_data;
-      //Util::_our_memcpy(p_model_cube->p_data, model->p_data, p_model_cube->n_elements*sizeof(DataType));
+      p_model_cube->set_p_data(model->get_p_data());
     }
 
     LogicalCube<DataType, Layout_CRDB> * const get_model_cube() {
-      return p_model_cube;
+      return p_model_cube_shadow;
     }
 
     void set_bias_cube(LogicalCube<DataType, Layout_CRDB> * bias) {
-      Util::_our_memcpy(p_bias_cube->p_data, bias->p_data, p_bias_cube->n_elements*sizeof(DataType));
+      Util::_our_memcpy(p_bias_cube->get_p_data(), bias->get_p_data(), p_bias_cube->n_elements*sizeof(DataType));
     }
 
     LogicalCube<DataType, Layout_CRDB> * const get_bias_cube() {
@@ -149,6 +148,7 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
 
     LogicalCubeType * p_model_gradient_cube;
     LogicalCubeType * p_model_cube;
+    LogicalCubeType * p_model_cube_shadow;
 
     LogicalCubeType * p_bias_gradient_cube;
     LogicalCubeType * p_bias_cube;

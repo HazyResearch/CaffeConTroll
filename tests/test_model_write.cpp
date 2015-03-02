@@ -15,7 +15,7 @@
 
 typedef vector<AbstractBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> *> BridgeVector;
 void WriteModelToFile(const BridgeVector bridges){
-  std::string filename = std::string("tests/test_write.bin"); 
+  std::string filename = std::string("tests/test_write.bin");
   FILE * pFile;
   pFile = fopen (filename.c_str(), "wb");
   LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
@@ -23,18 +23,18 @@ void WriteModelToFile(const BridgeVector bridges){
   for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
     model = (*bridge)->get_model_cube();
     if(model){
-      fwrite (model->p_data , sizeof(DataType_SFFloat), model->n_elements, pFile);  
+      fwrite(model->get_p_data(), sizeof(DataType_SFFloat), model->n_elements, pFile);
     }
     bias = (*bridge)->get_bias_cube();
     if(bias){
-      fwrite (bias->p_data , sizeof(DataType_SFFloat), bias->n_elements, pFile); 
+      fwrite(bias->get_p_data(), sizeof(DataType_SFFloat), bias->n_elements, pFile);
     }
   }
   fclose(pFile);
 }
 
 void ReadModelFromFile(BridgeVector & bridges){
-  std::string filename = std::string("tests/test_write.bin"); 
+  std::string filename = std::string("tests/test_write.bin");
   FILE * pFile;
   pFile = fopen (filename.c_str(), "rb");
   LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
@@ -42,11 +42,11 @@ void ReadModelFromFile(BridgeVector & bridges){
   for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
     model = (*bridge)->get_model_cube();
     if(model){
-      fread(model->p_data , sizeof(DataType_SFFloat), model->n_elements, pFile);  
+      fread(model->get_p_data(), sizeof(DataType_SFFloat), model->n_elements, pFile);
     }
     bias = (*bridge)->get_bias_cube();
     if(bias){
-      fread(bias->p_data , sizeof(DataType_SFFloat), bias->n_elements, pFile); 
+      fread(bias->get_p_data(), sizeof(DataType_SFFloat), bias->n_elements, pFile);
     }
   }
   fclose(pFile);
@@ -120,19 +120,19 @@ TYPED_TEST(ReadWriteTest, Model) {
   std::fstream input("tests/input/conv_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
-      input >> this->data1->p_data[i];
-    }  
+      input >> this->data1->get_p_data()[i];
+    }
   }
   else{
     FAIL();
   }
   input.close();
-  
+
   std::fstream model("tests/input/conv_backward_model.txt", std::ios_base::in);
   if (model.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->oD;i++){
-      model >> this->ConvolutionBridge_->get_model_cube()->p_data[i];
-    }  
+      model >> this->ConvolutionBridge_->get_model_cube()->get_p_data()[i];
+    }
   }
   else{
     FAIL();
@@ -142,8 +142,8 @@ TYPED_TEST(ReadWriteTest, Model) {
   std::fstream bias_file("tests/input/conv_bias_in.txt", std::ios_base::in);
   if (bias_file.is_open()){
     for(int i=0;i<this->oD;i++){
-      bias_file >> this->ConvolutionBridge_->get_bias_cube()->p_data[i];
-    }  
+      bias_file >> this->ConvolutionBridge_->get_bias_cube()->get_p_data()[i];
+    }
   }
   else{
     FAIL();
@@ -154,21 +154,21 @@ TYPED_TEST(ReadWriteTest, Model) {
   int oC = this->oC;
 
   for (int i=0;i<oR*oC*this->oD*this->mB;i++) {
-    this->data2->p_data[i] = 0;
-    this->grad2->p_data[i] = i*0.1;
+    this->data2->get_p_data()[i] = 0;
+    this->grad2->get_p_data()[i] = i*0.1;
   }
 
   vector<AbstractBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> *> bridges;
   bridges.push_back(this->ConvolutionBridge_);
-  
+
   for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
     (*bridge)->forward();
-  } 
-  
+  }
+
   WriteModelToFile(bridges);
   (*bridges.begin())->get_model_cube()->reset_cube();
   ReadModelFromFile(bridges);
-  
+
   for (auto bridge = bridges.rbegin(); bridge != bridges.rend(); ++bridge) {
     (*bridge)->backward();
   }
@@ -179,7 +179,7 @@ TYPED_TEST(ReadWriteTest, Model) {
   int idx = 0;
   if (expected_output.is_open()) {
     while (expected_output >> output) {
-      EXPECT_NEAR(this->grad1->p_data[idx++], output, EPS);
+      EXPECT_NEAR(this->grad1->get_p_data()[idx++], output, EPS);
     }
   }else{
     FAIL();
@@ -191,7 +191,7 @@ TYPED_TEST(ReadWriteTest, Model) {
   idx = 0;
   if (expected_bias.is_open()) {
     while (expected_bias >> output) {
-      EXPECT_NEAR(this->ConvolutionBridge_->get_bias_cube()->p_data[idx++], output, EPS); }
+      EXPECT_NEAR(this->ConvolutionBridge_->get_bias_cube()->get_p_data()[idx++], output, EPS); }
   }else{
     FAIL();
   }
@@ -201,7 +201,7 @@ TYPED_TEST(ReadWriteTest, Model) {
   idx = 0;
   if (expected_weights.is_open()) {
     while (expected_weights >> output) {
-      EXPECT_NEAR(this->ConvolutionBridge_->get_model_cube()->p_data[idx++], output, 0.1);}
+      EXPECT_NEAR(this->ConvolutionBridge_->get_model_cube()->get_p_data()[idx++], output, 0.1);}
   }else{
     FAIL();
   }

@@ -25,11 +25,12 @@ template
 void Scanner<DataType, Layout, FUNC_TANH>::apply(LogicalCubeType * const p_cube){
     report_last_apply.reset();
 
+    DataType * const data = p_cube->get_p_data();
     size_t i;
-    for(i=0;i<p_cube->n_elements;i++){
+    for(i = 0; i < p_cube->n_elements; i++){
         // According to Intel's Manual, this should be automatically vectorized
         //    TODO: But I coud make EXP for TANH faster if necessary -- but this layer is so much faster than GEMM
-        p_cube->p_data[i] = tanh(p_cube->p_data[i]);
+        data[i] = tanh(data[i]);
     }
 
     report_last_apply.end(1.0*p_cube->n_elements*sizeof(DataType), 1.0*p_cube->n_elements*sizeof(DataType), 1.0*p_cube->n_elements);

@@ -82,10 +82,10 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
 
   const int iRiC = iR*iC;
 
-  DataType * p_denoms = denoms->p_data;
-  DataType * p_output = p_output_layer->p_data_cube->p_data;
+  DataType * p_denoms = denoms->get_p_data();
+  DataType * p_output = p_output_layer->p_data_cube->get_p_data();
   DataType * p_input, * p_input_toremove, * p_input_toadd, * p_input_tmp, *p_input_all;
-  p_input_all = p_input_layer->p_data_cube->p_data;
+  p_input_all = p_input_layer->p_data_cube->get_p_data();
 
   // first, fill in p_denoms with the sum
   for (int i_b = 0; i_b < _iB; ++i_b) {
@@ -139,8 +139,8 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
   }
 
   // then do normalization
-  p_denoms = denoms->p_data;
-  p_output = p_output_layer->p_data_cube->p_data;
+  p_denoms = denoms->get_p_data();
+  p_output = p_output_layer->p_data_cube->get_p_data();
   const size_t n_elements = _iB*_iD*_iC*_iR;
   for (size_t i = 0; i < n_elements; ++i) {
     *p_denoms = alpha_over_size*(*p_denoms) + 1;
@@ -176,7 +176,7 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
       for (size_t o_c = 0; o_c < iC; ++o_c) {
         for (size_t o_r = 0; o_r < iR; ++o_r) {
           const DataType denom_no_exponent = *denoms->logical_get(o_r, o_c, o_d, o_b);
-          
+
 #ifdef _FASTPOW
           const DataType denom = fastPrecisePow(denom_no_exponent, beta);
 #else

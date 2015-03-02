@@ -78,6 +78,8 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
         const cnn::SolverParameter * const _solver_param,
         size_t _n_partition, size_t _n_thread_per_partition);
 
+    ~ParallelizedBridge();
+
     void forward();
 
     void backward();

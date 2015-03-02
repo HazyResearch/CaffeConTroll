@@ -52,6 +52,10 @@ public:
         assert(dR==gR); assert(dC==gC); assert(dD==gD); assert(dB==gB);
 #endif
     }
+
+    ~Layer() {
+      delete p_data_cube; delete p_gradient_cube;
+    }
 };
 
 #endif
