@@ -146,18 +146,20 @@ class Util {
     }
 
 #ifdef _USE_OPENBLAS
-    static inline void math_axpy(const int N, const double alpha, const float * X, float * Y)   { cblas_saxpby(N, alpha, X, 1, 1., Y, 1);}
-    static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) { cblas_daxpby(N, alpha, X, 1, 1., Y, 1); }
+    extern void cblas_saxpby(const int N, const float alpha , const float * X , const int, const float beta, float * Y, const int);
+    extern void cblas_daxpby(const int N, const double alpha, const double * X, const int, const double beta, double * Y, const int);
+
+    static inline void math_axpy(const int N, const double alpha, const float * X, float * Y)   { cblas_saxpy(N, alpha, X, 1, Y, 1);}
+    static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) { cblas_daxpy(N, alpha, X, 1, Y, 1); }
     static inline void math_axpby(const int N, const double alpha, const double * X, const double beta, double * Y) { cblas_daxpby(N, alpha, X, 1, beta, Y, 1); }
     static inline void math_axpby(const int N, const float alpha, const float * X, const float beta, float * Y) { cblas_saxpby(N, alpha, X, 1, beta, Y, 1); }
-
     static inline void set_num_threads(const int nThreads) { openblas_set_num_threads(nThreads); }
 #elif _USE_ATLAS
-    static inline void math_axpy(const int N, const double alpha, const float * X, float * Y)   { catlas_saxpby(N, alpha, X, 1, 1., Y, 1); }
-    static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) { catlas_daxpby(N, alpha, X, 1, 1., Y, 1);}
+    static inline void math_axpy(const int N, const double alpha, const float * X, float * Y)   { catlas_saxpy(N, alpha, X, 1, Y, 1); }
+    static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) { catlas_daxpy(N, alpha, X, 1, Y, 1);}
     static inline void math_axpby(const int N, const double alpha, const double * X, const double beta, double * Y) { catlas_daxpby(N, alpha, X, 1, beta, Y, 1); }
     static inline void math_axpby(const int N, const float alpha, const float * X, const float beta, float * Y) { catlas_saxpby(N, alpha, X, 1, beta, Y, 1); }
-    static inline void set_num_threads(const int nThreads) {       set_num_threads(nThreads); }
+    static inline void set_num_threads(const int nThreads) {  set_num_threads(nThreads); }
 #else
       #error "Select a BLAS framework."
 #endif
