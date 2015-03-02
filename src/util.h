@@ -18,12 +18,6 @@
 
 #include "cblas.h"
 
-#ifdef _USE_OPENBLAS
-    extern void cblas_saxpby(const int N, const float alpha , const float * X , const int, const float beta, float * Y, const int);
-    extern void cblas_daxpby(const int N, const double alpha, const double * X, const int, const double beta, double * Y, const int);
-    extern void openblas_set_num_threads(const int nThreads);
-#endif
-
 enum InitializerType {
   CONSTANT = 0,
   BERNOULLI = 1,
