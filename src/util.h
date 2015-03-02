@@ -18,6 +18,10 @@
 
 #include "cblas.h"
 
+#ifdef _USE_OPENBLAS
+    extern void cblas_saxpby(const int N, const float alpha , const float * X , const int, const float beta, float * Y, const int);
+    extern void cblas_daxpby(const int N, const double alpha, const double * X, const int, const double beta, double * Y, const int);
+#endif
 enum InitializerType {
   CONSTANT = 0,
   BERNOULLI = 1,
@@ -146,9 +150,6 @@ class Util {
     }
 
 #ifdef _USE_OPENBLAS
-    extern void cblas_saxpby(const int N, const float alpha , const float * X , const int, const float beta, float * Y, const int);
-    extern void cblas_daxpby(const int N, const double alpha, const double * X, const int, const double beta, double * Y, const int);
-
     static inline void math_axpy(const int N, const double alpha, const float * X, float * Y)   { cblas_saxpy(N, alpha, X, 1, Y, 1);}
     static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) { cblas_daxpy(N, alpha, X, 1, Y, 1); }
     static inline void math_axpby(const int N, const double alpha, const double * X, const double beta, double * Y) { cblas_daxpby(N, alpha, X, 1, beta, Y, 1); }
