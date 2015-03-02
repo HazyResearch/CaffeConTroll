@@ -157,7 +157,8 @@ class Util {
     static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) { catlas_daxpby(N, alpha, X, 1, 1., Y, 1);}
     static inline void math_axpby(const int N, const double alpha, const double * X, const double beta, double * Y) { catlas_daxpby(N, alpha, X, 1, beta, Y, 1); }
     static inline void math_axpby(const int N, const float alpha, const float * X, const float beta, float * Y) { catlas_saxpby(N, alpha, X, 1, beta, Y, 1); }
-    static inline void set_num_threads(const int nThreads) {       set_num_threads(nThreads); }
+    // http://math-atlas.sourceforge.net/faq.html#tnum Atlas manages the thread pool.
+    static inline void set_num_threads(const int nThreads) {  /* std::cerr << "[Warning] Atlas ignores set_num_threads(nThreads); " << nThreads << std::endl;*/ }
 #else
       #error "Select a BLAS framework."
 #endif
