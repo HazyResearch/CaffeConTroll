@@ -16,9 +16,7 @@ before_install:
 - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 - sudo apt-get -qq update
 - sudo apt-get -qq install g++-4.8
-- sudo apt-get install libopenblas-base libopenblas-dev libblas-dev 
-- dpkg-query -L libblas-dev
-- cat /usr/include/cblas.h
+- sudo apt-get install libatlas3gf-base libatlas-dev 
 - sudo apt-get install libgtest-dev
 - "git clone git://gitorious.org/mdb/mdb.git && cd mdb/libraries/liblmdb && make && sudo make install; cd -"
 - sudo apt-get install gfortran
