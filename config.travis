@@ -7,7 +7,7 @@ CC=g++-4.8
 LMDB_INCLUDE=
 LMDB_DIR=/usr/local/lib
 
-BLAS_INCLUDE=./externals/OpenBLAS/
+BLAS_INCLUDE=/usr/local/include/
 BLAS_LIB_DIR=
 # BLAS_LIBS=BLAS LAPACK # Mac libararies
 # BLAS_DEFS=-D_USE_ATLAS
