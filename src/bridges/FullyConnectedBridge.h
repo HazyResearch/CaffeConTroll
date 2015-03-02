@@ -21,37 +21,36 @@
 template
 <typename InputLayerDataType, LayoutType InputLayerLayout,
   typename OutputLayerDataType, LayoutType OutputLayerLayout>
-class FullyConnectedBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType, OutputLayerLayout> {
-  public:
+  class FullyConnectedBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType, OutputLayerLayout> {
+    public:
+      typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
+      typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
+      typedef LogicalCube<InputLayerDataType, InputLayerLayout> LogicalCubeType;
 
-    typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
-    typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
-    typedef LogicalCube<InputLayerDataType, InputLayerLayout> LogicalCubeType;
+      virtual void set_model_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * model) = 0;
+      virtual LogicalCube<InputLayerDataType, InputLayerLayout> * get_model_cube() = 0;
+      virtual void set_bias_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * bias) = 0;
+      virtual LogicalCube<InputLayerDataType, InputLayerLayout> * get_bias_cube() = 0;
 
-    virtual void set_model_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * model) = 0;
-    virtual LogicalCube<InputLayerDataType, InputLayerLayout> * get_model_cube() = 0;
-    virtual void set_bias_cube(LogicalCube<InputLayerDataType, InputLayerLayout> * bias) = 0;
-    virtual LogicalCube<InputLayerDataType, InputLayerLayout> * get_bias_cube() = 0;
+      FullyConnectedBridge(InputLayerType * const _p_input_layer,
+          OutputLayerType * const _p_output_layer,
+          const cnn::LayerParameter * const _layer_param,
+          const cnn::SolverParameter * const _solver_param) {
+        NOT_IMPLEMENTED;
+      }
 
-    FullyConnectedBridge(InputLayerType * const _p_input_layer,
-        OutputLayerType * const _p_output_layer,
-        const cnn::LayerParameter * const _layer_param,
-        const cnn::SolverParameter * const _solver_param) {
-      NOT_IMPLEMENTED;
-    }
+      ~FullyConnectedBridge() {
+        NOT_IMPLEMENTED;
+      }
 
-    ~FullyConnectedBridge() {
-      NOT_IMPLEMENTED;
-    }
+      void forward() {
+        NOT_IMPLEMENTED;
+      }
 
-    void forward() {
-      NOT_IMPLEMENTED;
-    }
-
-    void backward() {
-      NOT_IMPLEMENTED;
-    }
-};
+      void backward() {
+        NOT_IMPLEMENTED;
+      }
+  };
 
 /******
  * Specializations
@@ -118,19 +117,19 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
     }
 
     void set_bias_cube(LogicalCube<DataType, Layout_CRDB> * bias) {
-      Util::_our_memcpy(p_bias_cube->get_p_data(), bias->get_p_data(), p_bias_cube->n_elements*sizeof(DataType));
+      p_bias_cube->set_p_data(bias->get_p_data());
     }
 
     LogicalCube<DataType, Layout_CRDB> * const get_bias_cube() {
-      return p_bias_cube;
+      return p_bias_cube_shadow;
     }
 
     LogicalCube<DataType, Layout_CRDB> * const get_model_grad_cube() {
-        return p_model_gradient_cube;
+      return p_model_gradient_cube;
     }
 
     LogicalCube<DataType, Layout_CRDB> * const get_bias_grad_cube() {
-        return p_bias_gradient_cube;
+      return p_bias_gradient_cube;
     }
 
     FullyConnectedBridge(InputLayerType * const _p_input_layer,
@@ -145,13 +144,13 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
     void backward();
 
   protected:
-
     LogicalCubeType * p_model_gradient_cube;
     LogicalCubeType * p_model_cube;
     LogicalCubeType * p_model_cube_shadow;
 
     LogicalCubeType * p_bias_gradient_cube;
     LogicalCubeType * p_bias_cube;
+    LogicalCubeType * p_bias_cube_shadow;
 
     LogicalCubeType * p_forward_lowered_data;
 

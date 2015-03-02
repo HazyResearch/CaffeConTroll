@@ -36,7 +36,6 @@ template
   typename OutputLayerDataType, LayoutType OutputLayerLayout>
 class ConvolutionBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType, OutputLayerLayout> {
   public:
-
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
     typedef LogicalCube<InputLayerDataType, InputLayerLayout> LogicalCubeType;
@@ -133,11 +132,11 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     }
 
     void set_bias_cube(LogicalCube<DataType, Layout_CRDB> * bias) {
-      Util::_our_memcpy(p_bias_cube->get_p_data(), bias->get_p_data(), p_bias_cube->n_elements*sizeof(DataType));
+      p_bias_cube->set_p_data(bias->get_p_data());
     }
 
     LogicalCube<DataType, Layout_CRDB> * const get_bias_cube() {
-      return p_bias_cube;
+      return p_bias_cube_shadow;
     }
 
     LogicalCube<DataType, Layout_CRDB> * const get_model_grad_cube() {
@@ -160,13 +159,13 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     void backward();
 
   protected:
-
     LogicalCubeType * p_model_gradient_cube;
     LogicalCubeType * p_model_cube;
     LogicalCubeType * p_model_cube_shadow;
 
     LogicalCubeType * p_bias_gradient_cube;
     LogicalCubeType * p_bias_cube;
+    LogicalCubeType * p_bias_cube_shadow;
 
     LogicalCubeType * p_forward_lowered_data;
     LogicalCubeType * p_backward_outputgrad;

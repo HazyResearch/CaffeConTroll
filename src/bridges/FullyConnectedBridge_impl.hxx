@@ -47,8 +47,10 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
   p_model_gradient_cube->reset_cube();
 
   if (bias_term) {
-    p_bias_cube = new LogicalCubeType(1, 1, num_output_features, 1);
-    initialize_logical_cube(p_bias_cube, bias_filler);
+    p_bias_cube = new LogicalCubeType(NULL, 1, 1, num_output_features, 1);
+
+    p_bias_cube_shadow = new LogicalCubeType(1, 1, num_output_features, 1);
+    initialize_logical_cube(p_bias_cube_shadow, bias_filler);
 
     p_bias_gradient_cube = new LogicalCubeType(1, 1, num_output_features, 1);
   }
@@ -162,6 +164,9 @@ forward() {
   p_output_layer->p_data_cube->template remap_output<LOWERING_TYPE1>(num_output_features, iB, oR*oC);
   // add bias
   if (bias_term) {
+    if (p_bias_cube->get_p_data() == NULL) {
+      p_bias_cube->set_p_data(p_bias_cube_shadow->get_p_data());
+    }
     const DataType * const bias_elems = p_bias_cube->get_p_data();
     const size_t output_feature_size = oR*oC;
     for (size_t o_b = 0; o_b < oB; ++o_b) {
@@ -266,7 +271,7 @@ template <typename DataType>
 FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::
 ~FullyConnectedBridge() {
   if (bias_term) {
-    delete p_bias_cube;
+    delete p_bias_cube_shadow;
     delete p_bias_gradient_cube;
   }
   delete p_model_cube_shadow; delete p_model_gradient_cube; delete p_forward_lowered_data;
