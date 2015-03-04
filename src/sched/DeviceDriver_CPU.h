@@ -8,6 +8,7 @@ class CPUDriver : public DeviceDriver{
 public:
 
   DeviceMemoryPointer * get_device_pointer(void * ptr, size_t size_in_byte){
+    // TODO: This has memory leak! Refactor it!
   	return new DeviceMemoryPointer_Local_RAM(ptr, size_in_byte);
   }
 
@@ -101,6 +102,34 @@ public:
 #else
 	#error "Select a BLAS framework."
 #endif
+
+  void sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB, 
+        int M, int N, int K, float alpha, float * pA, int LDA, float * pB, int LDB,
+        float beta, float * pC, int LDC){
+
+      cblas_sgemm(order, TA, TB, M, N, K, alpha,
+        pA, LDA,
+        pB, LDB,
+        beta, pC, LDC);
+
+  }
+
+  void selementwise_reduce2(DeviceMemoryPointer dst, DeviceMemoryPointer src1, 
+    DeviceMemoryPointer src2, std::function<float(float,float)> FUNC){ 
+      // This lambda should be easier for compiler to inline than a function pointer
+#ifdef _DO_ASSERT
+    assert(dst.size_in_byte == src1.size_in_byte);
+    assert(dst.size_in_byte == src2.size_in_byte);
+    assert(dst.size_in_byte % sizeof(float) == 0);
+#endif
+    const size_t n_element = dst.size_in_byte / sizeof(float);
+    float * const p_dst = (float*) dst.ptr;
+    const float * const p_src1 = (float*) src1.ptr;
+    const float * const p_src2 = (float*) src2.ptr; 
+    for(size_t i = 0; i < n_element; i++){
+      p_dst[i] = FUNC(p_src1[i], p_src2[i]);
+    }
+  }
 
   std::function<void(float&)> srand_uni(float lower, float upper){
     mt19937 *gen = new mt19937(rd());

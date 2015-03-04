@@ -9,6 +9,8 @@
 #ifndef moka_Kernel_h
 #define moka_Kernel_h
 
+#include "sched/DeviceDriver.h"
+
 #include "LogicalCube.h"
 #include "Report.h"
 
@@ -46,12 +48,15 @@ public:
     Report report_last_lowering; /*< Performance reporter for the last run of transfer() function. */
     Report report_history; /*< Performance reporter for all transfer() functions aggregated. */
 
+    DeviceDriver * p_driver;
+
     /**
      * Similar to Connector()'s constructor.
      **/
     Kernel(const Input1LogicalCubeType * const p_input1_cube,
            const Input2LogicalCubeType * const p_input2_cube,
-           const OutputLogicalCubeType * const p_output_cube){
+           const OutputLogicalCubeType * const p_output_cube,
+           DeviceDriver * _p_driver){
         std::cerr << "ERROR: Using a kernel with unsupported Layout or DataType." << std::endl;
         assert(false);
     }
@@ -90,8 +95,10 @@ public:
     Report report_last_lowering;
     Report report_history;
 
+    DeviceDriver * p_driver;
+
     Kernel(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
-           const OutputLogicalCubeType * const p_output_cube);
+           const OutputLogicalCubeType * const p_output_cube, DeviceDriver * _p_driver);
 
     void compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
                   OutputLogicalCubeType * const p_output_cube);
@@ -117,8 +124,10 @@ public:
     Report report_last_lowering;
     Report report_history;
 
+    DeviceDriver * p_driver;
+
     Kernel(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
-           const OutputLogicalCubeType * const p_output_cube);
+           const OutputLogicalCubeType * const p_output_cube, DeviceDriver * _p_driver);
 
     void compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube, OutputLogicalCubeType * const p_output_cube);
 

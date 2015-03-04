@@ -75,7 +75,7 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
 
   p_forward_gemm_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
                         Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS>(&lowered_forward_model,
-                            p_forward_lowered_data, &lowered_forward_output);
+                            p_forward_lowered_data, &lowered_forward_output, this->p_driver);
 
   p_forward_applyfunc_scanner = new Scanner<DataType, Layout_CRDB, FUNC>(p_output_layer->p_data_cube);
 
@@ -93,19 +93,19 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
     p_backward_element_mul_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType,
                                   Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU,
                                   KernelConfig_TANHGRAD_ON_INPUT1>(p_output_layer->p_data_cube,
-                                      p_output_layer->p_gradient_cube, p_backward_outputgrad);
+                                      p_output_layer->p_gradient_cube, p_backward_outputgrad, this->p_driver);
   }
 
   // TODO: this constructor doesn't make any sense -- we're passing in different arguments later, in backward()
   p_backward_gemm_updateweight_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType,
                                       Layout_CRDB, Kernel_GEMM_OpenBlas,
                                       KernelConfig_GEMM_NOTRANS_TRANS>(&lowered_forward_output,
-                                          p_forward_lowered_data, &lowered_forward_model);
+                                          p_forward_lowered_data, &lowered_forward_model, this->p_driver);
 
   p_backward_gemm_updategrad_kernel = new Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB,
                                     DataType_SFFloat, Layout_CRDB, Kernel_GEMM_OpenBlas,
                                     KernelConfig_GEMM_TRANS_NOTRANS>(&lowered_forward_model,
-                                        &lowered_forward_output, p_backward_inputgrad);
+                                        &lowered_forward_output, p_backward_inputgrad, this->p_driver);
 
   report_forward_constructor.end(0, 0, 0);
 }

@@ -92,6 +92,12 @@ public:
   virtual void sapply(DeviceMemoryPointer dst, size_t n_element, std::function<void(float&)> func) = 0;
   virtual void smath_axpby(const float alpha, DeviceMemoryPointer X, const float beta, DeviceMemoryPointer Y) = 0;
   virtual void set_num_threads(const int nThreads) = 0;
+  virtual void sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB, 
+        int M, int N, int K, float alpha, float * pA, int LDA, float * pB, int LDB,
+        float beta, float * pC, int LDC) = 0;
+
+  void selementwise_reduce2(DeviceMemoryPointer dst, DeviceMemoryPointer src1, 
+    DeviceMemoryPointer src2, std::function<float(float,float)> FUNC) ;
 
   /**
    * Single-precison random number generator.

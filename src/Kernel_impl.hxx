@@ -11,15 +11,14 @@
 #ifndef moka_Kernel_impl_Lowering_hxx
 #define moka_Kernel_impl_Lowering_hxx
 
-
 template <typename DataType, KernelConfig KERNELCONFIG>
 Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_GEMM_OpenBlas, KERNELCONFIG>::
 Kernel(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
-    const OutputLogicalCubeType * const p_output_cube) :
+    const OutputLogicalCubeType * const p_output_cube, DeviceDriver * _p_driver) :
 i1R(p_input1_cube->R), i1C(p_input1_cube->C), i1D(p_input1_cube->D), i1B(p_input1_cube->B),
 i2R(p_input2_cube->R), i2C(p_input2_cube->C), i2D(p_input2_cube->D), i2B(p_input2_cube->B),
 oR(p_output_cube->R), oC(p_output_cube->C), oD(p_output_cube->D), oB(p_output_cube->B),
-alpha(1.0), beta(0) {
+alpha(1.0), beta(0), p_driver(_p_driver) {
   report_constructor.reset();
   report_last_lowering.reset();
   report_history.reset();
@@ -75,7 +74,6 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
   // cout << "\tB : " << i2R << " x " << i2C << std::endl;
   // cout << "\tC : " << oR << " x " << oC << std::endl;
 
-
   if (KERNELCONFIG == KernelConfig_GEMM_NOTRANS_NOTRANS) {
     TA = CblasNoTrans;
     TB = CblasNoTrans;
@@ -103,10 +101,10 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
   }
 
   // we reverse A and B here by default
-  cblas_sgemm(CblasRowMajor, TA, TB, M, N, K, _alpha,
-	      p_input1_cube->get_p_data(), LDA,
-	      p_input2_cube->get_p_data(), LDB,
-	      _beta, p_output_cube->get_p_data(), N);
+  p_driver->sgemm(CblasRowMajor, TA, TB, M, N, K, _alpha,
+        p_input1_cube->get_p_data(), LDA,
+        p_input2_cube->get_p_data(), LDB,
+        _beta, p_output_cube->get_p_data(), N);
 
   report_last_lowering.end((i1R*i1C + i2R*i2C)*sizeof(DataType),
       oR*oC*sizeof(DataType), 1.0*M*N*K*2);
@@ -117,10 +115,11 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
 template <typename DataType, KernelConfig KERNELCONFIG>
 Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KERNELCONFIG>::
 Kernel(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
-    const OutputLogicalCubeType * const p_output_cube) :
+    const OutputLogicalCubeType * const p_output_cube, DeviceDriver * _p_driver) :
   i1n_elements(p_input1_cube->n_elements),
   i2n_elements(p_input2_cube->n_elements),
-  on_elements(p_output_cube->n_elements) {
+  on_elements(p_output_cube->n_elements),
+  p_driver(_p_driver) {
   report_constructor.reset();
   report_last_lowering.reset();
   report_history.reset();
@@ -138,10 +137,27 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
 
   report_last_lowering.reset();
 
+  DeviceMemoryPointer * input1 = p_input1_cube->get_device_pointer(p_driver);
+  DeviceMemoryPointer * input2 = p_input1_cube->get_device_pointer(p_driver);
+  DeviceMemoryPointer * output = p_output_cube->get_device_pointer(p_driver);
+
+  if (KERNELCONFIG == KernelConfig_NONE){
+    const auto func = [](DataType a, DataType b)->DataType{return a*b;};
+    p_driver->selementwise_reduce2(*output, *input1, *input2, func);
+  }else if(KernelConfig_TANHGRAD_ON_INPUT1){
+    const auto func = [](DataType a, DataType b)->DataType{return (1-a*a)*b;};
+    p_driver->selementwise_reduce2(*output, *input1, *input2, func);
+  }else{
+      std::cerr << "ERROR: Not supported KernelConfig!" << std::endl;
+      assert(false);
+  }
+
+  // Following is the old physical code.
+  /*
   size_t i = 0; // TODO: change to SIMD (actuall the following one is so easy to be vectorized by the compiler with -O3...)
   DataType * const output_data = p_output_cube->get_p_data();
   const DataType * const input1_data = p_input1_cube->get_p_data();
-  const DataType * const input2_data = p_input2_cube->get_p_data();
+  const DataType * const input2_data = p_input1_cube->get_p_data();
   for (i = 0; i < i1n_elements; i++) {
     if (KERNELCONFIG == KernelConfig_NONE) { // this should be optimized out by the compiler with -O3
       output_data[i] = input1_data[i] * input2_data[i];
@@ -153,6 +169,7 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
       assert(false);
     }
   }
+  */
 
   double flop = 1.0*i1n_elements;
   if (KERNELCONFIG == KernelConfig_TANHGRAD_ON_INPUT1) {
@@ -165,3 +182,8 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
 }
 
 #endif
+
+
+
+
+
