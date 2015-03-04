@@ -9,6 +9,9 @@
 #ifndef moka_LogicalCube_h
 #define moka_LogicalCube_h
 
+#include "sched/DeviceDriver.h"
+#include "sched/DeviceMemoryPointer.h"
+
 #include "LogicalMatrix.h"
 #include "LoweringType.h"
 #include "util.h"
@@ -30,6 +33,15 @@ enum LayoutType {
  * Although not precise, we abuse the name by
  * still calling `r` row, `c` column, and `d`
  * depth. We call `b` batch.
+ *
+ * 20150303:
+ *   Note that, in the context of multiple
+ * devices, a LogicalCube should be guarentee'ed
+ * to be located in a place that a DeviceDriver
+ * can manipulate. This responsibility is currently
+ * enforced by the invoker, however, in future,
+ * it should be the job of the worker.
+ *
  */
 template <typename T, LayoutType LAYOUT>
 class LogicalCube {
@@ -47,6 +59,10 @@ class LogicalCube {
      *  - own_data = False
      **/
     LogicalCube(void * _p_data, size_t _R, size_t _C, size_t _D, size_t _B);
+
+    DeviceMemoryPointer * get_device_pointer(DeviceDriver * p_driver) const{
+        return p_driver->get_device_pointer(p_data, n_elements*sizeof(T));
+    }
 
     /**
      * Constuctor that actually allocates the data.

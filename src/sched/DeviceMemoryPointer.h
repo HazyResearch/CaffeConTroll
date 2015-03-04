@@ -1,4 +1,8 @@
 
+#include <stddef.h>
+#include <assert.h>
+#include <iostream>
+
 #ifdef _WITH_CUDA
 #include <cuda_runtime.h>
 #endif

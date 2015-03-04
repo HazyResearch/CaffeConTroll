@@ -55,11 +55,27 @@ using std::normal_distribution;
 class DeviceDriver{
 public:
 
+  virtual DeviceMemoryPointer * get_device_pointer(void * ptr, size_t size_in_byte) = 0;
+
   /**
-   * Memory manipulation.
+   * Memory manipulation and data movement.
    **/
   virtual void memcpy(DeviceMemoryPointer dst, DeviceMemoryPointer src) = 0;
   virtual void memset(DeviceMemoryPointer dst, const char value) = 0;
+
+  /**
+   * This function implements the following semantic.
+   *   for(i=0;i<src.size;i+=src_skip)
+   *      func(&dst[f_dst_pos(j)], &src[i])
+   * As the name implied, this might be run in parallel.
+   *
+   * For CPU Device, this could be a simple OpenMP parallel loop.
+   * For GPU Device, this could be a kernel that uses func.
+   * 
+   **/
+  virtual void parallel_map(DeviceMemoryPointer dst, DeviceMemoryPointer src, 
+    size_t src_skip, std::function<size_t(size_t)> f_dst_pos,
+    std::function<void(void *, const void *)> func) = 0;
 
   /**
    * Single-precision operations.

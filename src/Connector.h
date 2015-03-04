@@ -9,6 +9,10 @@
 #ifndef moka_Connector_h
 #define moka_Connector_h
 
+#include "sched/DeviceDriver.h"
+#include "sched/DeviceDriver_CPU.h" //TODO: THIS include will be removed after all refactoring
+                                    // The connection should not care about the speicifc type of device.
+                                    // This is only for debugging only
 #include "LogicalCube.h"
 #include "Report.h"
 #include "LogicalMatrix.h"
@@ -18,7 +22,9 @@ template <typename InputDataType,LayoutType InputLayout,
          typename OutputDataType, LayoutType OutputLayout,
          LoweringType LOWERING>
 class Connector {
-  public:
+public:
+
+    DeviceDriver * p_driver;
 
     typedef LogicalCube<InputDataType, InputLayout> InputLogicalCubeType;
     typedef LogicalCube<OutputDataType, OutputLayout> OutputLogicalCubeType;
@@ -44,7 +50,8 @@ class Connector {
      *
      **/
     Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
-        const size_t _kernel_size, const size_t _padding, const size_t _stride) {
+        const size_t _kernel_size, const size_t _padding, const size_t _stride,
+        DeviceDriver * _p_driver) {
       std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
       assert(false);
     }
@@ -80,7 +87,9 @@ class Connector {
 template
 <typename DataType, LayoutType InputLayout>
 class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1> {
-  public:
+public:
+
+    DeviceDriver * p_driver;
 
     typedef LogicalCube<DataType, InputLayout> InputLogicalCubeType;
     typedef LogicalCube<DataType, Layout_CRDB> OutputLogicalCubeType;
@@ -100,7 +109,8 @@ class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1> {
     const size_t stride;
 
     Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
-        const size_t _kernel_size, const size_t _padding, const size_t _stride);
+        const size_t _kernel_size, const size_t _padding, const size_t _stride,
+        DeviceDriver * _p_driver);
 
     void lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
 
@@ -110,7 +120,9 @@ class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1> {
 template
 <typename DataType, LayoutType InputLayout>
 class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE2> {
-  public:
+public:
+
+    DeviceDriver * p_driver;
 
     typedef LogicalCube<DataType, InputLayout> InputLogicalCubeType;
     typedef LogicalCube<DataType, Layout_CRDB> OutputLogicalCubeType;
@@ -130,7 +142,8 @@ class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE2> {
     const size_t stride;
 
     Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
-        const size_t _kernel_size, const size_t _padding, const size_t _stride);
+        const size_t _kernel_size, const size_t _padding, const size_t _stride,
+        DeviceDriver * _p_driver);
 
     void lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
 

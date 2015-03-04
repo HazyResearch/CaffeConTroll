@@ -30,6 +30,8 @@ class AbstractBridge : public PhysicalOperator {
 
   public:
 
+    DeviceDriver * p_driver;
+
     std::string name;   // lets give Bridge a name
 
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;

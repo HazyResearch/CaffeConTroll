@@ -7,6 +7,10 @@
 class CPUDriver : public DeviceDriver{
 public:
 
+  DeviceMemoryPointer * get_device_pointer(void * ptr, size_t size_in_byte){
+  	return new DeviceMemoryPointer_Local_RAM(ptr, size_in_byte);
+  }
+
   void memcpy(DeviceMemoryPointer dst, DeviceMemoryPointer src){
 #ifdef _DO_ASSERT
     assert(dst.type==DEVICEMEMORY_LOCAL_RAM);
@@ -28,6 +32,20 @@ public:
     for(; 0<n; --n)*s1++ = value;
   }
 
+  void parallel_map(DeviceMemoryPointer dst, DeviceMemoryPointer src, 
+    size_t src_skip, std::function<size_t(size_t)> f_dst_pos,
+    std::function<void(void *, const void *)> func){
+
+  	char * p_dst = (char*) dst.ptr;
+  	char * p_src = (char*) src.ptr;
+  	const int src_size = src.size_in_byte;
+  	for(int i=0; i<src_size; i+=src_skip){
+  		func(&p_dst[f_dst_pos(i)], &p_src[i]);
+  	}
+
+  }
+
+
     void smath_axpy(const float alpha, DeviceMemoryPointer X, DeviceMemoryPointer Y)  { 
 #ifdef _DO_ASSERT
     assert(X.type==DEVICEMEMORY_LOCAL_RAM);
@@ -40,7 +58,7 @@ public:
   void sapply(DeviceMemoryPointer dst, const size_t n_element, std::function<void(float&)> func){
 #ifdef _DO_ASSERT
     assert(dst.type==DEVICEMEMORY_LOCAL_RAM);
-    assert(dst.size_in_byte == elemnent_size * n_element);
+    assert(dst.size_in_byte == sizeof(float) * n_element);
 #endif
     float * p = (float*) dst.ptr;
     for(size_t i=0;i<n_element;i++){

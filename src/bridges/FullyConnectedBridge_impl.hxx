@@ -66,7 +66,7 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
 
   p_forward_lower_connector = new Connector<DataType, Layout_CRDB, DataType, Layout_CRDB,
                             LOWERING_TYPE1>(p_input_layer->p_data_cube, p_forward_lowered_data, K,
-                                padding, stride);
+                                padding, stride, this->p_driver);
 
   p_forward_gemm_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
                         Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS>(&lowered_forward_model,
