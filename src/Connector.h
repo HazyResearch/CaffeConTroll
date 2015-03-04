@@ -24,8 +24,6 @@ template <typename InputDataType,LayoutType InputLayout,
 class Connector {
 public:
 
-    DeviceDriver * p_driver;
-
     typedef LogicalCube<InputDataType, InputLayout> InputLogicalCubeType;
     typedef LogicalCube<OutputDataType, OutputLayout> OutputLogicalCubeType;
 
@@ -38,6 +36,8 @@ public:
 
     Report report_last_inverse_lowering; /*< Performance reporter for the last run of inverse_lower_cube() function. */
     Report report_inverse_history; /*< Performance reporter for all inverse_lower_cube() functions aggregated. */
+
+    DeviceDriver * p_driver;
 
     /**
      * The constructor of a connector allocates necessary memory for
@@ -89,8 +89,6 @@ template
 class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1> {
 public:
 
-    DeviceDriver * p_driver;
-
     typedef LogicalCube<DataType, InputLayout> InputLogicalCubeType;
     typedef LogicalCube<DataType, Layout_CRDB> OutputLogicalCubeType;
 
@@ -107,6 +105,8 @@ public:
     const size_t kernel_size;
     const size_t padding;
     const size_t stride;
+
+    DeviceDriver * p_driver;
 
     Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
         const size_t _kernel_size, const size_t _padding, const size_t _stride,
@@ -122,8 +122,6 @@ template
 class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE2> {
 public:
 
-    DeviceDriver * p_driver;
-
     typedef LogicalCube<DataType, InputLayout> InputLogicalCubeType;
     typedef LogicalCube<DataType, Layout_CRDB> OutputLogicalCubeType;
 
@@ -140,6 +138,8 @@ public:
     const size_t kernel_size;
     const size_t padding;
     const size_t stride;
+
+    DeviceDriver * p_driver;
 
     Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
         const size_t _kernel_size, const size_t _padding, const size_t _stride,

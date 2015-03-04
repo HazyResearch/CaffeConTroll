@@ -67,7 +67,7 @@ lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeTyp
   auto func_src_to_dst = [=](size_t _input_idx){
       const size_t input_idx = _input_idx/sizeof(DataType); // TODO, this uglyness implies that DeviceMemoryPointer needs a type.
       const size_t i_b = input_idx/(iD*iR*iC);
-      const size_t i_d = (input_idx/(iR*iC)) % iB;
+      const size_t i_d = (input_idx/(iR*iC)) % iD;
       const size_t output_row = i_d * kernel_size * kernel_size;
       const size_t output_col = i_b * ((iR + 2 * padding - kernel_size) / stride + 1) * ((iC + 2 * padding - kernel_size) / stride + 1);
       return (output_row*oC + output_col) * sizeof(DataType);
@@ -82,8 +82,7 @@ lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeTyp
       const DataType * const input_data = (DataType *) _src;
       DataType * const output_data = (DataType *) _dst;
 
-      const size_t single_lowering_width = (width + 2 * padding - kernel_size) / stride + 1;
-      const size_t single_lowering_height = (height + 2 * padding - kernel_size) / stride + 1;
+      int _kernel_size = kernel_size;
 
       const int num_height_windows = (height + 2 * padding - kernel_size) / stride + 1; // number of convolution "windows" row-wise
       const int num_width_windows = (width + 2 * padding - kernel_size) / stride + 1; // number of convolution "windows" column-wise
@@ -96,8 +95,8 @@ lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeTyp
           // src_row and src_col start at src_row_base and src_col_base, respectively, and iterate a total of kernel_size times. Incremented by 1 each time.
           // dst_row_i starts at dst_row_base. Incremented by kernel_size each time.
           // dst_row starts at dst_row_i. Incremented by 1 each time.
-          for (int src_row = src_row_base, dst_row_i = 0; src_row < kernel_size + src_row_base; ++src_row, dst_row_i += kernel_size) {
-            for (int src_col = src_col_base, dst_row = dst_row_i; src_col < kernel_size + src_col_base; ++src_col, ++dst_row) {
+          for (int src_row = src_row_base, dst_row_i = 0; src_row < _kernel_size + src_row_base; ++src_row, dst_row_i += kernel_size) {
+            for (int src_col = src_col_base, dst_row = dst_row_i; src_col < _kernel_size + src_col_base; ++src_col, ++dst_row) {
               const size_t dst = dst_col + dst_row*oC;
               if (src_row < 0 || src_row >= width || src_col < 0 || src_col >= height) {
                 output_data[dst] = 0;
@@ -111,22 +110,6 @@ lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeTyp
     };
 
   p_driver->parallel_map(*output, *input, iR*iC*sizeof(DataType), func_src_to_dst, func_lowering);
-
-  /*
-  for (size_t i_b = 0; i_b < iB; ++i_b) {
-    for (size_t i_d = 0; i_d < iD; ++i_d) {
-      const LogicalMatrix<DataType> m = p_input_cube->get_logical_matrix(i_d, i_b);
-      // TODO: instead of evaluating this if check iB*iD times,
-      // we should use a function pointer instead
-      if (stride == 1 && padding == 0) {
-        p_output_cube->template lower_logical_matrix<LOWERING_TYPE1>(&m, i_b, i_d, kernel_size);
-      } else {
-        p_output_cube->template lower_logical_matrix<LOWERING_TYPE1>(&m, i_b, i_d, kernel_size,
-            stride, padding);
-      }
-    }
-  }
-  */
 
   report_last_lowering.end(iR*iC*iD*iB*sizeof(DataType), oR*oC*oD*oB*sizeof(DataType), 0);
   report_history.aggregate(report_last_lowering);

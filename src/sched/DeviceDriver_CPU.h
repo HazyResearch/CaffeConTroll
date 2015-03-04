@@ -38,8 +38,8 @@ public:
 
   	char * p_dst = (char*) dst.ptr;
   	char * p_src = (char*) src.ptr;
-  	const int src_size = src.size_in_byte;
-  	for(int i=0; i<src_size; i+=src_skip){
+  	const size_t src_size = src.size_in_byte;
+  	for(size_t i=0; i<src_size; i+=src_skip){
   		func(&p_dst[f_dst_pos(i)], &p_src[i]);
   	}
 
