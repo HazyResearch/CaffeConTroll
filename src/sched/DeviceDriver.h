@@ -17,6 +17,18 @@ using std::bernoulli_distribution;
 using std::normal_distribution;
 
 /**
+ * We use C style function pointer here just becauses
+ * there is no clean way in CUDA (7.0) and OpenCL (2.0)
+ * to pass a host C++11 Lambda with capture to the device.
+ * We could have used C-style macro to achieve this,
+ * but that is even more messier.
+ **/
+typedef size_t (*FUNC_IDX_MAPPING) (size_t, void * const);
+typedef void (*FUNC_MM_MAPPING) (void *, void *, void * const);
+typedef float (*FUNC_STRANSFORM) (float, void * const);
+typedef float (*FUNC_SREDUCE) (float, float, void * const);
+
+/**
  * A DeviceDriver is the only way
  * that CcT talks to a certain device
  * to invoke computation and data
@@ -84,14 +96,14 @@ public:
    * 
    **/
   virtual void parallel_map(DeviceMemoryPointer dst, DeviceMemoryPointer src, 
-    size_t src_skip, std::function<size_t(size_t)> f_dst_pos,
-    std::function<void(void *, void *)> func) = 0;
+    size_t src_skip, FUNC_IDX_MAPPING f_dst_pos, void * const f_dst_pos_curry,
+    FUNC_MM_MAPPING func, void * const func_curry) = 0;
 
   /**
    * Single-precision operations.
    **/
   virtual void smath_axpy(const float alpha, DeviceMemoryPointer X, DeviceMemoryPointer Y) = 0;
-  virtual void sapply(DeviceMemoryPointer dst, std::function<void(float&)> func) = 0;
+  virtual void sapply(DeviceMemoryPointer dst, FUNC_STRANSFORM func, void * const func_curry) = 0;
   virtual void smath_axpby(const float alpha, DeviceMemoryPointer X, const float beta, DeviceMemoryPointer Y) = 0;
   virtual void set_num_threads(const int nThreads) = 0;
   virtual void sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB, 
@@ -99,14 +111,14 @@ public:
         float beta, float * pC, int LDC) = 0;
 
   void selementwise_reduce2(DeviceMemoryPointer dst, DeviceMemoryPointer src1, 
-    DeviceMemoryPointer src2, std::function<float(float,float)> FUNC) ;
+    DeviceMemoryPointer src2, FUNC_SREDUCE func, void * const func_curry) ;
 
   /**
    * Single-precison random number generator.
    **/
-  virtual std::function<void(float&)> srand_uni(float, float) = 0;
-  virtual std::function<void(float&)> srand_bern(float) = 0;
-  virtual std::function<void(float&)> srand_gaussian(float, float) = 0;
+  virtual FUNC_STRANSFORM srand_uni(float, float, void **) = 0;
+  virtual FUNC_STRANSFORM srand_bern(float, void **) = 0;
+  virtual FUNC_STRANSFORM srand_gaussian(float, float, void **) = 0;
 
   /**
    * Logical functions that only depends on other virtual functions.
@@ -115,23 +127,29 @@ public:
       const size_t n_arr_elements = arr.size_in_byte / sizeof(float);
       const size_t fan_in = n_arr_elements / n_batch;
       const float scale = sqrt(3.0 / fan_in);
-      auto f_uni = this->srand_uni(-scale, scale);
-      sapply(arr, f_uni);
+      void * generator;
+      auto f_uni = this->srand_uni(-scale, scale, &generator);
+      sapply(arr, f_uni, generator);
     }
 
    void sbernoulli_initialize(DeviceMemoryPointer arr, const float p) {
-      auto f_bern = this->srand_bern(p);
-      sapply(arr, f_bern);
+      void * generator;
+      auto f_bern = this->srand_bern(p, &generator);
+      sapply(arr, f_bern, generator);
     }
+
 
     void sgaussian_initialize(DeviceMemoryPointer arr, const float mean, const float std_dev) {
-      auto f_gaussian = this->srand_gaussian(mean, std_dev);
-      sapply(arr, f_gaussian);
+      void * generator;
+      auto f_gaussian = this->srand_gaussian(mean, std_dev, &generator);
+      sapply(arr, f_gaussian, generator);
     }
 
+    static float _sconstant_initialize_helper(float a, void * arg){
+      return *((float*)arg);
+    }
     void sconstant_initialize(DeviceMemoryPointer arr, const float value) {
-      auto f_set_to_const = [=](float & b) { b = value; };
-      sapply(arr, f_set_to_const);
+      sapply(arr, _sconstant_initialize_helper, (void*) &value);
     }
 
     void smath_apply_grad(DeviceMemoryPointer X, DeviceMemoryPointer Y) {

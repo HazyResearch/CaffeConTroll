@@ -42,14 +42,14 @@ public:
   }
 
   void parallel_map(DeviceMemoryPointer dst, DeviceMemoryPointer src, 
-    size_t src_skip, std::function<size_t(size_t)> f_dst_pos,
-    std::function<void(void *, void *)> func){
+    size_t src_skip, FUNC_IDX_MAPPING f_dst_pos, void * const f_dst_pos_curry,
+    FUNC_MM_MAPPING func, void * const func_curry){
 
   	char * p_dst = (char*) dst.ptr;
   	char * p_src = (char*) src.ptr;
   	const size_t src_size = src.size_in_byte;
   	for(size_t i=0; i<src_size; i+=src_skip){
-  		func(&p_dst[f_dst_pos(i)], &p_src[i]);
+  		(*func)(&p_dst[(*f_dst_pos)(i, f_dst_pos_curry)], &p_src[i], func_curry);
   	}
 
   }
@@ -63,7 +63,7 @@ public:
       cblas_saxpy(X.size_in_byte/sizeof(float), alpha, (float *) X.ptr, 1, (float *) Y.ptr, 1); 
     }
 
-  void sapply(DeviceMemoryPointer dst, std::function<void(float&)> func){
+  void sapply(DeviceMemoryPointer dst, FUNC_STRANSFORM func, void * const func_curry){
 #ifdef _DO_ASSERT
     assert(dst.type==DEVICEMEMORY_LOCAL_RAM);
     assert(dst.size_in_byte % sizeof(float) == 0);
@@ -71,7 +71,8 @@ public:
     const size_t n_element = dst.size_in_byte/sizeof(float);
     float * p = (float*) dst.ptr;
     for(size_t i=0;i<n_element;i++){
-      func(*(p++));
+      *(p) = (*func)(*(p), func_curry);
+      p++;
     }
   }
 
@@ -124,7 +125,7 @@ public:
   }
 
   void selementwise_reduce2(DeviceMemoryPointer dst, DeviceMemoryPointer src1, 
-    DeviceMemoryPointer src2, std::function<float(float,float)> FUNC){ 
+    DeviceMemoryPointer src2, FUNC_SREDUCE func, void * const func_curry){ 
       // This lambda should be easier for compiler to inline than a function pointer
 #ifdef _DO_ASSERT
     assert(dst.size_in_byte == src1.size_in_byte);
@@ -136,36 +137,71 @@ public:
     const float * const p_src1 = (float*) src1.ptr;
     const float * const p_src2 = (float*) src2.ptr; 
     for(size_t i = 0; i < n_element; i++){
-      p_dst[i] = FUNC(p_src1[i], p_src2[i]);
+      p_dst[i] = (*func)(p_src1[i], p_src2[i], func_curry);
     }
   }
 
-  std::function<void(float&)> srand_uni(float lower, float upper){
-    mt19937 *gen = new mt19937(rd());
-    uniform_real_distribution<float> *uni = new 
-      uniform_real_distribution<float>(lower, upper);
-    return [=](float & b) { b = (*uni)(*gen); };
+
+  class _srand_uni_arg_helper{
+  public:
+    random_device rd;
+    mt19937 gen;
+    uniform_real_distribution<float> uni;
+    _srand_uni_arg_helper(float lower, float upper):
+      gen(mt19937(rd())), uni(uniform_real_distribution<float>(lower, upper)){}
+  };
+  static float _srand_uni_helper(float a, void * const arg){
+    _srand_uni_arg_helper * const p_arg = 
+      reinterpret_cast<_srand_uni_arg_helper* const>(arg);
+    return p_arg->uni(p_arg->gen);
+  }
+  FUNC_STRANSFORM srand_uni(float lower, float upper, void ** arg){
+    *arg = new _srand_uni_arg_helper(lower, upper);
+    return _srand_uni_helper;
   }
 
-  std::function<void(float&)> srand_bern(float p){
-    mt19937 *gen = new mt19937(rd());
-    bernoulli_distribution * bern = new bernoulli_distribution(p);
-    return [=](float & b) { b = (*bern)(*gen); };
+
+  class _srand_bern_arg_helper{
+  public:
+    random_device rd;
+    mt19937 gen;
+    bernoulli_distribution bern;
+    _srand_bern_arg_helper(float p):
+      gen(mt19937(rd())), bern(bernoulli_distribution(p)){}
+  };
+  static float _srand_bern_helper(float a, void * const arg){
+    _srand_bern_arg_helper * const p_arg = (_srand_bern_arg_helper*) arg;
+    return p_arg->bern(p_arg->gen);
+  }
+  FUNC_STRANSFORM srand_bern(float p, void ** arg){
+    *arg = new _srand_bern_arg_helper(p);
+    return _srand_bern_helper;
   }
 
-  std::function<void(float&)> srand_gaussian(float mean, float std_dev){
-    mt19937 *gen = new mt19937(rd());
-    normal_distribution<float> *gaussian = new
-      normal_distribution<float>(mean, std_dev);
-    return [=](float & b) { b = (*gaussian)(*gen); };
-  }
 
-  using DeviceDriver::sinitialize_xavier;
+  class _srand_gaussian_arg_helper{
+  public:
+    random_device rd;
+    mt19937 gen;
+    normal_distribution<float> gaussian;
+    _srand_gaussian_arg_helper(float mean, float std_dev):
+      gen(mt19937(rd())), gaussian(normal_distribution<float>(mean, std_dev)){}
+  };
+  static float _srand_gaussian_helper(float a, void * const arg){
+    _srand_gaussian_arg_helper * const p_arg = (_srand_gaussian_arg_helper*) arg;
+    return p_arg->gaussian(p_arg->gen);
+  }
+  FUNC_STRANSFORM srand_gaussian(float mean, float std_dev, void ** arg){
+    *arg = new _srand_gaussian_arg_helper(mean, std_dev);
+    return _srand_gaussian_helper;
+  }
 
   using DeviceDriver::sbernoulli_initialize;
 
-  using DeviceDriver::sgaussian_initialize;
+  using DeviceDriver::sinitialize_xavier;
 
+  using DeviceDriver::sgaussian_initialize;
+  
   using DeviceDriver::sconstant_initialize;
 
   using DeviceDriver::smath_apply_grad;
