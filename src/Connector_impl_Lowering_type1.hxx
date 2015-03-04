@@ -136,50 +136,59 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
   assert(p_output_cube->B == oB);
 #endif
 
-  p_input_cube->reset_cube();
+  DeviceMemoryPointer * input = p_input_cube->get_device_pointer(p_driver);
+  DeviceMemoryPointer * output = p_output_cube->get_device_pointer(p_driver);
 
-  size_t out_index = 0;
-  const DataType * const output_data = p_output_cube->get_p_data();
+  p_driver->constant_initialize(*input, DataType(0.0));
 
   const size_t data_output_width = (iR + 2 * padding - kernel_size) / stride + 1;  // the number of rows in the output gradient cube
   const size_t data_output_height = (iC + 2 * padding - kernel_size) / stride + 1; // the number of cols in the output gradient cube
 
-  // First, we iterate over K * K * iD , which is the number of rows in the output gradient
-  // cube. (Remember: the output gradient cube has dimensions K * K * iD x oR * oC * iB x 1 x 1,
-  // where oR and oC do NOT refer the variables above. TODO: We REALLY need to standardize this!)
-  for (size_t kd = 0; kd < iD; ++kd) {
+  auto func_src_to_dst = [=](size_t _input_idx){
+      const size_t input_idx = _input_idx/sizeof(DataType); // TODO, this uglyness implies that DeviceMemoryPointer needs a type.
+      const size_t i_b = input_idx/(iD*iR*iC);
+      const size_t i_d = (input_idx/(iR*iC)) % iD;
+      return (data_output_width * data_output_height * (i_b + i_d * iB*kernel_size*kernel_size))*sizeof(DataType);
+    };
+
+  auto func_inverse_lowering = [=](void * _dst, void * _src){
+
+    DataType * const input_data = (DataType *) _src;
+    const DataType * const output_data = (DataType *) _dst;
+
     for (size_t kr = 0; kr < kernel_size; ++kr) {
       for (size_t kc = 0; kc < kernel_size; ++kc) {
 
-        // Then, we iterate over oR * oC * iB, the number of columns in the output gradient
-        for (size_t ib = 0; ib < iB; ++ib) {
-          // cr and cc represent the row index and column index of the convolutional "window"
-          // in the input gradient cube, which means that they must be incremented by stride
-          for (size_t cr = 0; cr < stride * data_output_width; cr += stride) {
-            const int input_row_index = cr + kr - padding;
+        size_t out_index = data_output_width * data_output_height *
+          (kr * iB*kernel_size + kc * iB );
 
-            for (size_t cc = 0; cc < stride * data_output_height; cc += stride) {
-              const int input_col_index = cc + kc - padding;
+        for (size_t cr = 0; cr < stride * data_output_width; cr += stride) {
+          const int input_row_index = cr + kr - padding;
 
-              // (cr + kr - padding, cc + kc - padding) represents the index into
-              // the input gradient cube. If we aren't within [0, iR) and [0, iC)
-              // then we shouldn't update, because we are in the padded area
-              if (input_row_index >= 0 &&
-                  input_row_index < iR  &&
-                  input_col_index >= 0 &&
-                  input_col_index < iC) {
-                *p_input_cube->logical_get(input_row_index, input_col_index, kd, ib) += output_data[out_index];
-              }
-              // increment out_index regardless, a single cell from the output gradient cube
-              // can only make a single contribution to the input gradient cube (Remember: this
-              // is the *lowered* output gradient cube!)
-              ++out_index;
+          for (size_t cc = 0; cc < stride * data_output_height; cc += stride) {
+            const int input_col_index = cc + kc - padding;
+
+            // (cr + kr - padding, cc + kc - padding) represents the index into
+            // the input gradient cube. If we aren't within [0, iR) and [0, iC)
+            // then we shouldn't update, because we are in the padded area
+            if (input_row_index >= 0 &&
+                input_row_index < iR  &&
+                input_col_index >= 0 &&
+                input_col_index < iC) {
+              //std::cout << "~" << out_index << std::endl;
+              input_data[input_row_index*iC + input_col_index] += output_data[out_index];
             }
+            // increment out_index regardless, a single cell from the output gradient cube
+            // can only make a single contribution to the input gradient cube (Remember: this
+            // is the *lowered* output gradient cube!)
+            ++out_index;
           }
         }
       }
     }
-  }
+  };
+
+  p_driver->parallel_map(*output, *input, iR*iC*sizeof(DataType), func_src_to_dst, func_inverse_lowering);
 
   report_last_inverse_lowering.end(iR*iC*iD*iB*sizeof(DataType), oR*oC*oD*oB*sizeof(DataType), 0);
   report_history.aggregate(report_last_inverse_lowering);

@@ -34,7 +34,7 @@ public:
 
   void parallel_map(DeviceMemoryPointer dst, DeviceMemoryPointer src, 
     size_t src_skip, std::function<size_t(size_t)> f_dst_pos,
-    std::function<void(void *, const void *)> func){
+    std::function<void(void *, void *)> func){
 
   	char * p_dst = (char*) dst.ptr;
   	char * p_src = (char*) src.ptr;
@@ -44,7 +44,6 @@ public:
   	}
 
   }
-
 
     void smath_axpy(const float alpha, DeviceMemoryPointer X, DeviceMemoryPointer Y)  { 
 #ifdef _DO_ASSERT

@@ -75,7 +75,7 @@ public:
    **/
   virtual void parallel_map(DeviceMemoryPointer dst, DeviceMemoryPointer src, 
     size_t src_skip, std::function<size_t(size_t)> f_dst_pos,
-    std::function<void(void *, const void *)> func) = 0;
+    std::function<void(void *, void *)> func) = 0;
 
   /**
    * Single-precision operations.
@@ -95,24 +95,28 @@ public:
   /**
    * Logical functions that only depends on other virtual functions.
    **/
-    void sinitialize_xavier(DeviceMemoryPointer arr, const size_t n_arr_elements, const size_t n_batch) {
+    void sinitialize_xavier(DeviceMemoryPointer arr, const size_t n_batch) {
+      const size_t n_arr_elements = arr.size_in_byte / sizeof(float);
       const size_t fan_in = n_arr_elements / n_batch;
       const float scale = sqrt(3.0 / fan_in);
       auto f_uni = this->srand_uni(-scale, scale);
       sapply(arr, n_arr_elements, f_uni);
     }
 
-   void bernoulli_initialize(DeviceMemoryPointer arr, const size_t n_arr_elements, const float p) {
+   void bernoulli_initialize(DeviceMemoryPointer arr, const float p) {
+      const size_t n_arr_elements = arr.size_in_byte / sizeof(float);
       auto f_bern = this->srand_bern(p);
       sapply(arr, n_arr_elements, f_bern);
     }
 
-    void gaussian_initialize(DeviceMemoryPointer arr, const size_t n_arr_elements, const float mean, const float std_dev) {
+    void gaussian_initialize(DeviceMemoryPointer arr, const float mean, const float std_dev) {
+      const size_t n_arr_elements = arr.size_in_byte / sizeof(float);
       auto f_gaussian = this->srand_gaussian(mean, std_dev);
       sapply(arr, n_arr_elements, f_gaussian);
     }
 
-    void constant_initialize(DeviceMemoryPointer arr, const float value, const size_t n_arr_elements) {
+    void constant_initialize(DeviceMemoryPointer arr, const float value) {
+      const size_t n_arr_elements = arr.size_in_byte / sizeof(float);
       auto f_set_to_const = [=](float & b) { b = value; };
       sapply(arr, n_arr_elements, f_set_to_const);
     }
