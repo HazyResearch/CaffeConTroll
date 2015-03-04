@@ -50,7 +50,7 @@ TEST(DeviceDriverTest, CPU_APPLY) {
 	DeviceMemoryPointer_Local_RAM p(numbers, sizeof(float)*1000);
 	CPUDriver driver;
 	auto f_set_to_zero = [](float & b) { b = 0; };
-	driver.sapply(p, 1000, f_set_to_zero);
+	driver.sapply(p, f_set_to_zero);
 	test_array_equals_constant(numbers, 1000, 0.0);
 }
 

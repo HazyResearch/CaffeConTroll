@@ -77,7 +77,8 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
                         Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS>(&lowered_forward_model,
                             p_forward_lowered_data, &lowered_forward_output, this->p_driver);
 
-  p_forward_applyfunc_scanner = new Scanner<DataType, Layout_CRDB, FUNC>(p_output_layer->p_data_cube);
+  p_forward_applyfunc_scanner = new Scanner<DataType, Layout_CRDB, FUNC>(p_output_layer->p_data_cube,
+                                  this->p_driver);
 
   // second, allocate the space we need for backward
   // (only if we're applying a non-linear function

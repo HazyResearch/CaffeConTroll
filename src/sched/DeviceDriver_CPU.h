@@ -55,11 +55,12 @@ public:
       cblas_saxpy(X.size_in_byte/sizeof(float), alpha, (float *) X.ptr, 1, (float *) Y.ptr, 1); 
     }
 
-  void sapply(DeviceMemoryPointer dst, const size_t n_element, std::function<void(float&)> func){
+  void sapply(DeviceMemoryPointer dst, std::function<void(float&)> func){
 #ifdef _DO_ASSERT
     assert(dst.type==DEVICEMEMORY_LOCAL_RAM);
-    assert(dst.size_in_byte == sizeof(float) * n_element);
+    assert(dst.size_in_byte % sizeof(float) == 0);
 #endif
+    const size_t n_element = dst.size_in_byte/sizeof(float);
     float * p = (float*) dst.ptr;
     for(size_t i=0;i<n_element;i++){
       func(*(p++));
