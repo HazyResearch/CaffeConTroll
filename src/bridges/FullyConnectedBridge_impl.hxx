@@ -159,7 +159,7 @@ forward() {
   //  inputs so that we get the correct output without
   //  needing to call remap
 
-  p_output_layer->p_data_cube->template remap_output<LOWERING_TYPE1>(num_output_features, iB, oR*oC);
+  p_output_layer->p_data_cube->template remap_output<LOWERING_TYPE1>(num_output_features, iB, oR*oC, this->p_driver);
   // add bias
   if (bias_term) {
     const DataType * const bias_elems = p_bias_cube->get_p_data();
@@ -238,7 +238,7 @@ backward() {
     }
   }
   // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
-  p_output_layer->p_gradient_cube->template remap_output<LOWERING_TYPE1>(oB, num_output_features, oR*oC );
+  p_output_layer->p_gradient_cube->template remap_output<LOWERING_TYPE1>(oB, num_output_features, oR*oC, this->p_driver);
   //    - 2.1 GEMM between the gradient of output and old kernel
   p_backward_gemm_updategrad_kernel->compute(&lowered_model, &lowered_outputgrad, p_backward_inputgrad);
   //    - 2.2 undo the lowering (i.e., sum together all grad corresponding to the same unlowered position)

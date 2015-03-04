@@ -203,7 +203,8 @@ forward() {
      p_forward_applyfunc_scanner->apply(&lowered_output);
   }
 
-  p_output_layer->p_data_cube->template remap_output<LOWERING_TYPE1>(num_output_features, iB, oR*oC);
+  p_output_layer->p_data_cube->template remap_output<LOWERING_TYPE1>(num_output_features, iB, oR*oC, this->p_driver);
+  
   // add bias
   if (bias_term) {
     const size_t output_feature_size = oR*oC;
@@ -294,7 +295,7 @@ backward() {
   }
 
   // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
-  p_backward_outputgrad->template remap_output<LOWERING_TYPE1>(oB, num_output_features, oR*oC );
+  p_backward_outputgrad->template remap_output<LOWERING_TYPE1>(oB, num_output_features, oR*oC, this->p_driver);
 
   if(needs_to_calc_backward_grad){
     //    - 2.1 GEMM between the gradient of output and old kernel

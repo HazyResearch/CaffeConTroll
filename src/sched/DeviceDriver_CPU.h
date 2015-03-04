@@ -12,6 +12,14 @@ public:
   	return new DeviceMemoryPointer_Local_RAM(ptr, size_in_byte);
   }
 
+  virtual void malloc(DeviceMemoryPointer * dst){
+    dst->ptr = ::malloc(dst->size_in_byte);
+  }
+
+  virtual void free(DeviceMemoryPointer * dst){
+    ::free(dst->ptr);
+  }
+
   void memcpy(DeviceMemoryPointer dst, DeviceMemoryPointer src){
 #ifdef _DO_ASSERT
     assert(dst.type==DEVICEMEMORY_LOCAL_RAM);

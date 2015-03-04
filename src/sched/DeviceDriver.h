@@ -60,6 +60,8 @@ public:
   /**
    * Memory manipulation and data movement.
    **/
+  virtual void malloc(DeviceMemoryPointer * dst) = 0;
+  virtual void free(DeviceMemoryPointer * dst) = 0;
   virtual void memcpy(DeviceMemoryPointer dst, DeviceMemoryPointer src) = 0;
   virtual void memset(DeviceMemoryPointer dst, const char value) = 0;
 

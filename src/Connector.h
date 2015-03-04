@@ -113,6 +113,7 @@ public:
     void lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
 
     void inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube);
+
 };
 
 template

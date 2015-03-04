@@ -187,4 +187,6 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
   report_history.aggregate(report_last_inverse_lowering);
 }
 
+
+
 #endif

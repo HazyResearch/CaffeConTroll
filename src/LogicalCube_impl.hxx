@@ -43,29 +43,43 @@ LogicalMatrix<T> LogicalCube<T, LAYOUT>::get_logical_matrix(size_t depth_index, 
 template <typename T, LayoutType LAYOUT>
 template<LoweringType LOWERING>
 void LogicalCube<T, LAYOUT>::remap_output(const size_t O,
-    const size_t B, const size_t kernel_size) {
-  return LoweringHelper<LOWERING>::remap_output(*this, O, B, kernel_size);
+    const size_t B, const size_t kernel_size, DeviceDriver * p_driver) {
+  return LoweringHelper<LOWERING>::remap_output(*this, O, B, kernel_size, p_driver);
 }
 
 template<typename T, LayoutType LAYOUT>
 template<typename DUMMY>
 void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C,
-    const size_t kernel_size) {
+    const size_t kernel_size, DeviceDriver * p_driver) {
 
-  T* temp_buffer = (T*) malloc(sizeof(T)*cube.R*cube.C*cube.B*cube.D);
-  Util::_our_memcpy(temp_buffer, cube.p_data, sizeof(T)*cube.R*cube.C*cube.B*cube.D);
+  // TODO: This buffer does not make much sense, but lets get
+  // the logical refactoring done first in a way as before
+  // before over optimize. 
+  DeviceMemoryPointer * copy = p_driver->get_device_pointer(NULL, sizeof(T)*cube.R*cube.C*cube.B*cube.D);
+  p_driver->malloc(copy);
+  DeviceMemoryPointer * output = cube.get_device_pointer(p_driver);
+  p_driver->memcpy(*copy, *output);
 
-  size_t dst_index = 0;
-  for (size_t c_i = 0; c_i < C; ++c_i) {
-    const size_t src_index_base = c_i*kernel_size;
-    for (size_t r_i = 0; r_i < R; ++r_i) {
-      const size_t src_index = src_index_base + r_i*C*kernel_size;
-      Util::_our_memcpy(&cube.p_data[dst_index], &temp_buffer[src_index], sizeof(T)*kernel_size);
-      dst_index += kernel_size;
-    }
-  }
+  auto func_src_to_dst = [=](size_t _dst_index){
+      const size_t dst_index = _dst_index/sizeof(T); // TODO, this uglyness implies that DeviceMemoryPointer needs a type.
+      const size_t r_i = (dst_index/kernel_size)%R;
+      const size_t c_i = (dst_index/kernel_size)/R;
+      return (c_i*kernel_size + r_i*C*kernel_size)*sizeof(T);
+  };
 
-  free(temp_buffer);
+  auto func_remap = [=](void * _src, void * _dst){
+      T * const dst_data = (T *) _dst;
+      T * const src_data = (T *) _src;
+
+      for(size_t i=0;i<kernel_size;i++){
+        dst_data[i] = src_data[i];
+      }
+  };
+
+  p_driver->parallel_map(*copy, *output, kernel_size*sizeof(T), func_src_to_dst, func_remap);
+  p_driver->free(copy);
+  free(copy);
+  
 }
 
 
