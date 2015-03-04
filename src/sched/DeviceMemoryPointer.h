@@ -75,7 +75,6 @@ public:
 	 **/
 	virtual void write_through(DeviceMemoryPointer * p_device) = 0;
 
-protected:
 	void * ptr;
 	size_t size_in_byte;
 	DeviceMemoryType type;
@@ -91,13 +90,15 @@ class DeviceMemoryPointer_Local_RAM : public DeviceMemoryPointer{
 public:
 
 	DeviceMemoryPointer_Local_RAM(void * _ptr, size_t _size_in_byte):
-		type(DEVICEMEMORY_LOCAL_RAM), DeviceMemoryPointer(_ptr, _size_in_byte){}
+		DeviceMemoryPointer(_ptr, _size_in_byte){
+		this->type = DEVICEMEMORY_LOCAL_RAM; 
+	}
 
 	void deref_to(DeviceMemoryPointer * p_device){
 		switch(p_device->type){
 			case DEVICEMEMORY_LOCAL_RAM:
 				// LOCAL RAM to LOCAL RAM is just copying pointers.
-				p_device->ptr = this->_ptr;
+				p_device->ptr = this->ptr;
 				p_device->size_in_byte = this->size_in_byte;
 			break;
 			case DEVICEMEMORY_QPI_RAM: assert(false); // TODO
@@ -119,7 +120,7 @@ public:
 				std::cerr << "Error: Need _WITH_CUDA enabled!" << std::endl;
 				assert(false);
 #endif
-			break
+			break;
 			case DEVICEMEMORY_REMOTE_RAM: assert(false); // TODO
 		}
 	}
@@ -136,12 +137,11 @@ public:
 			std::cerr << "Error: Need _WITH_CUDA enabled!" << std::endl;
 			assert(false);
 #endif
-			break
+			break;
 			case DEVICEMEMORY_REMOTE_RAM: assert(false); // TODO
 		}
 	}
 
-private:
 	using DeviceMemoryPointer::ptr;
 	using DeviceMemoryPointer::size_in_byte;
 	using DeviceMemoryPointer::type;
@@ -155,14 +155,16 @@ private:
  * on other devices. That is why the deref_to and
  * write_through function is empty here.
  * 
+ * TODO: 
+ *  - See Mapped Memory of CUDA 6 to see whether it is faster.
  **/
 class DeviceMemoryPointer_Local_GPURAM : public DeviceMemoryPointer{
 public:
 
 	DeviceMemoryPointer_Local_GPURAM(int _GPUID, void * _ptr, size_t _size_in_byte):
-		GPUID(_GPUID),
-		type(DEVICEMEMORY_LOCAL_GPURAM), DeviceMemoryPointer(_ptr, _size_in_byte){
+		DeviceMemoryPointer(_ptr, _size_in_byte), GPUID(_GPUID){
 		assert(GPUID==0); // TODO: multiple GPUs
+		this->type = DEVICEMEMORY_LOCAL_GPURAM;
 	}
 
 	void deref_to(DeviceMemoryPointer * p_device){
@@ -183,7 +185,6 @@ public:
 		}
 	}
 
-private:
 	using DeviceMemoryPointer::ptr;
 	using DeviceMemoryPointer::size_in_byte;
 	using DeviceMemoryPointer::type;
