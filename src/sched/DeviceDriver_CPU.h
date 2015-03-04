@@ -153,11 +153,11 @@ public:
 
   using DeviceDriver::sinitialize_xavier;
 
-  using DeviceDriver::bernoulli_initialize;
+  using DeviceDriver::sbernoulli_initialize;
 
-  using DeviceDriver::gaussian_initialize;
+  using DeviceDriver::sgaussian_initialize;
 
-  using DeviceDriver::constant_initialize;
+  using DeviceDriver::sconstant_initialize;
 
   using DeviceDriver::smath_apply_grad;
 

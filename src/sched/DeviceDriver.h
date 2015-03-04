@@ -117,19 +117,19 @@ public:
       sapply(arr, n_arr_elements, f_uni);
     }
 
-   void bernoulli_initialize(DeviceMemoryPointer arr, const float p) {
+   void sbernoulli_initialize(DeviceMemoryPointer arr, const float p) {
       const size_t n_arr_elements = arr.size_in_byte / sizeof(float);
       auto f_bern = this->srand_bern(p);
       sapply(arr, n_arr_elements, f_bern);
     }
 
-    void gaussian_initialize(DeviceMemoryPointer arr, const float mean, const float std_dev) {
+    void sgaussian_initialize(DeviceMemoryPointer arr, const float mean, const float std_dev) {
       const size_t n_arr_elements = arr.size_in_byte / sizeof(float);
       auto f_gaussian = this->srand_gaussian(mean, std_dev);
       sapply(arr, n_arr_elements, f_gaussian);
     }
 
-    void constant_initialize(DeviceMemoryPointer arr, const float value) {
+    void sconstant_initialize(DeviceMemoryPointer arr, const float value) {
       const size_t n_arr_elements = arr.size_in_byte / sizeof(float);
       auto f_set_to_const = [=](float & b) { b = value; };
       sapply(arr, n_arr_elements, f_set_to_const);

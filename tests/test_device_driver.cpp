@@ -60,7 +60,7 @@ TEST(DeviceDriverTest, CPU_CONST_INIT) {
 	test_array_set_constant(numbers, 1000, 1000.0);
 	DeviceMemoryPointer_Local_RAM p(numbers, sizeof(float)*1000);
 	CPUDriver driver;
-	driver.constant_initialize(p, 0.2, 1000);
+	driver.sconstant_initialize(p, 0.2);
 	test_array_equals_constant(numbers, 1000, 0.2);
 }
 
@@ -69,7 +69,7 @@ TEST(DeviceDriverTest, CPU_CONST_BERN) {
 	test_array_set_constant(numbers, 1000, 1000.0);
 	DeviceMemoryPointer_Local_RAM p(numbers, sizeof(float)*1000);
 	CPUDriver driver;
-	driver.bernoulli_initialize(p, 10000, 0.2);
+	driver.sbernoulli_initialize(p, 0.2);
 	float sum = 0.0;
 	for(int i=0;i<10000;i++){sum += numbers[i];}
 	ASSERT_NEAR(sum/10000, 0.2, 0.1);

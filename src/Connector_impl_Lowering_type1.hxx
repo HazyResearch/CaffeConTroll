@@ -133,7 +133,7 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
   DeviceMemoryPointer * input = p_input_cube->get_device_pointer(p_driver);
   DeviceMemoryPointer * output = p_output_cube->get_device_pointer(p_driver);
 
-  p_driver->constant_initialize(*input, DataType(0.0));
+  p_driver->sconstant_initialize(*input, DataType(0.0));
 
   const size_t data_output_width = (iR + 2 * padding - kernel_size) / stride + 1;  // the number of rows in the output gradient cube
   const size_t data_output_height = (iC + 2 * padding - kernel_size) / stride + 1; // the number of cols in the output gradient cube

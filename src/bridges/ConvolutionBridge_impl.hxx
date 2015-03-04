@@ -116,6 +116,20 @@ template <typename DataType, NonLinearFunction FUNC>
 void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>::
 initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter filler_param) {
   const string type = filler_param.type();
+  DeviceMemoryPointer * data = cube->get_device_pointer(this->p_driver);
+  if (type == "constant") {
+    this->p_driver->sconstant_initialize(*data, (DataType) filler_param.value());
+  } else if (type == "xavier") {
+    this->p_driver->sinitialize_xavier(*data, (DataType) cube->B);
+  } else if (type == "bernoulli") {
+    this->p_driver->sbernoulli_initialize(*data, (DataType) filler_param.value());
+  } else if (type == "gaussian") {
+    this->p_driver->sgaussian_initialize(*data, (DataType) filler_param.mean(), (DataType) filler_param.std());
+  } else {
+    cout << "ERROR! INITIALIZATION TYPE NOT SUPPORTED!" << endl;
+    assert(false);
+  }
+  /*
   if (type == "constant") {
     Util::constant_initialize<DataType>(cube->get_p_data(), (DataType) filler_param.value(), cube->n_elements);
   } else if (type == "xavier") {
@@ -129,6 +143,7 @@ initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter
     cout << "ERROR! INITIALIZATION TYPE NOT SUPPORTED!" << endl;
     assert(false);
   }
+  */
 }
 
 /**
