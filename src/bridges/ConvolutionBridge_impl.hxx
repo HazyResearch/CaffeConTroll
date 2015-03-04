@@ -208,59 +208,25 @@ forward() {
   // TODO Refactor the following code into another module
   // This code is here mainly to speed-up the refactoring
   // to bring CONV logical
-  DeviceMemoryPointer * output = p_output_layer->p_data_cube->get_device_pointer(p_driver);
-  DeviceMemoryPointer * bias = p_bias_cube->get_device_pointer(p_driver);
-  auto func_src_to_dst = [=](size_t _output_index){
-      const size_t output_index = _output_index/sizeof(DataType); // TODO, this uglyness implies that DeviceMemoryPointer needs a type.
-      const size_t o_b = output_index/(oD*oR*oC);
-      const size_t o_d = (output_index/(oR*oC)) % oD;
-      return o_d*sizeof(DataType);
-  };
-  auto func_bias = [=](void * _bias, void * _output){
-      const DataType bias = * ((DataType *) _bias);
-      DataType * const output_data = (DataType *) _output;
-
-      for(size_t i=0;i<oR*oC;i++){
-        output_data[i] += bias;
-      }
-  };
-  p_driver->parallel_map(*bias, *output, oR*oC*sizeof(DataType), func_src_to_dst, func_bias);
-
-  /*  
   if (bias_term) {
-    const size_t output_feature_size = oR*oC;
-    const DataType * const bias_elems = p_bias_cube->get_p_data();
-    for (size_t o_b = 0; o_b < oB; ++o_b) {
-      for (size_t o_d = 0; o_d < oD; ++o_d) {
-        const LogicalMatrix<DataType> output_data_slice =
-          p_output_layer->p_data_cube->get_logical_matrix(o_d, o_b);
-        const DataType bias = bias_elems[o_d];
-        for (size_t i = 0; i < output_feature_size; ++i) {
-          output_data_slice.p_data[i] += bias;
-        }
-      }
-    }
-  }
-  */
+    DeviceMemoryPointer * output = p_output_layer->p_data_cube->get_device_pointer(p_driver);
+    DeviceMemoryPointer * bias = p_bias_cube->get_device_pointer(p_driver);
+    auto func_src_to_dst = [=](size_t _output_index){
+        const size_t output_index = _output_index/sizeof(DataType); // TODO, this uglyness implies that DeviceMemoryPointer needs a type.
+        const size_t o_b = output_index/(oD*oR*oC);
+        const size_t o_d = (output_index/(oR*oC)) % oD;
+        return o_d*sizeof(DataType);
+    };
+    auto func_bias = [=](void * _bias, void * _output){
+        const DataType bias = * ((DataType *) _bias);
+        DataType * const output_data = (DataType *) _output;
 
-
-  // add bias
-  /*
-  if (bias_term) {
-    const size_t output_feature_size = oR*oC;
-    const DataType * const bias_elems = p_bias_cube->get_p_data();
-    for (size_t o_b = 0; o_b < oB; ++o_b) {
-      for (size_t o_d = 0; o_d < oD; ++o_d) {
-        const LogicalMatrix<DataType> output_data_slice =
-          p_output_layer->p_data_cube->get_logical_matrix(o_d, o_b);
-        const DataType bias = bias_elems[o_d];
-        for (size_t i = 0; i < output_feature_size; ++i) {
-          output_data_slice.p_data[i] += bias;
+        for(size_t i=0;i<oR*oC;i++){
+          output_data[i] += bias;
         }
-      }
-    }
+    };
+    p_driver->parallel_map(*bias, *output, oR*oC*sizeof(DataType), func_src_to_dst, func_bias);
   }
-  */
 
   report_forward_last_transfer.end();
   report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_lowering);
