@@ -13,6 +13,11 @@
 #include "AbstractBridge.h"
 #include "../util.h"
 
+#include "../sched/DeviceDriver.h"
+#include "../sched/DeviceDriver_CPU.h" //TODO: THIS include will be removed after all refactoring
+                                    // The connection should not care about the speicifc type of device.
+                                    // This is only for debugging only
+
 enum ConvolutionBridgeType {
   CPU_CONV_LOWERINGTYPE1 = 0,
   CPU_CONV_LOWERINGTYPE2 = 1, // TODO: support the
@@ -101,6 +106,8 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
 
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_input_layer;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_output_layer;
+
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_driver;
 
     Report report_forward_kernel;
     Report report_backward_kernel;

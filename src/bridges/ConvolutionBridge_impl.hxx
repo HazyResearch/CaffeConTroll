@@ -15,7 +15,10 @@ ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType,
 ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
   const cnn::LayerParameter * const _layer_param, const cnn::SolverParameter * const _solver_param)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer,
-    _p_output_layer, _layer_param, _solver_param),
+    _p_output_layer, _layer_param, _solver_param, new CPUDriver()),
+                            // TODO: THIS (new CPUDriver) IS ONLY FOR DEBUGGING!!! REFACTOR THIS OUT!!!
+                            // THIS IS ONLY TO MAKE SURE WE CAN FINISH LOGICAL-IZE EVERYTHING
+                            // BEFORE REFACTORING THE INTERFACE!  
   K(layer_param->convolution_param().kernel_size()),
   num_output_features(_p_output_layer->dD), // We are missing the abstraction of Logical Plan -- that is
                                             // why we cannot use layer_param here when there is grouping.
@@ -24,7 +27,7 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   padding(layer_param->convolution_param().pad()),
   bias_term(layer_param->convolution_param().bias_term()),
   weight_filler(layer_param->convolution_param().weight_filler()),
-  bias_filler(layer_param->convolution_param().bias_filler()) {
+  bias_filler(layer_param->convolution_param().bias_filler()){
 
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();

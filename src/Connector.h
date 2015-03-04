@@ -10,9 +10,7 @@
 #define moka_Connector_h
 
 #include "sched/DeviceDriver.h"
-#include "sched/DeviceDriver_CPU.h" //TODO: THIS include will be removed after all refactoring
-                                    // The connection should not care about the speicifc type of device.
-                                    // This is only for debugging only
+
 #include "LogicalCube.h"
 #include "Report.h"
 #include "LogicalMatrix.h"

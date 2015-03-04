@@ -71,6 +71,14 @@ public:
    *
    * For CPU Device, this could be a simple OpenMP parallel loop.
    * For GPU Device, this could be a kernel that uses func.
+   *
+   * Strictly speaking, this function has the name `map` mainly because
+   * is access pattern and ability to be executed in parallel, instead of
+   * its semantic--It is possible to introduce side-effect on `src` and 
+   * `f_dst_pos` is not necessarily non-overlapping (it often is, but the 
+   * interface does not have a way to enforce it). So maybe a better
+   * way of thinking about this function is a parallel for loop with more 
+   * structured side-effect (i.e., only on src and dst with a known mapping).
    * 
    **/
   virtual void parallel_map(DeviceMemoryPointer dst, DeviceMemoryPointer src, 

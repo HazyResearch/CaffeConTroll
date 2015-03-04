@@ -20,9 +20,7 @@ Connector(const InputLogicalCubeType * const p_input_cube,
   iR(p_input_cube->R), iC(p_input_cube->C), iD(p_input_cube->D), iB(p_input_cube->B),
   oR(p_output_cube->R), oC(p_output_cube->C), oD(p_output_cube->D), oB(p_output_cube->B),
   kernel_size(_kernel_size), padding(_padding), stride(_stride),
-  p_driver(new CPUDriver()) // TODO: THIS IS ONLY FOR DEBUGGING!!! REFACTOR THIS OUT!!!
-                            // THIS IS ONLY TO MAKE SURE WE CAN FINISH LOGICAL-IZE EVERYTHING
-                            // BEFORE REFACTORING THE INTERFACE! 
+  p_driver(_p_driver) 
 {
   report_constructor.reset();
   report_last_lowering.reset();
@@ -121,10 +119,6 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
 
   report_last_inverse_lowering.reset();
 
-#ifdef _DO_WARNING
-  cerr << "WARNING: " << "You are using the most general version of the lowering function. " << "This might be slow!" << endl;
-#endif
-
 #ifdef _DO_ASSERT
   assert(p_input_cube->R == iR);
   assert(p_input_cube->C == iC);
@@ -175,7 +169,6 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
                 input_row_index < iR  &&
                 input_col_index >= 0 &&
                 input_col_index < iC) {
-              //std::cout << "~" << out_index << std::endl;
               input_data[input_row_index*iC + input_col_index] += output_data[out_index];
             }
             // increment out_index regardless, a single cell from the output gradient cube
