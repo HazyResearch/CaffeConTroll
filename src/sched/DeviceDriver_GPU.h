@@ -3,6 +3,8 @@
 
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
+#include <curand.h>
+#include <curand_kernel.h>
 
 #include "DeviceDriver_GPU.cuh"
 
@@ -13,6 +15,8 @@ class GPUDriver : public DeviceDriver{
 public:
 
   int gpu_id = 0;
+
+  int threadsPerBlock = 256;
 
   cublasStatus_t status;
   
@@ -27,17 +31,14 @@ public:
 
   DeviceMemoryPointer * get_device_pointer(void * ptr, size_t size_in_byte){
     // TODO: This has memory leak! Refactor it!
-    //return new DeviceMemoryPointer_Local_RAM(ptr, size_in_byte);
     return new DeviceMemoryPointer_Local_GPURAM(gpu_id, ptr, size_in_byte);
   }
 
   virtual void malloc(DeviceMemoryPointer * dst){
-    //dst->ptr = ::malloc(dst->size_in_byte);
     cudaMalloc((void**)&dst->ptr, dst->size_in_byte);
   }
 
   virtual void free(DeviceMemoryPointer * dst){
-    //::free(dst->ptr);
     cudaFree(dst->ptr);
   }
 
@@ -48,10 +49,6 @@ public:
     assert(dst->size_in_byte == src->size_in_byte);
 #endif
     cudaMemcpy(dst->ptr, src->ptr, dst->size_in_byte, cudaMemcpyDeviceToDevice);
-    //char *s1 = (char*) dst->ptr;
-    //const char *s2 = (const char*) src->ptr;
-    //size_t n = dst->size_in_byte;
-    //for(; 0<n; --n)*s1++ = *s2++;
   }
 
   void memset(DeviceMemoryPointer * dst, const char value){
@@ -59,14 +56,11 @@ public:
     assert(dst->type==DEVICEMEMORY_LOCAL_RAM);
 #endif
     cudaMemset(dst->ptr, value, dst->size_in_byte);
-    //char *s1 = (char*) dst->ptr;
-    //size_t n = dst->size_in_byte;
-    //for(; 0<n; --n)*s1++ = value;
   }
 
   void parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
-    size_t src_skip, FUNC_IDX_MAPPING f_dst_pos, void * const f_dst_pos_curry,
-    FUNC_MM_MAPPING func, void * const func_curry){
+    size_t src_skip, FUNC_IDX_MAPPING f_dst_pos, DeviceMemoryPointer * const f_dst_pos_curry,
+    FUNC_MM_MAPPING func, DeviceMemoryPointer * const func_curry){
 
     //char * p_dst = (char*) dst->ptr;
     //char * p_src = (char*) src->ptr;
@@ -83,10 +77,12 @@ public:
     assert(Y->type==DEVICEMEMORY_LOCAL_RAM);
     assert(X->size_in_byte==Y->size_in_byte);
 #endif
-      //cblas_saxpy(X->size_in_byte/sizeof(float), alpha, (float *) X->ptr, 1, (float *) Y->ptr, 1); 
+      int n_elements = X->size_in_byte / sizeof(float);
+      status = cublasSaxpy(handle, n_elements, &alpha, (float*)X->ptr, 1, (float*)Y->ptr, 1);
+      assert(status == CUBLAS_STATUS_SUCCESS);
     }
 
-  void sapply(DeviceMemoryPointer * dst, FUNC_STRANSFORM * func, void * const func_curry){
+  void sapply(DeviceMemoryPointer * dst, FUNC_STRANSFORM * func, DeviceMemoryPointer * const func_curry){
 #ifdef _DO_ASSERT
     assert(dst->type==DEVICEMEMORY_LOCAL_RAM);
     assert(dst->size_in_byte % sizeof(float) == 0);
@@ -98,12 +94,13 @@ public:
     cudaMemcpyFromSymbol(&h_func, *func, sizeof(FUNC_STRANSFORM));
     FUNC_STRANSFORM d_myfunc = h_func;
 
+    // Second, create a device version of func_curry
     void * d_func_curry;
-    cudaMalloc((void**)&d_func_curry, sizeof(float));
-    cudaMemcpy(d_func_curry, func_curry, sizeof(float), cudaMemcpyHostToDevice);
+    cudaMalloc((void**)&d_func_curry, func_curry->size_in_byte);
+    cudaMemcpy(d_func_curry, func_curry->ptr, func_curry->size_in_byte, cudaMemcpyHostToDevice);
 
+    // Run.
     const int n_elements =  dst->size_in_byte / sizeof(float);
-    int threadsPerBlock = 256;
     int blocksPerGrid = (n_elements + threadsPerBlock - 1) / threadsPerBlock;
     _sapply<<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr, n_elements, d_myfunc, d_func_curry);
     err = cudaGetLastError();
@@ -111,6 +108,8 @@ public:
       std::cout << "Fail to launch _sapply" << std::endl;
       assert(false);
     }
+
+    cudaFree(d_func_curry);
   }
 
     void smath_axpby(const float alpha, DeviceMemoryPointer * X, const float beta, DeviceMemoryPointer * Y) { 
@@ -118,11 +117,17 @@ public:
       assert(X->size_in_byte == Y->size_in_byte);
       assert(X->size_in_byte % sizeof(float) == 0);
 #endif
-      //cblas_saxpby(X->size_in_byte/sizeof(float), alpha, (float*)X->ptr, 1, beta, (float*) Y->ptr, 1); 
+
+      int n_elements = X->size_in_byte / sizeof(float);
+      status = cublasSscal(handle, n_elements, &beta, (float*)Y->ptr, 1);
+      assert(status == CUBLAS_STATUS_SUCCESS);
+
+      status = cublasSaxpy(handle, n_elements, &alpha, (float*)X->ptr, 1, (float*)Y->ptr, 1);
+      assert(status == CUBLAS_STATUS_SUCCESS);
+
     }
 
     void set_num_threads(const int nThreads) { 
-      //openblas_set_num_threads(nThreads); 
     }
 
 
@@ -138,7 +143,7 @@ public:
   }
 
   void selementwise_reduce2(DeviceMemoryPointer * dst, DeviceMemoryPointer * src1, 
-    DeviceMemoryPointer * src2, FUNC_SREDUCE func, void * const func_curry){ 
+    DeviceMemoryPointer * src2, FUNC_SREDUCE func, DeviceMemoryPointer * const func_curry){ 
       // This lambda should be easier for compiler to inline than a function pointer
 #ifdef _DO_ASSERT
     assert(dst->size_in_byte == src1->size_in_byte);
@@ -154,77 +159,68 @@ public:
     //}
   }
 
-  /*
-  class _srand_uni_arg_helper{
-  public:
-    random_device rd;
-    mt19937 gen;
-    uniform_real_distribution<float> uni;
-    _srand_uni_arg_helper(float lower, float upper):
-      gen(mt19937(rd())), uni(uniform_real_distribution<float>(lower, upper)){}
-  };
-  static float _srand_uni_helper(float a, void * const arg){
-    _srand_uni_arg_helper * const p_arg = 
-      reinterpret_cast<_srand_uni_arg_helper* const>(arg);
-    return p_arg->uni(p_arg->gen);
-  }
-  FUNC_STRANSFORM srand_uni(float lower, float upper, void ** arg){
-    *arg = new _srand_uni_arg_helper(lower, upper);
-    return _srand_uni_helper;
+  FUNC_STRANSFORM * srand_uni(float lower, float upper, DeviceMemoryPointer * arg){return NULL;}
+
+  FUNC_STRANSFORM * srand_bern(float p, DeviceMemoryPointer * arg){return NULL;}
+
+  FUNC_STRANSFORM * srand_gaussian(float mean, float std_dev, DeviceMemoryPointer * arg){return NULL;}
+
+  /**
+   * This function is called only once. So its speed does not matter.
+   **/
+  void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch) {
+    const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
+    const size_t fan_in = n_arr_elements / n_batch;
+    const float scale = sqrt(3.0 / fan_in);
+
+    mt19937 gen(rd());
+    uniform_real_distribution<float> uni(-scale, scale);
+    float * temp = new float[n_arr_elements];
+    for(int i=0;i<n_arr_elements;i++){
+      temp[i] = uni(gen);
+    }
+    cudaMemcpy(arr->ptr, temp, arr->size_in_byte, cudaMemcpyHostToDevice);
+    delete[] temp;
   }
 
-  class _srand_bern_arg_helper{
-  public:
-    random_device rd;
-    mt19937 gen;
-    bernoulli_distribution bern;
-    _srand_bern_arg_helper(float p):
-      gen(mt19937(rd())), bern(bernoulli_distribution(p)){}
-  };
-  static float _srand_bern_helper(float a, void * const arg){
-    _srand_bern_arg_helper * const p_arg = (_srand_bern_arg_helper*) arg;
-    return p_arg->bern(p_arg->gen);
-  }
-  FUNC_STRANSFORM srand_bern(float p, void ** arg){
-    *arg = new _srand_bern_arg_helper(p);
-    return _srand_bern_helper;
+  /**
+   * This function is called only once. So its speed does not matter.
+   **/
+  void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p) {
+    const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
+
+    mt19937 gen(rd());
+    bernoulli_distribution bern(p);
+    float * temp = new float[n_arr_elements];
+    for(int i=0;i<n_arr_elements;i++){
+      temp[i] = bern(gen);
+    }
+    cudaMemcpy(arr->ptr, temp, arr->size_in_byte, cudaMemcpyHostToDevice);
+    delete[] temp;
+
   }
 
+  /**
+   * This function is called only once. So its speed does not matter.
+   **/
+  void sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev) {
+    const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
+    mt19937 gen(rd());
+    normal_distribution<float> gaussian(mean, std_dev);
+    float * temp = new float[n_arr_elements];
+    for(int i=0;i<n_arr_elements;i++){
+      temp[i] = gaussian(gen);
+    }
+    cudaMemcpy(arr->ptr, temp, arr->size_in_byte, cudaMemcpyHostToDevice);
+    delete[] temp;
 
-  class _srand_gaussian_arg_helper{
-  public:
-    random_device rd;
-    mt19937 gen;
-    normal_distribution<float> gaussian;
-    _srand_gaussian_arg_helper(float mean, float std_dev):
-      gen(mt19937(rd())), gaussian(normal_distribution<float>(mean, std_dev)){}
-  };
-  static float _srand_gaussian_helper(float a, void * const arg){
-    _srand_gaussian_arg_helper * const p_arg = (_srand_gaussian_arg_helper*) arg;
-    return p_arg->gaussian(p_arg->gen);
   }
-  FUNC_STRANSFORM srand_gaussian(float mean, float std_dev, void ** arg){
-    *arg = new _srand_gaussian_arg_helper(mean, std_dev);
-    return _srand_gaussian_helper;
-  }
-  */
-
-  FUNC_STRANSFORM srand_uni(float lower, float upper, void ** arg){
-    return NULL;
-  }
-  FUNC_STRANSFORM srand_bern(float p, void ** arg){
-    return NULL;
-  }
-  FUNC_STRANSFORM srand_gaussian(float mean, float std_dev, void ** arg){
-    return NULL;
-  }
-
-  using DeviceDriver::sbernoulli_initialize;
-
-  using DeviceDriver::sinitialize_xavier;
-
-  using DeviceDriver::sgaussian_initialize;
   
+  void * choose_ptr(void * host, void * device){
+    return device;
+  }
+
+
   //using DeviceDriver::sconstant_initialize;
 
   using DeviceDriver::smath_apply_grad;

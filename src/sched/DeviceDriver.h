@@ -28,6 +28,13 @@ typedef void (*FUNC_MM_MAPPING) (void *, void *, void * const);
 typedef float (*FUNC_STRANSFORM) (float, void * const);
 typedef float (*FUNC_SREDUCE) (float, float, void * const);
 
+
+__host__ __device__ float __sconstant_initialize_helper(float a, void * arg){
+  return *((float*)arg);
+}
+__device__ FUNC_STRANSFORM _sconstant_initialize_helper = __sconstant_initialize_helper;
+
+
 /**
  * A DeviceDriver is the only way
  * that CcT talks to a certain device
@@ -67,6 +74,8 @@ typedef float (*FUNC_SREDUCE) (float, float, void * const);
 class DeviceDriver{
 public:
 
+  virtual void * choose_ptr(void * host, void * device) = 0;
+
   virtual DeviceMemoryPointer * get_device_pointer(void * ptr, size_t size_in_byte) = 0;
 
   /**
@@ -96,14 +105,14 @@ public:
    * 
    **/
   virtual void parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
-    size_t src_skip, FUNC_IDX_MAPPING f_dst_pos, void * const f_dst_pos_curry,
-    FUNC_MM_MAPPING func, void * const func_curry) = 0;
+    size_t src_skip, FUNC_IDX_MAPPING f_dst_pos, DeviceMemoryPointer * const f_dst_pos_curry,
+    FUNC_MM_MAPPING func, DeviceMemoryPointer * const func_curry) = 0;
 
   /**
    * Single-precision operations.
    **/
   virtual void smath_axpy(const float alpha, DeviceMemoryPointer * X, DeviceMemoryPointer * Y) = 0;
-  virtual void sapply(DeviceMemoryPointer * dst, FUNC_STRANSFORM * func, void * const func_curry) = 0;
+  virtual void sapply(DeviceMemoryPointer * dst, FUNC_STRANSFORM * func, DeviceMemoryPointer * const func_curry) = 0;
   virtual void smath_axpby(const float alpha, DeviceMemoryPointer * X, const float beta, DeviceMemoryPointer *Y) = 0;
   virtual void set_num_threads(const int nThreads) = 0;
   virtual void sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB, 
@@ -111,14 +120,14 @@ public:
         float beta, float * pC, int LDC) = 0;
 
   void selementwise_reduce2(DeviceMemoryPointer *dst, DeviceMemoryPointer *src1, 
-    DeviceMemoryPointer *src2, FUNC_SREDUCE func, void * const func_curry) ;
+    DeviceMemoryPointer *src2, FUNC_SREDUCE func, DeviceMemoryPointer * const func_curry) ;
 
   /**
    * Single-precison random number generator.
    **/
-  virtual FUNC_STRANSFORM srand_uni(float, float, void **) = 0;
-  virtual FUNC_STRANSFORM srand_bern(float, void **) = 0;
-  virtual FUNC_STRANSFORM srand_gaussian(float, float, void **) = 0;
+  virtual FUNC_STRANSFORM * srand_uni(float, float, DeviceMemoryPointer *) = 0;
+  virtual FUNC_STRANSFORM * srand_bern(float, DeviceMemoryPointer *) = 0;
+  virtual FUNC_STRANSFORM * srand_gaussian(float, float, DeviceMemoryPointer *) = 0;
 
   /**
    * Logical functions that only depends on other virtual functions.
@@ -128,31 +137,30 @@ public:
       const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
       const size_t fan_in = n_arr_elements / n_batch;
       const float scale = sqrt(3.0 / fan_in);
-      void * generator;
+      DeviceMemoryPointer_Local_RAM generator(NULL, 0);
       auto f_uni = this->srand_uni(-scale, scale, &generator);
-      sapply(arr, &f_uni, generator);
+      sapply(arr, f_uni, &generator);
     }
 
    void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p) {
-      void * generator;
+      DeviceMemoryPointer_Local_RAM generator(NULL, 0);
       auto f_bern = this->srand_bern(p, &generator);
-      sapply(arr, &f_bern, generator);
+      sapply(arr, f_bern, &generator);
     }
 
     void sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev) {
-      void * generator;
+      DeviceMemoryPointer_Local_RAM generator(NULL, 0);
       auto f_gaussian = this->srand_gaussian(mean, std_dev, &generator);
-      sapply(arr, &f_gaussian, generator);
+      sapply(arr, f_gaussian, &generator);
     }
 
-    /*
-    static float _sconstant_initialize_helper(float a, void * arg){
-      return *((float*)arg);
-    }
     void sconstant_initialize(DeviceMemoryPointer *arr, const float value) {
-      sapply(arr, &_sconstant_initialize_helper, (void*) &value);
+      DeviceMemoryPointer_Local_RAM pvalue((void*)&value, sizeof(float));
+      sapply(arr, 
+        (FUNC_STRANSFORM*)this->choose_ptr((void*)&__sconstant_initialize_helper,
+                                            (void*)&_sconstant_initialize_helper),
+        &pvalue);
     }
-    */
 
     void smath_apply_grad(DeviceMemoryPointer *X, DeviceMemoryPointer *Y) {
       smath_axpy(-1.0, Y, X);
