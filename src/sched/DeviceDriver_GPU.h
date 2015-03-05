@@ -59,15 +59,40 @@ public:
   }
 
   void parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
-    size_t src_skip, FUNC_IDX_MAPPING f_dst_pos, DeviceMemoryPointer * const f_dst_pos_curry,
-    FUNC_MM_MAPPING func, DeviceMemoryPointer * const func_curry){
+    size_t src_skip, FUNC_IDX_MAPPING * f_dst_pos, DeviceMemoryPointer * const f_dst_pos_curry,
+    FUNC_MM_MAPPING * func, DeviceMemoryPointer * const func_curry){
 
-    //char * p_dst = (char*) dst->ptr;
-    //char * p_src = (char*) src->ptr;
-    //const size_t src_size = src->size_in_byte;
-    //for(size_t i=0; i<src_size; i+=src_skip){
-    //  (*func)(&p_dst[(*f_dst_pos)(i, f_dst_pos_curry)], &p_src[i], func_curry);
-    //}
+    // First, create host version of func
+    FUNC_MM_MAPPING h_func;
+    cudaMemcpyFromSymbol(&h_func, *func, sizeof(FUNC_MM_MAPPING));
+    FUNC_MM_MAPPING d_myfunc = h_func;
+
+    FUNC_IDX_MAPPING h_idx_func;
+    cudaMemcpyFromSymbol(&h_idx_func, *f_dst_pos, sizeof(FUNC_IDX_MAPPING));
+    FUNC_IDX_MAPPING d_idx_myfunc = h_idx_func;
+
+    // Second, create a device version of func_curry
+    void * d_func_curry;
+    cudaMalloc((void**)&d_func_curry, func_curry->size_in_byte);
+    cudaMemcpy(d_func_curry, func_curry->ptr, func_curry->size_in_byte, cudaMemcpyHostToDevice);
+
+    void * d_idx_func_curry;
+    cudaMalloc((void**)&d_idx_func_curry, f_dst_pos_curry->size_in_byte);
+    cudaMemcpy(d_idx_func_curry, f_dst_pos_curry->ptr, f_dst_pos_curry->size_in_byte, cudaMemcpyHostToDevice);
+
+    // Run.
+    const int n_elements =  dst->size_in_byte / sizeof(float);
+    int blocksPerGrid = (n_elements/src_skip + 1 + threadsPerBlock - 1) / threadsPerBlock;
+    _spmap<<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr, (float *) src->ptr,
+      n_elements, src_skip, d_idx_myfunc, d_idx_func_curry, d_myfunc, d_func_curry);
+    err = cudaGetLastError();
+    if(err != cudaSuccess){
+      std::cout << "Fail to launch _sapply" << std::endl;
+      assert(false);
+    }
+
+    cudaFree(d_func_curry);
+    cudaFree(d_idx_func_curry);
 
   }
 

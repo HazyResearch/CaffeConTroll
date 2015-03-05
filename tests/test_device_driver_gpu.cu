@@ -33,6 +33,41 @@ __host__ __device__ float _f_reduce(float a, float b, void * const arg){
 __device__ FUNC_SREDUCE f_reduce = _f_reduce;
 
 
+__host__ __device__ size_t _f_idx_strid4_copy(size_t a, void * const arg){
+	return a;
+}
+__device__ FUNC_IDX_MAPPING f_idx_strid4_copy = _f_idx_strid4_copy;
+
+__host__ __device__ void _f_strid4_copy(void * dst, void * src, void * const arg){
+	float * const _dst = (float *) dst;
+	float * const _src = (float *) src;
+	for(int i=0;i<4;i++){
+		_dst[i] = _src[i] + *((float *) arg);
+	}
+}
+__device__ FUNC_MM_MAPPING f_strid4_copy = _f_strid4_copy;
+
+
+TEST(DeviceDriverTest, GPU_PMAP) {
+	float numbers[1000];
+
+	GPUDriver driver;
+	DeviceMemoryPointer_Local_GPURAM p1(0, NULL, sizeof(float)*1000);
+	DeviceMemoryPointer_Local_GPURAM p2(0, NULL, sizeof(float)*1000);
+	driver.malloc(&p1); driver.malloc(&p2);
+
+	float one = 1.0;
+	DeviceMemoryPointer_Local_RAM p_one(&one, sizeof(float));
+
+	driver.sconstant_initialize(&p1, 0.2);
+	driver.sconstant_initialize(&p2, 3.0);
+
+	driver.parallel_map(&p2, &p1, 4, &f_idx_strid4_copy, &p_one, &f_strid4_copy, &p_one);
+  	cudaMemcpy(numbers, p2.ptr, p2.size_in_byte, cudaMemcpyDeviceToHost);
+	
+	test_array_equals_constant(numbers, 1000, 1.2);
+}
+
 TEST(DeviceDriverTest, GPU_REDUCE) {
 	float numbers[1000];
 
@@ -54,8 +89,6 @@ TEST(DeviceDriverTest, GPU_REDUCE) {
 	
 	test_array_equals_constant(numbers, 1000, 4.0);
 }
-
-
 
 TEST(DeviceDriverTest, GPU_MEMSET) {
 	

@@ -115,8 +115,8 @@ public:
    * 
    **/
   virtual void parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
-    size_t src_skip, FUNC_IDX_MAPPING f_dst_pos, DeviceMemoryPointer * const f_dst_pos_curry,
-    FUNC_MM_MAPPING func, DeviceMemoryPointer * const func_curry) = 0;
+    size_t src_skip, FUNC_IDX_MAPPING * f_dst_pos, DeviceMemoryPointer * const f_dst_pos_curry,
+    FUNC_MM_MAPPING * func, DeviceMemoryPointer * const func_curry) = 0;
 
   /**
    * Single-precision operations.
