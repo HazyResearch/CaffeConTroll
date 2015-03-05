@@ -27,6 +27,36 @@ __host__ __device__ float _f_set(float a, void * const arg){
 __device__ FUNC_STRANSFORM f_set = _f_set;
 
 
+__host__ __device__ float _f_reduce(float a, float b, void * const arg){
+	return a + b + *((float *) arg);
+}
+__device__ FUNC_SREDUCE f_reduce = _f_reduce;
+
+
+TEST(DeviceDriverTest, GPU_REDUCE) {
+	float numbers[1000];
+
+	GPUDriver driver;
+	DeviceMemoryPointer_Local_GPURAM p1(0, NULL, sizeof(float)*1000);
+	DeviceMemoryPointer_Local_GPURAM p2(0, NULL, sizeof(float)*1000);
+	DeviceMemoryPointer_Local_GPURAM p3(0, NULL, sizeof(float)*1000);
+	driver.malloc(&p1); driver.malloc(&p2); driver.malloc(&p3);
+
+	float one = 1.0;
+	DeviceMemoryPointer_Local_RAM p_one(&one, sizeof(float));
+
+	driver.sconstant_initialize(&p1, 1.0);
+	driver.sconstant_initialize(&p2, 2.0);
+	driver.sconstant_initialize(&p3, 3.0);
+
+	driver.selementwise_reduce2(&p3, &p1, &p2, &f_reduce, &p_one);
+  	cudaMemcpy(numbers, p3.ptr, p3.size_in_byte, cudaMemcpyDeviceToHost);
+	
+	test_array_equals_constant(numbers, 1000, 4.0);
+}
+
+
+
 TEST(DeviceDriverTest, GPU_MEMSET) {
 	
 	float numbers[1000];
@@ -149,6 +179,7 @@ TEST(DeviceDriverTest, GPU_CONST_BERN) {
 	}
 	ASSERT_NEAR(sum/10000, 0.2, 0.1);
 }
+
 
 TEST(DeviceDriverTest, GPU_CONST_INIT) {
 	float numbers[10000];

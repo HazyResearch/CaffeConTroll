@@ -134,29 +134,41 @@ public:
   void sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB, 
         int M, int N, int K, float alpha, float * pA, int LDA, float * pB, int LDB,
         float beta, float * pC, int LDC){
-
       //cblas_sgemm(order, TA, TB, M, N, K, alpha,
       //  pA, LDA,
       //  pB, LDB,
       //  beta, pC, LDC);
-
   }
 
   void selementwise_reduce2(DeviceMemoryPointer * dst, DeviceMemoryPointer * src1, 
-    DeviceMemoryPointer * src2, FUNC_SREDUCE func, DeviceMemoryPointer * const func_curry){ 
+    DeviceMemoryPointer * src2, FUNC_SREDUCE * func, DeviceMemoryPointer * const func_curry){ 
       // This lambda should be easier for compiler to inline than a function pointer
 #ifdef _DO_ASSERT
     assert(dst->size_in_byte == src1->size_in_byte);
     assert(dst->size_in_byte == src2->size_in_byte);
     assert(dst->size_in_byte % sizeof(float) == 0);
 #endif
-    //const size_t n_element = dst->size_in_byte / sizeof(float);
-    //float * const p_dst = (float*) dst->ptr;
-    //const float * const p_src1 = (float*) src1->ptr;
-    //const float * const p_src2 = (float*) src2->ptr; 
-    //for(size_t i = 0; i < n_element; i++){
-    //  p_dst[i] = (*func)(p_src1[i], p_src2[i], func_curry);
-    //}
+    // First, create host version of func
+    FUNC_SREDUCE h_func;
+    cudaMemcpyFromSymbol(&h_func, *func, sizeof(FUNC_SREDUCE));
+    FUNC_SREDUCE d_myfunc = h_func;
+
+    // Second, create a device version of func_curry
+    void * d_func_curry;
+    cudaMalloc((void**)&d_func_curry, func_curry->size_in_byte);
+    cudaMemcpy(d_func_curry, func_curry->ptr, func_curry->size_in_byte, cudaMemcpyHostToDevice);
+
+    // Run.
+    const int n_elements =  dst->size_in_byte / sizeof(float);
+    int blocksPerGrid = (n_elements + threadsPerBlock - 1) / threadsPerBlock;
+    _sreduce<<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr, n_elements, 
+      (float*) src1->ptr, (float*) src2->ptr, d_myfunc, d_func_curry);
+    err = cudaGetLastError();
+    if(err != cudaSuccess){
+      std::cout << "Fail to launch _sreduce" << std::endl;
+      assert(false);
+    }
+
   }
 
   FUNC_STRANSFORM * srand_uni(float lower, float upper, DeviceMemoryPointer * arg){return NULL;}
@@ -167,6 +179,7 @@ public:
 
   /**
    * This function is called only once. So its speed does not matter.
+   * TODO: Wrap this up with CURAND.
    **/
   void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch) {
     const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
@@ -185,6 +198,7 @@ public:
 
   /**
    * This function is called only once. So its speed does not matter.
+   * TODO: Wrap this up with CURAND.
    **/
   void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p) {
     const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
@@ -202,6 +216,7 @@ public:
 
   /**
    * This function is called only once. So its speed does not matter.
+   * TODO: Wrap this up with CURAND.
    **/
   void sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev) {
     const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
@@ -220,11 +235,9 @@ public:
     return device;
   }
 
-
-  //using DeviceDriver::sconstant_initialize;
+  using DeviceDriver::sconstant_initialize;
 
   using DeviceDriver::smath_apply_grad;
-
 
 private:
 

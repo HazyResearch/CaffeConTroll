@@ -74,6 +74,16 @@ __device__ FUNC_STRANSFORM _sconstant_initialize_helper = __sconstant_initialize
 class DeviceDriver{
 public:
 
+  /**
+   * A UDF that can be called by a driver might see on
+   * host or might sit on device. It is driver's responsiblity
+   * to choose one.
+   *
+   * Note that, a single function should have only one 
+   * implementation. It is on device not by copy&paste
+   * the code, instead, by a very thin wrapper, e.g.,
+   *   __device__ T func_on_device = func_on_host.
+   **/
   virtual void * choose_ptr(void * host, void * device) = 0;
 
   virtual DeviceMemoryPointer * get_device_pointer(void * ptr, size_t size_in_byte) = 0;
@@ -120,7 +130,7 @@ public:
         float beta, float * pC, int LDC) = 0;
 
   void selementwise_reduce2(DeviceMemoryPointer *dst, DeviceMemoryPointer *src1, 
-    DeviceMemoryPointer *src2, FUNC_SREDUCE func, DeviceMemoryPointer * const func_curry) ;
+    DeviceMemoryPointer *src2, FUNC_SREDUCE * func, DeviceMemoryPointer * const func_curry) ;
 
   /**
    * Single-precison random number generator.
@@ -132,7 +142,6 @@ public:
   /**
    * Logical functions that only depends on other virtual functions.
    **/
-
     void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch) {
       const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
       const size_t fan_in = n_arr_elements / n_batch;
