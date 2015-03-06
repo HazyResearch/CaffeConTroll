@@ -5,6 +5,7 @@
 #include "DeviceMemoryPointer.h"
 #include "cblas.h"
 
+
 #ifndef _DEVICE_DRIVER_H
 #define _DEVICE_DRIVER_H
 
@@ -27,12 +28,6 @@ typedef size_t (*FUNC_IDX_MAPPING) (size_t, void * const);
 typedef void (*FUNC_MM_MAPPING) (void *, void *, void * const);
 typedef float (*FUNC_STRANSFORM) (float, void * const);
 typedef float (*FUNC_SREDUCE) (float, float, void * const);
-
-
-__host__ __device__ float __sconstant_initialize_helper(float a, void * arg){
-  return *((float*)arg);
-}
-__device__ FUNC_STRANSFORM _sconstant_initialize_helper = __sconstant_initialize_helper;
 
 
 /**
@@ -75,14 +70,14 @@ class DeviceDriver{
 public:
 
   /**
-   * A UDF that can be called by a driver might see on
+   * A UDF that can be called by a driver might sit on
    * host or might sit on device. It is driver's responsiblity
    * to choose one.
    *
-   * Note that, a single function should have only one 
-   * implementation. It is on device not by copy&paste
-   * the code, instead, by a very thin wrapper, e.g.,
-   *   __device__ T func_on_device = func_on_host.
+   * Note that, a single function should have ONLY ONE 
+   * implementation. It is on a device not by copy&paste
+   * the code, instead, by a very thin wrapper, e.g., for CUDA,
+   *     __device__ T func_on_device = func_on_host;
    **/
   virtual void * choose_ptr(void * host, void * device) = 0;
 
@@ -142,7 +137,10 @@ public:
   /**
    * Logical functions that only depends on other virtual functions.
    **/
-    void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch) {
+    void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch); 
+
+    /*
+    {
       const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
       const size_t fan_in = n_arr_elements / n_batch;
       const float scale = sqrt(3.0 / fan_in);
@@ -150,26 +148,28 @@ public:
       auto f_uni = this->srand_uni(-scale, scale, &generator);
       sapply(arr, f_uni, &generator);
     }
+    */
 
-   void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p) {
+   void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p); 
+   /*
+   {
       DeviceMemoryPointer_Local_RAM generator(NULL, 0);
       auto f_bern = this->srand_bern(p, &generator);
       sapply(arr, f_bern, &generator);
     }
+    */
 
-    void sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev) {
+    void sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev); 
+    /*
+    {
       DeviceMemoryPointer_Local_RAM generator(NULL, 0);
       auto f_gaussian = this->srand_gaussian(mean, std_dev, &generator);
       sapply(arr, f_gaussian, &generator);
     }
+    */
 
-    void sconstant_initialize(DeviceMemoryPointer *arr, const float value) {
-      DeviceMemoryPointer_Local_RAM pvalue((void*)&value, sizeof(float));
-      sapply(arr, 
-        (FUNC_STRANSFORM*)this->choose_ptr((void*)&__sconstant_initialize_helper,
-                                            (void*)&_sconstant_initialize_helper),
-        &pvalue);
-    }
+    void sconstant_initialize(DeviceMemoryPointer *arr, const float value);
+    
 
     void smath_apply_grad(DeviceMemoryPointer *X, DeviceMemoryPointer *Y) {
       smath_axpy(-1.0, Y, X);

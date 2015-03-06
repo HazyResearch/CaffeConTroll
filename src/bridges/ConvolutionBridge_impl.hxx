@@ -15,7 +15,7 @@ ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType,
 ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
   const cnn::LayerParameter * const _layer_param, const cnn::SolverParameter * const _solver_param)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer,
-    _p_output_layer, _layer_param, _solver_param, new CPUDriver()),
+    _p_output_layer, _layer_param, _solver_param, new GPUDriver()),
                             // TODO: THIS (new CPUDriver) IS ONLY FOR DEBUGGING!!! REFACTOR THIS OUT!!!
                             // THIS IS ONLY TO MAKE SURE WE CAN FINISH LOGICAL-IZE EVERYTHING
                             // BEFORE REFACTORING THE INTERFACE!  

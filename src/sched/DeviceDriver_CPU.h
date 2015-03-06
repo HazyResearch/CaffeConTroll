@@ -1,8 +1,16 @@
 
 #include "DeviceDriver.h"
+#include "cblas.h"
 
 #ifndef _DEVICE_DRIVER_CPU_H
 #define _DEVICE_DRIVER_CPU_H
+
+/*
+float __sconstant_initialize_helper(float a, void * arg){
+  return *((float*)arg);
+}
+FUNC_STRANSFORM _sconstant_initialize_helper = __sconstant_initialize_helper;
+*/
 
 class CPUDriver : public DeviceDriver{
 public:

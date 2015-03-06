@@ -3,6 +3,7 @@
 #include "glog/logging.h"
 #include "../src/sched/DeviceDriver.h"
 #include "../src/sched/DeviceDriver_GPU.h"
+#include "../src/sched/DeviceDriver_GPU.cuh"
 #include "../src/sched/DeviceMemoryPointer.h"
 #include <iostream>
 #include <assert.h>
@@ -47,7 +48,6 @@ __host__ __device__ void _f_strid4_copy(void * dst, void * src, void * const arg
 }
 __device__ FUNC_MM_MAPPING f_strid4_copy = _f_strid4_copy;
 
-
 TEST(DeviceDriverTest, GPU_PMAP) {
 	float numbers[1000];
 
@@ -89,6 +89,7 @@ TEST(DeviceDriverTest, GPU_REDUCE) {
 	
 	test_array_equals_constant(numbers, 1000, 4.0);
 }
+
 
 TEST(DeviceDriverTest, GPU_MEMSET) {
 	
