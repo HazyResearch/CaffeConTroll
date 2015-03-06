@@ -6,7 +6,7 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#include "parser.h"
+//#include "parser.h"
 #include "lmdb.h"
 #include "cnn.pb.h"
 

@@ -14,9 +14,6 @@
 #include "../util.h"
 
 #include "../sched/DeviceDriver.h"
-#include "../sched/DeviceDriver_GPU.h" //TODO: THIS include will be removed after all refactoring
-                                    // The connection should not care about the speicifc type of device.
-                                    // This is only for debugging only
 
 enum ConvolutionBridgeType {
   CPU_CONV_LOWERINGTYPE1 = 0,

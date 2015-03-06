@@ -1,5 +1,3 @@
-#include "PhysicalStratum.h"
-
 /**
  * Wrapper of calling the forward() function -- only
  * used when we call thread

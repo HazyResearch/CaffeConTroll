@@ -130,6 +130,17 @@ Kernel(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCub
   report_constructor.end(0, 0, 0);
 }
 
+float _f_reduce_mul(float a, float b, void * const){
+  return a*b;
+}
+FUNC_SREDUCE f_reduce_mul;
+
+float _f_reduce_tanhgrad(float a, float b, void * const){
+  return 1-(a*a)*b;
+}
+FUNC_SREDUCE f_reduce_tanhgrad;
+
+
 template <typename DataType, KernelConfig KERNELCONFIG>
 void Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KERNELCONFIG>::
 compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
@@ -141,12 +152,16 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
   DeviceMemoryPointer * input2 = p_input1_cube->get_device_pointer(p_driver);
   DeviceMemoryPointer * output = p_output_cube->get_device_pointer(p_driver);
 
+  float dummy; // TODO: this can be removed after we change the driver
+                // to variadic func
+  DeviceMemoryPointer * pdummy = p_driver->get_device_pointer(&dummy, sizeof(float));
+
   if (KERNELCONFIG == KernelConfig_NONE){
-    const auto func = [](DataType a, DataType b)->DataType{return a*b;};
-    p_driver->selementwise_reduce2(*output, *input1, *input2, func);
+    //const auto func = [](DataType a, DataType b)->DataType{return a*b;};
+    p_driver->selementwise_reduce2(output, input1, input2, &f_reduce_mul, pdummy);
   }else if(KernelConfig_TANHGRAD_ON_INPUT1){
-    const auto func = [](DataType a, DataType b)->DataType{return (1-a*a)*b;};
-    p_driver->selementwise_reduce2(*output, *input1, *input2, func);
+    //const auto func = [](DataType a, DataType b)->DataType{return (1-a*a)*b;};
+    p_driver->selementwise_reduce2(output, input1, input2, &f_reduce_tanhgrad, pdummy);
   }else{
       std::cerr << "ERROR: Not supported KernelConfig!" << std::endl;
       assert(false);

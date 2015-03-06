@@ -12,3 +12,5 @@ class Parser {
     static bool read_proto_from_binary_file(const char * filename, Message * proto);
     static void data_setup(cnn::LayerParameter & layer_param, cnn::Datum & datum);
 };
+
+#include "parser.cpp" // TODO: change to hxx

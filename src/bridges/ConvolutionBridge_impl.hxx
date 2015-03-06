@@ -15,7 +15,8 @@ ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType,
 ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
   const cnn::LayerParameter * const _layer_param, const cnn::SolverParameter * const _solver_param)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer,
-    _p_output_layer, _layer_param, _solver_param, new GPUDriver()),
+    _p_output_layer, _layer_param, _solver_param, NULL),
+                            // // TOFIX TO GPU
                             // TODO: THIS (new CPUDriver) IS ONLY FOR DEBUGGING!!! REFACTOR THIS OUT!!!
                             // THIS IS ONLY TO MAKE SURE WE CAN FINISH LOGICAL-IZE EVERYTHING
                             // BEFORE REFACTORING THE INTERFACE!  
@@ -119,13 +120,13 @@ initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter
   const string type = filler_param.type();
   DeviceMemoryPointer * data = cube->get_device_pointer(this->p_driver);
   if (type == "constant") {
-    this->p_driver->sconstant_initialize(*data, (DataType) filler_param.value());
+    this->p_driver->sconstant_initialize(data, (DataType) filler_param.value());
   } else if (type == "xavier") {
-    this->p_driver->sinitialize_xavier(*data, (DataType) cube->B);
+    this->p_driver->sinitialize_xavier(data, (DataType) cube->B);
   } else if (type == "bernoulli") {
-    this->p_driver->sbernoulli_initialize(*data, (DataType) filler_param.value());
+    this->p_driver->sbernoulli_initialize(data, (DataType) filler_param.value());
   } else if (type == "gaussian") {
-    this->p_driver->sgaussian_initialize(*data, (DataType) filler_param.mean(), (DataType) filler_param.std());
+    this->p_driver->sgaussian_initialize(data, (DataType) filler_param.mean(), (DataType) filler_param.std());
   } else {
     cout << "ERROR! INITIALIZATION TYPE NOT SUPPORTED!" << endl;
     assert(false);
@@ -146,6 +147,56 @@ initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter
   }
   */
 }
+
+
+struct _func_src_to_dst_arg_helper_conv{
+  size_t oR;
+  size_t oC;
+  size_t oD;
+};
+
+// TOFIX TO GPU
+size_t _func_src_to_dst_conv(size_t _output_index, void * curry){
+  const _func_src_to_dst_arg_helper_conv * const parg =
+    reinterpret_cast<_func_src_to_dst_arg_helper_conv*>(curry);
+  const size_t output_index = _output_index/sizeof(float); // TODO, this uglyness implies that DeviceMemoryPointer needs a type.
+  const size_t o_b = output_index/(parg->oD*parg->oR*parg->oC);
+  const size_t o_d = (output_index/(parg->oR*parg->oC)) % parg->oD;
+  return o_d*sizeof(float);
+}
+FUNC_IDX_MAPPING func_src_to_dst_conv = _func_src_to_dst_conv;
+
+struct _sfunc_bias_arghelper_conv{
+  float bias;
+  size_t ORxOC;
+};
+
+void _sfunc_bias(void * _bias, void * _output, void * curry){
+  const float bias = * ((float *) _bias);
+  float * const output_data = (float *) _output;
+  size_t ORxOC = *((size_t *) curry);
+  for(size_t i=0;i<ORxOC;i++){
+    output_data[i] += bias;
+  }
+}
+FUNC_MM_MAPPING func_bias = _sfunc_bias;
+
+/*
+    auto func_src_to_dst = [=](size_t _output_index){
+        const size_t output_index = _output_index/sizeof(DataType); // TODO, this uglyness implies that DeviceMemoryPointer needs a type.
+        const size_t o_b = output_index/(oD*oR*oC);
+        const size_t o_d = (output_index/(oR*oC)) % oD;
+        return o_d*sizeof(DataType);
+    };
+    auto func_bias = [=](void * _bias, void * _output){
+        const DataType bias = * ((DataType *) _bias);
+        DataType * const output_data = (DataType *) _output;
+
+        for(size_t i=0;i<oR*oC;i++){
+          output_data[i] += bias;
+        }
+    };
+*/
 
 /**
  * This function does the following:
@@ -211,21 +262,21 @@ forward() {
   if (bias_term) {
     DeviceMemoryPointer * output = p_output_layer->p_data_cube->get_device_pointer(p_driver);
     DeviceMemoryPointer * bias = p_bias_cube->get_device_pointer(p_driver);
-    auto func_src_to_dst = [=](size_t _output_index){
-        const size_t output_index = _output_index/sizeof(DataType); // TODO, this uglyness implies that DeviceMemoryPointer needs a type.
-        const size_t o_b = output_index/(oD*oR*oC);
-        const size_t o_d = (output_index/(oR*oC)) % oD;
-        return o_d*sizeof(DataType);
-    };
-    auto func_bias = [=](void * _bias, void * _output){
-        const DataType bias = * ((DataType *) _bias);
-        DataType * const output_data = (DataType *) _output;
 
-        for(size_t i=0;i<oR*oC;i++){
-          output_data[i] += bias;
-        }
-    };
-    p_driver->parallel_map(*bias, *output, oR*oC*sizeof(DataType), func_src_to_dst, func_bias);
+    _func_src_to_dst_arg_helper_conv arg1;
+    arg1.oR = oR;
+    arg1.oC = oC;
+    arg1.oD = oD;
+  
+    size_t ORxOC = oR*oC;
+
+    DeviceMemoryPointer * parg1 = p_driver->get_device_pointer((void*)&arg1, 
+      sizeof(_func_src_to_dst_arg_helper_conv));
+
+    DeviceMemoryPointer * parg2 = p_driver->get_device_pointer((void*)&ORxOC, sizeof(size_t));
+
+    p_driver->parallel_map(bias, output, oR*oC*sizeof(DataType), &func_src_to_dst_conv, 
+      parg1, &func_bias, parg2);
   }
 
   report_forward_last_transfer.end();

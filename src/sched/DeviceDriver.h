@@ -137,7 +137,9 @@ public:
   /**
    * Logical functions that only depends on other virtual functions.
    **/
-    void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch); 
+    void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch){
+      assert(false);
+    }
 
     /*
     {
@@ -150,7 +152,9 @@ public:
     }
     */
 
-   void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p); 
+   void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p){
+    assert(false);
+   }
    /*
    {
       DeviceMemoryPointer_Local_RAM generator(NULL, 0);
@@ -159,7 +163,9 @@ public:
     }
     */
 
-    void sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev); 
+    void sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev){
+      assert(false);
+    }
     /*
     {
       DeviceMemoryPointer_Local_RAM generator(NULL, 0);
@@ -168,7 +174,9 @@ public:
     }
     */
 
-    void sconstant_initialize(DeviceMemoryPointer *arr, const float value);
+    void sconstant_initialize(DeviceMemoryPointer *arr, const float value){
+      assert(false);
+    }
     
 
     void smath_apply_grad(DeviceMemoryPointer *X, DeviceMemoryPointer *Y) {

@@ -6,7 +6,9 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#include "corpus.h"
+//#include "corpus.h"
+
+//TODO: change to hxx
 
 #ifndef MDB_NOTLS
 #define 	MDB_NOTLS   0x200000

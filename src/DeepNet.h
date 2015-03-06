@@ -48,4 +48,6 @@ class DeepNet {
 #include "bridges/FunnelBridge.h"
 #include "parser/corpus.h"
 
+#include "DeepNet.cpp" // TODO change to hxx
+
 #endif

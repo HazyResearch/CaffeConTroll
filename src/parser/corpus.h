@@ -59,4 +59,7 @@ class Corpus {
 
 };
 
+#include "corpus.cpp" //TODO: change to hxx
+
+
 #endif

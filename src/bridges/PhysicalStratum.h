@@ -48,4 +48,7 @@ class PhysicalStratum : public PhysicalOperator {
     }
 };
 
+#include "PhysicalStratum_impl.cpp" //TODO: change to hxx
+
+
 #endif

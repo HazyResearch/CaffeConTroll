@@ -48,7 +48,7 @@ PROTO_COMPILED_SRC=$(PROTO_SRC_DIR)cnn.pb.cc
 # SOURCE FILE FOR MAIN PROGRAM
 TARGET = caffe-ct
 SRC = src/DeepNet.cpp src/bridges/PhysicalStratum_impl.cpp \
-      src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp \
+      src/parser/parser.cpp src/util.cpp src/timer.cpp \
 	  src/main.cpp 
 OBJ_FILES = $(patsubst %.cpp,%.o,$(SRC))
 
@@ -58,9 +58,8 @@ MAIN_CUDA_OBJ_FILES = $(patsubst %.cu,%.o,$(MAIN_CUDA_SOURCES))
 # SOURCE FILE FOR TEST
 #TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest -lpthread 
 TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest
-TEST_SOURCES = tests/test_main.cpp 
-#		   src/DeepNet.cpp src/bridges/PhysicalStratum_impl.cpp \
-#	       src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp tests/test_main.cpp \
+TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp \
+			tests/test_parallelized_convolution.cpp
 #		   test_device_driver_gpu.cpp
 #	       tests/test_parallelized_convolution.cpp
 #	       tests/test_device_driver.cpp
@@ -131,6 +130,7 @@ snapshot: $(SNAPSHOT_OBJ_FILES) cnn.pb.o
 
 %.o: %.cpp $(PROTO_COMPILED_SRC)
 	$(CC) $(CFLAGS) $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $< -o $@
+	#$(LINKCC) -D_OPENBLAS $(LINKFLAG) $(DIR_PARAMS) $(PROTOBUF_LIB) -c $< -o $@
 
 %.o: %.cu $(PROTO_COMPILED_SRC)
 	$(NVCC) $(NVCCFLAGS) $(INCLUDE_STR) $(TEST_BLASFLAGS) -dc $< -o $@

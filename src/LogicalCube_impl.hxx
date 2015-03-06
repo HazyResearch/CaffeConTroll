@@ -8,6 +8,8 @@
 
 #ifndef moka_LogicalCube_impl_hxx
 #define moka_LogicalCube_impl_hxx
+
+#include <type_traits>
 #include <string.h>
 #include "util.h"
 
@@ -47,19 +49,37 @@ void LogicalCube<T, LAYOUT>::remap_output(const size_t O,
   return LoweringHelper<LOWERING>::remap_output(*this, O, B, kernel_size, p_driver);
 }
 
-template<typename T, LayoutType LAYOUT>
-template<typename DUMMY>
-void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C,
-    const size_t kernel_size, DeviceDriver * p_driver) {
 
-  // TODO: This buffer does not make much sense, but lets get
-  // the logical refactoring done first in a way as before
-  // before over optimize. 
-  DeviceMemoryPointer * copy = p_driver->get_device_pointer(NULL, sizeof(T)*cube.R*cube.C*cube.B*cube.D);
-  p_driver->malloc(copy);
-  DeviceMemoryPointer * output = cube.get_device_pointer(p_driver);
-  p_driver->memcpy(*copy, *output);
+struct _func_src_to_dst_arg_helper{
+  size_t kernel_size;
+  size_t R;
+  size_t C;
+  size_t sizeof_T;
+};
 
+// TOFIX TO GPU
+size_t _func_src_to_dst(size_t _dst_index, void * curry){
+  const _func_src_to_dst_arg_helper * const parg =
+    reinterpret_cast<_func_src_to_dst_arg_helper *>(curry);
+  const size_t dst_index = _dst_index/parg->sizeof_T; // TODO, this uglyness implies that DeviceMemoryPointer needs a type.
+  const size_t r_i = (dst_index/parg->kernel_size)%parg->R;
+  const size_t c_i = (dst_index/parg->kernel_size)/parg->R;
+  return (c_i*parg->kernel_size + r_i*parg->C*parg->kernel_size)*parg->sizeof_T;
+}
+FUNC_IDX_MAPPING func_src_to_dst = _func_src_to_dst;
+
+void _sfunc_remap(void * _src, void * _dst, void * curry){
+  float * const dst_data = (float *) _dst;
+  float * const src_data = (float *) _src;
+
+  const size_t kernel_size = *((size_t*)curry);
+  for(size_t i=0;i<kernel_size;i++){
+    dst_data[i] = src_data[i];
+  }
+}
+FUNC_MM_MAPPING sfunc_remap = _sfunc_remap;
+
+/*
   auto func_src_to_dst = [=](size_t _dst_index){
       const size_t dst_index = _dst_index/sizeof(T); // TODO, this uglyness implies that DeviceMemoryPointer needs a type.
       const size_t r_i = (dst_index/kernel_size)%R;
@@ -75,8 +95,35 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output
         dst_data[i] = src_data[i];
       }
   };
+*/
 
-  p_driver->parallel_map(*copy, *output, kernel_size*sizeof(T), func_src_to_dst, func_remap);
+template<typename T, LayoutType LAYOUT>
+template<typename DUMMY>
+void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C,
+    const size_t kernel_size, DeviceDriver * p_driver) {
+
+  // TODO: This buffer does not make much sense, but lets get
+  // the logical refactoring done first in a way as before
+  // before over optimize. 
+  DeviceMemoryPointer * copy = p_driver->get_device_pointer(NULL, sizeof(T)*cube.R*cube.C*cube.B*cube.D);
+  p_driver->malloc(copy);
+  DeviceMemoryPointer * output = cube.get_device_pointer(p_driver);
+  p_driver->memcpy(copy, output);
+
+  static_assert(std::is_same<T, float>::value,
+            "The func_src_to_dst function needs to change when T <> float.");
+
+  _func_src_to_dst_arg_helper arg1;
+  arg1.kernel_size = kernel_size;
+  arg1.R = R;
+  arg1.C = C;
+  arg1.sizeof_T = sizeof(T);
+  DeviceMemoryPointer * parg1 = p_driver->get_device_pointer((void*)&arg1, sizeof(_func_src_to_dst_arg_helper));
+
+  DeviceMemoryPointer * parg2 = p_driver->get_device_pointer((void*)&kernel_size, sizeof(size_t));
+
+  p_driver->parallel_map(copy, output, kernel_size*sizeof(T), 
+    &func_src_to_dst, parg1, &sfunc_remap, parg2);
   p_driver->free(copy);
   free(copy);
   
