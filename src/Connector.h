@@ -49,7 +49,9 @@ public:
      **/
     Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
         const size_t _kernel_size, const size_t _padding, const size_t _stride,
-        DeviceDriver * _p_driver) {
+        DeviceDriver * _p_driver):
+        iR(0), iC(0), iD(0), iB(0),
+        oR(0), oC(0), oD(0), oB(0) {
       std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
       assert(false);
     }

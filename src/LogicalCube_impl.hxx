@@ -58,6 +58,7 @@ struct _func_src_to_dst_arg_helper{
 };
 
 // TOFIX TO GPU
+__host__ __device__
 size_t _func_src_to_dst(size_t _dst_index, void * curry){
   const _func_src_to_dst_arg_helper * const parg =
     reinterpret_cast<_func_src_to_dst_arg_helper *>(curry);
@@ -66,8 +67,10 @@ size_t _func_src_to_dst(size_t _dst_index, void * curry){
   const size_t c_i = (dst_index/parg->kernel_size)/parg->R;
   return (c_i*parg->kernel_size + r_i*parg->C*parg->kernel_size)*parg->sizeof_T;
 }
+__device__
 FUNC_IDX_MAPPING func_src_to_dst = _func_src_to_dst;
 
+__host__ __device__
 void _sfunc_remap(void * _src, void * _dst, void * curry){
   float * const dst_data = (float *) _dst;
   float * const src_data = (float *) _src;
@@ -77,6 +80,7 @@ void _sfunc_remap(void * _src, void * _dst, void * curry){
     dst_data[i] = src_data[i];
   }
 }
+__device__
 FUNC_MM_MAPPING sfunc_remap = _sfunc_remap;
 
 /*
@@ -120,7 +124,9 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output
   arg1.sizeof_T = sizeof(T);
   DeviceMemoryPointer * parg1 = p_driver->get_device_pointer((void*)&arg1, sizeof(_func_src_to_dst_arg_helper));
 
-  DeviceMemoryPointer * parg2 = p_driver->get_device_pointer((void*)&kernel_size, sizeof(size_t));
+  size_t d_kernel = kernel_size;
+
+  DeviceMemoryPointer * parg2 = p_driver->get_device_pointer((void*)&d_kernel, sizeof(size_t));
 
   p_driver->parallel_map(copy, output, kernel_size*sizeof(T), 
     &func_src_to_dst, parg1, &sfunc_remap, parg2);
@@ -164,6 +170,20 @@ LogicalCube<T, LAYOUT>::LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B) 
   R(_R), C(_C), D(_D), B(_B),
   own_data(true),
   p_data((T*) malloc(sizeof(T)*_R*_C*_D*_B)) {} // TODO: change to 32byte align
+
+template<typename T, LayoutType LAYOUT>
+LogicalCube<T, LAYOUT>::LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B, DeviceDriver * p_driver) :
+  n_elements(_R*_C*_D*_B),
+  R(_R), C(_C), D(_D), B(_B),
+  own_data(true){
+  std::cout << "Allocating " << 1.0*sizeof(T)*_R*_C*_D*_B/1024/1024 << " MB..." << std::endl;
+  DeviceMemoryPointer * ptr = p_driver->get_device_pointer(NULL, sizeof(T)*_R*_C*_D*_B);
+  p_driver->malloc(ptr);
+  p_data = (T*) ptr->ptr;
+
+}
+
+
 
 template<typename T, LayoutType LAYOUT>
 void LogicalCube<T, LAYOUT>::reset_cube() {

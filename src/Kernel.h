@@ -56,7 +56,11 @@ public:
     Kernel(const Input1LogicalCubeType * const p_input1_cube,
            const Input2LogicalCubeType * const p_input2_cube,
            const OutputLogicalCubeType * const p_output_cube,
-           DeviceDriver * _p_driver){
+           DeviceDriver * _p_driver):
+        i1R(0), i1C(0), i1D(0), i1B(0),
+        i2R(0), i2C(0), i2D(0), i2B(0),
+        oR(0), oC(0), oD(0), oB(0)
+    {
         std::cerr << "ERROR: Using a kernel with unsupported Layout or DataType." << std::endl;
         assert(false);
     }

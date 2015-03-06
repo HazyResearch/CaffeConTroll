@@ -50,6 +50,7 @@ struct _func_src_to_dst_arg_helper_lower1{
 };
 
 // TOFIX TO GPU
+__host__ __device__
 size_t _func_src_to_dst_conv_lowering(size_t _input_idx, void * curry){
   const _func_src_to_dst_arg_helper_lower1 * const parg
     = reinterpret_cast<_func_src_to_dst_arg_helper_lower1*>(curry);
@@ -62,35 +63,54 @@ size_t _func_src_to_dst_conv_lowering(size_t _input_idx, void * curry){
   const size_t output_row = i_d * parg->row_multipler;
   const size_t output_col = i_b * parg->col_multipler;
   return (output_row*parg->oC + output_col) * sizeof(float);
+
 }
+__device__
 FUNC_IDX_MAPPING func_src_to_dst_conv_lowering = _func_src_to_dst_conv_lowering;
 
+__host__ __device__
 void _func_lowering(void * _dst, void * _src, void * curry){
 
   const _func_src_to_dst_arg_helper_lower1 * const parg
     = reinterpret_cast<_func_src_to_dst_arg_helper_lower1*>(curry);
 
-  const int height = parg->iR;
-  const int width = parg->iC;
+  int iR = parg->iR;
+  int iC = parg->iC;
+  int oC = parg->oC;
+  int padding = parg->padding;
+  int kernel_size = parg->kernel_size;
+  int stride = parg->stride;
+  int _kernel_size = parg->kernel_size;
+
+  /*
+  int iR = 20;
+  int iC = 20;
+  int oC = 10;
+  int padding = 2;
+  int kernel_size = 5;
+  int stride = 2;
+  int _kernel_size = 5;
+  */
+
+  const int height = iR;
+  const int width = iC;
   const float * const input_data = (float *) _src;
   float * const output_data = (float *) _dst;
 
-  int _kernel_size = parg->kernel_size;
-
-  const int num_height_windows = (height + 2 * parg->padding - parg->kernel_size) / parg->stride + 1; // number of convolution "windows" row-wise
-  const int num_width_windows = (width + 2 * parg->padding - parg->kernel_size) / parg->stride + 1; // number of convolution "windows" column-wise
+  const int num_height_windows = (height + 2 * padding - kernel_size) / stride + 1; // number of convolution "windows" row-wise
+  const int num_width_windows = (width + 2 * padding - kernel_size) / stride + 1; // number of convolution "windows" column-wise
 
   // i & j keep track of which "window" we're currently calculating. Incremented by 1 each time.
   // src_row_base and src_col_base indicate the starting indices for the window. Incremented by stride each time.
   // dst_col increases every time we calculate a new windo. Incremented by 1 each time.
-  for (int src_row_base = -parg->padding, i = 0, dst_col = 0; i < num_height_windows; src_row_base += parg->stride, ++i) {
-    for (int src_col_base = -parg->padding, j = 0; j < num_width_windows; src_col_base += parg->stride, ++dst_col, ++j) {
+  for (int src_row_base = -padding, i = 0, dst_col = 0; i < num_height_windows; src_row_base += stride, ++i) {
+    for (int src_col_base = -padding, j = 0; j < num_width_windows; src_col_base += stride, ++dst_col, ++j) {
       // src_row and src_col start at src_row_base and src_col_base, respectively, and iterate a total of kernel_size times. Incremented by 1 each time.
       // dst_row_i starts at dst_row_base. Incremented by kernel_size each time.
       // dst_row starts at dst_row_i. Incremented by 1 each time.
       for (int src_row = src_row_base, dst_row_i = 0; src_row < _kernel_size + src_row_base; ++src_row, dst_row_i += _kernel_size) {
         for (int src_col = src_col_base, dst_row = dst_row_i; src_col < _kernel_size + src_col_base; ++src_col, ++dst_row) {
-          const size_t dst = dst_col + dst_row*parg->oC;
+          const size_t dst = dst_col + dst_row*oC;
           if (src_row < 0 || src_row >= width || src_col < 0 || src_col >= height) {
             output_data[dst] = 0;
           } else {
@@ -101,6 +121,7 @@ void _func_lowering(void * _dst, void * _src, void * curry){
     }
   }
 }
+__device__ 
 FUNC_MM_MAPPING func_lowering = _func_lowering;
 
 /**
@@ -162,6 +183,7 @@ struct _func_src_to_dst_arg_helper_ilower1{
 };
 
 // TOFIX TO GPU
+__host__ __device__
 size_t _func_src_to_dst_conv_ilowering(size_t _input_idx, void * curry){
   const _func_src_to_dst_arg_helper_ilower1 * const parg
     = reinterpret_cast<_func_src_to_dst_arg_helper_ilower1*>(curry);
@@ -173,9 +195,12 @@ size_t _func_src_to_dst_conv_ilowering(size_t _input_idx, void * curry){
   const size_t i_d = (input_idx/(parg->iR*parg->iC)) % parg->iD;
   return (parg->data_output_width * parg->data_output_height * 
     (i_b + i_d * parg->iB*parg->kernel_size*parg->kernel_size))*sizeof(float);
+
 }
+__device__
 FUNC_IDX_MAPPING func_src_to_dst_conv_ilowering = _func_src_to_dst_conv_ilowering;
 
+__host__ __device__
 void _func_ilowering(void * _dst, void * _src, void * curry){
 
   const _func_src_to_dst_arg_helper_ilower1 * const parg
@@ -213,7 +238,9 @@ void _func_ilowering(void * _dst, void * _src, void * curry){
       }
     }
   }
+
 }
+__device__
 FUNC_MM_MAPPING func_ilowering = _func_ilowering;
 
 

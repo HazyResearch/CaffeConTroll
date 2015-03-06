@@ -6,6 +6,8 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
+#include "../sched/DeviceDriver_GPU.h"
+
 #ifndef moka_ConvolutionBridge_impl_hxx
 #define moka_ConvolutionBridge_impl_hxx
 
@@ -15,7 +17,7 @@ ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType,
 ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
   const cnn::LayerParameter * const _layer_param, const cnn::SolverParameter * const _solver_param)
 : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer,
-    _p_output_layer, _layer_param, _solver_param, NULL),
+    _p_output_layer, _layer_param, _solver_param, new GPUDriver()),
                             // // TOFIX TO GPU
                             // TODO: THIS (new CPUDriver) IS ONLY FOR DEBUGGING!!! REFACTOR THIS OUT!!!
                             // THIS IS ONLY TO MAKE SURE WE CAN FINISH LOGICAL-IZE EVERYTHING
@@ -46,29 +48,38 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
 #endif
 
   p_model_cube = new LogicalCubeType(NULL, K, K, iD, num_output_features);
+    // this should be POINT to device
 
-  p_model_cube_shadow = new LogicalCubeType(K, K, iD, num_output_features);
+  p_model_cube_shadow = new LogicalCubeType(K, K, iD, num_output_features, p_driver);
+    // this should be allocated on device
+  
   initialize_logical_cube(p_model_cube_shadow, weight_filler);
 
-  p_model_gradient_cube = new LogicalCubeType(K, K, iD, num_output_features);
+  p_model_gradient_cube = new LogicalCubeType(K, K, iD, num_output_features, p_driver);
+    // this should be allocated on device
 
   if (bias_term) {
-    p_bias_cube = new LogicalCubeType(1, 1, num_output_features, 1);
+    p_bias_cube = new LogicalCubeType(1, 1, num_output_features, 1, p_driver);
+        // this should be allocated to device
     initialize_logical_cube(p_bias_cube, bias_filler);
 
-    p_bias_gradient_cube = new LogicalCubeType(1, 1, num_output_features, 1);
+    p_bias_gradient_cube = new LogicalCubeType(1, 1, num_output_features, 1, p_driver);
+      // this should be allocated on device
   }
 
   // First, allocate the space we need for lowering
   // Following code is very messy without the Matrix interface -- TODO
   p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*iB,
-      1, 1);
+      1, 1, p_driver);
+      // this should be allocated on device
 
   LogicalCube<DataType, Layout_CRDB> lowered_forward_model(p_model_cube_shadow->get_p_data(), num_output_features,
       K*K*iD, 1, 1);
+    // this should be POINT to device
 
   LogicalCube<DataType, Layout_CRDB> lowered_forward_output(p_output_layer->p_data_cube->get_p_data(),
       num_output_features, oR*oC*iB, 1, 1);
+    // this should be POINT to device
 
   p_forward_lower_connector = new Connector<DataType, Layout_CRDB, DataType, Layout_CRDB,
                             LOWERING_TYPE1>(p_input_layer->p_data_cube, p_forward_lowered_data, K,
@@ -85,10 +96,12 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   // (only if we're applying a non-linear function
   // after the convolution)
   if (FUNC != FUNC_NOFUNC) {
-    p_backward_outputgrad = new LogicalCube<DataType, Layout_CRDB>(oR, oC, oD, oB);
+    p_backward_outputgrad = new LogicalCube<DataType, Layout_CRDB>(oR, oC, oD, oB, p_driver);
+      // this should be allocated on device
   }
 
-  p_backward_inputgrad = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*iB, 1, 1);
+  p_backward_inputgrad = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*iB, 1, 1, p_driver);
+      // this should be allocated on device
 
   // TODO: figure out a better way to support other functions besides tanh
   if (FUNC != FUNC_NOFUNC) {
@@ -156,6 +169,7 @@ struct _func_src_to_dst_arg_helper_conv{
 };
 
 // TOFIX TO GPU
+__host__ __device__
 size_t _func_src_to_dst_conv(size_t _output_index, void * curry){
   const _func_src_to_dst_arg_helper_conv * const parg =
     reinterpret_cast<_func_src_to_dst_arg_helper_conv*>(curry);
@@ -164,6 +178,7 @@ size_t _func_src_to_dst_conv(size_t _output_index, void * curry){
   const size_t o_d = (output_index/(parg->oR*parg->oC)) % parg->oD;
   return o_d*sizeof(float);
 }
+__device__
 FUNC_IDX_MAPPING func_src_to_dst_conv = _func_src_to_dst_conv;
 
 struct _sfunc_bias_arghelper_conv{
@@ -171,6 +186,7 @@ struct _sfunc_bias_arghelper_conv{
   size_t ORxOC;
 };
 
+__host__ __device__
 void _sfunc_bias(void * _bias, void * _output, void * curry){
   const float bias = * ((float *) _bias);
   float * const output_data = (float *) _output;
@@ -179,6 +195,7 @@ void _sfunc_bias(void * _bias, void * _output, void * curry){
     output_data[i] += bias;
   }
 }
+__device__
 FUNC_MM_MAPPING func_bias = _sfunc_bias;
 
 /*
@@ -218,6 +235,19 @@ void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Data
 forward() {
   Util::set_num_threads(run_with_n_threads);
 
+
+  // (0) get input by deref'ing host pointer to device space.
+  //    TODO: the following thing is only for DEBUG, it should be
+  //          moved up to AbstractBridge
+  Timer t;
+  LogicalCube<DataType, Layout_CRDB> * input_d_cube = new LogicalCubeType(
+    iR, iC, iD, iB, p_driver);
+  LogicalCube<DataType, Layout_CRDB> * output_d_cube = new LogicalCubeType(
+    oR, oC, oD, oB, p_driver);
+    // TODO DEREF
+  std::cout << "~~~~~" << t.elapsed() << std::endl;
+  t.restart();
+  std::cout << "0" << std::endl;
   report_forward_last_transfer.reset();
 
   if (p_model_cube->get_p_data() == NULL) {
@@ -230,9 +260,15 @@ forward() {
   LogicalCube<DataType, Layout_CRDB> lowered_output(p_output_layer->p_data_cube->get_p_data(),
       num_output_features, oR*oC*iB, 1, 1);
 
+  std::cout << "~~~~~" << t.elapsed() << std::endl;
+  t.restart();
+  std::cout << "1" << std::endl;
   // (1) do the lowering
-  p_forward_lower_connector->lower_cube(p_input_layer->p_data_cube, p_forward_lowered_data);
+  p_forward_lower_connector->lower_cube(input_d_cube, p_forward_lowered_data);
 
+  std::cout << "~~~~~" << t.elapsed() << std::endl;
+  t.restart();
+  std::cout << "2" << std::endl;
   // (2) call GEMM kernel
   p_forward_gemm_kernel->compute(&lowered_model, p_forward_lowered_data, &lowered_output);
 
@@ -248,19 +284,25 @@ forward() {
   //  TODO: figure out how to properly transpose the
   //  inputs so that we get the correct output without
   //  needing to call remap
-
+  
+  std::cout << "~~~~~" << t.elapsed() << std::endl;
+  t.restart();
+  std::cout << "3" << std::endl;
   // (3) apply non-linear functions
   if (FUNC != FUNC_NOFUNC) {
      p_forward_applyfunc_scanner->apply(&lowered_output);
   }
 
-  p_output_layer->p_data_cube->template remap_output<LOWERING_TYPE1>(num_output_features, iB, oR*oC, this->p_driver);
+  std::cout << "~~~~~" << t.elapsed() << std::endl;
+  t.restart();
+  std::cout << "4" << std::endl;
+  output_d_cube->template remap_output<LOWERING_TYPE1>(num_output_features, iB, oR*oC, this->p_driver);
 
   // TODO Refactor the following code into another module
   // This code is here mainly to speed-up the refactoring
   // to bring CONV logical
   if (bias_term) {
-    DeviceMemoryPointer * output = p_output_layer->p_data_cube->get_device_pointer(p_driver);
+    DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
     DeviceMemoryPointer * bias = p_bias_cube->get_device_pointer(p_driver);
 
     _func_src_to_dst_arg_helper_conv arg1;
@@ -278,6 +320,9 @@ forward() {
     p_driver->parallel_map(bias, output, oR*oC*sizeof(DataType), &func_src_to_dst_conv, 
       parg1, &func_bias, parg2);
   }
+  std::cout << "~~~~~" << t.elapsed() << std::endl;
+  t.restart();
+  std::cout << "5" << std::endl;
 
   report_forward_last_transfer.end();
   report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_lowering);

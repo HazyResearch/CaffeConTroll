@@ -1,4 +1,10 @@
 
+#include <cuda_runtime.h>
+#include <cublas_v2.h>
+#include <curand.h>
+#include <curand_kernel.h>
+
+
 #include "DeviceDriver.h"
 #include "DeviceDriver_GPU.h"
 
@@ -41,7 +47,6 @@ __global__ void _spmap(float * dst, float * src, int numElements, int srcSkip,
       (*func)(&dst[dst_idx], &src[src_idx], func_curry);
     }
   }
-
 }
 
 GPUDriver::GPUDriver(){
@@ -106,9 +111,12 @@ FUNC_MM_MAPPING * func, DeviceMemoryPointer * const func_curry){
 	  n_elements, src_skip, d_idx_myfunc, d_idx_func_curry, d_myfunc, d_func_curry);
 	err = cudaGetLastError();
 	if(err != cudaSuccess){
-	  std::cout << "Fail to launch _spmap" << std::endl;
+	  std::cout << "Fail to launch _spmap"  << "  ERROR " << err << std::endl;
 	  assert(false);
 	}
+	cudaDeviceSynchronize();
+	err = cudaGetLastError();
+	assert(err == cudaSuccess);
 
 	cudaFree(d_func_curry);
 	cudaFree(d_idx_func_curry);
@@ -149,9 +157,12 @@ void GPUDriver::sapply(DeviceMemoryPointer * dst, FUNC_STRANSFORM * func, Device
 	_sapply<<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr, n_elements, d_myfunc, d_func_curry);
 	err = cudaGetLastError();
 	if(err != cudaSuccess){
-	  std::cout << "Fail to launch _sapply" << std::endl;
+	  std::cout << "Fail to launch _sapply" << "  ERROR " << err << std::endl;
 	  assert(false);
 	}
+	cudaDeviceSynchronize();
+	err = cudaGetLastError();
+	assert(err == cudaSuccess);
 
 	cudaFree(d_func_curry);
 }
@@ -212,6 +223,10 @@ DeviceMemoryPointer * src2, FUNC_SREDUCE * func, DeviceMemoryPointer * const fun
 	  std::cout << "Fail to launch _sreduce" << std::endl;
 	  assert(false);
 	}
+	cudaDeviceSynchronize();
+	err = cudaGetLastError();
+	assert(err == cudaSuccess);
+
 
 }
 

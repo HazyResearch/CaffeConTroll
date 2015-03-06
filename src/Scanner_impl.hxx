@@ -26,8 +26,11 @@ template
 void Scanner<DataType, Layout, FUNC_TANH>::apply(LogicalCubeType * const p_cube){
     report_last_apply.reset();
 
-    DeviceMemoryPointer * data = p_cube->get_device_pointer(p_driver);
-    p_driver->sapply(data, [](DataType& a)->DataType{a = tanh(a);});
+    assert(false);
+        // TODO: THIS NEVER APPERAS NOW -- TANH SHOULD BE A SEPERATE LAYER LIKE RELU
+
+    //DeviceMemoryPointer * data = p_cube->get_device_pointer(p_driver);
+    //p_driver->sapply(data, [](DataType& a)->DataType{a = tanh(a);});
 
     /*
     DataType * const data = p_cube->get_p_data();

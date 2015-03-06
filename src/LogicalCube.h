@@ -72,6 +72,14 @@ class LogicalCube {
      **/
     LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B);
 
+    /**
+     * Constuctor that actually allocates the data
+     * ON DEVICE. If a cube allcoates the data, 
+     * it needs to free it.
+     *  - own_data = True
+     **/
+    LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B, DeviceDriver * p_driver);
+
     ~LogicalCube();
 
     T * const get_p_data() const;

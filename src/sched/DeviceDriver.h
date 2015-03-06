@@ -137,7 +137,7 @@ public:
   /**
    * Logical functions that only depends on other virtual functions.
    **/
-    void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch){
+    virtual void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch){
       assert(false);
     }
 
@@ -152,7 +152,7 @@ public:
     }
     */
 
-   void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p){
+   virtual void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p){
     assert(false);
    }
    /*
@@ -163,7 +163,7 @@ public:
     }
     */
 
-    void sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev){
+    virtual void sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev){
       assert(false);
     }
     /*
@@ -174,7 +174,7 @@ public:
     }
     */
 
-    void sconstant_initialize(DeviceMemoryPointer *arr, const float value){
+    virtual void sconstant_initialize(DeviceMemoryPointer *arr, const float value){
       assert(false);
     }
     
@@ -186,15 +186,4 @@ public:
 };
 
 #endif
-
-
-
-
-
-
-
-
-
-
-
 
