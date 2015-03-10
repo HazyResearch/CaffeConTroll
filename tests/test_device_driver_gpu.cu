@@ -62,7 +62,7 @@ TEST(DeviceDriverTest, GPU_PMAP) {
 	driver.sconstant_initialize(&p1, 0.2);
 	driver.sconstant_initialize(&p2, 3.0);
 
-	driver.parallel_map(&p2, &p1, 4, &f_idx_strid4_copy, &p_one, &f_strid4_copy, &p_one);
+	driver.parallel_map(&p2, &p1, 4*sizeof(float), &f_idx_strid4_copy, &p_one, &f_strid4_copy, &p_one);
   	cudaMemcpy(numbers, p2.ptr, p2.size_in_byte, cudaMemcpyDeviceToHost);
 	
 	test_array_equals_constant(numbers, 1000, 1.2);

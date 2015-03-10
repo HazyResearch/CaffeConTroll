@@ -15,6 +15,10 @@
 #include <cmath>
 #include <cstring>
 
+#include "../src/sched/DeviceDriver_GPU.h"
+#include "../src/kernels/lowering.h"
+
+
 template <typename T>
 void simple_conv(LogicalCube<T, Layout_CRDB>* in, LogicalCube<T, Layout_CRDB>* kernel, LogicalCube<T, Layout_CRDB>* out){
   int ofm = out->D;
@@ -75,7 +79,8 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
       ParallelizedConvolutionBridge_ = new ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, 
               FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>
               (layer1, layer2, &layer_param, &solver_param);
-      ParallelizedConvolutionBridge_->p_driver = new GPUDriver();
+
+      //ParallelizedConvolutionBridge_->p_driver = new GPUDriver();
 
       ParallelizedConvolutionBridge_->needs_to_calc_backward_grad = true;
     }
@@ -100,6 +105,7 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
 
     cnn::SolverParameter solver_param;
 
+    /*
     static const int mB = 4;
     static const int iD = 3;
     static const int oD = 10;
@@ -107,6 +113,16 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
     static const int iC = 20;
     static const int k = 5;
     static const int s = 2;
+    static const int p = 2;
+    */
+
+    static const int mB = 256;
+    static const int iD = 48;
+    static const int oD = 128;
+    static const int iR = 27;
+    static const int iC = 27;
+    static const int k = 5;
+    static const int s = 1;
     static const int p = 2;
 
     static const int oR = static_cast<int>((static_cast<float>(iR + 2*p - k) / s)) + 1;
@@ -125,7 +141,6 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestInitialization){
 
 
 TYPED_TEST(ParallelizedConvolutionBridgeTest, TestForward){
-  typedef typename TypeParam::T T;
 
   /*
   std::fstream input("tests/input/conv_forward_in.txt", std::ios_base::in);
@@ -139,7 +154,9 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestForward){
     FAIL();
   }
   input.close();
+  */
 
+  /*
   std::fstream model("tests/input/conv_model.txt", std::ios_base::in);
   if (model.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->oD;i++){
@@ -164,16 +181,29 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestForward){
   */
 
   this->ParallelizedConvolutionBridge_->forward();
+
   this->ParallelizedConvolutionBridge_->report_forward_last_transfer.print();
   this->ParallelizedConvolutionBridge_->report_forward_kernel.print();
   this->ParallelizedConvolutionBridge_->report_forward_lowering.print();
 
+  /*
+  std::fstream expected_output("tests/output/conv_forward.txt", std::ios_base::in);
+  if(TypeParam::FUNC == FUNC_NOFUNC){
+    float output;
+    int idx = 0;
+    if (expected_output.is_open()) {
 
-  this->ParallelizedConvolutionBridge_->forward();
-  this->ParallelizedConvolutionBridge_->report_forward_last_transfer.print();
-  this->ParallelizedConvolutionBridge_->report_forward_kernel.print();
-  this->ParallelizedConvolutionBridge_->report_forward_lowering.print();
+      while (expected_output >> output){
+       // EXPECT_NEAR(this->data2->get_p_data()[idx++], output, EPS);
+        std::cout << this->data2->get_p_data()[idx++] << std::endl;
+      }
 
+    }else{
+      FAIL();
+    }
+    expected_output.close();
+  }
+  */
 
   /*
   std::fstream expected_output("tests/output/conv_forward.txt", std::ios_base::in);

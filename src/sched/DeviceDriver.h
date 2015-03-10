@@ -2,9 +2,8 @@
 #include <functional>
 #include <math.h>
 #include <random>
-#include "DeviceMemoryPointer.h"
-#include "cblas.h"
-
+#include "DeviceHeader.h"
+#include "../kernels/lowering.h"
 
 #ifndef _DEVICE_DRIVER_H
 #define _DEVICE_DRIVER_H
@@ -16,43 +15,6 @@ using std::mt19937;
 using std::uniform_real_distribution;
 using std::bernoulli_distribution;
 using std::normal_distribution;
-
-/**
- * We use C style function pointer here just becauses
- * there is no clean way in CUDA (7.0) and OpenCL (2.0)
- * to pass a host C++11 Lambda with capture to the device.
- * We could have used C-style macro to achieve this,
- * but that is even more messier.
- **/
-typedef size_t (*FUNC_IDX_MAPPING) (size_t, void * const);
-typedef void (*FUNC_MM_MAPPING) (void *, void *, void * const);
-typedef float (*FUNC_STRANSFORM) (float, void * const);
-typedef float (*FUNC_SREDUCE) (float, float, void * const);
-
-struct PMapHelper{
-  size_t dR, dC, dD, dB;  // dst RCDB
-  size_t sR, sC, sD, sB;  // src RCDB
-  size_t dBR, dBC;  // dst block
-  size_t sBR, sBC;  // src block
-
-  // lowering
-  size_t kR, kC, kD, kB;  // kernel RCDB
-};
-
-struct Block2D{
-  size_t r, c, d, b;
-  size_t dr, dc;
-} ;
-
-struct PointIn2DBlock{
-  float data;
-  size_t r, c;
-  Block2D block;
-} ;
-
-typedef void (*FPMAP_ID) (Block2D * const dst , const Block2D * const src, const PMapHelper * const args);
-typedef void (*FPMAP_DATA_READC) (float * output, const Block2D * const output_block, const PointIn2DBlock * const input_point, 
-  const PMapHelper * const args);
 
 /**
  * A DeviceDriver is the only way
@@ -157,61 +119,25 @@ public:
   void selementwise_reduce2(DeviceMemoryPointer *dst, DeviceMemoryPointer *src1, 
     DeviceMemoryPointer *src2, FUNC_SREDUCE * func, DeviceMemoryPointer * const func_curry) ;
 
-  /**
-   * Single-precison random number generator.
-   **/
-  virtual FUNC_STRANSFORM * srand_uni(float, float, DeviceMemoryPointer *) = 0;
-  virtual FUNC_STRANSFORM * srand_bern(float, DeviceMemoryPointer *) = 0;
-  virtual FUNC_STRANSFORM * srand_gaussian(float, float, DeviceMemoryPointer *) = 0;
-
-  /**
-   * Logical functions that only depends on other virtual functions.
-   **/
-    virtual void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch){
-      assert(false);
-    }
-
-    /*
-    {
-      const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
-      const size_t fan_in = n_arr_elements / n_batch;
-      const float scale = sqrt(3.0 / fan_in);
-      DeviceMemoryPointer_Local_RAM generator(NULL, 0);
-      auto f_uni = this->srand_uni(-scale, scale, &generator);
-      sapply(arr, f_uni, &generator);
-    }
-    */
-
-   virtual void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p){
+  virtual void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch){
     assert(false);
-   }
-   /*
-   {
-      DeviceMemoryPointer_Local_RAM generator(NULL, 0);
-      auto f_bern = this->srand_bern(p, &generator);
-      sapply(arr, f_bern, &generator);
-    }
-    */
+  }
 
-    virtual void sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev){
-      assert(false);
-    }
-    /*
-    {
-      DeviceMemoryPointer_Local_RAM generator(NULL, 0);
-      auto f_gaussian = this->srand_gaussian(mean, std_dev, &generator);
-      sapply(arr, f_gaussian, &generator);
-    }
-    */
+  virtual void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p){
+    assert(false);
+  }
 
-    virtual void sconstant_initialize(DeviceMemoryPointer *arr, const float value){
-      assert(false);
-    }
+  virtual void sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev){
+    assert(false);
+  }
+
+  virtual void sconstant_initialize(DeviceMemoryPointer *arr, const float value){
+    assert(false);
+  }
     
-
-    void smath_apply_grad(DeviceMemoryPointer *X, DeviceMemoryPointer *Y) {
-      smath_axpy(-1.0, Y, X);
-    }
+  void smath_apply_grad(DeviceMemoryPointer *X, DeviceMemoryPointer *Y) {
+    smath_axpy(-1.0, Y, X);
+  }
 
 };
 

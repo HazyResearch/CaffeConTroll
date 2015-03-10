@@ -55,12 +55,6 @@ public:
   void selementwise_reduce2(DeviceMemoryPointer * dst, DeviceMemoryPointer * src1, 
     DeviceMemoryPointer * src2, FUNC_SREDUCE * func, DeviceMemoryPointer * const func_curry);
 
-  FUNC_STRANSFORM * srand_uni(float lower, float upper, DeviceMemoryPointer * arg);
-
-  FUNC_STRANSFORM * srand_bern(float p, DeviceMemoryPointer * arg);
-
-  FUNC_STRANSFORM * srand_gaussian(float mean, float std_dev, DeviceMemoryPointer * arg);
-
   void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch);
 
   void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p);

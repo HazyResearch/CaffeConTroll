@@ -144,76 +144,7 @@ initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter
     cout << "ERROR! INITIALIZATION TYPE NOT SUPPORTED!" << endl;
     assert(false);
   }
-  /*
-  if (type == "constant") {
-    Util::constant_initialize<DataType>(cube->get_p_data(), (DataType) filler_param.value(), cube->n_elements);
-  } else if (type == "xavier") {
-    Util::xavier_initialize(cube->get_p_data(), cube->n_elements, cube->B);
-  } else if (type == "bernoulli") {
-    Util::bernoulli_initialize(cube->get_p_data(), cube->n_elements, filler_param.value());
-  } else if (type == "gaussian") {
-    Util::gaussian_initialize(cube->get_p_data(), cube->n_elements, (DataType) filler_param.mean(),
-        (DataType) filler_param.std());
-  } else {
-    cout << "ERROR! INITIALIZATION TYPE NOT SUPPORTED!" << endl;
-    assert(false);
-  }
-  */
 }
-
-
-struct _func_src_to_dst_arg_helper_conv{
-  size_t oR;
-  size_t oC;
-  size_t oD;
-};
-
-// TOFIX TO GPU
-__host__ __device__
-size_t _func_src_to_dst_conv(size_t _output_index, void * curry){
-  const _func_src_to_dst_arg_helper_conv * const parg =
-    reinterpret_cast<_func_src_to_dst_arg_helper_conv*>(curry);
-  const size_t output_index = _output_index/sizeof(float); // TODO, this uglyness implies that DeviceMemoryPointer needs a type.
-  const size_t o_b = output_index/(parg->oD*parg->oR*parg->oC);
-  const size_t o_d = (output_index/(parg->oR*parg->oC)) % parg->oD;
-  return o_d*sizeof(float);
-}
-__device__
-FUNC_IDX_MAPPING func_src_to_dst_conv = _func_src_to_dst_conv;
-
-struct _sfunc_bias_arghelper_conv{
-  float bias;
-  size_t ORxOC;
-};
-
-__host__ __device__
-void _sfunc_bias(void * _bias, void * _output, void * curry){
-  const float bias = * ((float *) _bias);
-  float * const output_data = (float *) _output;
-  size_t ORxOC = *((size_t *) curry);
-  for(size_t i=0;i<ORxOC;i++){
-    output_data[i] += bias;
-  }
-}
-__device__
-FUNC_MM_MAPPING func_bias = _sfunc_bias;
-
-/*
-    auto func_src_to_dst = [=](size_t _output_index){
-        const size_t output_index = _output_index/sizeof(DataType); // TODO, this uglyness implies that DeviceMemoryPointer needs a type.
-        const size_t o_b = output_index/(oD*oR*oC);
-        const size_t o_d = (output_index/(oR*oC)) % oD;
-        return o_d*sizeof(DataType);
-    };
-    auto func_bias = [=](void * _bias, void * _output){
-        const DataType bias = * ((DataType *) _bias);
-        DataType * const output_data = (DataType *) _output;
-
-        for(size_t i=0;i<oR*oC;i++){
-          output_data[i] += bias;
-        }
-    };
-*/
 
 /**
  * This function does the following:
@@ -240,11 +171,27 @@ forward() {
   //    TODO: the following thing is only for DEBUG, it should be
   //          moved up to AbstractBridge
   Timer t;
+  
+  // TODO DEREF
+
   LogicalCube<DataType, Layout_CRDB> * input_d_cube = new LogicalCubeType(
     iR, iC, iD, iB, p_driver);
   LogicalCube<DataType, Layout_CRDB> * output_d_cube = new LogicalCubeType(
     oR, oC, oD, oB, p_driver);
-    // TODO DEREF
+
+  // copy input data to driver
+  cudaMemcpy(input_d_cube->get_p_data(), p_input_layer->p_data_cube->get_p_data(), 
+    iR * iC * iD * iB * sizeof(float), cudaMemcpyHostToDevice);
+
+  /*
+  float * tmp = new float[100000];
+  cudaMemcpy(tmp, input_d_cube->get_p_data(), 
+    input_d_cube->n_elements * sizeof(float), cudaMemcpyDeviceToHost);
+  for(int i=0;i<input_d_cube->n_elements;i++){
+    std::cout << "& " << tmp[i] << std::endl;
+  }
+  */
+
   std::cout << "~~~~~" << t.elapsed() << std::endl;
   t.restart();
   std::cout << "0" << std::endl;
@@ -257,7 +204,7 @@ forward() {
   // This one should be refactored with the matrix interface
   LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->get_p_data(), num_output_features,
       K*K*iD, 1, 1);
-  LogicalCube<DataType, Layout_CRDB> lowered_output(p_output_layer->p_data_cube->get_p_data(),
+  LogicalCube<DataType, Layout_CRDB> lowered_output(output_d_cube->get_p_data(),
       num_output_features, oR*oC*iB, 1, 1);
 
   std::cout << "~~~~~" << t.elapsed() << std::endl;
@@ -265,6 +212,15 @@ forward() {
   std::cout << "1" << std::endl;
   // (1) do the lowering
   p_forward_lower_connector->lower_cube(input_d_cube, p_forward_lowered_data);
+
+  /*
+  float * tmp = new float[100000];
+  cudaMemcpy(tmp, p_model_cube_shadow->get_p_data(), 
+    p_model_cube_shadow->n_elements * sizeof(float), cudaMemcpyDeviceToHost);
+  for(int i=0;i<p_model_cube_shadow->n_elements;i++){
+    std::cout << "* " << tmp[i] << std::endl;
+  }
+  */
 
   std::cout << "~~~~~" << t.elapsed() << std::endl;
   t.restart();
@@ -293,15 +249,37 @@ forward() {
      p_forward_applyfunc_scanner->apply(&lowered_output);
   }
 
+  /*
+  float * tmp = new float[lowered_output.n_elements];
+  cudaMemcpy(tmp, lowered_output.get_p_data(), 
+    lowered_output.n_elements * sizeof(float), cudaMemcpyDeviceToHost);
+  for(int i=0;i<lowered_output.n_elements;i++){
+    std::cout << "* " << tmp[i] << std::endl;
+  }
+  */
+
+
   std::cout << "~~~~~" << t.elapsed() << std::endl;
   t.restart();
   std::cout << "4" << std::endl;
   output_d_cube->template remap_output<LOWERING_TYPE1>(num_output_features, iB, oR*oC, this->p_driver);
 
+  /*
+  float * tmp = new float[100000];
+  cudaMemcpy(tmp, output_d_cube->get_p_data(), 
+    output_d_cube->n_elements * sizeof(float), cudaMemcpyDeviceToHost);
+  for(int i=0;i<output_d_cube->n_elements;i++){
+    std::cout << "~ " << tmp[i] << std::endl;
+  }
+  */
+
+
   // TODO Refactor the following code into another module
   // This code is here mainly to speed-up the refactoring
   // to bring CONV logical
   if (bias_term) {
+    //assert(false);
+    /*
     DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
     DeviceMemoryPointer * bias = p_bias_cube->get_device_pointer(p_driver);
 
@@ -319,10 +297,17 @@ forward() {
 
     p_driver->parallel_map(bias, output, oR*oC*sizeof(DataType), &func_src_to_dst_conv, 
       parg1, &func_bias, parg2);
+    */
   }
   std::cout << "~~~~~" << t.elapsed() << std::endl;
   t.restart();
   std::cout << "5" << std::endl;
+
+  // copy output data 
+  cudaMemcpy(p_output_layer->p_data_cube->get_p_data(),
+    output_d_cube->get_p_data(), oR * oC * oD * oB * sizeof(float), cudaMemcpyDeviceToHost);
+  std::cout << "~~~~~" << t.elapsed() << std::endl;
+  
 
   report_forward_last_transfer.end();
   report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_lowering);

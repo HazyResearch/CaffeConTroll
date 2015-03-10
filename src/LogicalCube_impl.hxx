@@ -13,6 +13,8 @@
 #include <string.h>
 #include "util.h"
 
+#include "sched/DeviceDriver_GPU.h"
+
 using namespace std;
 
 template<typename T, LayoutType LAYOUT>
@@ -117,6 +119,7 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output
   static_assert(std::is_same<T, float>::value,
             "The func_src_to_dst function needs to change when T <> float.");
 
+  /*
   _func_src_to_dst_arg_helper arg1;
   arg1.kernel_size = kernel_size;
   arg1.R = R;
@@ -129,7 +132,19 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output
   DeviceMemoryPointer * parg2 = p_driver->get_device_pointer((void*)&d_kernel, sizeof(size_t));
 
   p_driver->parallel_map(copy, output, kernel_size*sizeof(T), 
-    &func_src_to_dst, parg1, &sfunc_remap, parg2);
+      &func_src_to_dst, parg1, &sfunc_remap, parg2);
+      */
+
+  PMapHelper args;
+  args.dR = cube.R; args.dC = cube.C; args.dD = cube.D; args.dB = cube.B;
+  args.sR = cube.R; args.sC = cube.C; args.sD = cube.D; args.sB = cube.B;
+  args.dBR = args.dR; args.dBC = args.dC;
+  args.sBR = min((size_t)32, args.sR); args.sBC = min((size_t)32, args.sC);
+
+  //invoke_lowering((GPUDriver*)p_driver, output, input, args);
+  ((GPUDriver*)p_driver)->pmap2d_read_coalesce<_fpmap_id,_fmap_remap>(output, copy, args);
+  //((GPUDriver*)p_driver)->pmap2d_read_coalesce<_fpmap_id,_fmap_lower>(output, input, args);
+
   p_driver->free(copy);
   free(copy);
   

@@ -35,17 +35,25 @@ __global__ void _spmap(float * dst, float * src, int numElements, int srcSkip,
   FUNC_IDX_MAPPING idx_func, void * const idx_func_curry,
   FUNC_MM_MAPPING func, void * const func_curry){
 
-  int i = blockDim.x * blockIdx.x + threadIdx.x;
+  int i = (blockDim.x * blockIdx.x + threadIdx.x);
   i = i * srcSkip;
   int src_idx, dst_idx;
 
-  for(int j=0; j<srcSkip; j++){
+  src_idx = i;
+  if(src_idx < numElements*srcSkip){
+    dst_idx = (*idx_func)(src_idx, idx_func_curry);
+    (*func)(&dst[dst_idx/sizeof(float)], &src[src_idx/sizeof(float)], func_curry);
+  }
+
+  /*
+  for(int j=0; j<srcSkip; j+=sizeof(float)){
     src_idx = i + j;
     if(src_idx < numElements){
       dst_idx = (*idx_func)(src_idx, idx_func_curry);
-      (*func)(&dst[dst_idx], &src[src_idx], func_curry);
+      (*func)(&dst[dst_idx/sizeof(float)], &src[src_idx/sizeof(float)], func_curry);
     }
   }
+  */
 }
 
 
@@ -139,21 +147,10 @@ template<__device__ FPMAP_ID f_id, __device__ FPMAP_DATA_READC f_data>
 void GPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
     const struct PMapHelper args){
 
-	// First, create host version of func
-	//FPMAP_DATA_READC h_func;
-	//cudaMemcpyFromSymbol(&h_func, *f_data, sizeof(FPMAP_DATA_READC));
-	//FPMAP_DATA_READC d_myfunc = h_func;
-
-	//FPMAP_ID h_idx_func;
-	//cudaMemcpyFromSymbol(&h_idx_func, *f_id, sizeof(FPMAP_ID));
-	//FPMAP_ID d_idx_myfunc = h_idx_func;
-
 	// input block sizes
 	size_t sBR = args.sBR, sBC = args.sBC;
 	dim3 threadsPerBlock(sBC, sBR);	// trivial impl -- each input pixel is a single thread
 	dim3 numBlocks(args.sR*args.sC/sBC/sBR, args.sD*args.sB);
-
-	//_spmap_readc<_fpmap_id,_fmap_lower><<<numBlocks, threadsPerBlock>>>((float*) dst->ptr, (float*) src->ptr, args);
 
 	_spmap_readc<f_id,f_data><<<numBlocks, threadsPerBlock>>>((float*) dst->ptr, (float*) src->ptr, args);
 	err = cudaGetLastError();
@@ -227,8 +224,8 @@ FUNC_MM_MAPPING * func, DeviceMemoryPointer * const func_curry){
 	cudaMemcpy(d_idx_func_curry, f_dst_pos_curry->ptr, f_dst_pos_curry->size_in_byte, cudaMemcpyHostToDevice);
 
 	// Run.
-	const int n_elements =  dst->size_in_byte / sizeof(float);
-	int blocksPerGrid = (n_elements/src_skip + 1 + threadsPerBlock - 1) / threadsPerBlock;
+	const int n_elements =  dst->size_in_byte / src_skip;
+	int blocksPerGrid = (n_elements + 1 + threadsPerBlock - 1) / threadsPerBlock;
 	_spmap<<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr, (float *) src->ptr,
 	  n_elements, src_skip, d_idx_myfunc, d_idx_func_curry, d_myfunc, d_func_curry);
 	err = cudaGetLastError();
@@ -238,7 +235,10 @@ FUNC_MM_MAPPING * func, DeviceMemoryPointer * const func_curry){
 	}
 	cudaDeviceSynchronize();
 	err = cudaGetLastError();
-	assert(err == cudaSuccess);
+	if(err != cudaSuccess){
+	  std::cout << "Fail to sync _spmap"  << "  ERROR " << err << std::endl;
+	  assert(false);
+	}
 
 	cudaFree(d_func_curry);
 	cudaFree(d_idx_func_curry);
@@ -311,6 +311,30 @@ void GPUDriver::set_num_threads(const int nThreads) {
 void GPUDriver::sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB, 
     int M, int N, int K, float alpha, float * pA, int LDA, float * pB, int LDB,
     float beta, float * pC, int LDC){
+  
+	// To calc Row(A) * Row(B) = Row(C)
+	// with Col(A) = Row(A)'
+	// We want Row(C) = Col(C)'
+	// Col(B) * Col(A) = Row(B)' * Row(A)' = (Col(A)*Col(B))' = (Col(C))' = Row(C)
+
+	if(TA == CblasNoTrans && TB == CblasNoTrans){
+
+		cublasOperation_t ta = CUBLAS_OP_N;
+		cublasOperation_t tb = CUBLAS_OP_N;
+
+		status = cublasSgemm(handle, tb, ta, N, M, K, &alpha, 
+			pB, N, pA, K, &beta, pC, N); 
+
+		cudaDeviceSynchronize();
+		err = cudaGetLastError();
+		assert(err == cudaSuccess);
+
+		assert(status == CUBLAS_STATUS_SUCCESS);
+
+	}else{
+		assert(false);
+	}
+
   //cblas_sgemm(order, TA, TB, M, N, K, alpha,
   //  pA, LDA,
   //  pB, LDB,
@@ -351,12 +375,6 @@ DeviceMemoryPointer * src2, FUNC_SREDUCE * func, DeviceMemoryPointer * const fun
 
 
 }
-
-FUNC_STRANSFORM * GPUDriver::srand_uni(float lower, float upper, DeviceMemoryPointer * arg){return NULL;}
-
-FUNC_STRANSFORM * GPUDriver::srand_bern(float p, DeviceMemoryPointer * arg){return NULL;}
-
-FUNC_STRANSFORM * GPUDriver::srand_gaussian(float mean, float std_dev, DeviceMemoryPointer * arg){return NULL;}
 
 /**
 * This function is called only once. So its speed does not matter.
@@ -424,7 +442,13 @@ void * GPUDriver::choose_ptr(void * host, void * device){
 	return device;
 }
 
+/**
+ * This is necessary for template to be instantiated.
+ */
 template void GPUDriver::pmap2d_read_coalesce<_fpmap_id,_fmap_lower>(DeviceMemoryPointer * dst, 
+	DeviceMemoryPointer * src, const struct PMapHelper args);
+
+template void GPUDriver::pmap2d_read_coalesce<_fpmap_id,_fmap_remap>(DeviceMemoryPointer * dst, 
 	DeviceMemoryPointer * src, const struct PMapHelper args);
 
 
