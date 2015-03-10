@@ -67,7 +67,7 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
 
       // TODO: set #partition to 8 does not halt
       ParallelizedConvolutionBridge_ = new ParallelizedBridge<DataType_SFFloat,
-              ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
+              ConvolutionBridge<CPU_CONV_LOWERINGTYPE2, FUNC_NOFUNC, DataType_SFFloat,
               Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
               (layer1, layer2, &layer_param, &solver_param, 4, 1);
 
@@ -76,7 +76,7 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
 
     virtual ~ParallelizedConvolutionBridgeTest() { delete layer1; delete layer2; }
     ParallelizedBridge<DataType_SFFloat,
-              ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
+              ConvolutionBridge<CPU_CONV_LOWERINGTYPE2, FUNC_NOFUNC, DataType_SFFloat,
               Layout_CRDB, DataType_SFFloat, Layout_CRDB> >* ParallelizedConvolutionBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;

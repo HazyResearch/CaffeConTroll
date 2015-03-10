@@ -94,7 +94,7 @@ TYPED_TEST(ConnectorLoweringType1Test, TestLowering){
   this->connector_->lower_cube(this->input_cube, this->output_cube);
 
   for(int i=0; i<n; i++){
-    EXPECT_NEAR(this->output_cube->p_data[i],  expected_output->p_data[i], EPS);
+    EXPECT_NEAR(this->output_cube->get_p_data()[i],  expected_output->get_p_data()[i], EPS);
   }
 
 }
@@ -146,7 +146,7 @@ TYPED_TEST(ConnectorLoweringType2Test, TestLowering){
   T input; int idx = 0;
   if (expected_input.is_open()) {
     while (expected_input >> input) {
-      this->input_cube->p_data[idx++] = input;
+      this->input_cube->get_p_data()[idx++] = input;
     }
   } else {
     FAIL();
@@ -159,7 +159,7 @@ TYPED_TEST(ConnectorLoweringType2Test, TestLowering){
   T output; idx = 0;
   if (expected_output.is_open()) {
     while (expected_output >> output) {
-      expected_output_cube->p_data[idx++] = output;
+      expected_output_cube->get_p_data()[idx++] = output;
     }
   } else {
     FAIL();
@@ -171,7 +171,7 @@ TYPED_TEST(ConnectorLoweringType2Test, TestLowering){
   this->connector_->lower_cube(this->input_cube, this->output_cube);
 
   for(int i=0; i<n; i++){
-    EXPECT_NEAR(this->output_cube->get_p_data()[i],  expected_output->get_p_data()[i], EPS);
+    EXPECT_NEAR(this->output_cube->get_p_data()[i],  expected_output_cube->get_p_data()[i], EPS);
   }
 
 }

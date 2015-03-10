@@ -22,7 +22,6 @@ template<class DataType>
 class GradientUpdater {
   public:
 
-<<<<<<< HEAD
     int current_iter; /*< start from 0, every update inc by 1 */
     const int n_elements; /*< # elements in the model. */
     DataType * const p_model; /*< pointer to the model to update */

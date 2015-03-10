@@ -185,12 +185,12 @@ forward() {
   // add bias
   if (bias_term) {
     const size_t output_feature_size = oR*oC;
-    const DataType * const bias_elems = p_bias_cube->get_p_data();
+    const DataType * const bias_data = p_bias_cube->get_p_data();
     for (size_t o_b = 0; o_b < oB; ++o_b) {
       for (size_t o_d = 0; o_d < oD; ++o_d) {
         const LogicalMatrix<DataType> output_data_slice =
           p_output_layer->p_data_cube->get_logical_matrix(o_d, o_b);
-        const DataType bias = bias_elems[o_d];
+        const DataType bias = bias_data[o_d];
         for (size_t i = 0; i < output_feature_size; ++i) {
           output_data_slice.p_data[i] += bias;
         }
@@ -255,7 +255,7 @@ backward() {
   if (bias_term) {
     const size_t output_feature_size = oR*oC;
     p_bias_gradient_cube->reset_cube();
-    DataType * const bias_term = p_bias_gradient_cube->get_p_data();
+    DataType * const bias_data = p_bias_gradient_cube->get_p_data();
     for (size_t o_b = 0; o_b < oB; ++o_b) {
       for (size_t o_d = 0; o_d < oD; ++o_d) {
         const LogicalMatrix<DataType> input_grad_slice = p_output_layer->p_gradient_cube->get_logical_matrix(o_d, o_b);
