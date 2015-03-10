@@ -29,6 +29,30 @@ typedef void (*FUNC_MM_MAPPING) (void *, void *, void * const);
 typedef float (*FUNC_STRANSFORM) (float, void * const);
 typedef float (*FUNC_SREDUCE) (float, float, void * const);
 
+struct PMapHelper{
+  size_t dR, dC, dD, dB;  // dst RCDB
+  size_t sR, sC, sD, sB;  // src RCDB
+  size_t dBR, dBC;  // dst block
+  size_t sBR, sBC;  // src block
+
+  // lowering
+  size_t kR, kC, kD, kB;  // kernel RCDB
+};
+
+struct Block2D{
+  size_t r, c, d, b;
+  size_t dr, dc;
+} ;
+
+struct PointIn2DBlock{
+  float data;
+  size_t r, c;
+  Block2D block;
+} ;
+
+typedef void (*FPMAP_ID) (Block2D * const dst , const Block2D * const src, const PMapHelper * const args);
+typedef void (*FPMAP_DATA_READC) (float * output, const Block2D * const output_block, const PointIn2DBlock * const input_point, 
+  const PMapHelper * const args);
 
 /**
  * A DeviceDriver is the only way
@@ -90,6 +114,11 @@ public:
   virtual void free(DeviceMemoryPointer * dst) = 0;
   virtual void memcpy(DeviceMemoryPointer * dst, DeviceMemoryPointer * src) = 0;
   virtual void memset(DeviceMemoryPointer * dst, const char value) = 0;
+
+  virtual void pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    FPMAP_ID * f_id, FPMAP_DATA_READC * f_data, const struct PMapHelper args) = 0;
+
+  //virtual void pmap2d_write_coalesce();
 
   /**
    * This function implements the following semantic.
