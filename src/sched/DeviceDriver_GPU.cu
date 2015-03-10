@@ -3,11 +3,10 @@
 #include <cublas_v2.h>
 #include <curand.h>
 #include <curand_kernel.h>
-
+#include "src/kernels/lowering.hxx"
 
 #include "DeviceDriver.h"
 #include "DeviceDriver_GPU.h"
-
 
 __host__ __device__ float __sconstant_initialize_helper(float a, void * arg){
   return *((float*)arg);
@@ -95,7 +94,8 @@ void _fmap_lower2(float * output, const Block2D * const output_block, const Poin
 	}
 }
 
-__global__ void _spmap_readc(float* dst, float * src, FPMAP_ID f_id, FPMAP_DATA_READC f_data, PMapHelper args){
+template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
+__global__ void _spmap_readc(float* dst, float * src, PMapHelper args){
 	const size_t block_x = blockIdx.x;
 	const size_t block_y = blockIdx.y;
 
@@ -112,7 +112,8 @@ __global__ void _spmap_readc(float* dst, float * src, FPMAP_ID f_id, FPMAP_DATA_
 
 	Block2D output_block;
 	//(*f_id)(&output_block, &input_block, &args);
-	_fpmap_id2(&output_block, &input_block, &args);
+	//_fpmap_id2(&output_block, &input_block, &args);
+	f_id(&output_block, &input_block, &args);
 
 	const size_t datar = threadIdx.y + input_block.r * args.sR;
 	const size_t datac = threadIdx.x + input_block.c * args.sC;
@@ -128,29 +129,33 @@ __global__ void _spmap_readc(float* dst, float * src, FPMAP_ID f_id, FPMAP_DATA_
 	point.c = threadIdx.x;
 
 	//(*f_data)(dst, &output_block, &point, &args);
-	_fmap_lower2(dst, &output_block, &point, &args);
+	//_fmap_lower2(dst, &output_block, &point, &args);
+	f_data(dst, &output_block, &point, &args);
 
 }
 
 
+template<__device__ FPMAP_ID f_id, __device__ FPMAP_DATA_READC f_data>
 void GPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
-    FPMAP_ID * f_id, FPMAP_DATA_READC * f_data, const struct PMapHelper args){
+    const struct PMapHelper args){
 
 	// First, create host version of func
-	FPMAP_DATA_READC h_func;
-	cudaMemcpyFromSymbol(&h_func, *f_data, sizeof(FPMAP_DATA_READC));
-	FPMAP_DATA_READC d_myfunc = h_func;
+	//FPMAP_DATA_READC h_func;
+	//cudaMemcpyFromSymbol(&h_func, *f_data, sizeof(FPMAP_DATA_READC));
+	//FPMAP_DATA_READC d_myfunc = h_func;
 
-	FPMAP_ID h_idx_func;
-	cudaMemcpyFromSymbol(&h_idx_func, *f_id, sizeof(FPMAP_ID));
-	FPMAP_ID d_idx_myfunc = h_idx_func;
+	//FPMAP_ID h_idx_func;
+	//cudaMemcpyFromSymbol(&h_idx_func, *f_id, sizeof(FPMAP_ID));
+	//FPMAP_ID d_idx_myfunc = h_idx_func;
 
 	// input block sizes
 	size_t sBR = args.sBR, sBC = args.sBC;
 	dim3 threadsPerBlock(sBC, sBR);	// trivial impl -- each input pixel is a single thread
 	dim3 numBlocks(args.sR*args.sC/sBC/sBR, args.sD*args.sB);
 
-	_spmap_readc<<<numBlocks, threadsPerBlock>>>((float*) dst->ptr, (float*) src->ptr, h_idx_func, h_func, args);
+	//_spmap_readc<_fpmap_id,_fmap_lower><<<numBlocks, threadsPerBlock>>>((float*) dst->ptr, (float*) src->ptr, args);
+
+	_spmap_readc<f_id,f_data><<<numBlocks, threadsPerBlock>>>((float*) dst->ptr, (float*) src->ptr, args);
 	err = cudaGetLastError();
 	if(err != cudaSuccess){
 	  std::cout << "Fail to launch _spmap_readc"  << "  ERROR " << err << std::endl;
@@ -419,5 +424,7 @@ void * GPUDriver::choose_ptr(void * host, void * device){
 	return device;
 }
 
+template void GPUDriver::pmap2d_read_coalesce<_fpmap_id,_fmap_lower>(DeviceMemoryPointer * dst, 
+	DeviceMemoryPointer * src, const struct PMapHelper args);
 
 

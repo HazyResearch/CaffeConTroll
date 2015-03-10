@@ -32,8 +32,9 @@ public:
 
   void memset(DeviceMemoryPointer * dst, const char value);
 
+  template<__device__ FPMAP_ID f_id, __device__ FPMAP_DATA_READC f_data>
   void pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
-    FPMAP_ID * f_id, FPMAP_DATA_READC * f_data, const struct PMapHelper args);
+    const struct PMapHelper args);
 
   void parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
     size_t src_skip, FUNC_IDX_MAPPING * f_dst_pos, DeviceMemoryPointer * const f_dst_pos_curry,

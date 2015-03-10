@@ -115,8 +115,9 @@ public:
   virtual void memcpy(DeviceMemoryPointer * dst, DeviceMemoryPointer * src) = 0;
   virtual void memset(DeviceMemoryPointer * dst, const char value) = 0;
 
-  virtual void pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
-    FPMAP_ID * f_id, FPMAP_DATA_READC * f_data, const struct PMapHelper args) = 0;
+  template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
+  void pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct PMapHelper args);
 
   //virtual void pmap2d_write_coalesce();
 
