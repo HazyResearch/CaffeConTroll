@@ -36,14 +36,15 @@ const struct PMapHelper args){
 
 }
 
+template<FUNC_IDX_MAPPING f_dst_pos, FUNC_MM_MAPPING func>
 void CPUDriver::parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
-size_t src_skip, FUNC_IDX_MAPPING * f_dst_pos, DeviceMemoryPointer * const f_dst_pos_curry,
-FUNC_MM_MAPPING * func, DeviceMemoryPointer * const func_curry){
+size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
+DeviceMemoryPointer * const func_curry){
   	char * p_dst = (char*) dst->ptr;
   	char * p_src = (char*) src->ptr;
   	const size_t src_size = src->size_in_byte;
   	for(size_t i=0; i<src_size; i+=src_skip){
-  		(*func)(&p_dst[(*f_dst_pos)(i, f_dst_pos_curry->ptr)], &p_src[i], func_curry->ptr);
+  		func(&p_dst[f_dst_pos(i, f_dst_pos_curry->ptr)], &p_src[i], func_curry->ptr);
   	}
 }
 
@@ -93,24 +94,25 @@ void CPUDriver::sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TR
 
 }
 
-void CPUDriver::sapply(DeviceMemoryPointer * dst, FUNC_STRANSFORM * func, DeviceMemoryPointer * const func_curry){
+template<FUNC_STRANSFORM func>
+void CPUDriver::sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const func_curry){
     const size_t n_element = dst->size_in_byte/sizeof(float);
     float * p = (float*) dst->ptr;
     for(size_t i=0;i<n_element;i++){
-      *(p) = (*func)(*(p), func_curry->ptr);
+      *(p) = func(*(p), func_curry->ptr);
       p++;
     }
 }
 
-
+template<FUNC_SREDUCE func>
 void CPUDriver::selementwise_reduce2(DeviceMemoryPointer * dst, DeviceMemoryPointer * src1, 
-DeviceMemoryPointer * src2, FUNC_SREDUCE * func, DeviceMemoryPointer * const func_curry){
+DeviceMemoryPointer * src2, DeviceMemoryPointer * const func_curry){
     const size_t n_element = dst->size_in_byte / sizeof(float);
     float * const p_dst = (float*) dst->ptr;
     const float * const p_src1 = (float*) src1->ptr;
     const float * const p_src2 = (float*) src2->ptr; 
     for(size_t i = 0; i < n_element; i++){
-      p_dst[i] = (*func)(p_src1[i], p_src2[i], func_curry->ptr);
+      p_dst[i] = func(p_src1[i], p_src2[i], func_curry->ptr);
     }
 }
 
@@ -159,4 +161,26 @@ void CPUDriver::sconstant_initialize(DeviceMemoryPointer *arr, const float value
 void * CPUDriver::choose_ptr(void * host, void * device){
 	return host;
 }
+
+/**
+ * This is necessary for template to be instantiated.
+ */
+template void CPUDriver::pmap2d_read_coalesce<_fpmap_id,_fmap_lower>(DeviceMemoryPointer * dst, 
+	DeviceMemoryPointer * src, const struct PMapHelper args);
+
+template void CPUDriver::pmap2d_read_coalesce<_fpmap_id,_fmap_remap>(DeviceMemoryPointer * dst, 
+	DeviceMemoryPointer * src, const struct PMapHelper args);
+
+
+template void CPUDriver::parallel_map<_f_idx_strid4_copy,_f_strid4_copy>
+	(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, size_t src_skip, 
+		DeviceMemoryPointer * const f_dst_pos_curry, DeviceMemoryPointer * const func_curry);
+
+template void CPUDriver::sapply<_f_add_one>(DeviceMemoryPointer * dst, DeviceMemoryPointer * const func_curry);
+
+template void CPUDriver::sapply<_f_set>(DeviceMemoryPointer * dst, DeviceMemoryPointer * const func_curry);
+
+template void CPUDriver::selementwise_reduce2<_f_reduce>(DeviceMemoryPointer * dst, 
+	DeviceMemoryPointer * src1, DeviceMemoryPointer * src2, DeviceMemoryPointer * const func_curry);
+
 

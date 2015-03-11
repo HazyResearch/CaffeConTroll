@@ -3,7 +3,8 @@
 #include <cublas_v2.h>
 #include <curand.h>
 #include <curand_kernel.h>
-#include "src/kernels/lowering.hxx"
+#include "../kernels/lowering.h"
+#include "../kernels/lowering.hxx"
 
 #include "DeviceDriver.h"
 #include "DeviceDriver_GPU.h"
@@ -11,29 +12,28 @@
 __host__ __device__ float __sconstant_initialize_helper(float a, void * arg){
   return *((float*)arg);
 }
-__device__ FUNC_STRANSFORM _sconstant_initialize_helper = __sconstant_initialize_helper;
+//__device__ FUNC_STRANSFORM _sconstant_initialize_helper = __sconstant_initialize_helper;
 
-__global__ void _sapply(float * dst, int numElements, FUNC_STRANSFORM func, 
-            void * const func_curry){
+template<FUNC_STRANSFORM func>
+__global__ void _sapply(float * dst, int numElements, void * const func_curry){
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if(i < numElements){
-    dst[i] = (*func)(dst[i], func_curry);
+    dst[i] = func(dst[i], func_curry);
   }
 }
 
-
-__global__ void _sreduce(float * dst, int numElements, float * src1, float * src2,
-            FUNC_SREDUCE func, void * const func_curry){
+template<FUNC_SREDUCE func>
+__global__ void _sreduce(float * dst, int numElements, float * src1, float * src2, 
+	void * const func_curry){
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if(i < numElements){
-    dst[i] = (*func)(src1[i], src2[i], func_curry);
+    dst[i] = func(src1[i], src2[i], func_curry);
   }
 }
 
-
+template<FUNC_IDX_MAPPING idx_func, FUNC_MM_MAPPING func>
 __global__ void _spmap(float * dst, float * src, int numElements, int srcSkip,
-  FUNC_IDX_MAPPING idx_func, void * const idx_func_curry,
-  FUNC_MM_MAPPING func, void * const func_curry){
+  void * const idx_func_curry, void * const func_curry){
 
   int i = (blockDim.x * blockIdx.x + threadIdx.x);
   i = i * srcSkip;
@@ -41,19 +41,9 @@ __global__ void _spmap(float * dst, float * src, int numElements, int srcSkip,
 
   src_idx = i;
   if(src_idx < numElements*srcSkip){
-    dst_idx = (*idx_func)(src_idx, idx_func_curry);
-    (*func)(&dst[dst_idx/sizeof(float)], &src[src_idx/sizeof(float)], func_curry);
+    dst_idx = idx_func(src_idx, idx_func_curry);
+    func(&dst[dst_idx/sizeof(float)], &src[src_idx/sizeof(float)], func_curry);
   }
-
-  /*
-  for(int j=0; j<srcSkip; j+=sizeof(float)){
-    src_idx = i + j;
-    if(src_idx < numElements){
-      dst_idx = (*idx_func)(src_idx, idx_func_curry);
-      (*func)(&dst[dst_idx/sizeof(float)], &src[src_idx/sizeof(float)], func_curry);
-    }
-  }
-  */
 }
 
 
@@ -201,18 +191,18 @@ void GPUDriver::memset(DeviceMemoryPointer * dst, const char value){
 	cudaMemset(dst->ptr, value, dst->size_in_byte);
 }
 
+template<FUNC_IDX_MAPPING f_dst_pos, FUNC_MM_MAPPING func>
 void GPUDriver::parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
-size_t src_skip, FUNC_IDX_MAPPING * f_dst_pos, DeviceMemoryPointer * const f_dst_pos_curry,
-FUNC_MM_MAPPING * func, DeviceMemoryPointer * const func_curry){
+size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry, DeviceMemoryPointer * const func_curry){
 
 	// First, create host version of func
-	FUNC_MM_MAPPING h_func;
-	cudaMemcpyFromSymbol(&h_func, *func, sizeof(FUNC_MM_MAPPING));
-	FUNC_MM_MAPPING d_myfunc = h_func;
-
-	FUNC_IDX_MAPPING h_idx_func;
-	cudaMemcpyFromSymbol(&h_idx_func, *f_dst_pos, sizeof(FUNC_IDX_MAPPING));
-	FUNC_IDX_MAPPING d_idx_myfunc = h_idx_func;
+	//FUNC_MM_MAPPING h_func;
+	//cudaMemcpyFromSymbol(&h_func, *func, sizeof(FUNC_MM_MAPPING));
+	//FUNC_MM_MAPPING d_myfunc = h_func;
+	//
+	//FUNC_IDX_MAPPING h_idx_func;
+	//cudaMemcpyFromSymbol(&h_idx_func, *f_dst_pos, sizeof(FUNC_IDX_MAPPING));
+	//FUNC_IDX_MAPPING d_idx_myfunc = h_idx_func;
 
 	// Second, create a device version of func_curry
 	void * d_func_curry;
@@ -226,8 +216,8 @@ FUNC_MM_MAPPING * func, DeviceMemoryPointer * const func_curry){
 	// Run.
 	const int n_elements =  dst->size_in_byte / src_skip;
 	int blocksPerGrid = (n_elements + 1 + threadsPerBlock - 1) / threadsPerBlock;
-	_spmap<<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr, (float *) src->ptr,
-	  n_elements, src_skip, d_idx_myfunc, d_idx_func_curry, d_myfunc, d_func_curry);
+	_spmap<f_dst_pos,func><<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr, (float *) src->ptr,
+	  n_elements, src_skip, d_idx_func_curry, d_func_curry);
 	err = cudaGetLastError();
 	if(err != cudaSuccess){
 	  std::cout << "Fail to launch _spmap"  << "  ERROR " << err << std::endl;
@@ -256,7 +246,8 @@ void GPUDriver::smath_axpy(const float alpha, DeviceMemoryPointer * X, DeviceMem
   assert(status == CUBLAS_STATUS_SUCCESS);
 }
 
-void GPUDriver::sapply(DeviceMemoryPointer * dst, FUNC_STRANSFORM * func, DeviceMemoryPointer * const func_curry){
+template<__device__ FUNC_STRANSFORM func>
+void GPUDriver::sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const func_curry){
 	#ifdef _DO_ASSERT
 	assert(dst->type==DEVICEMEMORY_LOCAL_RAM);
 	assert(dst->size_in_byte % sizeof(float) == 0);
@@ -264,9 +255,9 @@ void GPUDriver::sapply(DeviceMemoryPointer * dst, FUNC_STRANSFORM * func, Device
 	// TODO: Refactoring
 
 	// First, create host version of func
-	FUNC_STRANSFORM h_func;
-	cudaMemcpyFromSymbol(&h_func, *func, sizeof(FUNC_STRANSFORM));
-	FUNC_STRANSFORM d_myfunc = h_func;
+	//FUNC_STRANSFORM h_func;
+	//cudaMemcpyFromSymbol(&h_func, *func, sizeof(FUNC_STRANSFORM));
+	//FUNC_STRANSFORM d_myfunc = h_func;
 
 	// Second, create a device version of func_curry
 	void * d_func_curry;
@@ -276,7 +267,7 @@ void GPUDriver::sapply(DeviceMemoryPointer * dst, FUNC_STRANSFORM * func, Device
 	// Run.
 	const int n_elements =  dst->size_in_byte / sizeof(float);
 	int blocksPerGrid = (n_elements + threadsPerBlock - 1) / threadsPerBlock;
-	_sapply<<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr, n_elements, d_myfunc, d_func_curry);
+	_sapply<func><<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr, n_elements, d_func_curry);
 	err = cudaGetLastError();
 	if(err != cudaSuccess){
 	  std::cout << "Fail to launch _sapply" << "  ERROR " << err << std::endl;
@@ -341,8 +332,9 @@ void GPUDriver::sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TR
   //  beta, pC, LDC);
 }
 
+template<__device__ FUNC_SREDUCE func>
 void GPUDriver::selementwise_reduce2(DeviceMemoryPointer * dst, DeviceMemoryPointer * src1, 
-DeviceMemoryPointer * src2, FUNC_SREDUCE * func, DeviceMemoryPointer * const func_curry){ 
+DeviceMemoryPointer * src2, DeviceMemoryPointer * const func_curry){ 
 
 	#ifdef _DO_ASSERT
 	assert(dst->size_in_byte == src1->size_in_byte);
@@ -350,9 +342,9 @@ DeviceMemoryPointer * src2, FUNC_SREDUCE * func, DeviceMemoryPointer * const fun
 	assert(dst->size_in_byte % sizeof(float) == 0);
 	#endif
 	// First, create host version of func
-	FUNC_SREDUCE h_func;
-	cudaMemcpyFromSymbol(&h_func, *func, sizeof(FUNC_SREDUCE));
-	FUNC_SREDUCE d_myfunc = h_func;
+	//FUNC_SREDUCE h_func;
+	//cudaMemcpyFromSymbol(&h_func, *func, sizeof(FUNC_SREDUCE));
+	//FUNC_SREDUCE d_myfunc = h_func;
 
 	// Second, create a device version of func_curry
 	void * d_func_curry;
@@ -362,8 +354,8 @@ DeviceMemoryPointer * src2, FUNC_SREDUCE * func, DeviceMemoryPointer * const fun
 	// Run.
 	const int n_elements =  dst->size_in_byte / sizeof(float);
 	int blocksPerGrid = (n_elements + threadsPerBlock - 1) / threadsPerBlock;
-	_sreduce<<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr, n_elements, 
-	  (float*) src1->ptr, (float*) src2->ptr, d_myfunc, d_func_curry);
+	_sreduce<func><<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr, n_elements, 
+	  (float*) src1->ptr, (float*) src2->ptr, d_func_curry);
 	err = cudaGetLastError();
 	if(err != cudaSuccess){
 	  std::cout << "Fail to launch _sreduce" << std::endl;
@@ -432,10 +424,7 @@ const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
 
 void GPUDriver::sconstant_initialize(DeviceMemoryPointer *arr, const float value){
     DeviceMemoryPointer_Local_RAM pvalue((void*)&value, sizeof(float));
-    sapply(arr, 
-      (FUNC_STRANSFORM*)this->choose_ptr((void*)&__sconstant_initialize_helper,
-                                          (void*)&_sconstant_initialize_helper),
-      &pvalue);
+    sapply<__sconstant_initialize_helper>(arr, &pvalue);
 }
 
 void * GPUDriver::choose_ptr(void * host, void * device){
@@ -450,5 +439,17 @@ template void GPUDriver::pmap2d_read_coalesce<_fpmap_id,_fmap_lower>(DeviceMemor
 
 template void GPUDriver::pmap2d_read_coalesce<_fpmap_id,_fmap_remap>(DeviceMemoryPointer * dst, 
 	DeviceMemoryPointer * src, const struct PMapHelper args);
+
+
+template void GPUDriver::parallel_map<_f_idx_strid4_copy,_f_strid4_copy>
+	(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, size_t src_skip, 
+		DeviceMemoryPointer * const f_dst_pos_curry, DeviceMemoryPointer * const func_curry);
+
+template void GPUDriver::sapply<_f_add_one>(DeviceMemoryPointer * dst, DeviceMemoryPointer * const func_curry);
+
+template void GPUDriver::sapply<_f_set>(DeviceMemoryPointer * dst, DeviceMemoryPointer * const func_curry);
+
+template void GPUDriver::selementwise_reduce2<_f_reduce>(DeviceMemoryPointer * dst, 
+	DeviceMemoryPointer * src1, DeviceMemoryPointer * src2, DeviceMemoryPointer * const func_curry);
 
 

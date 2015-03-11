@@ -8,42 +8,15 @@
 #include <assert.h>
 #include <functional>
 
-void test_array_equals_constant(float * array, int n_elements, float c){
+#include "../src/kernels/lowering.h"
+
+
+inline void test_array_equals_constant(float * array, int n_elements, float c){
 	const float EPS = 0.01;
 	for(int i=0;i<n_elements;i++){
 		ASSERT_NEAR(array[i], c, EPS);
 	}
 }
-
-float _f_add_one(float a, void * const arg){
-  return a + *((float *) arg);
-}
-FUNC_STRANSFORM f_add_one = _f_add_one;
-
-float _f_set(float a, void * const arg){
-  return *((float *) arg);
-}
-FUNC_STRANSFORM f_set = _f_set;
-
-float _f_reduce(float a, float b, void * const arg){
-	return a + b + *((float *) arg);
-}
-FUNC_SREDUCE f_reduce = _f_reduce;
-
-size_t _f_idx_strid4_copy(size_t a, void * const arg){
-	return a;
-}
-FUNC_IDX_MAPPING f_idx_strid4_copy = _f_idx_strid4_copy;
-
-void _f_strid4_copy(void * dst, void * src, void * const arg){
-	float * const _dst = (float *) dst;
-	float * const _src = (float *) src;
-	const float num = *((float *) arg);
-	for(int i=0;i<4;i++){
-		_dst[i] = _src[i] + num;
-	}
-}
-FUNC_MM_MAPPING f_strid4_copy = _f_strid4_copy;
 
 
 TEST(DeviceDriverTest, CPU_CONST_INIT) {
@@ -54,7 +27,7 @@ TEST(DeviceDriverTest, CPU_CONST_INIT) {
 
 	float one = 10000.0;
 	DeviceMemoryPointer_Local_RAM p_one(&one, sizeof(float));
-	driver.sapply(&p, &f_set, &p_one);
+	driver.sapply<_f_set>(&p, &p_one);
 
 	driver.sconstant_initialize(&p, 0.2);
 
@@ -70,7 +43,7 @@ TEST(DeviceDriverTest, CPU_CONST_BERN) {
 
 	float one = 10000.0;
 	DeviceMemoryPointer_Local_RAM p_one(&one, sizeof(float));
-	driver.sapply(&p, &f_set, &p_one);
+	driver.sapply<_f_set>(&p, &p_one);
 
 	driver.sbernoulli_initialize(&p, 0.2);
 
@@ -94,11 +67,11 @@ TEST(DeviceDriverTest, CPU_AXPBY) {
 
 	float one = 1.0;
 	DeviceMemoryPointer_Local_RAM p_one(&one, sizeof(float));
-	driver.sapply(&p1, &f_set, &p_one);
+	driver.sapply<_f_set>(&p1, &p_one);
 
 	float two = 2.0;
 	DeviceMemoryPointer_Local_RAM p_two(&two, sizeof(float));
-	driver.sapply(&p2, &f_set, &p_two);
+	driver.sapply<_f_set>(&p2, &p_two);
 
 	float alpha = 0.1;
 	float beta = 0.5;
@@ -119,11 +92,11 @@ TEST(DeviceDriverTest, CPU_AXPY) {
 
 	float one = 1.0;
 	DeviceMemoryPointer_Local_RAM p_one(&one, sizeof(float));
-	driver.sapply(&p1, &f_set, &p_one);
+	driver.sapply<_f_set>(&p1, &p_one);
 
 	float two = 2.0;
 	DeviceMemoryPointer_Local_RAM p_two(&two, sizeof(float));
-	driver.sapply(&p2, &f_set, &p_two);
+	driver.sapply<_f_set>(&p2, &p_two);
 
 	float alpha = 0.1;
 	driver.smath_axpy(alpha, &p1, &p2);
@@ -143,7 +116,7 @@ TEST(DeviceDriverTest, CPU_APPLY) {
 
 	float one = 1.0;
 	DeviceMemoryPointer_Local_RAM p_one(&one, sizeof(float));
-	driver.sapply(&p_gpu, &f_add_one, &p_one);
+	driver.sapply<_f_add_one>(&p_gpu, &p_one);
 
   	memcpy(numbers, p_gpu.ptr, p_gpu.size_in_byte);
 	test_array_equals_constant(numbers, 1000, 1.0);
@@ -202,7 +175,8 @@ TEST(DeviceDriverTest, CPU_PMAP) {
 	driver.sconstant_initialize(&p1, 0.2);
 	driver.sconstant_initialize(&p2, 3.0);
 
-	driver.parallel_map(&p2, &p1, 4*sizeof(float), &f_idx_strid4_copy, &p_one, &f_strid4_copy, &p_one);
+	driver.parallel_map<_f_idx_strid4_copy,_f_strid4_copy>
+		(&p2, &p1, 4*sizeof(float), &p_one, &p_one);
 
   	memcpy(numbers, p2.ptr, p2.size_in_byte);	
 	test_array_equals_constant(numbers, 1000, 1.2);
@@ -225,7 +199,7 @@ TEST(DeviceDriverTest, CPU_REDUCE) {
 	driver.sconstant_initialize(&p2, 2.0);
 	driver.sconstant_initialize(&p3, 3.0);
 
-	driver.selementwise_reduce2(&p3, &p1, &p2, &f_reduce, &p_one);
+	driver.selementwise_reduce2<_f_reduce>(&p3, &p1, &p2, &p_one);
   	memcpy(numbers, p3.ptr, p3.size_in_byte);
 	
 	test_array_equals_constant(numbers, 1000, 4.0);

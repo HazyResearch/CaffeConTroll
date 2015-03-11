@@ -101,23 +101,28 @@ public:
    * structured side-effect (i.e., only on src and dst with a known mapping).
    * 
    **/
-  virtual void parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
-    size_t src_skip, FUNC_IDX_MAPPING * f_dst_pos, DeviceMemoryPointer * const f_dst_pos_curry,
-    FUNC_MM_MAPPING * func, DeviceMemoryPointer * const func_curry) = 0;
+  template<FUNC_IDX_MAPPING f_dst_pos, FUNC_MM_MAPPING func>
+  void parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry, 
+    DeviceMemoryPointer * const func_curry) ;
 
   /**
    * Single-precision operations.
    **/
   virtual void smath_axpy(const float alpha, DeviceMemoryPointer * X, DeviceMemoryPointer * Y) = 0;
-  virtual void sapply(DeviceMemoryPointer * dst, FUNC_STRANSFORM * func, DeviceMemoryPointer * const func_curry) = 0;
+
+  template<FUNC_STRANSFORM func>
+  void sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const func_curry) ;
+
   virtual void smath_axpby(const float alpha, DeviceMemoryPointer * X, const float beta, DeviceMemoryPointer *Y) = 0;
   virtual void set_num_threads(const int nThreads) = 0;
   virtual void sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB, 
         int M, int N, int K, float alpha, float * pA, int LDA, float * pB, int LDB,
         float beta, float * pC, int LDC) = 0;
 
+  template<FUNC_SREDUCE func>
   void selementwise_reduce2(DeviceMemoryPointer *dst, DeviceMemoryPointer *src1, 
-    DeviceMemoryPointer *src2, FUNC_SREDUCE * func, DeviceMemoryPointer * const func_curry) ;
+    DeviceMemoryPointer *src2, DeviceMemoryPointer * const func_curry) ;
 
   virtual void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch){
     assert(false);
