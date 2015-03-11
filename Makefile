@@ -16,12 +16,12 @@ LIB_STR=$(foreach d, $(LIB_DIRS), -L$d)
 ifeq ($(UNAME), Darwin)
   CFLAGS = -Wall -std=c++11
   LDFLAGS = $(LD_BASE) -lboost_program_options-mt -lboost_serialization -lpthread
-  NVCCFLAGS = -std=c++11 $(LD_BASE) -lcublas -lcuda -lboost_program_options-mt -lboost_serialization
+  NVCCFLAGS = -D_GPU_TARGET -std=c++11 $(LD_BASE) -lcublas -lcuda -lboost_program_options-mt -lboost_serialization -gencode arch=compute_20,code=sm_20 -gencode arch=compute_20,code=sm_21 -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35 -gencode arch=compute_50,code=sm_50 -gencode arch=compute_50,code=compute_50
 # For Ubuntu 12.04 x86_64 (raiders3 machine)
 else ifeq ($(UNAME), Linux)
   #CFLAGS = -Wall -std=c++11 -Wl,--no-as-needed
   CFLAGS = -std=c++11 -I/usr/local/cuda-6.5/targets/x86_64-linux/include/
-  NVCCFLAGS = -std=c++11 $(LD_BASE) -lcublas -lcuda -lboost_program_options -lboost_serialization -I/usr/local/cuda-6.5/targets/x86_64-linux/include/
+  NVCCFLAGS = -D_GPU_TARGET -std=c++11 $(LD_BASE) -lcublas -lcuda -lboost_program_options -lboost_serialization -I/usr/local/cuda-6.5/targets/x86_64-linux/include/ -gencode arch=compute_20,code=sm_20 -gencode arch=compute_20,code=sm_21 -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35 -gencode arch=compute_50,code=sm_50 -gencode arch=compute_50,code=compute_50
   LDFLAGS = $(LD_BASE) -lrt -lboost_program_options -lboost_serialization -lpthread 
 endif
 CFLAGS += $(BLAS_DEFS)
@@ -58,8 +58,12 @@ MAIN_CUDA_OBJ_FILES = $(patsubst %.cu,%.o,$(MAIN_CUDA_SOURCES))
 # SOURCE FILE FOR TEST
 #TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest -lpthread 
 TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest
-TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp 
-#				tests/test_parallelized_convolution.cpp
+TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp \
+				src/sched/DeviceDriver_CPU.cpp  			  \
+				src/sched/DeviceDriver.cpp  			  		\
+				tests/test_convolution.cpp
+				#tests/test_device_driver.cpp
+#			tests/test_parallelized_convolution.cpp
 #		   test_device_driver_gpu.cpp
 #	       tests/test_parallelized_convolution.cpp
 #	       tests/test_device_driver.cpp
@@ -83,8 +87,8 @@ TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp
 TEST_OBJ_FILES = $(patsubst %.cpp,%.o,$(TEST_SOURCES))
 TEST_EXECUTABLE=test
 
-TEST_CUDA_SOURCES = tests/test_device_driver_gpu.cu src/sched/DeviceDriver_GPU.cu \
-					tests/test_parallelized_convolution.cu
+#TEST_CUDA_SOURCES = src/sched/DeviceDriver_GPU.cu \
+#					tests/test_convolution.cu
 					
 TEST_CUDA_OBJ_FILES = $(patsubst %.cu,%.o,$(TEST_CUDA_SOURCES))
 
@@ -134,7 +138,6 @@ snapshot: $(SNAPSHOT_OBJ_FILES) cnn.pb.o
 
 %.o: %.cpp $(PROTO_COMPILED_SRC)
 	$(CC) $(CFLAGS) $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $< -o $@
-	#$(LINKCC) -D_OPENBLAS $(LINKFLAG) $(DIR_PARAMS) $(PROTOBUF_LIB) -c $< -o $@
 
 %.o: %.cu $(PROTO_COMPILED_SRC)
 	$(NVCC) -O3 $(BLAS_DEFS) $(NVCCFLAGS) $(INCLUDE_STR) $(TEST_BLASFLAGS) -dc $< -o $@

@@ -127,11 +127,15 @@ void GPUDriver::free(DeviceMemoryPointer * dst){
 
 void GPUDriver::memcpy(DeviceMemoryPointer * dst, DeviceMemoryPointer * src){
 	#ifdef _DO_ASSERT
-	assert(dst->type==DEVICEMEMORY_LOCAL_RAM);
-	assert(src->type==DEVICEMEMORY_LOCAL_RAM);
 	assert(dst->size_in_byte == src->size_in_byte);
 	#endif
-	cudaMemcpy(dst->ptr, src->ptr, dst->size_in_byte, cudaMemcpyDeviceToDevice);
+	if(src->type == DEVICEMEMORY_LOCAL_RAM){
+  		cudaMemcpy(dst->ptr, src->ptr, dst->size_in_byte, cudaMemcpyHostToDevice);
+	}else if(dst->type == DEVICEMEMORY_LOCAL_RAM){
+  		cudaMemcpy(dst->ptr, src->ptr, dst->size_in_byte, cudaMemcpyDeviceToHost);
+	}else{
+		cudaMemcpy(dst->ptr, src->ptr, dst->size_in_byte, cudaMemcpyDeviceToDevice);
+	}
 }
 
 void GPUDriver::memset(DeviceMemoryPointer * dst, const char value){

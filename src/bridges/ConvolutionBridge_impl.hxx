@@ -168,40 +168,31 @@ void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Data
 forward() {
   Util::set_num_threads(run_with_n_threads);
 
-
   // (0) get input by deref'ing host pointer to device space.
   //    TODO: the following thing is only for DEBUG, it should be
   //          moved up to AbstractBridge
   Timer t;
   
   // TODO DEREF
-
   LogicalCube<DataType, Layout_CRDB> * input_d_cube = new LogicalCubeType(
     iR, iC, iD, iB, p_driver);
   LogicalCube<DataType, Layout_CRDB> * output_d_cube = new LogicalCubeType(
     oR, oC, oD, oB, p_driver);
 
-  // copy input data to driver
-  cudaMemcpy(input_d_cube->get_p_data(), p_input_layer->p_data_cube->get_p_data(), 
-    iR * iC * iD * iB * sizeof(float), cudaMemcpyHostToDevice);
+  // Copy input to Device. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal(p_input_layer->p_data_cube->get_p_data(), 
+    input_d_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost = p_driver->get_device_pointer(input_d_cube->get_p_data(), 
+    input_d_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(phost, &plocal);
 
-  /*
-  float * tmp = new float[100000];
-  cudaMemcpy(tmp, input_d_cube->get_p_data(), 
-    input_d_cube->n_elements * sizeof(float), cudaMemcpyDeviceToHost);
-  for(int i=0;i<input_d_cube->n_elements;i++){
-    std::cout << "& " << tmp[i] << std::endl;
-  }
-  */
-
-  std::cout << "~~~~~" << t.elapsed() << std::endl;
-  t.restart();
-  std::cout << "0" << std::endl;
   report_forward_last_transfer.reset();
 
   if (p_model_cube->get_p_data() == NULL) {
     p_model_cube->set_p_data(p_model_cube_shadow->get_p_data());
   }
+
   // (0) cast input model and output to matrix
   // This one should be refactored with the matrix interface
   LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->get_p_data(), num_output_features,
@@ -209,24 +200,9 @@ forward() {
   LogicalCube<DataType, Layout_CRDB> lowered_output(output_d_cube->get_p_data(),
       num_output_features, oR*oC*iB, 1, 1);
 
-  std::cout << "~~~~~" << t.elapsed() << std::endl;
-  t.restart();
-  std::cout << "1" << std::endl;
   // (1) do the lowering
   p_forward_lower_connector->lower_cube(input_d_cube, p_forward_lowered_data);
 
-  /*
-  float * tmp = new float[100000];
-  cudaMemcpy(tmp, p_model_cube_shadow->get_p_data(), 
-    p_model_cube_shadow->n_elements * sizeof(float), cudaMemcpyDeviceToHost);
-  for(int i=0;i<p_model_cube_shadow->n_elements;i++){
-    std::cout << "* " << tmp[i] << std::endl;
-  }
-  */
-
-  std::cout << "~~~~~" << t.elapsed() << std::endl;
-  t.restart();
-  std::cout << "2" << std::endl;
   // (2) call GEMM kernel
   p_forward_gemm_kernel->compute(&lowered_model, p_forward_lowered_data, &lowered_output);
 
@@ -243,45 +219,19 @@ forward() {
   //  inputs so that we get the correct output without
   //  needing to call remap
   
-  std::cout << "~~~~~" << t.elapsed() << std::endl;
-  t.restart();
-  std::cout << "3" << std::endl;
   // (3) apply non-linear functions
   if (FUNC != FUNC_NOFUNC) {
      p_forward_applyfunc_scanner->apply(&lowered_output);
   }
 
-  /*
-  float * tmp = new float[lowered_output.n_elements];
-  cudaMemcpy(tmp, lowered_output.get_p_data(), 
-    lowered_output.n_elements * sizeof(float), cudaMemcpyDeviceToHost);
-  for(int i=0;i<lowered_output.n_elements;i++){
-    std::cout << "* " << tmp[i] << std::endl;
-  }
-  */
-
-
-  std::cout << "~~~~~" << t.elapsed() << std::endl;
-  t.restart();
-  std::cout << "4" << std::endl;
-  //output_d_cube->template remap_output<LOWERING_TYPE1>(num_output_features, iB, oR*oC, this->p_driver);
   p_forward_lower_connector->remap_output(*output_d_cube, num_output_features, iB, oR*oC);
-
-  /*
-  float * tmp = new float[100000];
-  cudaMemcpy(tmp, output_d_cube->get_p_data(), 
-    output_d_cube->n_elements * sizeof(float), cudaMemcpyDeviceToHost);
-  for(int i=0;i<output_d_cube->n_elements;i++){
-    std::cout << "~ " << tmp[i] << std::endl;
-  }
-  */
-
 
   // TODO Refactor the following code into another module
   // This code is here mainly to speed-up the refactoring
   // to bring CONV logical
+  //
+  // TODO
   if (bias_term) {
-    //assert(false);
     /*
     DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
     DeviceMemoryPointer * bias = p_bias_cube->get_device_pointer(p_driver);
@@ -302,16 +252,15 @@ forward() {
       parg1, &func_bias, parg2);
     */
   }
-  std::cout << "~~~~~" << t.elapsed() << std::endl;
-  t.restart();
-  std::cout << "5" << std::endl;
 
-  // copy output data 
-  cudaMemcpy(p_output_layer->p_data_cube->get_p_data(),
-    output_d_cube->get_p_data(), oR * oC * oD * oB * sizeof(float), cudaMemcpyDeviceToHost);
-  std::cout << "~~~~~" << t.elapsed() << std::endl;
+  // Copy output to Host. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal2(p_output_layer->p_data_cube->get_p_data(), 
+    output_d_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost2 = p_driver->get_device_pointer(output_d_cube->get_p_data(), 
+    output_d_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(&plocal2, phost2);
   
-
   report_forward_last_transfer.end();
   report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_lowering);
   report_forward_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);

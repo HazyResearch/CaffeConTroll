@@ -78,6 +78,19 @@ public:
   virtual void memcpy(DeviceMemoryPointer * dst, DeviceMemoryPointer * src) = 0;
   virtual void memset(DeviceMemoryPointer * dst, const char value) = 0;
 
+  /**
+   * This function implements the following semantic. Each dst and src
+   * are modelled as a 4D tensor. For each 2D block on the RxC slice
+   * of src (with size args.sBR x args.sBC), f_id gets a corresponding
+   * 2D block on the RxC slice of dst. Then, f_data defines a function
+   * that given a SINGLE point (x,y,data) in the source block, and
+   * write corresponding points in the output block.
+   *
+   * All functions could take as input args as an argument. So, if you have
+   * auxiliary information that you need in f (e.g., kernel size of lowering),
+   * just put it in args.
+   *
+   **/
   template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
   void pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
     const struct PMapHelper args){

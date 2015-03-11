@@ -8,7 +8,7 @@ CPUDriver::CPUDriver(){
 }
 
 DeviceMemoryPointer * CPUDriver::get_device_pointer(void * ptr, size_t size_in_byte){
-	assert(false);
+	return new DeviceMemoryPointer_Local_RAM(ptr, size_in_byte);
 }
 
 void CPUDriver::malloc(DeviceMemoryPointer * dst){
@@ -33,8 +33,62 @@ void CPUDriver::memset(DeviceMemoryPointer * dst, const char value){
 }
 
 template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
+inline void _spmap_cpu(float* const dst, float * const src, PMapHelper args, 
+	const size_t block_x, const size_t block_y, const size_t thread_x, const size_t thread_y){
+
+	//const size_t nRblock = args.sR/args.sBR;
+	const size_t nCblock = args.sC/args.sBC;
+
+	Block2D input_block;
+	input_block.r = block_x / nCblock;
+	input_block.c = block_x % nCblock;
+	input_block.d = block_y % args.sD;
+	input_block.b = block_y / args.sD;
+	input_block.dr = args.sR;
+	input_block.dc = args.sC;
+
+	Block2D output_block;
+	f_id(&output_block, &input_block, &args);
+
+	const size_t datar = thread_y + input_block.r * args.sR;
+	const size_t datac = thread_x + input_block.c * args.sC;
+
+	PointIn2DBlock point;
+	point.block = input_block;
+	point.data = src[
+		args.sR * args.sC * (args.sD * input_block.b + input_block.d) +
+		datar + args.sC +
+		datac
+	];
+	point.r = thread_y;
+	point.c = thread_x;
+
+	f_data(dst, &output_block, &point, &args);
+
+}
+
+// This function could be much faster. 
+template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
 void CPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
 const struct PMapHelper args){
+
+	// input block sizes
+	size_t sBR = args.sBR, sBC = args.sBC;
+	size_t n_thread_per_block_C = sBC;
+	size_t n_thread_per_block_R = sBR;
+	size_t n_block_X = args.sR*args.sC/sBC/sBR;
+	size_t n_block_Y = args.sD*args.sB;
+
+	for(size_t block_x=0;block_x<n_block_X;block_x++){
+		for(size_t block_y=0;block_y<n_block_Y;block_y++){
+			for(size_t thread_x=0;thread_x<n_thread_per_block_C;thread_x++){
+				for(size_t thread_y=0;thread_y<n_thread_per_block_R;thread_y++){
+					_spmap_cpu<f_id,f_data>((float*) dst->ptr, (float*) src->ptr, args,
+						block_x, block_y, thread_x, thread_y);
+				}
+			}
+		}
+	}
 
 }
 
@@ -93,7 +147,6 @@ void CPUDriver::sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TR
 		pA, LDA,
 		pB, LDB,
 		beta, pC, LDC);
-
 }
 
 template<FUNC_STRANSFORM func>
