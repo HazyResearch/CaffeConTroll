@@ -10,6 +10,7 @@
 #include <functional>
 
 #include "../src/kernels/lowering.h"
+#include "../src/kernels/test.h"
 
 inline void test_array_equals_constant(float * array, int n_elements, float c){
 	const float EPS = 0.01;

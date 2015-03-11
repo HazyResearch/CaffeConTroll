@@ -3,8 +3,6 @@
 #include <cublas_v2.h>
 #include <curand.h>
 #include <curand_kernel.h>
-#include "../kernels/lowering.h"
-#include "../kernels/lowering.hxx"
 
 #include "DeviceDriver.h"
 #include "DeviceDriver_GPU.h"

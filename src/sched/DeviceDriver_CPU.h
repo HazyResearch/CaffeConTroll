@@ -1,8 +1,8 @@
 
 #include "DeviceDriver.h"
 #include "cblas.h"
-#include "../kernels/lowering.h"
 #include "../kernels/lowering.hxx"
+#include "../kernels/test.hxx"
 
 #ifndef _DEVICE_DRIVER_CPU_H
 #define _DEVICE_DRIVER_CPU_H
