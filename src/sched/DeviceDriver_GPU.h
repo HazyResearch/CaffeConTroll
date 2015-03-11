@@ -34,11 +34,11 @@ public:
 
   void memset(DeviceMemoryPointer * dst, const char value);
 
-  template<__device__ FPMAP_ID f_id, __device__ FPMAP_DATA_READC f_data>
+  template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
   void pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
     const struct PMapHelper args);
 
-  template<__device__ FUNC_IDX_MAPPING f_dst_pos, __device__ FUNC_MM_MAPPING func>
+  template<FUNC_IDX_MAPPING f_dst_pos, FUNC_MM_MAPPING func>
   void parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
     size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
     DeviceMemoryPointer * const func_curry);
@@ -51,12 +51,12 @@ public:
         int M, int N, int K, float alpha, float * pA, int LDA, float * pB, int LDB,
         float beta, float * pC, int LDC);
 
-  template<__device__ FUNC_STRANSFORM func>
+  template<FUNC_STRANSFORM func>
   void sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const func_curry);
 
   void set_num_threads(const int nThreads);
 
-  template<__device__ FUNC_SREDUCE func>
+  template<FUNC_SREDUCE func>
   void selementwise_reduce2(DeviceMemoryPointer * dst, DeviceMemoryPointer * src1, 
     DeviceMemoryPointer * src2, DeviceMemoryPointer * const func_curry);
 

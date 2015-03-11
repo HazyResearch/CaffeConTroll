@@ -10,7 +10,6 @@
 __host__ __device__ float __sconstant_initialize_helper(float a, void * arg){
   return *((float*)arg);
 }
-//__device__ FUNC_STRANSFORM _sconstant_initialize_helper = __sconstant_initialize_helper;
 
 template<FUNC_STRANSFORM func>
 __global__ void _sapply(float * dst, int numElements, void * const func_curry){
@@ -44,58 +43,12 @@ __global__ void _spmap(float * dst, float * src, int numElements, int srcSkip,
   }
 }
 
-
-__device__ 
-void _fpmap_id2(Block2D * const output_block, const Block2D * const input_block, const PMapHelper * const args){
-	output_block->r = 0;
-	output_block->c = 0;
-	output_block->d = 0;
-	output_block->d = 0;
-	output_block->dr = args->kR;
-	output_block->dc = args->kC;
-}
-
-__device__ 
-void _fmap_lower2(float * output, const Block2D * const output_block, const PointIn2DBlock * const input_point, const PMapHelper * const args){
-	
-	const size_t ir = input_point->r;
-	const size_t ic = input_point->c;
-	const size_t ib = input_point->block.b;
-	const size_t id = input_point->block.d;
-
-	const size_t kR = args->kR;
-	const size_t kC = args->kC;
-	const size_t iR = args->sR;
-	const size_t iC = args->sC;
-	const size_t iB = args->sB;
-	const size_t o_base_col = ib * (iR-kR+1)*(iC-kC+1);
-	const size_t o_base_row = id * kR * kC;
-	const size_t oC = iB * (iR-kR+1)*(iC-kC+1);
-
-	const float input = input_point->data;
-
-	for(int r=ir-kR;r<=ir;r++){
-		int dr = ir-r;
-		for(int c=ic-kC;c<=ic;c++){
-			int dc = ic-c;
-			int ocol = r*iC+c;
-			int orow = dr*kC+dc;
-			int ocol2 = ocol + o_base_col;
-			int orow2 = orow + o_base_row;
-			// then write to ocol, orow
-			if(ocol >= 0 && ocol < (iR-kR+1)*(iC-kC+1) && orow >= 0 && orow < kR*kC){
-				output[ocol + orow*oC] = input;
-			}
-		}
-	}
-}
-
 template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
 __global__ void _spmap_readc(float* dst, float * src, PMapHelper args){
 	const size_t block_x = blockIdx.x;
 	const size_t block_y = blockIdx.y;
 
-	const size_t nRblock = args.sR/args.sBR;
+	//const size_t nRblock = args.sR/args.sBR;
 	const size_t nCblock = args.sC/args.sBC;
 
 	Block2D input_block;
@@ -131,7 +84,7 @@ __global__ void _spmap_readc(float* dst, float * src, PMapHelper args){
 }
 
 
-template<__device__ FPMAP_ID f_id, __device__ FPMAP_DATA_READC f_data>
+template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
 void GPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
     const struct PMapHelper args){
 
@@ -244,7 +197,7 @@ void GPUDriver::smath_axpy(const float alpha, DeviceMemoryPointer * X, DeviceMem
   assert(status == CUBLAS_STATUS_SUCCESS);
 }
 
-template<__device__ FUNC_STRANSFORM func>
+template<FUNC_STRANSFORM func>
 void GPUDriver::sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const func_curry){
 	#ifdef _DO_ASSERT
 	assert(dst->type==DEVICEMEMORY_LOCAL_RAM);
@@ -330,7 +283,7 @@ void GPUDriver::sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TR
   //  beta, pC, LDC);
 }
 
-template<__device__ FUNC_SREDUCE func>
+template<FUNC_SREDUCE func>
 void GPUDriver::selementwise_reduce2(DeviceMemoryPointer * dst, DeviceMemoryPointer * src1, 
 DeviceMemoryPointer * src2, DeviceMemoryPointer * const func_curry){ 
 
