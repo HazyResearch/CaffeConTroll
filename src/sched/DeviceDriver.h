@@ -3,7 +3,8 @@
 #include <math.h>
 #include <random>
 #include "DeviceHeader.h"
-#include "../kernels/lowering.h"
+
+#include "../kernels/include.h"
 
 #ifndef _DEVICE_DRIVER_H
 #define _DEVICE_DRIVER_H
@@ -79,7 +80,9 @@ public:
 
   template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
   void pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
-    const struct PMapHelper args);
+    const struct PMapHelper args){
+    assert(false);
+  }
 
   //virtual void pmap2d_write_coalesce();
 
@@ -104,7 +107,9 @@ public:
   template<FUNC_IDX_MAPPING f_dst_pos, FUNC_MM_MAPPING func>
   void parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
     size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry, 
-    DeviceMemoryPointer * const func_curry) ;
+    DeviceMemoryPointer * const func_curry){
+    assert(false);
+  }
 
   /**
    * Single-precision operations.
@@ -112,7 +117,9 @@ public:
   virtual void smath_axpy(const float alpha, DeviceMemoryPointer * X, DeviceMemoryPointer * Y) = 0;
 
   template<FUNC_STRANSFORM func>
-  void sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const func_curry) ;
+  void sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const func_curry){
+    assert(false);
+  }
 
   virtual void smath_axpby(const float alpha, DeviceMemoryPointer * X, const float beta, DeviceMemoryPointer *Y) = 0;
   virtual void set_num_threads(const int nThreads) = 0;
@@ -122,7 +129,9 @@ public:
 
   template<FUNC_SREDUCE func>
   void selementwise_reduce2(DeviceMemoryPointer *dst, DeviceMemoryPointer *src1, 
-    DeviceMemoryPointer *src2, DeviceMemoryPointer * const func_curry) ;
+    DeviceMemoryPointer *src2, DeviceMemoryPointer * const func_curry){
+    assert(false);
+  }
 
   virtual void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch){
     assert(false);

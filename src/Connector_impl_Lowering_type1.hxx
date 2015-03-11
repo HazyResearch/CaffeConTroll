@@ -11,14 +11,13 @@
 
 #include <iostream>
 //#include "kernels/lowering.h"
-#include "sched/DeviceDriver_GPU.h"
 
-template<typename DataType, LayoutType InputLayout>
-Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1>::
+template<typename DataType, LayoutType InputLayout, typename DriverClass>
+Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1, DriverClass>::
 Connector(const InputLogicalCubeType * const p_input_cube, 
   const OutputLogicalCubeType * const p_output_cube, 
   const size_t _kernel_size, const size_t _padding, const size_t _stride,
-  DeviceDriver * _p_driver) :
+  DriverClass * _p_driver) :
   iR(p_input_cube->R), iC(p_input_cube->C), iD(p_input_cube->D), iB(p_input_cube->B),
   oR(p_output_cube->R), oC(p_output_cube->C), oD(p_output_cube->D), oB(p_output_cube->B),
   kernel_size(_kernel_size), padding(_padding), stride(_stride),
@@ -40,8 +39,8 @@ Connector(const InputLogicalCubeType * const p_input_cube,
 }
 
 
-template<typename DataType, LayoutType InputLayout>
-void Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1>::
+template<typename DataType, LayoutType InputLayout, typename DriverClass>
+void Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1, DriverClass>::
 lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube) {
 
   report_last_lowering.reset();
@@ -67,17 +66,41 @@ lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeTyp
   args.sBR = min((size_t)32, args.sR); args.sBC = min((size_t)32, args.sC);
   args.kR = kernel_size; args.kC = kernel_size; args.kD = p_input_cube->D; args.kB = 1;
 
-  //invoke_lowering((GPUDriver*)p_driver, output, input, args);
-  ((GPUDriver*)p_driver)->pmap2d_read_coalesce<_fpmap_id,_fmap_lower>(output, input, args);
-  //((GPUDriver*)p_driver)->pmap2d_read_coalesce<_fpmap_id,_fmap_lower>(output, input, args);
-
+  p_driver->template pmap2d_read_coalesce<_fpmap_id,_fmap_lower>
+    (output, input, args);
 
   report_last_lowering.end(iR*iC*iD*iB*sizeof(DataType), oR*oC*oD*oB*sizeof(DataType), 0);
   report_history.aggregate(report_last_lowering);
 }
 
-template<typename DataType, LayoutType InputLayout>
-void Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1>::
+template<typename DataType, LayoutType InputLayout, typename DriverClass>
+void Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1, DriverClass>::
+remap_output(LogicalCube<DataType, InputLayout>& cube, const size_t R, const size_t C,
+        const size_t kernel_size) {
+
+  DeviceMemoryPointer * copy = p_driver->get_device_pointer(NULL, sizeof(DataType)*cube.R*cube.C*cube.B*cube.D);
+  p_driver->malloc(copy);
+  DeviceMemoryPointer * output = cube.get_device_pointer(p_driver);
+  p_driver->memcpy(copy, output);
+
+  static_assert(std::is_same<DataType, float>::value,
+            "The func_src_to_dst function needs to change when DataType <> float.");
+
+  PMapHelper args;
+  args.dR = cube.R; args.dC = cube.C; args.dD = cube.D; args.dB = cube.B;
+  args.sR = cube.R; args.sC = cube.C; args.sD = cube.D; args.sB = cube.B;
+  args.dBR = args.dR; args.dBC = args.dC;
+  args.sBR = min((size_t)32, args.sR); args.sBC = min((size_t)32, args.sC);
+
+  p_driver->template pmap2d_read_coalesce<_fpmap_id,_fmap_remap>(output, copy, args);
+
+  p_driver->free(copy);
+  free(copy);
+
+}
+
+template<typename DataType, LayoutType InputLayout, typename DriverClass>
+void Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1, DriverClass>::
 inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube) {
 
   report_last_inverse_lowering.reset();

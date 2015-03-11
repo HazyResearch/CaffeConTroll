@@ -35,9 +35,12 @@ enum ConvolutionBridgeType {
 template
 <ConvolutionBridgeType LAYERTYPE, NonLinearFunction FUNC,
   typename InputLayerDataType, LayoutType InputLayerLayout,
-  typename OutputLayerDataType, LayoutType OutputLayerLayout>
+  typename OutputLayerDataType, LayoutType OutputLayerLayout,
+  typename DriverClass>
 class ConvolutionBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType, OutputLayerLayout> {
   public:
+
+    DeviceDriver * p_driver;
 
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
@@ -51,7 +54,8 @@ class ConvolutionBridge : public AbstractBridge<InputLayerDataType, InputLayerLa
     ConvolutionBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param,
-        const cnn::SolverParameter * const _solver_param) {
+        const cnn::SolverParameter * const _solver_param,
+        DriverClass * _p_driver) {
       NOT_IMPLEMENTED;
     }
 
@@ -71,8 +75,8 @@ class ConvolutionBridge : public AbstractBridge<InputLayerDataType, InputLayerLa
 /******
  * Specializations
  */
-template <typename DataType, NonLinearFunction FUNC>
-class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB>
+template <typename DataType, NonLinearFunction FUNC, typename DriverClass>
+class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>
 : public AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> {
   protected:
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::curr_B;
@@ -104,8 +108,6 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_input_layer;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_output_layer;
 
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_driver;
-
     Report report_forward_kernel;
     Report report_backward_kernel;
     Report report_forward_lowering;
@@ -117,6 +119,8 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     typedef Layer<DataType, Layout_CRDB> InputLayerType;
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
     typedef LogicalCube<DataType, Layout_CRDB> LogicalCubeType;
+
+    DriverClass * p_driver;
 
     const size_t K;
     const size_t num_output_features;
@@ -155,7 +159,8 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     ConvolutionBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param,
-        const cnn::SolverParameter * const _solver_param);
+        const cnn::SolverParameter * const _solver_param,
+        DriverClass * _p_driver);
 
     ~ConvolutionBridge();
 
@@ -180,7 +185,7 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
 
     Scanner<DataType, Layout_CRDB, FUNC> * p_forward_applyfunc_scanner;
 
-    Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, LOWERING_TYPE1>
+    Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, LOWERING_TYPE1, DriverClass>
       * p_forward_lower_connector;
 
     Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,

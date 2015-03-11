@@ -18,7 +18,7 @@
 
 template <typename InputDataType,LayoutType InputLayout,
          typename OutputDataType, LayoutType OutputLayout,
-         LoweringType LOWERING>
+         LoweringType LOWERING, typename DriverClass>
 class Connector {
 public:
 
@@ -35,7 +35,7 @@ public:
     Report report_last_inverse_lowering; /*< Performance reporter for the last run of inverse_lower_cube() function. */
     Report report_inverse_history; /*< Performance reporter for all inverse_lower_cube() functions aggregated. */
 
-    DeviceDriver * p_driver;
+    DriverClass * p_driver;
 
     /**
      * The constructor of a connector allocates necessary memory for
@@ -49,7 +49,7 @@ public:
      **/
     Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
         const size_t _kernel_size, const size_t _padding, const size_t _stride,
-        DeviceDriver * _p_driver):
+        DriverClass * _p_driver):
         iR(0), iC(0), iD(0), iB(0),
         oR(0), oC(0), oD(0), oB(0) {
       std::cerr << "ERROR: Using Connector with the type that is not specialized (implemented)." << std::endl;
@@ -85,8 +85,8 @@ public:
  *
  */
 template
-<typename DataType, LayoutType InputLayout>
-class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1> {
+<typename DataType, LayoutType InputLayout, typename DriverClass>
+class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1, DriverClass> {
 public:
 
     typedef LogicalCube<DataType, InputLayout> InputLogicalCubeType;
@@ -106,21 +106,25 @@ public:
     const size_t padding;
     const size_t stride;
 
-    DeviceDriver * p_driver;
+    DriverClass * p_driver;
 
     Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
         const size_t _kernel_size, const size_t _padding, const size_t _stride,
-        DeviceDriver * _p_driver);
+        DriverClass * _p_driver);
 
     void lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
 
     void inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube);
 
+    void remap_output(LogicalCube<DataType, InputLayout>& cube, const size_t R, const size_t C,
+        const size_t kernel_size);
+
 };
 
+/*
 template
-<typename DataType, LayoutType InputLayout>
-class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE2> {
+<typename DataType, LayoutType InputLayout, typename DriverClass>
+class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE2, DriverClass> {
 public:
 
     typedef LogicalCube<DataType, InputLayout> InputLogicalCubeType;
@@ -140,19 +144,20 @@ public:
     const size_t padding;
     const size_t stride;
 
-    DeviceDriver * p_driver;
+    DriverClass * p_driver;
 
     Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
         const size_t _kernel_size, const size_t _padding, const size_t _stride,
-        DeviceDriver * _p_driver);
+        DriverClass * _p_driver);
 
     void lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
 
     void inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube);
 
 };
+*/
 
 #include "Connector_impl_Lowering_type1.hxx"
-#include "Connector_impl_Lowering_type2.hxx"
+//#include "Connector_impl_Lowering_type2.hxx"
 
 #endif

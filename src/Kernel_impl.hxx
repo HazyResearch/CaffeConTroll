@@ -7,6 +7,7 @@
 //
 
 #include "util.h" // include cblas routines
+#include "kernels/mul.h"
 
 #ifndef moka_Kernel_impl_Lowering_hxx
 #define moka_Kernel_impl_Lowering_hxx
@@ -130,16 +131,6 @@ Kernel(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCub
   report_constructor.end(0, 0, 0);
 }
 
-float _f_reduce_mul(float a, float b, void * const){
-  return a*b;
-}
-FUNC_SREDUCE f_reduce_mul;
-
-float _f_reduce_tanhgrad(float a, float b, void * const){
-  return 1-(a*a)*b;
-}
-FUNC_SREDUCE f_reduce_tanhgrad;
-
 
 template <typename DataType, KernelConfig KERNELCONFIG>
 void Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KERNELCONFIG>::
@@ -158,10 +149,10 @@ compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCu
 
   if (KERNELCONFIG == KernelConfig_NONE){
     //const auto func = [](DataType a, DataType b)->DataType{return a*b;};
-    p_driver->selementwise_reduce2(output, input1, input2, &f_reduce_mul, pdummy);
+    p_driver->selementwise_reduce2<_f_reduce_mul>(output, input1, input2, pdummy);
   }else if(KernelConfig_TANHGRAD_ON_INPUT1){
     //const auto func = [](DataType a, DataType b)->DataType{return (1-a*a)*b;};
-    p_driver->selementwise_reduce2(output, input1, input2, &f_reduce_tanhgrad, pdummy);
+    p_driver->selementwise_reduce2<_f_reduce_tanhgrad>(output, input1, input2, pdummy);
   }else{
       std::cerr << "ERROR: Not supported KernelConfig!" << std::endl;
       assert(false);

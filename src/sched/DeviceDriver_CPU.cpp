@@ -1,6 +1,8 @@
 
 #include "DeviceDriver_CPU.h"
 
+#include "../kernels/include.hxx"
+
 CPUDriver::CPUDriver(){
 
 }
@@ -183,4 +185,9 @@ template void CPUDriver::sapply<_f_set>(DeviceMemoryPointer * dst, DeviceMemoryP
 template void CPUDriver::selementwise_reduce2<_f_reduce>(DeviceMemoryPointer * dst, 
 	DeviceMemoryPointer * src1, DeviceMemoryPointer * src2, DeviceMemoryPointer * const func_curry);
 
+template void CPUDriver::selementwise_reduce2<_f_reduce_mul>(DeviceMemoryPointer * dst, 
+	DeviceMemoryPointer * src1, DeviceMemoryPointer * src2, DeviceMemoryPointer * const func_curry);
+
+template void CPUDriver::selementwise_reduce2<_f_reduce_tanhgrad>(DeviceMemoryPointer * dst, 
+	DeviceMemoryPointer * src1, DeviceMemoryPointer * src2, DeviceMemoryPointer * const func_curry);
 

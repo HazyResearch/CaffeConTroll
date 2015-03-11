@@ -30,8 +30,6 @@ class AbstractBridge : public PhysicalOperator {
 
   public:
 
-    DeviceDriver * p_driver;
-
     std::string name;   // lets give Bridge a name
 
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
@@ -108,12 +106,12 @@ class AbstractBridge : public PhysicalOperator {
     AbstractBridge<InputLayerDataType, InputLayerLayout,
       OutputLayerDataType, OutputLayerLayout>(InputLayerType * const _p_input_layer,
           OutputLayerType * const _p_output_layer, const cnn::LayerParameter * const _layer_param,
-          const cnn::SolverParameter * const _solver_param, DeviceDriver * _p_driver = NULL) : curr_B(_p_input_layer->p_data_cube->B),
+          const cnn::SolverParameter * const _solver_param) : curr_B(_p_input_layer->p_data_cube->B),
         iR(_p_input_layer->p_data_cube->R), iC(_p_input_layer->p_data_cube->C), iD(_p_input_layer->p_data_cube->D),
         iB(_p_input_layer->p_data_cube->B), oR(_p_output_layer->p_data_cube->R), oC(_p_output_layer->p_data_cube->C),
         oD(_p_output_layer->p_data_cube->D), oB(_p_output_layer->p_data_cube->B),
         p_input_layer(_p_input_layer), p_output_layer(_p_output_layer), layer_param(_layer_param),
-        solver_param(_solver_param), bias_term(false), p_driver(_p_driver) {} // no-op, initialize only
+        solver_param(_solver_param), bias_term(false) {} // no-op, initialize only
 
     // Second constructor, which does NOT take in a cnn::LayerParameter as a third argument.
     // (Used only for Softmax)

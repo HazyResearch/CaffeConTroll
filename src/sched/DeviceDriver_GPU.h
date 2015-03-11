@@ -3,8 +3,6 @@
 #include <cublas_v2.h>
 
 #include "DeviceDriver.h"
-#include "../kernels/lowering.hxx"
-#include "../kernels/test.hxx"
 
 #ifndef _DEVICE_DRIVER_GPU_H
 #define _DEVICE_DRIVER_GPU_H

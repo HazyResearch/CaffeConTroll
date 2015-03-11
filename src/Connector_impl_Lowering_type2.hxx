@@ -8,6 +8,7 @@
 #ifndef moka_Connector_imple_Lowering_type2_hxx
 #define moka_Connector_imple_Lowering_type2_hxx
 
+/*
 template<typename DataType, LayoutType InputLayout>
 Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE2>::
 Connector(const InputLogicalCubeType  * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
@@ -124,5 +125,5 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
   report_last_inverse_lowering.end(iR*iC*iD*iB*sizeof(DataType), oR*oC*oD*oB*sizeof(DataType), 0);
   report_history.aggregate(report_last_inverse_lowering);
 }
-
+*/
 #endif

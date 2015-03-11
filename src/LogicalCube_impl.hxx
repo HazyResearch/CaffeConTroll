@@ -141,9 +141,7 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output
   args.dBR = args.dR; args.dBC = args.dC;
   args.sBR = min((size_t)32, args.sR); args.sBC = min((size_t)32, args.sC);
 
-  //invoke_lowering((GPUDriver*)p_driver, output, input, args);
-  ((GPUDriver*)p_driver)->pmap2d_read_coalesce<_fpmap_id,_fmap_remap>(output, copy, args);
-  //((GPUDriver*)p_driver)->pmap2d_read_coalesce<_fpmap_id,_fmap_lower>(output, input, args);
+  p_driver->pmap2d_read_coalesce<_fpmap_id,_fmap_remap>(output, copy, args);
 
   p_driver->free(copy);
   free(copy);
