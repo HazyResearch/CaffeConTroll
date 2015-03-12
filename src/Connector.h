@@ -132,10 +132,10 @@ class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE2> {
     Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
         const size_t _kernel_size, const size_t _padding, const size_t _stride);
 
-    void lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
+    void lower_model_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
+    void lower_data_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
 
     void inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube);
-
 };
 
 #include "Connector_impl_Lowering_type1.hxx"

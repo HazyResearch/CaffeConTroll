@@ -168,7 +168,7 @@ TYPED_TEST(ConnectorLoweringType2Test, TestLowering){
   EXPECT_NEAR(expected_output_cube->n_elements, idx, 0.);
 
   int n = this->output_cube->n_elements;
-  this->connector_->lower_cube(this->input_cube, this->output_cube);
+  this->connector_->lower_model_cube(this->input_cube, this->output_cube);
 
   for(int i=0; i<n; i++){
     EXPECT_NEAR(this->output_cube->get_p_data()[i],  expected_output_cube->get_p_data()[i], EPS);

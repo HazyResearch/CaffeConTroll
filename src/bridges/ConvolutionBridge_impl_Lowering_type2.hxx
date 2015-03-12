@@ -42,8 +42,10 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   assert(iB == oB); assert(num_output_features == oD);
 #endif
 
-  p_model_cube = new LogicalCubeType(K, K, iD, num_output_features);
-  initialize_logical_cube(p_model_cube, weight_filler);
+  p_model_cube = new LogicalCubeType(NULL, K, K, iD, num_output_features);
+
+  p_model_cube_shadow = new LogicalCubeType(K, K, iD, num_output_features);
+  initialize_logical_cube(p_model_cube_shadow, weight_filler);
 
   p_model_gradient_cube = new LogicalCubeType(K, K, iD, num_output_features);
 
@@ -54,8 +56,8 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
     p_bias_gradient_cube = new LogicalCubeType(1, 1, num_output_features, 1);
   }
 
-  // First, allocate the space we need for lowering
-  // Following code is very messy without the Matrix interface -- TODO
+  p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(iD, iR*iC*iB,
+      1, 1);
   p_forward_lowered_model = new LogicalCube<DataType, Layout_CRDB>(num_output_features*K*K,
       iD, 1, 1);
 
@@ -67,8 +69,11 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   LogicalCube<DataType, Layout_CRDB> lowered_forward_output_post_conv(p_output_layer->p_data_cube->get_p_data(),
       num_output_features, (iR-K+1)*(iC-K+1)*iB, 1, 1);
 
-  p_forward_lower_connector = new Connector<DataType, Layout_CRDB, DataType, Layout_CRDB,
-                            LOWERING_TYPE2>(p_model_cube, p_forward_lowered_model, K,
+  p_forward_lower_model_connector = new Connector<DataType, Layout_CRDB, DataType, Layout_CRDB,
+                            LOWERING_TYPE2>(p_model_cube_shadow, p_forward_lowered_model, K,
+                                padding, stride);
+  p_forward_lower_data_connector = new Connector<DataType, Layout_CRDB, DataType, Layout_CRDB,
+                            LOWERING_TYPE2>(p_input_layer->p_data_cube, p_forward_lowered_data, K,
                                 padding, stride);
 
   p_forward_gemm_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
@@ -128,20 +133,25 @@ initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter
 
 template <typename T>
 void aggregate(LogicalCube<T, Layout_CRDB> * const in, LogicalCube<T, Layout_CRDB> * const out, const int K,
-    const int N, const int oR, const int oC, const int stride) {
-  for (int start_y_base = 0; start_y_base < in->R; start_y_base += K*K) {
-    const int out_y = start_y_base / (K*K);
-    for (int y = 0; y < oR; y++) {
-      for (int x = 0; x < oC; x++) {
-        const int start_x_base = (y*N + x)*stride;
-        const int out_x = y*oC + x;
-        for (int i = 0, start_x = start_x_base, start_y = start_y_base; i < K;
-            start_y += K, start_x += N, ++i) {
-          for (int p = 0; p < K; p++) {
-            int in_y = start_y + p;
-            int in_x = start_x + p;
-            *out->logical_get(out_y, out_x, 0, 0) +=
-              *in->logical_get(in_y, in_x, 0, 0);
+    const int N, const int oR, const int oC, const int iB, const int stride, const int padding) {
+  assert(padding == 0); // TODO: support padding > 1
+  for (int b = 0; b < iB; ++b) {
+    const int start_x_b = b*N*N;
+    const int out_x_base = b*oR*oC;
+    for (int start_y_base = 0; start_y_base < in->R; start_y_base += K*K) {
+      const int out_y = start_y_base / (K*K);
+      for (int y = 0; y < oR; y++) {
+        for (int x = 0; x < oC; x++) {
+          const int start_x_base = start_x_b + (y*N + x)*stride;
+          const int out_x = out_x_base + y*oC + x;
+          for (int i = 0, start_x = start_x_base, start_y = start_y_base; i < K;
+              start_y += K, start_x += N, ++i) {
+            for (int p = 0; p < K; p++) {
+              int in_y = start_y + p;
+              int in_x = start_x + p;
+              *out->logical_get(out_y, out_x, 0, 0) +=
+                *in->logical_get(in_y, in_x, 0, 0);
+            }
           }
         }
       }
@@ -174,22 +184,21 @@ forward() {
 
   // (0) cast input model and output to matrix
   // This one should be refactored with the matrix interface
-  LogicalCube<DataType, Layout_CRDB> lowered_data(p_input_layer->p_data_cube->get_p_data(), iD,
-      iR*iC*iB, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_gemm_output(num_output_features*K*K, iR*iC*iB, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_output(p_output_layer->p_data_cube->get_p_data(),
       num_output_features, oR*oC*iB, 1, 1);
 
-  // (1) do the lowering. For Lowering Type 2, we lower the model, not the data
-  p_forward_lower_connector->lower_cube(p_model_cube, p_forward_lowered_model);
+  // (1) do the lowering. For Lowering Type 2, we lower the model and the data
+  p_forward_lower_model_connector->lower_model_cube(p_model_cube, p_forward_lowered_model);
+  p_forward_lower_data_connector->lower_data_cube(p_input_layer->p_data_cube, p_forward_lowered_data);
 
     // (2) call GEMM kernel
-  p_forward_gemm_kernel->compute(p_forward_lowered_model, &lowered_data, &lowered_gemm_output);
+  p_forward_gemm_kernel->compute(p_forward_lowered_model, p_forward_lowered_data, &lowered_gemm_output);
 
   // (3) perform convolution on lowered_gemm_output to get lowered_output
   lowered_output.reset_cube();
   assert(iR == iC);
-  aggregate(&lowered_gemm_output, &lowered_output, K, iR, oR, oC, stride);
+  aggregate(&lowered_gemm_output, &lowered_output, K, iR, oR, oC, iB, stride, padding);
 
   // Right now the output we get is of the form:
   // [(b_0, d_0), (b_1, d_0), ... , (b_n, d_0)
@@ -228,7 +237,7 @@ forward() {
 
   report_forward_last_transfer.end();
   report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_lowering);
-  report_forward_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);
+  report_forward_last_transfer.aggregate_onlystat(p_forward_lower_model_connector->report_last_lowering);
 
   if (FUNC != FUNC_NOFUNC) {
     report_forward_last_transfer.aggregate_onlystat(p_forward_applyfunc_scanner->report_last_apply);
@@ -236,7 +245,7 @@ forward() {
 
   report_forward_history.aggregate(report_forward_last_transfer);
   report_forward_kernel.aggregate(p_forward_gemm_kernel->report_last_lowering);
-  report_forward_lowering.aggregate(p_forward_lower_connector->report_last_lowering);
+  report_forward_lowering.aggregate(p_forward_lower_model_connector->report_last_lowering);
 }
 
 
@@ -309,7 +318,7 @@ backward() {
     //    - 2.1 GEMM between the gradient of output and old kernel
     p_backward_gemm_updategrad_kernel->compute(&lowered_model, &lowered_outputgrad, p_backward_inputgrad);
     //    - 2.2 undo the lowering (i.e., sum together all grad corresponding to the same unlowered position)
-    p_forward_lower_connector->inverse_lower_cube(p_backward_inputgrad, p_input_layer->p_gradient_cube);
+    p_forward_lower_model_connector->inverse_lower_cube(p_backward_inputgrad, p_input_layer->p_gradient_cube);
   }
 
   // (4) calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
@@ -324,10 +333,10 @@ backward() {
   }
 
   report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updategrad_kernel->report_last_lowering);
-  report_backward_updateweight_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_inverse_lowering);
+  report_backward_updateweight_last_transfer.aggregate_onlystat(p_forward_lower_model_connector->report_last_inverse_lowering);
   report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updateweight_kernel->report_last_lowering);
 
-  report_backward_inverse_lowering.aggregate(p_forward_lower_connector->report_last_inverse_lowering);
+  report_backward_inverse_lowering.aggregate(p_forward_lower_model_connector->report_last_inverse_lowering);
   report_backward_weight_kernel.aggregate(p_backward_gemm_updateweight_kernel->report_last_lowering);
   report_backward_grad_kernel.aggregate(p_backward_gemm_updategrad_kernel->report_last_lowering);
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
@@ -346,7 +355,7 @@ ConvolutionBridge<CPU_CONV_LOWERINGTYPE2, FUNC, DataType, Layout_CRDB, DataType,
   delete p_model_cube; delete p_forward_lowered_model;
   delete p_backward_gemm_updategrad_kernel; delete p_backward_gemm_updateweight_kernel;
   delete p_backward_inputgrad; delete p_forward_gemm_kernel;
-  delete p_forward_lower_connector;
+  delete p_forward_lower_model_connector;
 }
 
 #endif

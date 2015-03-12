@@ -247,11 +247,11 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE2, FUNC, DataType, Layout_CRDB, Dat
     const cnn::FillerParameter bias_filler;
 
     void set_model_cube(LogicalCube<DataType, Layout_CRDB> * model) {
-      Util::_our_memcpy(p_model_cube->get_p_data(), model->get_p_data(), p_model_cube->n_elements*sizeof(DataType));
+      p_model_cube->set_p_data(model->get_p_data());
     }
 
     LogicalCube<DataType, Layout_CRDB> * const get_model_cube() {
-      return p_model_cube;
+      return p_model_cube_shadow;
     }
 
     void set_bias_cube(LogicalCube<DataType, Layout_CRDB> * bias) {
@@ -260,6 +260,14 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE2, FUNC, DataType, Layout_CRDB, Dat
 
     LogicalCube<DataType, Layout_CRDB> * const get_bias_cube() {
       return p_bias_cube;
+    }
+
+    LogicalCube<DataType, Layout_CRDB> * const get_model_grad_cube() {
+        return p_model_gradient_cube;
+    }
+
+    LogicalCube<DataType, Layout_CRDB> * const get_bias_grad_cube() {
+        return p_bias_gradient_cube;
     }
 
     ConvolutionBridge(InputLayerType * const _p_input_layer,
@@ -276,11 +284,13 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE2, FUNC, DataType, Layout_CRDB, Dat
   protected:
     LogicalCubeType * p_model_gradient_cube;
     LogicalCubeType * p_model_cube;
+    LogicalCubeType * p_model_cube_shadow;
 
     LogicalCubeType * p_bias_gradient_cube;
     LogicalCubeType * p_bias_cube;
 
     LogicalCubeType * p_forward_lowered_model;
+    LogicalCubeType * p_forward_lowered_data;
     LogicalCubeType * p_backward_outputgrad;
     LogicalCubeType * p_backward_inputgrad;
 
@@ -289,7 +299,10 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE2, FUNC, DataType, Layout_CRDB, Dat
     Scanner<DataType, Layout_CRDB, FUNC> * p_forward_applyfunc_scanner;
 
     Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, LOWERING_TYPE2>
-      * p_forward_lower_connector;
+      * p_forward_lower_model_connector;
+
+    Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, LOWERING_TYPE2>
+      * p_forward_lower_data_connector;
 
     Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
       Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS> * p_forward_gemm_kernel;

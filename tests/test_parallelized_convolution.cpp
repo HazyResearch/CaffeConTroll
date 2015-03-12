@@ -90,13 +90,13 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
 
     cnn::SolverParameter solver_param;
 
-    static const int mB = 1;
-    static const int iD = 2;
-    static const int oD = 1;
-    static const int iR = 4;
-    static const int iC = 4;
-    static const int k = 2;
-    static const int s = 2;
+    static const int mB = 3;
+    static const int iD = 3;
+    static const int oD = 4;
+    static const int iR = 6;
+    static const int iC = 6;
+    static const int k = 3;
+    static const int s = 1;
     static const int p = 0;
     static const int oR = static_cast<int>((static_cast<float>(iR + 2*p - k) / s)) + 1;
     static const int oC = static_cast<int>((static_cast<float>(iC + 2*p - k) / s)) + 1;
@@ -123,7 +123,6 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestForward){
     this->grad1->get_p_data()[i] = 0;
   }
 
-  this->data1->logical_print();
   // }
   // else{
   //   FAIL();
@@ -135,7 +134,6 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestForward){
   for(int i=0;i<this->k*this->k*this->iD*this->oD;i++){
     this->ParallelizedConvolutionBridge_->p_model_cube->get_p_data()[i] = rand() % 1000;
   }
-  this->ParallelizedConvolutionBridge_->p_model_cube->logical_print();
   // }
   // else{
   //   FAIL();

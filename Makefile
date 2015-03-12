@@ -51,9 +51,9 @@ OBJ_FILES = $(patsubst %.cpp,%.o,$(SRC))
 TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest -lpthread 
 TEST_SOURCES = src/DeepNet.cpp src/bridges/PhysicalStratum_impl.cpp \
 	       src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp tests/test_main.cpp \
-	       tests/test_connector.cpp \
 	       tests/test_parallelized_convolution.cpp \
-	       #tests/test_lrn_bridge.cpp \
+	       #tests/test_connector.cpp \
+	       tests/test_lrn_bridge.cpp \
 	       tests/test_ReLU_bridge.cpp \
 	       tests/test_MaxPooling_bridge.cpp \
 	       tests/test_model_write.cpp \

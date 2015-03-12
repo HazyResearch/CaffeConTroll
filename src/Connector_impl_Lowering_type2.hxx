@@ -36,13 +36,9 @@ Connector(const InputLogicalCubeType  * const p_input_cube, const OutputLogicalC
 
 template<typename DataType, LayoutType InputLayout>
 void Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE2>::
-lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube) {
+lower_model_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube) {
 
   report_last_lowering.reset();
-
-#ifdef _DO_WARNING
-  cerr << "WARNING: " << "You are using the most general version of the lowering function. " << "This might be slow!" << endl;
-#endif
 
 #ifdef _DO_ASSERT
   assert(p_input_cube->R == iR);
@@ -67,6 +63,37 @@ lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeTyp
   report_history.aggregate(report_last_lowering);
 }
 
+template<typename DataType, LayoutType InputLayout>
+void Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE2>::
+lower_data_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube) {
+
+  report_last_lowering.reset();
+
+#ifdef _DO_ASSERT
+  assert(p_input_cube->R == iR);
+  assert(p_input_cube->C == iC);
+  assert(p_input_cube->D == iD);
+  assert(p_input_cube->B == iB);
+  assert(p_output_cube->R == oR);
+  assert(p_output_cube->C == oC);
+  assert(p_output_cube->D == oD);
+  assert(p_output_cube->B == oB);
+#endif
+
+  p_output_cube->reset_cube();
+  DataType * output_data = p_output_cube->get_p_data();
+
+  for (size_t i_d = 0; i_d < iD; ++i_d) {
+    for (size_t i_b = 0; i_b < iB; ++i_b) {
+      const LogicalMatrix<DataType> m = p_input_cube->get_logical_matrix(i_d, i_b);
+      Util::_our_memcpy(output_data, m.p_data, sizeof(DataType)*m.n_elements);
+      output_data += m.n_elements;
+    }
+  }
+
+  report_last_lowering.end(iR*iC*iD*iB*sizeof(DataType), oR*oC*oD*oB*sizeof(DataType), 0);
+  report_history.aggregate(report_last_lowering);
+}
 
 
 template<typename DataType, LayoutType InputLayout>
