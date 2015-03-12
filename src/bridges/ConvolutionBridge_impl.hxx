@@ -6,7 +6,7 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#include "../sched/DeviceDriver_GPU.h"
+//#include "../sched/DeviceDriver_GPU.h"
 
 #ifndef moka_ConvolutionBridge_impl_hxx
 #define moka_ConvolutionBridge_impl_hxx

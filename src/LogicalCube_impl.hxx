@@ -13,7 +13,7 @@
 #include <string.h>
 #include "util.h"
 
-#include "sched/DeviceDriver_GPU.h"
+//#include "sched/DeviceDriver_GPU.h"
 
 using namespace std;
 
@@ -60,7 +60,9 @@ struct _func_src_to_dst_arg_helper{
 };
 
 // TOFIX TO GPU
+#ifdef _GPU_TARGET
 __host__ __device__
+#endif
 size_t _func_src_to_dst(size_t _dst_index, void * curry){
   const _func_src_to_dst_arg_helper * const parg =
     reinterpret_cast<_func_src_to_dst_arg_helper *>(curry);
@@ -69,10 +71,15 @@ size_t _func_src_to_dst(size_t _dst_index, void * curry){
   const size_t c_i = (dst_index/parg->kernel_size)/parg->R;
   return (c_i*parg->kernel_size + r_i*parg->C*parg->kernel_size)*parg->sizeof_T;
 }
+
+#ifdef _GPU_TARGET
 __device__
+#endif
 FUNC_IDX_MAPPING func_src_to_dst = _func_src_to_dst;
 
+#ifdef _GPU_TARGET
 __host__ __device__
+#endif
 void _sfunc_remap(void * _src, void * _dst, void * curry){
   float * const dst_data = (float *) _dst;
   float * const src_data = (float *) _src;
@@ -82,7 +89,10 @@ void _sfunc_remap(void * _src, void * _dst, void * curry){
     dst_data[i] = src_data[i];
   }
 }
+
+#ifdef _GPU_TARGET
 __device__
+#endif
 FUNC_MM_MAPPING sfunc_remap = _sfunc_remap;
 
 /*

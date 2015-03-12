@@ -13,7 +13,11 @@
 #include "../src/config.h"
 #include "../src/Connector.h"
 #include "../src/bridges/ConvolutionBridge.h"
+
+#ifdef _GPU_TARGET
 #include "../src/sched/DeviceDriver_GPU.h"
+#endif
+
 #include "../src/sched/DeviceDriver_CPU.h"
 
 #include "../src/kernels/include.h"
