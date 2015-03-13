@@ -67,7 +67,7 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
 
       // TODO: set #partition to 8 does not halt
       ParallelizedConvolutionBridge_ = new ParallelizedBridge<DataType_SFFloat,
-            ConvolutionBridge<CPU_CONV_LOWERINGTYPE2, FUNC_NOFUNC, DataType_SFFloat,
+            ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
             Layout_CRDB, DataType_SFFloat, Layout_CRDB> >(layer1, layer2, &layer_param,
                 &solver_param, 1, 1);
 
@@ -75,7 +75,7 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
     }
 
     virtual ~ParallelizedConvolutionBridgeTest() { delete layer1; delete layer2; }
-    ParallelizedBridge<DataType_SFFloat, ConvolutionBridge<CPU_CONV_LOWERINGTYPE2,
+    ParallelizedBridge<DataType_SFFloat, ConvolutionBridge<CPU_CONV_LOWERINGTYPE1,
       FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
       Layout_CRDB> >* ParallelizedConvolutionBridge_;
 
@@ -90,13 +90,13 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
 
     cnn::SolverParameter solver_param;
 
-    static const int mB = 3;
+    static const int mB = 2;
     static const int iD = 3;
     static const int oD = 4;
     static const int iR = 6;
     static const int iC = 6;
     static const int k = 3;
-    static const int s = 1;
+    static const int s = 2;
     static const int p = 0;
     static const int oR = static_cast<int>((static_cast<float>(iR + 2*p - k) / s)) + 1;
     static const int oC = static_cast<int>((static_cast<float>(iC + 2*p - k) / s)) + 1;
@@ -120,9 +120,11 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestForward){
   // if (input.is_open()){
   for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
     this->data1->get_p_data()[i] = rand() % 1000;
-    this->grad1->get_p_data()[i] = 0;
   }
 
+  for(int i=0;i<this->oR*this->oC*this->oD*this->mB;i++){
+    this->grad2->get_p_data()[i] = i*0.1;
+  }
   // }
   // else{
   //   FAIL();
@@ -152,13 +154,14 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestForward){
   // bias_file.close();
 
   this->ParallelizedConvolutionBridge_->forward();
-  this->data2->logical_print();
+  // this->data2->logical_print();
+  // float sum = 0.0;
+  // for (int i=0;i<this->data2->R*this->data2->C*this->data2->D*this->data2->B;i++) {
+  //   sum += this->data2->get_p_data()[i];
+  // }
+  // cout << "sum: " << sum << endl;
 
-  float sum = 0.0;
-  for (int i=0;i<this->data2->R*this->data2->C*this->data2->D*this->data2->B;i++) {
-    sum += this->data2->get_p_data()[i];
-  }
-  cout << "sum: " << sum << endl;
+  this->ParallelizedConvolutionBridge_->backward();
 
   // std::fstream expected_output("tests/output/conv_forward.txt", std::ios_base::in);
   // if(TypeParam::FUNC == FUNC_NOFUNC){

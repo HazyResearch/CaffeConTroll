@@ -49,8 +49,8 @@ void LogicalCube<T, LAYOUT>::remap_output(const size_t O,
 
 template<typename T, LayoutType LAYOUT>
 template<typename DUMMY>
-void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C,
-    const size_t kernel_size) {
+void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output(LogicalCube<T, LAYOUT>& cube,
+    const size_t R, const size_t C, const size_t kernel_size) {
 
   T* temp_buffer = (T*) malloc(sizeof(T)*cube.R*cube.C*cube.B*cube.D);
   Util::_our_memcpy(temp_buffer, cube.p_data, sizeof(T)*cube.R*cube.C*cube.B*cube.D);
@@ -70,8 +70,8 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output
 
 template<typename T, LayoutType LAYOUT>
 template<typename DUMMY>
-void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE2, DUMMY>::remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C,
-    const size_t kernel_size) {
+void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE2, DUMMY>::remap_output(LogicalCube<T, LAYOUT>& cube,
+    const size_t R, const size_t C, const size_t kernel_size) {
 
   T* temp_buffer = (T*) malloc(sizeof(T)*cube.R*cube.C*cube.B*cube.D);
   Util::_our_memcpy(temp_buffer, cube.p_data, sizeof(T)*cube.R*cube.C*cube.B*cube.D);

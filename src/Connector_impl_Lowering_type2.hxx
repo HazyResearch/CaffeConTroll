@@ -95,56 +95,46 @@ lower_data_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCu
   report_history.aggregate(report_last_lowering);
 }
 
-
 template<typename DataType, LayoutType InputLayout>
 void Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE2>::
-inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube) {
+inverse_lower_model_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube) {
 
   report_last_inverse_lowering.reset();
+  assert(p_input_cube->n_elements == p_output_cube->n_elements);
 
-#ifdef _DO_WARNING
-  cerr << "WARNING: " << "You are using the most general version of the lowering function. " << "This might be slow!" << endl;
-#endif
+  DataType * output_data = p_output_cube->get_p_data();
+  int i = 0;
 
-#ifdef _DO_ASSERT
-  assert(p_input_cube->R == iR);
-  assert(p_input_cube->C == iC);
-  assert(p_input_cube->D == iD);
-  assert(p_input_cube->B == iB);
-  assert(p_output_cube->R == oR);
-  assert(p_output_cube->C == oC);
-  assert(p_output_cube->D == oD);
-  assert(p_output_cube->B == oB);
-#endif
 
-  for (size_t c=0;c<iC;c++) {
-    for (size_t r=0;r<iR;r++) {
-      for (size_t d=0;d<iD;d++) {
-        for (size_t b=0;b<iB;b++) {
-          *p_input_cube->logical_get(r, c, d, b) = 0;
-        }
+  for (size_t r = 0; r < p_input_cube->R; ++r) { // this determines which batch, too
+    for (size_t start_c = 0; start_c < p_output_cube->D; ++start_c) {
+      for (size_t c = start_c; c < p_input_cube->C; c += p_output_cube->D) {
+        output_data[i++] = *p_input_cube->logical_get(r, c, 0, 0);
       }
     }
   }
 
-  size_t outr = 0, outc = 0;
+  report_last_inverse_lowering.end(iR*iC*iD*iB*sizeof(DataType), oR*oC*oD*oB*sizeof(DataType), 0);
+  report_history.aggregate(report_last_inverse_lowering);
+}
 
-  for (size_t kd=0;kd<iD;kd++) {
-    for (size_t kr=0;kr<kernel_size;kr++) {
-      for (size_t kc=0;kc<kernel_size;kc++) {
+template<typename DataType, LayoutType InputLayout>
+void Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE2>::
+inverse_lower_data_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube) {
 
-        outc = 0;
-        for (size_t ib=0;ib<iB;ib++) {
-          for (size_t cr=0;cr<iR-kernel_size+1;cr++) {
-            for (size_t cc=0;cc<iC-kernel_size+1;cc++) {
-              *p_input_cube->logical_get(cr+kr, cc+kc, kd, ib) +=
-                *p_output_cube->logical_get(outr, outc, 0, 0);
-              outc ++;
-            }
-          }
-        }
-        outr ++;
-      }
+  report_last_inverse_lowering.reset();
+
+  assert(p_input_cube->n_elements == p_output_cube->n_elements);
+
+  DataType * input_data = p_input_cube->get_p_data();
+  const DataType * const output_data = p_output_cube->get_p_data();
+  const size_t n_elems_single_matrix = p_input_cube->R*p_input_cube->C;
+
+  for (size_t i_b = 0; i_b < p_input_cube->B; ++i_b) {
+    for (size_t i_d = 0; i_d < p_input_cube->D; ++i_d) {
+      Util::_our_memcpy(input_data, &output_data[i_d*p_output_cube->C + i_b*n_elems_single_matrix],
+          sizeof(DataType)*n_elems_single_matrix);
+      input_data += n_elems_single_matrix;
     }
   }
 

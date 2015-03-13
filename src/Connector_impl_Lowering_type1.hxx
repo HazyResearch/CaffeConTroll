@@ -98,14 +98,14 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
   const size_t data_output_width = (iR + 2 * padding - kernel_size) / stride + 1;  // the number of rows in the output gradient cube
   const size_t data_output_height = (iC + 2 * padding - kernel_size) / stride + 1; // the number of cols in the output gradient cube
 
-  // First, we iterate over K * K * iD , which is the number of rows in the output gradient
-  // cube. (Remember: the output gradient cube has dimensions K * K * iD x oR * oC * iB x 1 x 1,
+  // First, we iterate over K*K*iD , which is the number of rows in the output gradient
+  // cube. (Remember: the output gradient cube has dimensions K*K*iD x oR*oC*iB x 1 x 1,
   // where oR and oC do NOT refer the variables above. TODO: We REALLY need to standardize this!)
   for (size_t kd = 0; kd < iD; ++kd) {
     for (size_t kr = 0; kr < kernel_size; ++kr) {
       for (size_t kc = 0; kc < kernel_size; ++kc) {
 
-        // Then, we iterate over oR * oC * iB, the number of columns in the output gradient
+        // Then, we iterate over oR*oC*iB, the number of columns in the output gradient
         for (size_t ib = 0; ib < iB; ++ib) {
           // cr and cc represent the row index and column index of the convolutional "window"
           // in the input gradient cube, which means that they must be incremented by stride
