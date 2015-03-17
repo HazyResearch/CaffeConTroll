@@ -22,7 +22,7 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
                             // // TOFIX TO GPU
                             // TODO: THIS (new CPUDriver) IS ONLY FOR DEBUGGING!!! REFACTOR THIS OUT!!!
                             // THIS IS ONLY TO MAKE SURE WE CAN FINISH LOGICAL-IZE EVERYTHING
-                            // BEFORE REFACTORING THE INTERFACE!  
+                            // BEFORE REFACTORING THE INTERFACE!
   K(layer_param->convolution_param().kernel_size()),
   num_output_features(_p_output_layer->dD), // We are missing the abstraction of Logical Plan -- that is
                                             // why we cannot use layer_param here when there is grouping.
@@ -54,7 +54,7 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
 
   p_model_cube_shadow = new LogicalCubeType(K, K, iD, num_output_features, p_driver);
     // this should be allocated on device
-  
+
   initialize_logical_cube(p_model_cube_shadow, weight_filler);
 
   p_model_gradient_cube = new LogicalCubeType(K, K, iD, num_output_features, p_driver);
@@ -174,7 +174,7 @@ forward() {
   //    TODO: the following thing is only for DEBUG, it should be
   //          moved up to AbstractBridge
   Timer t;
-  
+
   // TODO DEREF
   LogicalCube<DataType, Layout_CRDB> * input_d_cube = new LogicalCubeType(
     iR, iC, iD, iB, p_driver);
@@ -183,9 +183,9 @@ forward() {
 
   // Copy input to Device. This should be refactor'ed out into the
   // scheduler.
-  DeviceMemoryPointer_Local_RAM plocal(p_input_layer->p_data_cube->get_p_data(), 
+  DeviceMemoryPointer_Local_RAM plocal(p_input_layer->p_data_cube->get_p_data(),
     input_d_cube->n_elements*sizeof(DataType));
-  DeviceMemoryPointer * phost = p_driver->get_device_pointer(input_d_cube->get_p_data(), 
+  DeviceMemoryPointer * phost = p_driver->get_device_pointer(input_d_cube->get_p_data(),
     input_d_cube->n_elements*sizeof(DataType));
   p_driver->memcpy(phost, &plocal);
 
@@ -220,7 +220,7 @@ forward() {
   //  TODO: figure out how to properly transpose the
   //  inputs so that we get the correct output without
   //  needing to call remap
-  
+
   // (3) apply non-linear functions
   if (FUNC != FUNC_NOFUNC) {
      p_forward_applyfunc_scanner->apply(&lowered_output);
@@ -236,35 +236,49 @@ forward() {
   //
   // TODO
   if (bias_term) {
-    /*
+    /* Old Bias implementation
+    const size_t output_feature_size = oR*oC;
+    const DataType * const bias_data = p_bias_cube->get_p_data();
+    for (size_t o_b = 0; o_b < oB; ++o_b) {
+      for (size_t o_d = 0; o_d < oD; ++o_d) {
+        const LogicalMatrix<DataType> output_data_slice =
+          p_output_layer->p_data_cube->get_logical_matrix(o_d, o_b);
+        const DataType bias = bias_data[o_d];
+        for (size_t i = 0; i < output_feature_size; ++i) {
+          output_data_slice.p_data[i] += bias;
+        }
+      }
+    }
+    */
     DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
     DeviceMemoryPointer * bias = p_bias_cube->get_device_pointer(p_driver);
 
-    _func_src_to_dst_arg_helper_conv arg1;
-    arg1.oR = oR;
-    arg1.oC = oC;
-    arg1.oD = oD;
-  
+    _bias_forward_arg_helper _arg1;
+    _arg1.oR = oR;
+    _arg1.oC = oC;
+    _arg1.oD = oD;
+
     size_t ORxOC = oR*oC;
 
-    DeviceMemoryPointer * parg1 = p_driver->get_device_pointer((void*)&arg1, 
-      sizeof(_func_src_to_dst_arg_helper_conv));
+    DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg1,
+      sizeof(_bias_forward_arg_helper));
 
-    DeviceMemoryPointer * parg2 = p_driver->get_device_pointer((void*)&ORxOC, sizeof(size_t));
-
-    p_driver->parallel_map(bias, output, oR*oC*sizeof(DataType), &func_src_to_dst_conv, 
-      parg1, &func_bias, parg2);
-    */
+    DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&ORxOC,
+        sizeof(size_t));
+// &func_src_to_dst_conv
+// &func_bias
+    p_driver->template parallel_map<_f_src_to_dst_bias_forward,
+      _f_bias_forward>(bias, output, oR*oC*sizeof(DataType), arg1, arg2);
   }
 
   // Copy output to Host. This should be refactor'ed out into the
   // scheduler.
-  DeviceMemoryPointer_Local_RAM plocal2(p_output_layer->p_data_cube->get_p_data(), 
+  DeviceMemoryPointer_Local_RAM plocal2(p_output_layer->p_data_cube->get_p_data(),
     output_d_cube->n_elements*sizeof(DataType));
-  DeviceMemoryPointer * phost2 = p_driver->get_device_pointer(output_d_cube->get_p_data(), 
+  DeviceMemoryPointer * phost2 = p_driver->get_device_pointer(output_d_cube->get_p_data(),
     output_d_cube->n_elements*sizeof(DataType));
   p_driver->memcpy(&plocal2, phost2);
-  
+
   report_forward_last_transfer.end();
   report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_lowering);
   report_forward_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);

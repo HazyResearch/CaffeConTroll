@@ -120,8 +120,6 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
     typedef LogicalCube<DataType, Layout_CRDB> LogicalCubeType;
 
-    DriverClass * p_driver;
-
     const size_t K;
     const size_t num_output_features;
     const size_t stride;
@@ -131,6 +129,8 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
 
     const cnn::FillerParameter weight_filler;
     const cnn::FillerParameter bias_filler;
+
+    DriverClass * p_driver;
 
     void set_model_cube(LogicalCube<DataType, Layout_CRDB> * model) {
       p_model_cube->set_p_data(model->get_p_data());
