@@ -36,35 +36,44 @@ SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::So
  **/
 template <typename DataType, typename DriverClass>
 void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forward() {
+  // Copy input to Device. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal(p_input_layer->p_data_cube->get_p_data(),
+    input_d_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost = p_driver->get_device_pointer(input_d_cube->get_p_data(),
+    input_d_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(phost, &plocal);
+
   report_forward_last_transfer.reset();
 
-  LogicalCube<DataType, Layout_CRDB> * const input_data = p_input_layer->p_data_cube;
+  ////////////////////////////////////////////////////////////////////////////////
+  DeviceMemoryPointer * input = input_d_cube->get_device_pointer(p_driver);
+  DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
 
-  const DataType * const ground_truth = p_data_labels->get_p_data();
+  _softmax_forward_arg_helper _arg;
+  _arg.loss = &loss;
+  _arg.iR = iR;
+  _arg.iC = iC;
+  _arg.iD = iD;
+  _arg.ground_truth = (char *) p_data_labels->get_p_data();
 
-  for (size_t i_b = 0; i_b < iB; ++i_b) {
-    const DataType * const single_input_batch = input_data->physical_get_RCDslice(i_b);
-    DataType max = single_input_batch[0];
-    const size_t size_of_single_batch = iR*iC*iD;
-    for (size_t i = 1; i < size_of_single_batch; ++i) {
-      if (single_input_batch[i] > max) {
-        max = single_input_batch[i];
-      }
-    }
+  DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg,
+      sizeof(_softmax_forward_arg_helper));
+  DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg,
+      sizeof(_softmax_forward_arg_helper));
 
-    DataType denom = DataType(0.0);
-    for (size_t i = 0; i < size_of_single_batch; ++i) {
-      const DataType exponentiated_val = exp(single_input_batch[i] - max);
-      denom += exponentiated_val;
-    }
+  p_driver->template parallel_map<_f_src_to_dst_softmax_forward,
+    _f_softmax_forward>(output, input, sizeof(DataType)*iR*iC*iD, arg1, arg2);
+  ////////////////////////////////////////////////////////////////////////////////
 
-    DataType* const output_data = p_output_layer->p_data_cube->get_p_data();
-    for (size_t i = 0; i < size_of_single_batch; ++i) {
-      output_data[i + i_b*iD] = exp(single_input_batch[i] - max)/denom;
-    }
+  // Copy output to Host. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal2(p_output_layer->p_data_cube->get_p_data(),
+    output_d_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost2 = p_driver->get_device_pointer(output_d_cube->get_p_data(),
+    output_d_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(&plocal2, phost2);
 
-    loss -= log(output_data[static_cast<int>(ground_truth[i_b]) + i_b*iD]);
-  }
 
   report_forward_last_transfer.end();
   report_forward_history.aggregate(report_forward_last_transfer);
@@ -99,7 +108,7 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass
 
   // scaling from Caffe:
   //const Dtype loss_weight = top[0]->cpu_diff()[0];
-  //caffe_scal(prob_.count(), loss_weight = 1 / num / spatial_dim, bottom_diff);
+  //caffe_scale(prob_.count(), loss_weight = 1 / num / spatial_dim, bottom_diff);
 
   report_backward_updateweight_last_transfer.end();
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);

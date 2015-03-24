@@ -59,11 +59,11 @@ void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::f
 
   // in the training phase, we apply the mask
   if (DeepNetConfig::train()) {
-    _dropout_forward_train_arg_helper _arg2;
-    _arg2.mask = (char *) mask_cube->get_p_data();
-    _arg2.scale = scale;
+    _dropout_forward_train_arg_helper _arg;
+    _arg.mask = (char *) mask_cube->get_p_data();
+    _arg.scale = scale;
 
-    DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg2,
+    DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg,
       sizeof(_dropout_forward_train_arg_helper));
     p_driver->template parallel_map<_f_src_to_dst_dropout_forward,
       _f_dropout_forward_train>(input, output, sizeof(DataType), arg1, arg2);

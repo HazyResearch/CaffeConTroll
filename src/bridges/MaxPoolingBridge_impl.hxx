@@ -74,18 +74,10 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>
   _arg.oC = oC;
   _arg.max_index = (char *) max_index->get_p_data();
 
-//  const int inc_input = input_data->R*input_data->C;
-//  const int inc_output = output_data->R*output_data->C;
-//  const int inc_max = max_index->R*max_index->C;
-
-//  input_data_pdata += inc_input;
-//  output_data_pdata += inc_output;
-//  max_index_slice_pdata += inc_max;
-
   DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg,
-      sizeof(_dropout_forward_train_arg_helper));
+      sizeof(_pool_forward_arg_helper));
   DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg,
-      sizeof(_dropout_forward_train_arg_helper));
+      sizeof(_pool_forward_arg_helper));
 
   p_driver->template parallel_map<_f_src_to_dst_pool_forward,
     _f_pool_forward>(output, input, sizeof(DataType)*iR*iC, arg1, arg2);
