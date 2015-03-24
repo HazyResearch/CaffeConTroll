@@ -1,7 +1,12 @@
+
+#ifndef _PARSER_H
+#define _PARSER_H
+
 #include <string>
 
 #include "cnn.pb.h"
 #include <glog/logging.h>
+
 using namespace std;
 using google::protobuf::Message;
 
@@ -13,4 +18,6 @@ class Parser {
     static void data_setup(cnn::LayerParameter & layer_param, cnn::Datum & datum);
 };
 
-#include "parser.cpp" // TODO: change to hxx
+#include "parser.hxx"
+
+#endif

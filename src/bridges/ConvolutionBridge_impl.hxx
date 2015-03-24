@@ -16,23 +16,17 @@ template <typename DataType, NonLinearFunction FUNC, typename DriverClass>
 ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
 ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
   const cnn::LayerParameter * const _layer_param, const cnn::SolverParameter * const _solver_param,
-  DriverClass * _p_driver)
-: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer,
-    _p_output_layer, _layer_param, _solver_param),
-                            // // TOFIX TO GPU
-                            // TODO: THIS (new CPUDriver) IS ONLY FOR DEBUGGING!!! REFACTOR THIS OUT!!!
-                            // THIS IS ONLY TO MAKE SURE WE CAN FINISH LOGICAL-IZE EVERYTHING
-                            // BEFORE REFACTORING THE INTERFACE!
-  K(layer_param->convolution_param().kernel_size()),
-  num_output_features(_p_output_layer->dD), // We are missing the abstraction of Logical Plan -- that is
-                                            // why we cannot use layer_param here when there is grouping.
-                                            // layer_param is the user input, not the Logical Plan
+  DriverClass * const _p_driver) : AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>(_p_input_layer,
+    _p_output_layer, _layer_param, _solver_param, _p_driver), K(layer_param->convolution_param().kernel_size()),
+  num_output_features(_p_output_layer->dD),
+  // We are missing the abstraction of Logical Plan -- that is
+  // why we cannot use layer_param here when there is grouping.
+  // layer_param is the user input, not the Logical Plan
   stride(layer_param->convolution_param().stride()),
   padding(layer_param->convolution_param().pad()),
   bias_term(layer_param->convolution_param().bias_term()),
   weight_filler(layer_param->convolution_param().weight_filler()),
-  bias_filler(layer_param->convolution_param().bias_filler()),
-  p_driver(_p_driver){
+  bias_filler(layer_param->convolution_param().bias_filler()) {
 
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();
@@ -87,14 +81,14 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
 
   p_forward_lower_connector = new Connector<DataType, Layout_CRDB, DataType, Layout_CRDB,
                             LOWERING_TYPE1, DriverClass>(p_input_layer->p_data_cube, p_forward_lowered_data, K,
-                                padding, stride, this->p_driver);
+                                padding, stride, p_driver);
 
   p_forward_gemm_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
                         Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS>(&lowered_forward_model,
-                            p_forward_lowered_data, &lowered_forward_output, this->p_driver);
+                            p_forward_lowered_data, &lowered_forward_output, p_driver);
 
   p_forward_applyfunc_scanner = new Scanner<DataType, Layout_CRDB, FUNC>(p_output_layer->p_data_cube,
-                                  this->p_driver);
+                                  p_driver);
 
   // second, allocate the space we need for backward
   // (only if we're applying a non-linear function
@@ -112,19 +106,19 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
     p_backward_element_mul_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType,
                                   Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU,
                                   KernelConfig_TANHGRAD_ON_INPUT1>(p_output_layer->p_data_cube,
-                                      p_output_layer->p_gradient_cube, p_backward_outputgrad, this->p_driver);
+                                      p_output_layer->p_gradient_cube, p_backward_outputgrad, p_driver);
   }
 
   // TODO: this constructor doesn't make any sense -- we're passing in different arguments later, in backward()
   p_backward_gemm_updateweight_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType,
                                       Layout_CRDB, Kernel_GEMM_OpenBlas,
                                       KernelConfig_GEMM_NOTRANS_TRANS>(&lowered_forward_output,
-                                          p_forward_lowered_data, &lowered_forward_model, this->p_driver);
+                                          p_forward_lowered_data, &lowered_forward_model, p_driver);
 
   p_backward_gemm_updategrad_kernel = new Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB,
                                     DataType_SFFloat, Layout_CRDB, Kernel_GEMM_OpenBlas,
                                     KernelConfig_GEMM_TRANS_NOTRANS>(&lowered_forward_model,
-                                        &lowered_forward_output, p_backward_inputgrad, this->p_driver);
+                                        &lowered_forward_output, p_backward_inputgrad, p_driver);
 
   report_forward_constructor.end(0, 0, 0);
 }
@@ -135,15 +129,15 @@ template <typename DataType, NonLinearFunction FUNC, typename DriverClass>
 void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
 initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter filler_param) {
   const string type = filler_param.type();
-  DeviceMemoryPointer * data = cube->get_device_pointer(this->p_driver);
+  DeviceMemoryPointer * data = cube->get_device_pointer(p_driver);
   if (type == "constant") {
-    this->p_driver->sconstant_initialize(data, (DataType) filler_param.value());
+    p_driver->sconstant_initialize(data, (DataType) filler_param.value());
   } else if (type == "xavier") {
-    this->p_driver->sinitialize_xavier(data, (DataType) cube->B);
+    p_driver->sinitialize_xavier(data, (DataType) cube->B);
   } else if (type == "bernoulli") {
-    this->p_driver->sbernoulli_initialize(data, (DataType) filler_param.value());
+    p_driver->sbernoulli_initialize(data, (DataType) filler_param.value());
   } else if (type == "gaussian") {
-    this->p_driver->sgaussian_initialize(data, (DataType) filler_param.mean(), (DataType) filler_param.std());
+    p_driver->sgaussian_initialize(data, (DataType) filler_param.mean(), (DataType) filler_param.std());
   } else {
     cout << "ERROR! INITIALIZATION TYPE NOT SUPPORTED!" << endl;
     assert(false);
@@ -170,17 +164,6 @@ void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Data
 forward() {
   Util::set_num_threads(run_with_n_threads);
 
-  // (0) get input by deref'ing host pointer to device space.
-  //    TODO: the following thing is only for DEBUG, it should be
-  //          moved up to AbstractBridge
-  Timer t;
-
-  // TODO DEREF
-  LogicalCube<DataType, Layout_CRDB> * input_d_cube = new LogicalCubeType(
-    iR, iC, iD, iB, p_driver);
-  LogicalCube<DataType, Layout_CRDB> * output_d_cube = new LogicalCubeType(
-    oR, oC, oD, oB, p_driver);
-
   // Copy input to Device. This should be refactor'ed out into the
   // scheduler.
   DeviceMemoryPointer_Local_RAM plocal(p_input_layer->p_data_cube->get_p_data(),
@@ -191,6 +174,7 @@ forward() {
 
   report_forward_last_transfer.reset();
 
+  ////////////////////////////////////////////////////////////////////////////////
   if (p_model_cube->get_p_data() == NULL) {
     p_model_cube->set_p_data(p_model_cube_shadow->get_p_data());
   }
@@ -208,6 +192,11 @@ forward() {
   // (2) call GEMM kernel
   p_forward_gemm_kernel->compute(&lowered_model, p_forward_lowered_data, &lowered_output);
 
+  // (3) apply non-linear functions
+  if (FUNC != FUNC_NOFUNC) {
+     p_forward_applyfunc_scanner->apply(&lowered_output);
+  }
+
   // Right now the output we get is of the form:
   // [(b_0, d_0), (b_1, d_0), ... , (b_n, d_0)
   //
@@ -220,24 +209,14 @@ forward() {
   //  TODO: figure out how to properly transpose the
   //  inputs so that we get the correct output without
   //  needing to call remap
-
-  // (3) apply non-linear functions
-  if (FUNC != FUNC_NOFUNC) {
-     p_forward_applyfunc_scanner->apply(&lowered_output);
-  }
-
   p_forward_lower_connector->remap_output(*output_d_cube, num_output_features, iB, oR*oC);
-
-  //output_d_cube->logical_print();
 
   // TODO Refactor the following code into another module
   // This code is here mainly to speed-up the refactoring
   // to bring CONV logical
   //
-  // TODO
   if (bias_term) {
-    /* Old Bias implementation
-    const size_t output_feature_size = oR*oC;
+    /* const size_t output_feature_size = oR*oC;
     const DataType * const bias_data = p_bias_cube->get_p_data();
     for (size_t o_b = 0; o_b < oB; ++o_b) {
       for (size_t o_d = 0; o_d < oD; ++o_d) {
@@ -248,14 +227,13 @@ forward() {
           output_data_slice.p_data[i] += bias;
         }
       }
-    }
-    */
+    } */
     DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
     DeviceMemoryPointer * bias = p_bias_cube->get_device_pointer(p_driver);
 
     _bias_forward_arg_helper _arg1;
-    _arg1.oR = oR;
-    _arg1.oC = oC;
+    _arg1.src_skip = oR*oC*sizeof(DataType);
+    _arg1.DataTypeSize = sizeof(DataType);
     _arg1.oD = oD;
 
     size_t ORxOC = oR*oC;
@@ -265,11 +243,11 @@ forward() {
 
     DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&ORxOC,
         sizeof(size_t));
-// &func_src_to_dst_conv
-// &func_bias
+
     p_driver->template parallel_map<_f_src_to_dst_bias_forward,
-      _f_bias_forward>(bias, output, oR*oC*sizeof(DataType), arg1, arg2);
+      _f_bias_forward>(bias, output, _arg1.src_skip, arg1, arg2);
   }
+  ////////////////////////////////////////////////////////////////////////////////
 
   // Copy output to Host. This should be refactor'ed out into the
   // scheduler.
@@ -353,7 +331,7 @@ backward() {
   }
 
   // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
-  p_backward_outputgrad->template remap_output<LOWERING_TYPE1>(oB, num_output_features, oR*oC, this->p_driver);
+  p_backward_outputgrad->template remap_output<LOWERING_TYPE1>(oB, num_output_features, oR*oC, p_driver);
 
   if(needs_to_calc_backward_grad){
     //    - 2.1 GEMM between the gradient of output and old kernel

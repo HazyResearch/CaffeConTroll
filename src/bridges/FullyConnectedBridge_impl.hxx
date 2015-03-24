@@ -10,12 +10,12 @@
 #define moka_FullyConnectedBridge_impl_hxx
 
 // Constructor for fully connected layer
-template <typename DataType>
-FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::
+template <typename DataType, typename DriverClass>
+FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
 FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-  const cnn::LayerParameter * const _layer_param, const cnn::SolverParameter * const _solver_param)
-: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer,
-    _p_output_layer, _layer_param, _solver_param),
+  const cnn::LayerParameter * const _layer_param, const cnn::SolverParameter * const _solver_param,
+  DriverClass * const _p_driver) : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB,
+  DriverClass>(_p_input_layer, _p_output_layer, _layer_param, _solver_param, _p_driver),
   // padding is set to 0, and stride is set to 1. iC would also work as the
   // value set to K. (We assert that they are equal in initialize.)
   K(iR), num_output_features(layer_param->inner_product_param().num_output()),
@@ -65,34 +65,34 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
       num_output_features, oR*oC*iB, 1, 1);
 
   p_forward_lower_connector = new Connector<DataType, Layout_CRDB, DataType, Layout_CRDB,
-                            LOWERING_TYPE1>(p_input_layer->p_data_cube, p_forward_lowered_data, K,
-                                padding, stride, this->p_driver);
+                            LOWERING_TYPE1, DriverClass>(p_input_layer->p_data_cube, p_forward_lowered_data, K,
+                                padding, stride, p_driver);
 
   p_forward_gemm_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
                         Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS>(&lowered_forward_model,
-                            p_forward_lowered_data, &lowered_forward_output, this->p_driver);
+                            p_forward_lowered_data, &lowered_forward_output, p_driver);
 
   p_backward_inputgrad = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*iB, 1, 1);
 
   p_backward_gemm_updateweight_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType,
                                       Layout_CRDB, Kernel_GEMM_OpenBlas,
                                       KernelConfig_GEMM_NOTRANS_TRANS>(&lowered_forward_output,
-                                          p_forward_lowered_data, &lowered_forward_model, this->p_driver);
+                                          p_forward_lowered_data, &lowered_forward_model, p_driver);
   p_backward_gemm_updateweight_kernel->alpha = 1.0;
   p_backward_gemm_updateweight_kernel->beta = 0.0;
 
   p_backward_gemm_updategrad_kernel = new Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB,
                                     DataType_SFFloat, Layout_CRDB, Kernel_GEMM_OpenBlas,
                                     KernelConfig_GEMM_TRANS_NOTRANS>(&lowered_forward_model,
-                                        &lowered_forward_output, p_backward_inputgrad, this->p_driver);
+                                        &lowered_forward_output, p_backward_inputgrad, p_driver);
 
   report_forward_constructor.end(0, 0, 0);
 }
 
 // Intiailize a Logical Cube using a FillerParameter. This is only called if layer_param is
 // non-NULL.
-template <typename DataType>
-void FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::
+template <typename DataType, typename DriverClass>
+void FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
 initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter filler_param) {
   const string type = filler_param.type();
   if (type == "constant") {
@@ -123,27 +123,37 @@ initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter
  * (2) LoweredData x iModel -----------> oData
  *
  **/
-template <typename DataType>
-void FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::
+template <typename DataType, typename DriverClass>
+void FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
 forward() {
   Util::set_num_threads(run_with_n_threads);
 
+  // Copy input to Device. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal(p_input_layer->p_data_cube->get_p_data(),
+    input_d_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost = p_driver->get_device_pointer(input_d_cube->get_p_data(),
+    input_d_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(phost, &plocal);
+
   report_forward_last_transfer.reset();
 
+  ////////////////////////////////////////////////////////////////////////////////
   if (p_model_cube->get_p_data() == NULL) {
     p_model_cube->set_p_data(p_model_cube_shadow->get_p_data());
   }
+
   // (0) cast input model and output to matrix
   // This one should be refactored with the matrix interface
   LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->get_p_data(), num_output_features,
       K*K*iD, 1, 1);
-  LogicalCube<DataType, Layout_CRDB> lowered_output(p_output_layer->p_data_cube->get_p_data(),
+  LogicalCube<DataType, Layout_CRDB> lowered_output(output_d_cube->get_p_data(),
       num_output_features, oR*oC*iB, 1, 1);
 
   // (1) do the lowering
-  p_forward_lower_connector->lower_cube(p_input_layer->p_data_cube, p_forward_lowered_data);
+  p_forward_lower_connector->lower_cube(input_d_cube, p_forward_lowered_data);
 
-    // (2) call GEMM kernel
+  // (2) call GEMM kernel
   p_forward_gemm_kernel->compute(&lowered_model, p_forward_lowered_data, &lowered_output);
 
   // Right now the output we get is of the form:
@@ -158,24 +168,38 @@ forward() {
   //  TODO: figure out how to properly transpose the
   //  inputs so that we get the correct output without
   //  needing to call remap
+  p_forward_lower_connector->remap_output(*output_d_cube, num_output_features, iB, oR*oC);
 
-  p_output_layer->p_data_cube->template remap_output<LOWERING_TYPE1>(num_output_features, iB, oR*oC, this->p_driver);
   // add bias
   if (bias_term) {
-    const DataType * const bias_elems = p_bias_cube->get_p_data();
-    const size_t output_feature_size = oR*oC;
-    for (size_t o_b = 0; o_b < oB; ++o_b) {
-      for (size_t o_d = 0; o_d < oD; ++o_d) {
-        const LogicalMatrix<DataType> output_data_slice =
-          p_output_layer->p_data_cube->get_logical_matrix(o_d, o_b);
-        DataType * const output_data = output_data_slice.p_data;
-        const DataType bias = bias_elems[o_d];
-        for (size_t i = 0; i < output_feature_size; ++i) {
-          output_data[i] += bias;
-        }
-      }
-    }
+    DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
+    DeviceMemoryPointer * bias = p_bias_cube->get_device_pointer(p_driver);
+
+    _bias_forward_arg_helper _arg1;
+    _arg1.src_skip = oR*oC*sizeof(DataType);
+    _arg1.DataTypeSize = sizeof(DataType);
+    _arg1.oD = oD;
+
+    size_t ORxOC = oR*oC;
+
+    DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg1,
+      sizeof(_bias_forward_arg_helper));
+
+    DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&ORxOC,
+        sizeof(size_t));
+
+    p_driver->template parallel_map<_f_src_to_dst_bias_forward,
+      _f_bias_forward>(bias, output, _arg1.src_skip, arg1, arg2);
   }
+  ////////////////////////////////////////////////////////////////////////////////
+
+  // Copy output to Host. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal2(p_output_layer->p_data_cube->get_p_data(),
+    output_d_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost2 = p_driver->get_device_pointer(output_d_cube->get_p_data(),
+    output_d_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(&plocal2, phost2);
 
   report_forward_last_transfer.end();
   report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_lowering);
@@ -185,7 +209,6 @@ forward() {
   report_forward_kernel.aggregate(p_forward_gemm_kernel->report_last_lowering);
   report_forward_lowering.aggregate(p_forward_lower_connector->report_last_lowering);
 }
-
 
 /**
   * This function does the following:
@@ -206,8 +229,8 @@ forward() {
   * (3) BackPropogatedGradient x Lowered_iData * stepsize + iModel ---------> New iModel
   *
  **/
-template <typename DataType>
-void FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::
+template <typename DataType, typename DriverClass>
+void FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
 backward() {
   Util::set_num_threads(run_with_n_threads);
 
@@ -238,7 +261,7 @@ backward() {
     }
   }
   // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
-  p_output_layer->p_gradient_cube->template remap_output<LOWERING_TYPE1>(oB, num_output_features, oR*oC, this->p_driver);
+  p_output_layer->p_gradient_cube->template remap_output<LOWERING_TYPE1>(oB, num_output_features, oR*oC, p_driver);
   //    - 2.1 GEMM between the gradient of output and old kernel
   p_backward_gemm_updategrad_kernel->compute(&lowered_model, &lowered_outputgrad, p_backward_inputgrad);
   //    - 2.2 undo the lowering (i.e., sum together all grad corresponding to the same unlowered position)
@@ -262,8 +285,8 @@ backward() {
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
 }
 
-template <typename DataType>
-FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::
+template <typename DataType, typename DriverClass>
+FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
 ~FullyConnectedBridge() {
   if (bias_term) {
     delete p_bias_cube;

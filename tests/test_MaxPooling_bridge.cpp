@@ -36,14 +36,18 @@ class MaxPoolingBridgeTest : public ::testing::Test {
       pool_param->set_kernel_size(k);
       pool_param->set_stride(s);
 
-      MaxPoolingBridge_ = new ParallelizedBridge<DataType_SFFloat, MaxPoolingBridge<T, Layout_CRDB, T, Layout_CRDB> >(layer1,
-          layer2, &layer_param, &solver_param, 4, 1);
+      MaxPoolingBridge_ = new ParallelizedBridge<DataType_SFFloat, MaxPoolingBridge<T, Layout_CRDB, T,
+                        Layout_CRDB, CPUDriver>, CPUDriver>(layer1, layer2, &layer_param, &solver_param,
+                            &pdriver, 4, 1);
     }
 
     virtual ~MaxPoolingBridgeTest() { delete layer1; delete layer2; }
-    ParallelizedBridge<DataType_SFFloat, MaxPoolingBridge<T, Layout_CRDB, T, Layout_CRDB> >* MaxPoolingBridge_;
+    ParallelizedBridge<DataType_SFFloat, MaxPoolingBridge<T, Layout_CRDB, T, Layout_CRDB, CPUDriver>,
+      CPUDriver>* MaxPoolingBridge_;
 
     cnn::SolverParameter solver_param;
+
+    CPUDriver pdriver;
 
     LogicalCube<T, Layout_CRDB>* data1;
     LogicalCube<T, Layout_CRDB>* grad1;

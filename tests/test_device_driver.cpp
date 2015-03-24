@@ -15,7 +15,6 @@
 #include "glog/logging.h"
 #include "../src/sched/DeviceDriver.h"
 #include "../src/sched/DeviceDriver_GPU.h"
-#include "../src/sched/DeviceDriver_GPU.cuh"
 #include "../src/sched/DeviceMemoryPointer.h"
 #include <iostream>
 #include <assert.h>
@@ -49,7 +48,7 @@ TEST(DeviceDriverTest, GPU_PMAP) {
 
 	driver.parallel_map<_f_idx_strid4_copy,_f_strid4_copy>(&p2, &p1, 4*sizeof(float), &p_one, &p_one);
   	cudaMemcpy(numbers, p2.ptr, p2.size_in_byte, cudaMemcpyDeviceToHost);
-	
+
 	test_array_equals_constant(numbers, 1000, 1.2);
 }
 
@@ -71,13 +70,13 @@ TEST(DeviceDriverTest, GPU_REDUCE) {
 
 	driver.selementwise_reduce2<_f_reduce>(&p3, &p1, &p2, &p_one);
   	cudaMemcpy(numbers, p3.ptr, p3.size_in_byte, cudaMemcpyDeviceToHost);
-	
+
 	test_array_equals_constant(numbers, 1000, 4.0);
 }
 
 
 TEST(DeviceDriverTest, GPU_MEMSET) {
-	
+
 	float numbers[1000];
 
 	GPUDriver driver;
@@ -343,7 +342,7 @@ TEST(DeviceDriverTest, CPU_MEMCPY) {
 
 
 TEST(DeviceDriverTest, CPU_MEMSET) {
-	
+
 	float numbers[1000];
 
 	CPUDriver driver;
@@ -378,7 +377,7 @@ TEST(DeviceDriverTest, CPU_PMAP) {
 	driver.parallel_map<_f_idx_strid4_copy,_f_strid4_copy>
 		(&p2, &p1, 4*sizeof(float), &p_one, &p_one);
 
-  	memcpy(numbers, p2.ptr, p2.size_in_byte);	
+  	memcpy(numbers, p2.ptr, p2.size_in_byte);
 	test_array_equals_constant(numbers, 1000, 1.2);
 
 }
@@ -401,7 +400,7 @@ TEST(DeviceDriverTest, CPU_REDUCE) {
 
 	driver.selementwise_reduce2<_f_reduce>(&p3, &p1, &p2, &p_one);
   	memcpy(numbers, p3.ptr, p3.size_in_byte);
-	
+
 	test_array_equals_constant(numbers, 1000, 4.0);
 }
 

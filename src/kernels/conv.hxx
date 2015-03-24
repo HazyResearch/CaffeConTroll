@@ -1,24 +1,28 @@
-#include "conv.h"
 
 #ifndef _KERNEL_CONV_HXX
 #define _KERNEL_CONV_HXX
 
+#include "conv.h"
+
 #ifdef _GPU_TARGET
 __host__ __device__
 #endif
-inline size_t _f_src_to_dst_bias_forward(size_t a, void * const arg) {
-  // TODO
-  return 0;
+inline size_t _f_src_to_dst_bias_forward(size_t src_pos, void * const _arg) {
+  const _bias_forward_arg_helper * const arg = (_bias_forward_arg_helper *) _arg;
+  return ((src_pos / arg->src_skip) % arg->oD) * arg->DataTypeSize;
 }
 
 #ifdef _GPU_TARGET
 __host__ __device__
 #endif
-// NOTE: Normally the first argument should be dst, and the second should be
-// src. Here, we reverse the two, because we want the bias argument to correspond
-// correspond to src and the output argument to correspond to dst.
-inline void _f_bias_forward(void * src, void * dst, void * const arg) {
-  // TODO
+inline void _f_bias_forward(void * bias, void * output, void * const _arg,
+    const size_t dst_index) {
+  const size_t ORxOC = *((size_t *) _arg);
+  const float bias_val = *((float *) bias);
+  float * const output_data = (float *) output;
+  for (size_t i = 0; i < ORxOC; ++i) {
+    output_data[i] += bias_val;
+  }
 }
 
 #endif

@@ -1,3 +1,7 @@
+
+#ifndef PhysicalStratum_impl_hxx
+#define PhysicalStratum_impl_hxx
+
 /**
  * Wrapper of calling the forward() function -- only
  * used when we call thread
@@ -77,3 +81,5 @@ void PhysicalStratum::backward() {
   }
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
 }
+
+#endif

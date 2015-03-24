@@ -15,7 +15,7 @@
  * but that is even more messier.
  **/
 typedef size_t (*FUNC_IDX_MAPPING) (size_t, void * const);
-typedef void (*FUNC_MM_MAPPING) (void *, void *, void * const);
+typedef void (*FUNC_MM_MAPPING) (void *, void *, void * const, size_t);
 typedef float (*FUNC_STRANSFORM) (float, void * const);
 typedef float (*FUNC_SREDUCE) (float, float, void * const);
 
@@ -34,18 +34,16 @@ struct PMapHelper{
 struct Block2D{
   size_t r, c, d, b;
   size_t dr, dc;
-} ;
+};
 
 struct PointIn2DBlock{
   float data;
   size_t r, c;
   Block2D block;
-} ;
+};
 
 typedef void (*FPMAP_ID) (Block2D * const dst , const Block2D * const src, const PMapHelper * const args);
-typedef void (*FPMAP_DATA_READC) (float * output, const Block2D * const output_block, const PointIn2DBlock * const input_point, 
+typedef void (*FPMAP_DATA_READC) (float * output, const Block2D * const output_block, const PointIn2DBlock * const input_point,
   const PMapHelper * const args);
-
-
 
 #endif

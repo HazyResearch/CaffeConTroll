@@ -14,14 +14,7 @@
 #include "../src/Connector.h"
 #include "../src/bridges/ConvolutionBridge.h"
 
-#ifdef _GPU_TARGET
-#include "../src/sched/DeviceDriver_GPU.h"
-#endif
-
-#include "../src/sched/DeviceDriver_CPU.h"
-
 #include "../src/kernels/include.h"
-
 
 template <typename T>
 void simple_conv(LogicalCube<T, Layout_CRDB>* in, LogicalCube<T, Layout_CRDB>* kernel, LogicalCube<T, Layout_CRDB>* out){
@@ -74,7 +67,7 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
       solver_param.set_lr_policy("step");
       solver_param.set_stepsize(10000);
 
-      ConvolutionBridge_ = new ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, 
+      ConvolutionBridge_ = new ConvolutionBridge<CPU_CONV_LOWERINGTYPE1,
               FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>
               (layer1, layer2, &layer_param, &solver_param, &pdriver);
 
@@ -84,7 +77,7 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
     }
 
     virtual ~ParallelizedConvolutionBridgeTest() { delete layer1; delete layer2; }
-    
+
     ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
       Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver> * ConvolutionBridge_;
 

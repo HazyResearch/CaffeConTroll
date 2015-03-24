@@ -94,7 +94,7 @@ void _sfunc_remap(void * _src, void * _dst, void * curry){
 #ifdef _GPU_TARGET
 __device__
 #endif
-FUNC_MM_MAPPING sfunc_remap = _sfunc_remap;
+// FUNC_MM_MAPPING sfunc_remap = _sfunc_remap;
 
 /*
   auto func_src_to_dst = [=](size_t _dst_index){
@@ -121,10 +121,7 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output
 
   // TODO: This buffer does not make much sense, but lets get
   // the logical refactoring done first in a way as before
-  // before over optimize. 
-
-  //std::cout << "!!" <<sizeof(T)*cube.R*cube.C*cube.B*cube.D << std::endl;
-
+  // before over optimize.
   DeviceMemoryPointer * copy = p_driver->get_device_pointer(NULL, sizeof(T)*cube.R*cube.C*cube.B*cube.D);
   p_driver->malloc(copy);
 
@@ -148,7 +145,7 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output
 
   DeviceMemoryPointer * parg2 = p_driver->get_device_pointer((void*)&d_kernel, sizeof(size_t));
 
-  p_driver->parallel_map(copy, output, kernel_size*sizeof(T), 
+  p_driver->parallel_map(copy, output, kernel_size*sizeof(T),
       &func_src_to_dst, parg1, &sfunc_remap, parg2);
       */
 
@@ -162,7 +159,6 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output
 
   p_driver->free(copy);
   free(copy);
-  
 }
 
 

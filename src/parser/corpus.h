@@ -23,16 +23,14 @@
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/message_lite.h>
 #include <glog/logging.h>
+
 #include "parser.h"
 #include "lmdb.h"
 #include "cnn.pb.h"
-
-
 #include "../LogicalCube.h"
 
 class Corpus {
   public:
-
     size_t n_images;
     size_t n_rows;
     size_t n_cols;
@@ -59,7 +57,6 @@ class Corpus {
 
 };
 
-#include "corpus.cpp" //TODO: change to hxx
-
+#include "corpus.hxx"
 
 #endif

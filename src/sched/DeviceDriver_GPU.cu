@@ -367,12 +367,24 @@ template void GPUDriver::pmap2d_read_coalesce<_fpmap_id,_fmap_lower>(DeviceMemor
 template void GPUDriver::pmap2d_read_coalesce<_fpmap_id,_fmap_remap>(DeviceMemoryPointer * dst, 
 	DeviceMemoryPointer * src, const struct PMapHelper args);
 
-template void GPUDriver::parallel_map<_f_idx_strid4_copy,_f_strid4_copy>
-	(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, size_t src_skip, 
-		DeviceMemoryPointer * const f_dst_pos_curry, DeviceMemoryPointer * const func_curry);
-template void GPUDriver::parallel_map<_f_src_to_dst_bias_forward,_f_bias_forward>
-	(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, size_t src_skip, 
-		DeviceMemoryPointer * const f_dst_pos_curry, DeviceMemoryPointer * const func_curry);
+template void GPUDriver::parallel_map<_f_idx_strid4_copy,_f_strid4_copy>(DeviceMemoryPointer * dst,
+    DeviceMemoryPointer * src, size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
+    DeviceMemoryPointer * const func_curry);
+template void GPUDriver::parallel_map<_f_src_to_dst_bias_forward,_f_bias_forward>(DeviceMemoryPointer * dst,
+    DeviceMemoryPointer * src, size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
+    DeviceMemoryPointer * const func_curry);
+template void DeviceDriver::parallel_map<_f_src_to_dst_relu_forward,_f_relu_forward>(DeviceMemoryPointer * dst,
+    DeviceMemoryPointer * src, size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
+    DeviceMemoryPointer * const func_curry);
+template void DeviceDriver::parallel_map<_f_src_to_dst_dropout_forward,_f_dropout_forward_train>(DeviceMemoryPointer * dst,
+    DeviceMemoryPointer * src, size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
+    DeviceMemoryPointer * const func_curry);
+template void DeviceDriver::parallel_map<_f_src_to_dst_dropout_forward,_f_dropout_forward_test>(DeviceMemoryPointer * dst,
+    DeviceMemoryPointer * src, size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
+    DeviceMemoryPointer * const func_curry);
+template void GPUDriver::parallel_map<_f_src_to_dst_pool_forward,_f_pool_forward>(DeviceMemoryPointer * dst,
+    DeviceMemoryPointer * src, size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
+    DeviceMemoryPointer * const func_curry);
 
 template void GPUDriver::sapply<_f_add_one>(DeviceMemoryPointer * dst, DeviceMemoryPointer * const func_curry);
 

@@ -34,12 +34,12 @@ inline double fastPrecisePow(double a, double b) {
   return r * u.d;
 }
 
-template <typename DataType>
-LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::LRNBridge(InputLayerType * const _p_input_layer,
+template <typename DataType, typename DriverClass>
+LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::LRNBridge(InputLayerType * const _p_input_layer,
     OutputLayerType * const _p_output_layer, const cnn::LayerParameter * const _layer_param,
-    const cnn::SolverParameter * const _solver_param)
-: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer,
-    _p_output_layer, _layer_param, _solver_param),
+    const cnn::SolverParameter * const _solver_param, DriverClass * const _p_driver)
+: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>(_p_input_layer,
+    _p_output_layer, _layer_param, _solver_param, _p_driver),
  alpha(layer_param->lrn_param().alpha()), beta(layer_param->lrn_param().beta()),
  local_size(layer_param->lrn_param().local_size()) {
 
@@ -65,8 +65,8 @@ LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::LRNBridge(InputLayerTyp
  * This is implemented very differently from Caffe, but it should still
  * produce the same result.
  **/
-template <typename DataType>
-void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
+template <typename DataType, typename DriverClass>
+void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forward() {
   report_forward_last_transfer.reset();
 
   p_input_layer->p_gradient_cube->reset_cube();
@@ -92,7 +92,7 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
 
     // do the first depth in the old way
     p_input = p_input_layer->p_data_cube->logical_get(0, 0, 0, i_b);
-    for (int iric = 0; iric < iRiC; iric ++) {
+    for (int iric = 0; iric < iRiC; iric++) {
       DataType sum = DataType(0.);
       p_input_tmp = p_input;
       for (int i = 0; i <= norm_window; ++i) {
@@ -100,36 +100,36 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
         p_input_tmp += iRiC;
       }
       *p_denoms = sum;
-      p_input ++;
-      p_denoms ++;
+      p_input++;
+      p_denoms++;
     }
 
     // for other batch, reuse the old result
     for (int i_d = 1; i_d < _iD; ++i_d) {
 
       DataType * p_denoms2 = p_denoms;
-      for (int iric = 0; iric < iRiC; iric ++) {
+      for (int iric = 0; iric < iRiC; iric++) {
         *(p_denoms2) = *(p_denoms2 - iRiC);
-        p_denoms2 ++;
+        p_denoms2++;
       }
 
       p_denoms2 = p_denoms;
-      if(i_d-norm_window-1 >= 0){
+      if (i_d-norm_window-1 >= 0) {
         p_input_toremove = p_input_layer->p_data_cube->logical_get(0, 0, i_d-norm_window-1, i_b);
-        for (int iric = 0; iric < iRiC; iric ++) {
+        for (int iric = 0; iric < iRiC; iric++) {
           *p_denoms2 -= (*p_input_toremove) * (*p_input_toremove);
-          p_input_toremove ++;
-          p_denoms2 ++;
+          p_input_toremove++;
+          p_denoms2++;
         }
       }
 
       p_denoms2 = p_denoms;
-      if(i_d+norm_window < _iD){
+      if (i_d+norm_window < _iD) {
         p_input_toadd = p_input_layer->p_data_cube->logical_get(0, 0, i_d+norm_window, i_b);
-        for (int iric = 0; iric < iRiC; iric ++) {
+        for (int iric = 0; iric < iRiC; iric++) {
           *p_denoms2 += (*p_input_toadd) * (*p_input_toadd);
-          p_input_toadd ++;
-          p_denoms2 ++;
+          p_input_toadd++;
+          p_denoms2++;
         }
       }
 
@@ -149,9 +149,9 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
 #else
     *p_output = (*p_input_all)/pow(*p_denoms, beta);
 #endif
-    p_output ++;
-    p_denoms ++;
-    p_input_all ++;
+    p_output++;
+    p_denoms++;
+    p_input_all++;
   }
 
   report_forward_last_transfer.end();
@@ -164,8 +164,8 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
  * This is also implemented very differently from Caffe, but it should still
  * produce the same result.
  **/
-template <typename DataType>
-void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
+template <typename DataType, typename DriverClass>
+void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::backward() {
   report_backward_updateweight_last_transfer.reset();
 
   const DataType alpha_over_size = alpha / local_size;
@@ -197,9 +197,9 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
             }
             const DataType input_data = *p_input_layer->p_data_cube->logical_get(o_r, o_c, channel, o_b);
 
-            if(i==0){
+            if (i==0) {
               input_grad = 1.0/denom -  input_grad2 * input_data;
-            }else{
+            } else {
               input_grad = - input_grad2 * input_data;
             }
 
@@ -214,8 +214,8 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
 }
 
-template <typename DataType>
-LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::~LRNBridge() {
+template <typename DataType, typename DriverClass>
+LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::~LRNBridge() {
   delete denoms;
 }
 

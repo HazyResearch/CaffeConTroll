@@ -1,24 +1,25 @@
 //
-//  parser.cpp
+//  parser.hxx
 //  moka
 //
 //  Created by Firas Abuzaid on 1/29/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-//#include "parser.h"
-#include "lmdb.h"
-#include "cnn.pb.h"
+#ifndef Parser_hxx
+#define Parser_hxx
 
 #include <stdint.h>
 #include <iostream>
 #include <fcntl.h>
 #include <fstream>
-
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/message_lite.h>
+
+#include "lmdb.h"
+#include "cnn.pb.h"
 
 #ifndef NDB_NOTLS
 #define 	MDB_NOTLS   0x200000
@@ -87,3 +88,4 @@ void Parser::data_setup(cnn::LayerParameter & layer_param, cnn::Datum & datum){
   mdb_env_close(mdb_env_);
 }
 
+#endif

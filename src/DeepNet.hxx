@@ -1,13 +1,10 @@
-//#include "DeepNet.h"
+
+#ifndef Deepnet_hxx
+#define Deepnet_hxx
 
 #include <algorithm>
 
 using namespace std;
-
-// Declare train_ here, since it's a static variable (linker error otherwise)
-// We set it to true, since we want to train by default. This is also useful
-// for testing (e.g. DropoutTest).
-bool DeepNet::train_ = true;
 
 // computes the output dimension for any convolution layer
 inline size_t compute_conv_next_layer_dimension(const size_t R_i, const size_t K,
@@ -124,6 +121,7 @@ int DeepNet::find_accuracy(const LogicalCubeFloat * const labels, const LogicalC
 // pass. Only the bridges variable is modified.
 void DeepNet::construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetParameter & net_param,
   const cnn::SolverParameter & solver_param) {
+  CPUDriver driver;
   size_t input_R = corpus.n_rows, input_C = corpus.n_cols, input_D = corpus.dim, B = corpus.mini_batch_size;
 
   // Create the Logical Cubes for the initial data layer
@@ -174,7 +172,7 @@ void DeepNet::construct_network(BridgeVector & bridges, Corpus & corpus, const c
              * consistent.
              */
              size_t next_conv_layer = i_layer;
-             while((++next_conv_layer) < num_layers) {
+             while ((++next_conv_layer) < num_layers) {
               const cnn::LayerParameter next_layer_param = net_param.layers(next_conv_layer);
               const cnn::LayerParameter_LayerType next_layer_type = next_layer_param.type();
               if (next_layer_type == cnn::LayerParameter_LayerType_CONVOLUTION) {
@@ -202,33 +200,33 @@ void DeepNet::construct_network(BridgeVector & bridges, Corpus & corpus, const c
               // if input group == output group, then for each
               // input group, create a separate bridge and a
               // seperate output bridge
-              for(size_t i=0;i<n_previous_groups;i++) {
+              for (size_t i=0;i<n_previous_groups;i++) {
                 // for each group, create bridges
                 next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
                 next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
                 next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
-                bridge = new ParallelizedBridge<DataType_SFFloat,
-                  ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
-                  (prev_layers[i], next_layer, &layer_param, &solver_param, min<size_t>(16, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+                bridge = new ParallelizedBridge<DataType_SFFloat, ConvolutionBridge<CPU_CONV_LOWERINGTYPE1,
+                       FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver>
+                  (prev_layers[i], next_layer, &layer_param, &solver_param, &driver, min<size_t>(16, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
                 bridge->name = layer_param.name();
                 bridge->needs_to_calc_backward_grad = !is_first_conv; // for the first CONV layer, do not need to calc grad for backward step
                 bridges.push_back(bridge);
                 next_layers.push_back(next_layer);
               }
               is_first_conv = false;
-            }else{
+            } else {
               if (grouping != 1 && n_previous_groups == 1) {
                 // in this case, we fork the single input group into multile output groups
-                for(size_t i=0;i<grouping;i++) {
+                for (size_t i = 0; i < grouping; i++) {
                   // for each group, create bridges
                   next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
                   next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
                   next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
-                  bridge = new ParallelizedBridge<DataType_SFFloat,
-                    ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
-                    (prev_layers[0], next_layer, &layer_param, &solver_param, min<size_t>(16, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+                  bridge = new ParallelizedBridge<DataType_SFFloat, ConvolutionBridge<CPU_CONV_LOWERINGTYPE1,
+                         FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver>
+                    (prev_layers[0], next_layer, &layer_param, &solver_param, &driver, min<size_t>(16, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
                   bridge->name = layer_param.name();
                   bridge->needs_to_calc_backward_grad = !is_first_conv; // for the first CONV layer, do not need to calc grad for backward step
 
@@ -236,7 +234,7 @@ void DeepNet::construct_network(BridgeVector & bridges, Corpus & corpus, const c
                   next_layers.push_back(next_layer);
                 }
                 is_first_conv = false;
-              }else{
+              } else {
                 std::cout << "ERROR: Currently we do not support the case where input group is " << n_previous_groups
                   << " and output group is " << grouping << " for CONV layer..." << std::endl;
                 assert(false);
@@ -256,10 +254,10 @@ void DeepNet::construct_network(BridgeVector & bridges, Corpus & corpus, const c
               next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
               next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
               next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
-              bridge = new FunnelBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layers[0],
-                next_layer, &layer_param, &solver_param);
-              for(size_t i=0;i<n_previous_groups;i++) {
-                ((FunnelBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>*)bridge)->p_input_layers.push_back(prev_layers[i]);
+              bridge = new FunnelBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>(prev_layers[0],
+                next_layer, &layer_param, &solver_param, &driver);
+              for (size_t i = 0; i < n_previous_groups; i++) {
+                ((FunnelBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>*)bridge)->p_input_layers.push_back(prev_layers[i]);
               }
               bridge->name = "FUNNEL";
               bridges.push_back(bridge);
@@ -277,13 +275,10 @@ void DeepNet::construct_network(BridgeVector & bridges, Corpus & corpus, const c
             next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
             next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
-            //bridge = new ParallelizedBridge<DataType_SFFloat,
-            //  FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
-            //  (prev_layer, next_layer, &layer_param, min<size_t>(16, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
-
-            bridge = new ParallelizedBridge<DataType_SFFloat,
-              FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
-              (prev_layers[0], next_layer, &layer_param, &solver_param, min<size_t>(1, corpus.mini_batch_size), 16); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+            // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+            bridge = new ParallelizedBridge<DataType_SFFloat, FullyConnectedBridge<DataType_SFFloat,
+                   Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver>
+              (prev_layers[0], next_layer, &layer_param, &solver_param, &driver, min<size_t>(1, corpus.mini_batch_size), 16);
 
             //bridge = new FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layers[0],
             //  next_layer, &layer_param, &solver_param);
@@ -304,20 +299,19 @@ void DeepNet::construct_network(BridgeVector & bridges, Corpus & corpus, const c
             output_R = compute_conv_next_layer_dimension(input_R, K, 0, stride),
                      output_C = compute_conv_next_layer_dimension(input_C, K, 0, stride);
 
-            for(size_t i=0;i<n_previous_groups;i++) {
+            for (size_t i = 0; i < n_previous_groups; i++) {
               // input_D same as output_D
               next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, input_D, B);
               next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, input_D, B);
               next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
-              bridge = new ParallelizedBridge<DataType_SFFloat,
-                MaxPoolingBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >(prev_layers[i],
-                    next_layer, &layer_param, &solver_param, min<size_t>(16, corpus.mini_batch_size), 1);
+              bridge = new ParallelizedBridge<DataType_SFFloat, MaxPoolingBridge<DataType_SFFloat, Layout_CRDB,
+                     DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver >(prev_layers[i], next_layer, &layer_param,
+                         &solver_param, &driver, min<size_t>(16, corpus.mini_batch_size), 1);
               bridge->name = layer_param.name();
               bridges.push_back(bridge);
               next_layers.push_back(next_layer);
             }
-
         }
         break;
         {
@@ -326,24 +320,21 @@ void DeepNet::construct_network(BridgeVector & bridges, Corpus & corpus, const c
 
             std::cout << "Constructing RELU layer " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
 
-            for(size_t i=0;i<n_previous_groups;i++) {
+            for (size_t i=0;i<n_previous_groups;i++) {
 
               next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
               next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
               next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
-              bridge = new ParallelizedBridge<DataType_SFFloat,
-                ReLUBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
-                (prev_layers[i], next_layer, &layer_param, &solver_param, min<size_t>(16, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+              // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+              bridge = new ParallelizedBridge<DataType_SFFloat, ReLUBridge<DataType_SFFloat, Layout_CRDB,
+                     DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver>(prev_layers[i], next_layer, &layer_param,
+                         &solver_param, &driver, min<size_t>(16, corpus.mini_batch_size), 1);
               bridge->name = layer_param.name();
 
               bridges.push_back(bridge);
               next_layers.push_back(next_layer);
             }
-            /*
-            bridge = new ReLUBridge<DataType_SFFloat, Layout_CRDB,
-                   DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, &layer_param);
-            */
         }
         break;
         {
@@ -352,22 +343,19 @@ void DeepNet::construct_network(BridgeVector & bridges, Corpus & corpus, const c
 
             std::cout << "Constructing LRN layer " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
 
-            for(size_t i=0;i<n_previous_groups;i++) {
+            for (size_t i=0;i<n_previous_groups;i++) {
 
               next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
               next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
               next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
-              //bridge = new ParallelizedLRNBridge<DataType_SFFloat>(prev_layer, next_layer, &layer_param, 4, 2);
-              //bridge = new LRNBridge<DataType_SFFloat, Layout_CRDB,
-              //       DataType_SFFloat, Layout_CRDB>(prev_layer, next_layer, &layer_param);
-              bridge = new ParallelizedBridge<DataType_SFFloat,
-                LRNBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
-                (prev_layers[i], next_layer, &layer_param, &solver_param, min<size_t>(16, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+              // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+              bridge = new ParallelizedBridge<DataType_SFFloat, LRNBridge<DataType_SFFloat, Layout_CRDB,
+                     DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver>(prev_layers[i], next_layer, &layer_param,
+                         &solver_param, &driver, min<size_t>(16, corpus.mini_batch_size), 1);
               bridge->name = layer_param.name();
 
               bridges.push_back(bridge);
               next_layers.push_back(next_layer);
-
             }
         }
         break;
@@ -377,13 +365,13 @@ void DeepNet::construct_network(BridgeVector & bridges, Corpus & corpus, const c
             std::cout << "Constructing DROPOUT layer " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
 
             // input_[R,C,D] is the same as output_[R,C,D]
-            for(size_t i=0;i<n_previous_groups;i++) {
+            for (size_t i=0;i<n_previous_groups;i++) {
 
               next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
               next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
               next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
-              bridge = new DropoutBridge<DataType_SFFloat, Layout_CRDB,
-                   DataType_SFFloat, Layout_CRDB>(prev_layers[i], next_layer, &layer_param, &solver_param);
+              bridge = new DropoutBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>(prev_layers[i],
+                  next_layer, &layer_param, &solver_param, &driver);
               bridge->name = layer_param.name();
 
               bridges.push_back(bridge);
@@ -409,8 +397,8 @@ void DeepNet::construct_network(BridgeVector & bridges, Corpus & corpus, const c
             // must be initialized to point to next mini batch
             LogicalCubeFloat * const labels = new LogicalCubeFloat(NULL, 1, 1, 1, B);
 
-            bridge = new SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB,
-                 DataType_SFFloat, Layout_CRDB>(prev_layers[0], next_layer, labels);
+            bridge = new SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
+                   Layout_CRDB, CPUDriver>(prev_layers[0], next_layer, labels, &driver);
             bridge->name = layer_param.name();
 
             bridges.push_back(bridge);
@@ -435,7 +423,7 @@ void DeepNet::construct_network(BridgeVector & bridges, Corpus & corpus, const c
        * Swap next_layers with prev_layers and empty next;
        */
       prev_layers.clear();
-      for(size_t i=0;i<next_layers.size();i++) {
+      for (size_t i=0;i<next_layers.size();i++) {
         prev_layers.push_back(next_layers[i]);
       }
       next_layers.clear();
@@ -449,9 +437,7 @@ void DeepNet::construct_network(BridgeVector & bridges, Corpus & corpus, const c
 void train_network(const BridgeVector & bridges, const Corpus & corpus, const cnn::NetParameter & net_param,
     const cnn::SolverParameter & solver_param) {
 
-  SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> * const softmax =
-    (SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> *) bridges.back();
-
+  SoftmaxBridge * const softmax = (SoftmaxBridge *) bridges.back();
   Bridge * const first = (Bridge *) bridges.front();
 
   LogicalCubeFloat * const labels = softmax->p_data_labels;
@@ -571,7 +557,7 @@ Corpus * DeepNet::load_network(const char * file, const string & data_binary, cn
 
   // not necessary if being called from load_and_(train|test)_network,
   // but necessary for certain tests
-  DeepNet::train_ = train;
+  DeepNetConfig::train_ = train;
 
   if (Parser::read_proto_from_text_file(file, &solver_param) &&
   Parser::read_net_params_from_text_file(solver_param.net(), &net_param)) {
@@ -602,11 +588,8 @@ float test_network(const BridgeVector & bridges, const Corpus & corpus, const cn
     const cnn::SolverParameter & solver_param) {
 
   // TODO: we need a more general AbstractLossBridge
-  SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> * const softmax =
-    (SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> *) bridges.back();
-
-  AbstractBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> * const first =
-    (AbstractBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> *) bridges.front();
+  SoftmaxBridge * const softmax = (SoftmaxBridge *) bridges.back();
+  Bridge * const first = (Bridge *) bridges.front();
 
   LogicalCubeFloat * const labels = softmax->p_data_labels;
   LogicalCubeFloat * const input_data = first->p_input_layer->p_data_cube;
@@ -696,7 +679,7 @@ float test_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 //                                            size as the rest of batches)
 //
 void DeepNet::load_and_train_network(const char * file, const string data_binary, const string model_file) {
-  DeepNet::train_ = true;
+  DeepNetConfig::train_ = true;
 
   BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
   Corpus * const corpus = DeepNet::load_network(file, data_binary, solver_param, net_param, bridges, true);
@@ -714,7 +697,7 @@ void DeepNet::load_and_train_network(const char * file, const string data_binary
 }
 
 float DeepNet::load_and_test_network(const char * file, const string data_binary, const string model_file) {
-  DeepNet::train_ = false;
+  DeepNetConfig::train_ = false;
 
   BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
   Corpus * const corpus = DeepNet::load_network(file, data_binary, solver_param, net_param, bridges, false);
@@ -730,3 +713,5 @@ float DeepNet::load_and_test_network(const char * file, const string data_binary
     return -1;
   }
 }
+
+#endif

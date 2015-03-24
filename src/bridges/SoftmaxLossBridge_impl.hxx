@@ -9,13 +9,11 @@
 #ifndef moka_SoftmaxLossBridge_impl_hxx
 #define moka_SoftmaxLossBridge_impl_hxx
 
-template <typename DataType>
-SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::SoftmaxLossBridge(InputLayerType * const _p_input_layer,
-    OutputLayerType * const _p_output_layer, DataLabelsLogicalCubeType * const _p_data_labels)
-: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer),
-p_data_labels(_p_data_labels),
-ldR(p_data_labels->R), ldC(p_data_labels->C),
-ldD(p_data_labels->D), ldB(p_data_labels->B) {
+template <typename DataType, typename DriverClass>
+SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::SoftmaxLossBridge(InputLayerType * const _p_input_layer,
+    OutputLayerType * const _p_output_layer, DataLabelsLogicalCubeType * const _p_data_labels, DriverClass * const _p_driver) :
+  AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>(_p_input_layer, _p_output_layer, _p_driver),
+  p_data_labels(_p_data_labels), ldR(p_data_labels->R), ldC(p_data_labels->C), ldD(p_data_labels->D), ldB(p_data_labels->B) {
 
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();
@@ -36,8 +34,8 @@ ldD(p_data_labels->D), ldB(p_data_labels->B) {
  * forward direction for Softmax Loss
  * TODO: Predictions need to be written to output layer
  **/
-template <typename DataType>
-void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
+template <typename DataType, typename DriverClass>
+void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forward() {
   report_forward_last_transfer.reset();
 
   LogicalCube<DataType, Layout_CRDB> * const input_data = p_input_layer->p_data_cube;
@@ -75,8 +73,8 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() 
 /**
  * Backward propogation for Softmax Loss
  **/
-template <typename DataType>
-void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
+template <typename DataType, typename DriverClass>
+void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::backward() {
   report_backward_updateweight_last_transfer.reset();
 
   // First, copy the output data into the input gradient

@@ -47,9 +47,7 @@ PROTO_COMPILED_SRC=$(PROTO_SRC_DIR)cnn.pb.cc
 
 # SOURCE FILE FOR MAIN PROGRAM
 TARGET = caffe-ct
-SRC = src/DeepNet.cpp src/bridges/PhysicalStratum_impl.cpp \
-      src/parser/parser.cpp src/util.cpp src/timer.cpp \
-	  src/main.cpp 
+SRC = src/DeepNetConfig.cpp src/util.cpp src/timer.cpp src/main.cpp src/sched/DeviceDriver_CPU.cpp
 OBJ_FILES = $(patsubst %.cpp,%.o,$(SRC))
 
 MAIN_CUDA_SOURCES = src/sched/DeviceDriver_GPU.cu
@@ -58,31 +56,28 @@ MAIN_CUDA_OBJ_FILES = $(patsubst %.cu,%.o,$(MAIN_CUDA_SOURCES))
 # SOURCE FILE FOR TEST
 #TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest -lpthread 
 TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest
-TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp \
-				src/sched/DeviceDriver_CPU.cpp  			  \
-				src/sched/DeviceDriver.cpp  			  		\
-				tests/test_convolution.cpp
-				#tests/test_device_driver.cpp
-#			tests/test_parallelized_convolution.cpp
-#		   test_device_driver_gpu.cpp
-#	       tests/test_parallelized_convolution.cpp
-#	       tests/test_device_driver.cpp
-#	       tests/test_lrn_bridge.cpp \
-#	       tests/test_ReLU_bridge.cpp \
-#	       tests/test_MaxPooling_bridge.cpp \
-#	       tests/test_connector.cpp \
-#	       tests/test_model_write.cpp \
-#	       tests/test_softmax_bridge.cpp \
-#	       tests/test_dropout_bridge.cpp \
-#	       tests/test_cube.cpp \
+TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.cpp \
+	       src/sched/DeviceDriver_CPU.cpp \
+	        tests/test_dropout_bridge.cpp \
 #	       tests/test_parallelized_convolution.cpp \
-#	       tests/test_report.cpp \
-#	       tests/test_kernel.cpp \
-#	       tests/test_scanner.cpp \
-#	       tests/test_fc_bridge.cpp \
-#	       tests/test_grouping.cpp \
-#	       tests/test_lenet_network.cpp
-#	       #snapshot-parser/simple_parse.cpp tests/test_imagenet_snapshot.cpp \
+	       tests/test_convolution.cpp \
+	       tests/test_MaxPooling_bridge.cpp \
+	       tests/test_lrn_bridge.cpp \
+	        tests/test_ReLU_bridge.cpp \
+	        tests/test_fc_bridge.cpp \
+	        tests/test_softmax_bridge.cpp \
+	       src/sched/DeviceDriver.cpp \
+	        tests/test_device_driver.cpp \
+		tests/test_device_driver_gpu.cpp \
+	        tests/test_connector.cpp \
+	        tests/test_model_write.cpp \
+	        tests/test_cube.cpp \
+	        tests/test_report.cpp \
+	        tests/test_kernel.cpp \
+	        tests/test_scanner.cpp \
+	        tests/test_grouping.cpp \
+	        tests/test_lenet_network.cpp
+#	       snapshot-parser/simple_parse.cpp tests/test_imagenet_snapshot.cpp \
 
 TEST_OBJ_FILES = $(patsubst %.cpp,%.o,$(TEST_SOURCES))
 TEST_EXECUTABLE=test
@@ -92,8 +87,7 @@ TEST_EXECUTABLE=test
 					
 TEST_CUDA_OBJ_FILES = $(patsubst %.cu,%.o,$(TEST_CUDA_SOURCES))
 
-SNAPSHOT_SOURCES = src/DeepNet.cpp src/bridges/PhysicalStratum_impl.cpp \
-                   src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp tests/test_main.cpp \
+SNAPSHOT_SOURCES = src/util.cpp src/timer.cpp tests/test_main.cpp \
                    snapshot-parser/simple_parse.cpp tests/test_imagenet_snapshot.cpp \
 
 SNAPSHOT_OBJ_FILES = $(patsubst %.cpp,%.o,$(SNAPSHOT_SOURCES))

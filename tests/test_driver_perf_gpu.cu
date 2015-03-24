@@ -4,7 +4,6 @@
 #include "../src/timer.h"
 #include "../src/sched/DeviceDriver.h"
 #include "../src/sched/DeviceDriver_GPU.h"
-#include "../src/sched/DeviceDriver_GPU.cuh"
 #include "../src/sched/DeviceMemoryPointer.h"
 #include <iostream>
 #include <assert.h>

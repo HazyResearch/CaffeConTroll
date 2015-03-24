@@ -36,14 +36,14 @@ class LRNBridgeTest : public ::testing::Test {
       lrn_param->set_beta(beta);
       lrn_param->set_local_size(local_size);
 
-      LRNBridge_ = new ParallelizedBridge<DataType_SFFloat, LRNBridge<T, Layout_CRDB, T, Layout_CRDB> >(layer1, layer2,
-          &layer_param, &solver_param, 4, 1);
+      LRNBridge_ = new ParallelizedBridge<DataType_SFFloat, LRNBridge<T, Layout_CRDB, T, Layout_CRDB,
+                 CPUDriver>, CPUDriver>(layer1, layer2, &layer_param, &solver_param, &pdriver, 4, 1);
     }
 
     cnn::SolverParameter solver_param;
 
     virtual ~LRNBridgeTest() { delete layer1; delete layer2; }
-    ParallelizedBridge<DataType_SFFloat, LRNBridge<T, Layout_CRDB, T, Layout_CRDB> >* LRNBridge_;
+    ParallelizedBridge<DataType_SFFloat, LRNBridge<T, Layout_CRDB, T, Layout_CRDB, CPUDriver>, CPUDriver>* LRNBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
     LogicalCube<T, Layout_CRDB>* grad1;
@@ -53,6 +53,8 @@ class LRNBridgeTest : public ::testing::Test {
 
     Layer<T, Layout_CRDB>* layer1;
     Layer<T, Layout_CRDB>* layer2;
+
+    CPUDriver pdriver;
 
     static const int mB = 6;
     static const int iD = 3;
