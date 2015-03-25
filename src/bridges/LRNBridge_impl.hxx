@@ -67,91 +67,58 @@ LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::LRNBridge(
  **/
 template <typename DataType, typename DriverClass>
 void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forward() {
+  // Copy input to Device. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal(p_input_layer->p_data_cube->get_p_data(),
+    input_d_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost = p_driver->get_device_pointer(input_d_cube->get_p_data(),
+    input_d_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(phost, &plocal);
+
   report_forward_last_transfer.reset();
 
-  p_input_layer->p_gradient_cube->reset_cube();
+  ////////////////////////////////////////////////////////////////////////////////
+  DeviceMemoryPointer * input = input_d_cube->get_device_pointer(p_driver);
+  DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
+
+  _lrn_forward_arg_helper _arg;
+  _arg.iR = iR;
+  _arg.iC = iC;
+  _arg.iD = iD;
+  _arg.norm_window = (int) local_size / 2;
+  _arg.denoms = (char *) denoms->get_p_data();
+
+  DeviceMemoryPointer * arg1 = p_driver->get_device_pointer(NULL, 0);
+  DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg,
+      sizeof(_lrn_forward_arg_helper));
+
+  p_driver->template parallel_map<_f_src_to_dst_lrn_forward,
+    _f_lrn_forward>(input, output, sizeof(DataType)*iR*iC*iD, arg1, arg2);
+  ////////////////////////////////////////////////////////////////////////////////
+
+  // Copy output to Host. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal2(p_output_layer->p_data_cube->get_p_data(),
+    output_d_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost2 = p_driver->get_device_pointer(output_d_cube->get_p_data(),
+    output_d_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(&plocal2, phost2);
+
+  // then do normalization (TODO: use parallel_map for this as well)
+  DataType * p_input = p_input_layer->p_data_cube->get_p_data();
+  DataType * p_output = p_output_layer->p_data_cube->get_p_data();
+  DataType * p_denoms = denoms->get_p_data();
 
   const DataType alpha_over_size = alpha / local_size;
-
-  const int norm_window = (int) local_size / 2;
-
-  const int _iB = iB;
-  const int _iD = iD;
-  const int _iC = iC;
-  const int _iR = iR;
-
-  const int iRiC = iR*iC;
-
-  DataType * p_denoms = denoms->get_p_data();
-  DataType * p_output = p_output_layer->p_data_cube->get_p_data();
-  DataType * p_input, * p_input_toremove, * p_input_toadd, * p_input_tmp, *p_input_all;
-  p_input_all = p_input_layer->p_data_cube->get_p_data();
-
-  // first, fill in p_denoms with the sum
-  for (int i_b = 0; i_b < _iB; ++i_b) {
-
-    // do the first depth in the old way
-    p_input = p_input_layer->p_data_cube->logical_get(0, 0, 0, i_b);
-    for (int iric = 0; iric < iRiC; iric++) {
-      DataType sum = DataType(0.);
-      p_input_tmp = p_input;
-      for (int i = 0; i <= norm_window; ++i) {
-        sum += (i < 0 || i >= iD) ? 0 : (*p_input_tmp)*(*p_input_tmp);
-        p_input_tmp += iRiC;
-      }
-      *p_denoms = sum;
-      p_input++;
-      p_denoms++;
-    }
-
-    // for other batch, reuse the old result
-    for (int i_d = 1; i_d < _iD; ++i_d) {
-
-      DataType * p_denoms2 = p_denoms;
-      for (int iric = 0; iric < iRiC; iric++) {
-        *(p_denoms2) = *(p_denoms2 - iRiC);
-        p_denoms2++;
-      }
-
-      p_denoms2 = p_denoms;
-      if (i_d-norm_window-1 >= 0) {
-        p_input_toremove = p_input_layer->p_data_cube->logical_get(0, 0, i_d-norm_window-1, i_b);
-        for (int iric = 0; iric < iRiC; iric++) {
-          *p_denoms2 -= (*p_input_toremove) * (*p_input_toremove);
-          p_input_toremove++;
-          p_denoms2++;
-        }
-      }
-
-      p_denoms2 = p_denoms;
-      if (i_d+norm_window < _iD) {
-        p_input_toadd = p_input_layer->p_data_cube->logical_get(0, 0, i_d+norm_window, i_b);
-        for (int iric = 0; iric < iRiC; iric++) {
-          *p_denoms2 += (*p_input_toadd) * (*p_input_toadd);
-          p_input_toadd++;
-          p_denoms2++;
-        }
-      }
-
-      p_denoms += iRiC;
-    }
-
-  }
-
-  // then do normalization
-  p_denoms = denoms->get_p_data();
-  p_output = p_output_layer->p_data_cube->get_p_data();
-  const size_t n_elements = _iB*_iD*_iC*_iR;
+  const size_t n_elements = p_input_layer->p_data_cube->n_elements;
   for (size_t i = 0; i < n_elements; ++i) {
     *p_denoms = alpha_over_size*(*p_denoms) + 1;
 #ifdef _FASTPOW
-    *p_output = (*p_input_all)/fastPrecisePow(*p_denoms, beta);
+    *p_output = (*p_input)/fastPrecisePow(*p_denoms, beta);
 #else
-    *p_output = (*p_input_all)/pow(*p_denoms, beta);
+    *p_output = (*p_input)/pow(*p_denoms, beta);
 #endif
-    p_output++;
-    p_denoms++;
-    p_input_all++;
+    p_input++; p_output++; p_denoms++;
   }
 
   report_forward_last_transfer.end();
@@ -167,6 +134,8 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forwa
 template <typename DataType, typename DriverClass>
 void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::backward() {
   report_backward_updateweight_last_transfer.reset();
+
+  p_input_layer->p_gradient_cube->reset_cube();
 
   const DataType alpha_over_size = alpha / local_size;
   const int norm_window = (int) local_size / 2;

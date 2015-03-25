@@ -47,8 +47,8 @@ void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forw
   DeviceMemoryPointer * input = input_d_cube->get_device_pointer(p_driver);
   DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
 
-  DeviceMemoryPointer * arg1 = NULL;
-  DeviceMemoryPointer * arg2 = NULL;
+  DeviceMemoryPointer * arg1 = p_driver->get_device_pointer(NULL, 0);
+  DeviceMemoryPointer * arg2 = p_driver->get_device_pointer(NULL, 0);
 
   p_driver->template parallel_map<_f_src_to_dst_relu_forward,
     _f_relu_forward>(input, output, sizeof(DataType), arg1, arg2);
