@@ -24,6 +24,6 @@ size_t _f_src_to_dst_pool_forward(size_t src_pos, void * const _arg);
 #ifdef _GPU_TARGET
 __host__ __device__
 #endif
-void _f_pool_forward(void * bias, void * output, void * const _arg, const size_t dst_index);
+void _f_pool_forward(void * output, void * input, void * const _arg, const size_t dst_index);
 
 #endif

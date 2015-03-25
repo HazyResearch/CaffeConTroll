@@ -15,6 +15,6 @@ size_t _f_src_to_dst_lrn_forward(size_t src_pos, void * const _arg);
 #ifdef _GPU_TARGET
 __host__ __device__
 #endif
-void _f_lrn_forward(void * bias, void * output, void * const _arg);
+void _f_lrn_forward(void * input, void * output, void * const _arg);
 
 #endif

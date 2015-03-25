@@ -38,6 +38,7 @@ MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const 
 
   // create Logical Cube to keep track of indices for max values
   max_index = new LogicalCube<size_t, Layout_CRDB>(pooled_height, pooled_width, iD, iB);
+  max_index->reset_cube();
 
   report_forward_constructor.end(0, 0, 0);
 }
@@ -58,10 +59,9 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>
   report_forward_last_transfer.reset();
 
   ////////////////////////////////////////////////////////////////////////////////
-  p_output_layer->p_data_cube->reset_cube(-FLT_MAX);
-
   DeviceMemoryPointer * input = input_d_cube->get_device_pointer(p_driver);
   DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
+  p_driver->sconstant_initialize(output, -FLT_MAX);
 
   _pool_forward_arg_helper _arg;
   _arg.pooled_height = pooled_height;

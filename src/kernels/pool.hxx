@@ -19,7 +19,7 @@ inline size_t _f_src_to_dst_pool_forward(size_t src_pos, void * const _arg) {
 #ifdef _GPU_TARGET
 __host__ __device__
 #endif
-inline void _f_pool_forward(void * input, void * output, void * const _arg, const size_t dst_index) {
+inline void _f_pool_forward(void * output, void * input, void * const _arg, const size_t dst_index) {
   const _pool_forward_arg_helper * const arg = (_pool_forward_arg_helper *) _arg;
   const int pooled_height = arg->pooled_height;
   const int pooled_width = arg->pooled_width;
@@ -27,7 +27,7 @@ inline void _f_pool_forward(void * input, void * output, void * const _arg, cons
   const int kernel_size = arg->kernel_size;
   const int iR = arg->iR;
   const int iC = arg->iC;
-  size_t * const max_index = (size_t *) (&arg->max_index[dst_index]);
+  size_t * const max_index = (size_t *) (&arg->max_index[dst_index / sizeof(float) * sizeof(size_t)]);
   float * const input_data = (float *) input;
   float * const output_data = (float *) output;
 

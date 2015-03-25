@@ -58,15 +58,15 @@ MAIN_CUDA_OBJ_FILES = $(patsubst %.cu,%.o,$(MAIN_CUDA_SOURCES))
 TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest
 TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.cpp \
 	       src/sched/DeviceDriver_CPU.cpp \
-	        tests/test_dropout_bridge.cpp \
+	       tests/test_MaxPooling_bridge.cpp \
 #	       tests/test_parallelized_convolution.cpp \
 	       tests/test_convolution.cpp \
 	       tests/test_MaxPooling_bridge.cpp \
-	       tests/test_lrn_bridge.cpp \
-	        tests/test_ReLU_bridge.cpp \
 	        tests/test_fc_bridge.cpp \
+	        tests/test_ReLU_bridge.cpp \
 	        tests/test_softmax_bridge.cpp \
-	       src/sched/DeviceDriver.cpp \
+	        tests/test_dropout_bridge.cpp \
+	       tests/test_lrn_bridge.cpp \
 	        tests/test_device_driver.cpp \
 		tests/test_device_driver_gpu.cpp \
 	        tests/test_connector.cpp \
@@ -118,10 +118,8 @@ profile: LINKFLAG += -D_DETAILED_PROFILING -D_FASTPOW  $(PRODUCT_FLAGS)
 profile: $(OBJ_FILES) cnn.pb.o
 	$(LINKCC) $^ -o $(TARGET) $(LINKFLAG) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
-#test: CFLAGS += $(DEBUG_FLAGS) -I $(GTEST_INCLUDE)
-#test: LINKFLAG += $(DEBUG_FLAGS) -I $(GTEST_INCLUDE)
-test: CFLAGS += -O3 -I $(GTEST_INCLUDE)
-test: LINKFLAG += -O3 -I $(GTEST_INCLUDE)
+test: CFLAGS += $(DEBUG_FLAGS) -I $(GTEST_INCLUDE)
+test: LINKFLAG += $(DEBUG_FLAGS) -I $(GTEST_INCLUDE)
 test: $(TEST_OBJ_FILES) $(TEST_CUDA_OBJ_FILES) $(TEST_OBJ_FILES) cnn.pb.o 
 	$(LINKCC) $^ -o $(TEST_EXECUTABLE) $(LINKFLAG) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB) 
 
