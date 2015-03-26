@@ -24,6 +24,10 @@ template void DeviceDriver::parallel_map<_f_src_to_dst_bias_forward,_f_bias_forw
 template void DeviceDriver::parallel_map<_f_src_to_dst_relu_forward,_f_relu_forward>(DeviceMemoryPointer * dst,
     DeviceMemoryPointer * src, size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
     DeviceMemoryPointer * const func_curry);
+// ReLU backward
+template void DeviceDriver::parallel_map<_f_src_to_dst_relu_backward,_f_relu_backward>(DeviceMemoryPointer * dst,
+    DeviceMemoryPointer * src, size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
+    DeviceMemoryPointer * const func_curry);
 // Dropout forward train
 template void DeviceDriver::parallel_map<_f_src_to_dst_dropout_forward,_f_dropout_forward_train>(DeviceMemoryPointer * dst,
     DeviceMemoryPointer * src, size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
@@ -36,8 +40,20 @@ template void DeviceDriver::parallel_map<_f_src_to_dst_dropout_forward,_f_dropou
 template void DeviceDriver::parallel_map<_f_src_to_dst_pool_forward,_f_pool_forward>(DeviceMemoryPointer * dst,
     DeviceMemoryPointer * src, size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
     DeviceMemoryPointer * const func_curry);
+// Pool backward
+template void DeviceDriver::parallel_map<_f_src_to_dst_pool_backward,_f_pool_backward>(DeviceMemoryPointer * dst,
+    DeviceMemoryPointer * src, size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
+    DeviceMemoryPointer * const func_curry);
 // LRN forward
 template void DeviceDriver::parallel_map<_f_src_to_dst_lrn_forward,_f_lrn_forward>(DeviceMemoryPointer * dst,
+    DeviceMemoryPointer * src, size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
+    DeviceMemoryPointer * const func_curry);
+// LRN forward normalize
+template void DeviceDriver::parallel_map<_f_src_to_dst_lrn_forward,_f_lrn_forward_normalize>(DeviceMemoryPointer * dst,
+    DeviceMemoryPointer * src, size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
+    DeviceMemoryPointer * const func_curry);
+// LRN backward
+template void DeviceDriver::parallel_map<_f_src_to_dst_lrn_backward,_f_lrn_backward>(DeviceMemoryPointer * dst,
     DeviceMemoryPointer * src, size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
     DeviceMemoryPointer * const func_curry);
 // Softmax forward

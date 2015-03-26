@@ -34,7 +34,9 @@ class AbstractBridge : public PhysicalOperator {
     // always <= iB
     size_t curr_B;
     LogicalCube<InputLayerDataType, InputLayerLayout> * input_d_cube;
+    LogicalCube<InputLayerDataType, InputLayerLayout> * input_g_cube;
     LogicalCube<OutputLayerDataType, OutputLayerLayout> * output_d_cube;
+    LogicalCube<OutputLayerDataType, OutputLayerLayout> * output_g_cube;
 
   public:
     std::string name; // lets give Bridge a name
@@ -124,7 +126,9 @@ class AbstractBridge : public PhysicalOperator {
         solver_param(_solver_param), p_driver(_p_driver), bias_term(false) {
 
           input_d_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(iR, iC, iD, iB, p_driver);
+          input_g_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(iR, iC, iD, iB, p_driver);
           output_d_cube = new LogicalCube<OutputLayerDataType, OutputLayerLayout>(oR, oC, oD, oB, p_driver);
+          output_g_cube = new LogicalCube<OutputLayerDataType, OutputLayerLayout>(oR, oC, oD, oB, p_driver);
         }
 
     // Second constructor, which does NOT take in a cnn::LayerParameter as a third argument.
@@ -142,13 +146,17 @@ class AbstractBridge : public PhysicalOperator {
         bias_term(false) {
 
           input_d_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(iR, iC, iD, iB, p_driver);
+          input_g_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(iR, iC, iD, iB, p_driver);
           output_d_cube = new LogicalCube<OutputLayerDataType, OutputLayerLayout>(oR, oC, oD, oB, p_driver);
+          output_g_cube = new LogicalCube<OutputLayerDataType, OutputLayerLayout>(oR, oC, oD, oB, p_driver);
         }
 
     // This needs to be virtual, so we can delete the subclass bridges
     virtual ~AbstractBridge() {
       delete input_d_cube;
+      delete input_g_cube;
       delete output_d_cube;
+      delete output_g_cube;
     }
 };
 

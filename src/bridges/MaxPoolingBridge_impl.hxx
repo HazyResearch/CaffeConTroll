@@ -48,7 +48,7 @@ MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const 
  **/
 template <typename DataType, typename DriverClass>
 void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forward() {
-  // Copy input to Device. This should be refactor'ed out into the
+  // Copy input data to Device. This should be refactor'ed out into the
   // scheduler.
   DeviceMemoryPointer_Local_RAM plocal(p_input_layer->p_data_cube->get_p_data(),
     input_d_cube->n_elements*sizeof(DataType));
@@ -83,7 +83,7 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>
     _f_pool_forward>(output, input, sizeof(DataType)*iR*iC, arg1, arg2);
   ////////////////////////////////////////////////////////////////////////////////
 
-  // Copy output to Host. This should be refactor'ed out into the
+  // Copy output data to Host. This should be refactor'ed out into the
   // scheduler.
   DeviceMemoryPointer_Local_RAM plocal2(p_output_layer->p_data_cube->get_p_data(),
     output_d_cube->n_elements*sizeof(DataType));
@@ -101,28 +101,46 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>
  **/
 template <typename DataType, typename DriverClass>
 void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::backward() {
+  // Copy output grad to Device. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal(p_output_layer->p_gradient_cube->get_p_data(),
+      output_g_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost = p_driver->get_device_pointer(output_g_cube->get_p_data(),
+      output_g_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(phost, &plocal);
 
   report_backward_updateweight_last_transfer.reset();
 
-  p_input_layer->p_gradient_cube->reset_cube();
+  ////////////////////////////////////////////////////////////////////////////////
+  DeviceMemoryPointer * input = input_g_cube->get_device_pointer(p_driver);
+  DeviceMemoryPointer * output = output_g_cube->get_device_pointer(p_driver);
+  p_driver->sconstant_initialize(input, DataType(0.));
 
-  const LogicalCube<DataType, Layout_CRDB>* const input_grad = p_input_layer->p_gradient_cube;
-  LogicalCube<DataType, Layout_CRDB>* const output_grad = p_output_layer->p_gradient_cube;
-  for (size_t b_i = 0; b_i < iB; ++b_i) {
-    for (size_t d_i = 0; d_i < iD; ++d_i) {
-      const LogicalMatrix<DataType> output_grad_slice = output_grad->get_logical_matrix(d_i, b_i);
-      LogicalMatrix<size_t> max_index_slice = max_index->get_logical_matrix(d_i, b_i);
-      LogicalMatrix<DataType> input_grad_slice = input_grad->get_logical_matrix(d_i, b_i);
+  _pool_backward_arg_helper _arg;
+  _arg.pooled_height = pooled_height;
+  _arg.pooled_width = pooled_width;
+  _arg.iR = iR;
+  _arg.iC = iC;
+  _arg.oR = oR;
+  _arg.oC = oC;
+  _arg.max_index = (char *) max_index->get_p_data();
 
-      for (int ph = 0; ph < pooled_height; ++ph) {
-        for (int pw = 0; pw < pooled_width; ++pw) {
-          const size_t index = ph * pooled_width + pw;
-          const size_t input_grad_index = max_index_slice.p_data[index];
-          input_grad_slice.p_data[input_grad_index] += output_grad_slice.p_data[index];
-        }
-      }
-    }
-  }
+  DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg,
+      sizeof(_pool_backward_arg_helper));
+  DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg,
+      sizeof(_pool_backward_arg_helper));
+
+  p_driver->template parallel_map<_f_src_to_dst_pool_backward,
+    _f_pool_backward>(output, input, sizeof(DataType)*iR*iC, arg1, arg2);
+  ////////////////////////////////////////////////////////////////////////////////
+
+  // Copy input grad to Host. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal2(p_input_layer->p_gradient_cube->get_p_data(),
+      input_g_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost2 = p_driver->get_device_pointer(input_g_cube->get_p_data(),
+      input_g_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(&plocal2, phost2);
 
   report_backward_updateweight_last_transfer.end();
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);

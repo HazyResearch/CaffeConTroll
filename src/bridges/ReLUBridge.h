@@ -46,7 +46,9 @@ class ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass> : pu
   protected:
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::curr_B;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::input_d_cube;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::input_g_cube;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::output_d_cube;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::output_g_cube;
 
   public:
     /* Re-declare these member fields so that they don't have to be resolved using vtable lookups */

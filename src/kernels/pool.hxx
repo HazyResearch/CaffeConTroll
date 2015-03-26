@@ -13,7 +13,7 @@ inline size_t _f_src_to_dst_pool_forward(size_t src_pos, void * const _arg) {
   const int iC = arg->iC;
   const int oR = arg->oR;
   const int oC = arg->oC;
-  return (src_pos / iR / iC)*oR*oC;
+  return (src_pos/iR/iC)*oR*oC;
 }
 
 #ifdef _GPU_TARGET
@@ -48,6 +48,39 @@ inline void _f_pool_forward(void * output, void * input, void * const _arg,
             input_data[index] : output_data[pool_index];
         }
       }
+    }
+  }
+}
+
+#ifdef _GPU_TARGET
+__host__ __device__
+#endif
+inline size_t _f_src_to_dst_pool_backward(size_t src_pos, void * const _arg) {
+  const _pool_backward_arg_helper * const arg = (_pool_backward_arg_helper *) _arg;
+  const int iR = arg->iR;
+  const int iC = arg->iC;
+  const int oR = arg->oR;
+  const int oC = arg->oC;
+  return (src_pos/iR/iC)*oR*oC;
+}
+
+#ifdef _GPU_TARGET
+__host__ __device__
+#endif
+inline void _f_pool_backward(void * output, void * input, void * const _arg,
+    const size_t dst_index) {
+  const _pool_backward_arg_helper * const arg = (_pool_backward_arg_helper *) _arg;
+  const int pooled_height = arg->pooled_height;
+  const int pooled_width = arg->pooled_width;
+  size_t * const max_index = (size_t *) (&arg->max_index[dst_index / sizeof(float) * sizeof(size_t)]);
+  float * const input_grad = (float *) input;
+  float * const output_grad = (float *) output;
+
+  for (int ph = 0; ph < pooled_height; ++ph) {
+    for (int pw = 0; pw < pooled_width; ++pw) {
+      const size_t index = ph * pooled_width + pw;
+      const size_t input_grad_index = max_index[index];
+      input_grad[input_grad_index] += output_grad[index];
     }
   }
 }

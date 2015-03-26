@@ -38,7 +38,7 @@ DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::Dropou
  **/
 template <typename DataType, typename DriverClass>
 void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forward() {
-  // Copy input to Device. This should be refactor'ed out into the
+  // Copy input data to Device. This should be refactor'ed out into the
   // scheduler.
   DeviceMemoryPointer_Local_RAM plocal(p_input_layer->p_data_cube->get_p_data(),
     input_d_cube->n_elements*sizeof(DataType));
@@ -75,7 +75,7 @@ void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::f
   }
   ////////////////////////////////////////////////////////////////////////////////
 
-  // Copy output to Host. This should be refactor'ed out into the
+  // Copy output data to Host. This should be refactor'ed out into the
   // scheduler.
   DeviceMemoryPointer_Local_RAM plocal2(p_output_layer->p_data_cube->get_p_data(),
     output_d_cube->n_elements*sizeof(DataType));
@@ -92,20 +92,41 @@ void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::f
  **/
 template <typename DataType, typename DriverClass>
 void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::backward() {
+  // Copy output grad to Device. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal(p_output_layer->p_gradient_cube->get_p_data(),
+    output_g_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost = p_driver->get_device_pointer(output_g_cube->get_p_data(),
+    output_g_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(phost, &plocal);
+
   report_backward_updateweight_last_transfer.reset();
 
-  const size_t num_elements = p_input_layer->p_data_cube->n_elements;
-#ifdef _DO_ASSERT
-  assert(num_elements == mask_cube->n_elements);
-#endif
-  const unsigned int * const mask = mask_cube->get_p_data();
+  ////////////////////////////////////////////////////////////////////////////////
+  DeviceMemoryPointer * input = input_g_cube->get_device_pointer(p_driver);
+  DeviceMemoryPointer * output = output_g_cube->get_device_pointer(p_driver);
 
-  DataType* const input_gradient = p_input_layer->p_gradient_cube->get_p_data();
-  const DataType* const output_gradient = p_output_layer->p_gradient_cube->get_p_data();
+  _dropout_forward_train_arg_helper _arg;
+  _arg.mask = (char *) mask_cube->get_p_data();
+  _arg.scale = scale;
 
-  for (size_t i = 0; i < num_elements; ++i) {
-    input_gradient[i] = output_gradient[i] * mask[i] * scale;
-  }
+  DeviceMemoryPointer * arg1 = p_driver->get_device_pointer(NULL, 0);
+  DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg,
+      sizeof(_dropout_forward_train_arg_helper));
+
+  // the backward phase is the same as the forward phase, except we treat
+  // the input gradient as the output, and the output gradient as the input
+  p_driver->template parallel_map<_f_src_to_dst_dropout_forward,
+    _f_dropout_forward_train>(output, input, sizeof(DataType), arg1, arg2);
+  ////////////////////////////////////////////////////////////////////////////////
+
+  // Copy input grad to Host. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal2(p_input_layer->p_gradient_cube->get_p_data(),
+      input_g_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost2 = p_driver->get_device_pointer(input_g_cube->get_p_data(),
+      input_g_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(&plocal2, phost2);
 
   report_backward_updateweight_last_transfer.end();
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
