@@ -1,7 +1,8 @@
-#include "dropout.h"
 
 #ifndef _KERNEL_DROPOUT_HXX
 #define _KERNEL_DROPOUT_HXX
+
+#include "dropout.h"
 
 #ifdef _GPU_TARGET
 __host__ __device__

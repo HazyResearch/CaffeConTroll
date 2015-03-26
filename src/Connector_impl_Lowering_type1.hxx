@@ -100,7 +100,6 @@ remap_output(LogicalCube<DataType, InputLayout>& cube, const size_t R, const siz
 
   p_driver->free(copy);
   free(copy);
-
 }
 
 template<typename DataType, LayoutType InputLayout, typename DriverClass>
@@ -157,7 +156,5 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
   report_last_inverse_lowering.end(iR*iC*iD*iB*sizeof(DataType), oR*oC*oD*oB*sizeof(DataType), 0);
   report_history.aggregate(report_last_inverse_lowering);
 }
-
-
 
 #endif

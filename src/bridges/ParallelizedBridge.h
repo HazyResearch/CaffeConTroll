@@ -9,10 +9,8 @@
 #ifndef moka_ParallelizedBridge_h
 #define moka_ParallelizedBridge_h
 
-#include "../algorithms/GradientUpdater.h"
 #include "AbstractBridge.h"
 #include "PhysicalStratum.h"
-#include "ConvolutionBridge.h"
 #include <thread>
 #include <vector>
 

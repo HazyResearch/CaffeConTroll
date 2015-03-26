@@ -10,7 +10,6 @@
 #define moka_Kernel_h
 
 #include "sched/DeviceDriver.h"
-
 #include "LogicalCube.h"
 #include "Report.h"
 
@@ -136,7 +135,6 @@ public:
     void compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube, OutputLogicalCubeType * const p_output_cube);
 
 };
-
 
 #include "Kernel_impl.hxx"
 

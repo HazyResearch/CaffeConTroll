@@ -1,10 +1,10 @@
 
+#ifndef _GradientUpdater_H
+#define _GradientUpdater_H
+
 #include <algorithm>
 #include "../parser/corpus.h"
 #include "../util.h"
-
-#ifndef _GradientUpdater_H
-#define _GradientUpdater_H
 
 /**
  * The job of a GradientUpdater is simple, it takes

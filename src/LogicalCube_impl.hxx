@@ -13,10 +13,6 @@
 #include <string.h>
 #include "util.h"
 
-//#include "sched/DeviceDriver_GPU.h"
-
-using namespace std;
-
 template<typename T, LayoutType LAYOUT>
 T * const LogicalCube<T, LAYOUT>::get_p_data() const {
   return p_data;
@@ -52,68 +48,6 @@ void LogicalCube<T, LAYOUT>::remap_output(const size_t O,
   return LoweringHelper<LOWERING>::remap_output(*this, O, B, kernel_size, p_driver);
 }
 
-
-struct _func_src_to_dst_arg_helper{
-  size_t kernel_size;
-  size_t R;
-  size_t C;
-  size_t sizeof_T;
-};
-
-// TOFIX TO GPU
-#ifdef _GPU_TARGET
-__host__ __device__
-#endif
-size_t _func_src_to_dst(size_t _dst_index, void * curry){
-  const _func_src_to_dst_arg_helper * const parg =
-    reinterpret_cast<_func_src_to_dst_arg_helper *>(curry);
-  const size_t dst_index = _dst_index/parg->sizeof_T; // TODO, this uglyness implies that DeviceMemoryPointer needs a type.
-  const size_t r_i = (dst_index/parg->kernel_size)%parg->R;
-  const size_t c_i = (dst_index/parg->kernel_size)/parg->R;
-  return (c_i*parg->kernel_size + r_i*parg->C*parg->kernel_size)*parg->sizeof_T;
-}
-
-#ifdef _GPU_TARGET
-__device__
-#endif
-FUNC_IDX_MAPPING func_src_to_dst = _func_src_to_dst;
-
-#ifdef _GPU_TARGET
-__host__ __device__
-#endif
-void _sfunc_remap(void * _src, void * _dst, void * curry){
-  float * const dst_data = (float *) _dst;
-  float * const src_data = (float *) _src;
-
-  const size_t kernel_size = *((size_t*)curry);
-  for(size_t i=0;i<kernel_size;i++){
-    dst_data[i] = src_data[i];
-  }
-}
-
-#ifdef _GPU_TARGET
-__device__
-#endif
-// FUNC_MM_MAPPING sfunc_remap = _sfunc_remap;
-
-/*
-  auto func_src_to_dst = [=](size_t _dst_index){
-      const size_t dst_index = _dst_index/sizeof(T); // TODO, this uglyness implies that DeviceMemoryPointer needs a type.
-      const size_t r_i = (dst_index/kernel_size)%R;
-      const size_t c_i = (dst_index/kernel_size)/R;
-      return (c_i*kernel_size + r_i*C*kernel_size)*sizeof(T);
-  };
-
-  auto func_remap = [=](void * _src, void * _dst){
-      T * const dst_data = (T *) _dst;
-      T * const src_data = (T *) _src;
-
-      for(size_t i=0;i<kernel_size;i++){
-        dst_data[i] = src_data[i];
-      }
-  };
-*/
-
 template<typename T, LayoutType LAYOUT>
 template<typename DUMMY>
 void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C,
@@ -133,22 +67,6 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output
   static_assert(std::is_same<T, float>::value,
             "The func_src_to_dst function needs to change when T <> float.");
 
-  /*
-  _func_src_to_dst_arg_helper arg1;
-  arg1.kernel_size = kernel_size;
-  arg1.R = R;
-  arg1.C = C;
-  arg1.sizeof_T = sizeof(T);
-  DeviceMemoryPointer * parg1 = p_driver->get_device_pointer((void*)&arg1, sizeof(_func_src_to_dst_arg_helper));
-
-  size_t d_kernel = kernel_size;
-
-  DeviceMemoryPointer * parg2 = p_driver->get_device_pointer((void*)&d_kernel, sizeof(size_t));
-
-  p_driver->parallel_map(copy, output, kernel_size*sizeof(T),
-      &func_src_to_dst, parg1, &sfunc_remap, parg2);
-      */
-
   PMapHelper args;
   args.dR = cube.R; args.dC = cube.C; args.dD = cube.D; args.dB = cube.B;
   args.sR = cube.R; args.sC = cube.C; args.sD = cube.D; args.sB = cube.B;
@@ -160,7 +78,6 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output
   p_driver->free(copy);
   free(copy);
 }
-
 
 /************************************/
 /** End code for handling lowering **/
@@ -189,7 +106,6 @@ LogicalCube<T, LAYOUT>::LogicalCube(void * _p_data, size_t _R, size_t _C, size_t
   own_data(false),
   p_data(reinterpret_cast<T*>(_p_data)) {}
 
-
 template<typename T, LayoutType LAYOUT>
 LogicalCube<T, LAYOUT>::LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B) :
   n_elements(_R*_C*_D*_B),
@@ -208,8 +124,6 @@ LogicalCube<T, LAYOUT>::LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B, 
   p_data = (T*) ptr->ptr;
 
 }
-
-
 
 template<typename T, LayoutType LAYOUT>
 void LogicalCube<T, LAYOUT>::reset_cube() {
@@ -232,15 +146,15 @@ template<typename T, LayoutType LAYOUT>
 void LogicalCube<T, LAYOUT>::logical_print() const {
   for(size_t ib=0;ib<B;ib++) {
     for(size_t id=0;id<D;id++) {
-      cout << "BATCH " << ib << " DEPTH " << id << endl;
+      std::cout << "BATCH " << ib << " DEPTH " << id << std::endl;
       for(size_t ir=0;ir<R;ir++) {
-        cout << "    " ;
+        std::cout << "    " ;
         for(size_t ic=0;ic<C;ic++) {
-          cout << *logical_get(ir, ic, id, ib) << " ";
-          //cout << " (" <<
+          std::cout << *logical_get(ir, ic, id, ib) << " ";
+          //std::cout << " (" <<
           //(ic + ir*C + id*R*C + ib*R*C*D) << ") ";
         }
-        cout << endl;
+        std::cout << std::endl;
       }
     }
   }
@@ -252,12 +166,12 @@ void LogicalCube<T, LAYOUT>::physical_print() const {
     for(size_t id=0;id<D;id++) {
       for(size_t ir=0;ir<R;ir++) {
         for(size_t ic=0;ic<C;ic++) {
-          cout << *logical_get(ir, ic, id, ib) << " ";
+          std::cout << *logical_get(ir, ic, id, ib) << " ";
         }
       }
     }
   }
-  cout << endl;
+  std::cout << std::endl;
 }
 
 template<typename T, LayoutType LAYOUT>
@@ -265,7 +179,6 @@ template<typename TYPECONSTRAINT>
 T* LogicalCube<T,LAYOUT>::LogicalFetcher<Layout_CRDB, TYPECONSTRAINT>::logical_get(const LogicalCube<T, LAYOUT>& cube, size_t r, size_t c, size_t d, size_t b) {
   return &cube.p_data[c + r*cube.C + d*cube.R*cube.C + b*cube.R*cube.C*cube.D];
 }
-
 
 template<typename T, LayoutType LAYOUT>
 template<typename TYPECONSTRAINT>

@@ -5,10 +5,11 @@
 //  Created by Firas Abuzaid on 2/8/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
-#include <csignal> // or signal.h if C code
 
 #ifndef moka_ParallelizedBridge_impl_hxx
 #define moka_ParallelizedBridge_impl_hxx
+
+#include <csignal> // or signal.h if C code
 
 template<typename DataType, typename BridgeType, typename DriverClass>
 ParallelizedBridge<DataType, BridgeType, DriverClass>::ParallelizedBridge(Layer<DataType,Layout_CRDB> * const _input_layer,
@@ -194,7 +195,7 @@ void ParallelizedBridge<DataType, BridgeType, DriverClass>::backward() {
   **/
 
   if (p_model_cube != NULL) {
-    // After backward, it is the responsibility of ParallelizedConvolutionBridge to merge
+    // After backward, it is the responsibility of ParallelizedBridge to merge
     // result back.
     // TODO: each bridge can hold their gradient, in this way, we can save the first for
     // loop. But I do not really so how this could be a bottleneck...
