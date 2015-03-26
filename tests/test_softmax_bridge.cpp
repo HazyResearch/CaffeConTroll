@@ -55,7 +55,6 @@ typedef ::testing::Types<FloatCRDB> DataTypes;
 
 TYPED_TEST_CASE(softmaxBridgeTest, DataTypes);
 
-//openblas_set_num_threads -- undefined reference -- currently disabled
 TYPED_TEST(softmaxBridgeTest, TestInitialization){
   EXPECT_TRUE(this->softmaxBridge_);
   EXPECT_TRUE(this->layer1);

@@ -58,7 +58,7 @@ MAIN_CUDA_OBJ_FILES = $(patsubst %.cu,%.o,$(MAIN_CUDA_SOURCES))
 TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest
 TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.cpp \
 	       src/sched/DeviceDriver_CPU.cpp \
-	       tests/test_lrn_bridge.cpp \
+	       tests/test_softmax_bridge.cpp \
 	       # tests/test_parallelized_convolution.cpp \
 	       tests/test_convolution.cpp \
 	       tests/test_fc_bridge.cpp \

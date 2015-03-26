@@ -74,7 +74,6 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass
     output_d_cube->n_elements*sizeof(DataType));
   p_driver->memcpy(&plocal2, phost2);
 
-
   report_forward_last_transfer.end();
   report_forward_history.aggregate(report_forward_last_transfer);
 }
@@ -84,31 +83,44 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass
  **/
 template <typename DataType, typename DriverClass>
 void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::backward() {
+  // First, we copy the output data (in host) into the input gradient (on device)
+  // (This is because output grad is empty for Softmax Loss, since it's the last layer
+  // in the network.)
+  DeviceMemoryPointer_Local_RAM plocal(p_output_layer->p_data_cube->get_p_data(),
+      output_d_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost = p_driver->get_device_pointer(input_g_cube->get_p_data(),
+      input_g_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(phost, &plocal);
+
   report_backward_updateweight_last_transfer.reset();
 
-  // First, copy the output data into the input gradient
-  Util::_our_memcpy(p_input_layer->p_gradient_cube->get_p_data(),
-      p_output_layer->p_data_cube->get_p_data(),
-      p_output_layer->p_data_cube->n_elements*sizeof(DataType));
+  ////////////////////////////////////////////////////////////////////////////////
+  DeviceMemoryPointer * input = input_g_cube->get_device_pointer(p_driver);
+  DeviceMemoryPointer * output = output_g_cube->get_device_pointer(p_driver);
 
-  LogicalCube<DataType, Layout_CRDB> * const input_grad = p_input_layer->p_gradient_cube;
-  const DataType * const ground_truth = p_data_labels->get_p_data();
+  _softmax_backward_arg_helper _arg;
+  _arg.iR = iR;
+  _arg.iC = iC;
+  _arg.iD = iD;
+  _arg.iB = iB;
+  _arg.ground_truth = (char *) p_data_labels->get_p_data();
 
-  for (size_t i_b = 0; i_b < iB; ++i_b) {
-    DataType * const single_input_batch = input_grad->physical_get_RCDslice(i_b);
-    single_input_batch[static_cast<int>(ground_truth[i_b])] -= 1;
-  }
-  for (size_t i_b = 0; i_b < iB; ++i_b) {
-    DataType * const single_input_batch = input_grad->physical_get_RCDslice(i_b);
-    const size_t size_of_single_batch = iR*iC*iD;
-    for (size_t i = 0; i < size_of_single_batch; ++i) {
-      single_input_batch[i] *= (1.0 / iB / (iR*iC)); // borrowing Caffe's scaling (see below)
-    }
-  }
+  DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg,
+      sizeof(_softmax_backward_arg_helper));
+  DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg,
+      sizeof(_softmax_backward_arg_helper));
 
-  // scaling from Caffe:
-  //const Dtype loss_weight = top[0]->cpu_diff()[0];
-  //caffe_scale(prob_.count(), loss_weight = 1 / num / spatial_dim, bottom_diff);
+  p_driver->template parallel_map<_f_src_to_dst_softmax_backward,
+    _f_softmax_backward>(output, input, sizeof(DataType)*iR*iC*iD, arg1, arg2);
+  ////////////////////////////////////////////////////////////////////////////////
+
+  // Copy input grad to Host. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal2(p_input_layer->p_gradient_cube->get_p_data(),
+      input_g_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost2 = p_driver->get_device_pointer(input_g_cube->get_p_data(),
+      input_g_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(&plocal2, phost2);
 
   report_backward_updateweight_last_transfer.end();
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
