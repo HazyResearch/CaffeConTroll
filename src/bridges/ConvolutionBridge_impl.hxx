@@ -53,6 +53,7 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
 
   p_model_gradient_cube = new LogicalCubeType(K, K, iD, num_output_features, p_driver);
     // this should be allocated on device
+  p_driver->sconstant_initialize(p_model_gradient_cube->get_device_pointer(p_driver), DataType(0.));
 
   if (bias_term) {
     p_bias_cube = new LogicalCubeType(1, 1, num_output_features, 1, p_driver);
@@ -216,22 +217,10 @@ forward() {
   // to bring CONV logical
   //
   if (bias_term) {
-    /* const size_t output_feature_size = oR*oC;
-    const DataType * const bias_data = p_bias_cube->get_p_data();
-    for (size_t o_b = 0; o_b < oB; ++o_b) {
-      for (size_t o_d = 0; o_d < oD; ++o_d) {
-        const LogicalMatrix<DataType> output_data_slice =
-          p_output_layer->p_data_cube->get_logical_matrix(o_d, o_b);
-        const DataType bias = bias_data[o_d];
-        for (size_t i = 0; i < output_feature_size; ++i) {
-          output_data_slice.p_data[i] += bias;
-        }
-      }
-    } */
     DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
     DeviceMemoryPointer * bias = p_bias_cube->get_device_pointer(p_driver);
 
-    _bias_forward_arg_helper _arg1;
+    _bias_arg_helper _arg1;
     _arg1.src_skip = oR*oC*sizeof(DataType);
     _arg1.DataTypeSize = sizeof(DataType);
     _arg1.oD = oD;
@@ -239,7 +228,7 @@ forward() {
     size_t ORxOC = oR*oC;
 
     DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg1,
-      sizeof(_bias_forward_arg_helper));
+      sizeof(_bias_arg_helper));
 
     DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&ORxOC,
         sizeof(size_t));
@@ -270,7 +259,6 @@ forward() {
   report_forward_lowering.aggregate(p_forward_lower_connector->report_last_lowering);
 }
 
-
 /**
   * This function does the following:
   *
@@ -295,14 +283,22 @@ void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Data
 backward() {
   Util::set_num_threads(run_with_n_threads);
 
+  // Copy output grad to Device. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal(p_output_layer->p_gradient_cube->get_p_data(),
+      output_g_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost = p_driver->get_device_pointer(output_g_cube->get_p_data(),
+      output_g_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(phost, &plocal);
+
   report_backward_updateweight_last_transfer.reset();
 
   // (1) calculate the gradient of output and store in the buffer
   if (FUNC != FUNC_NOFUNC) {
-    p_backward_element_mul_kernel->compute(p_output_layer->p_data_cube, p_output_layer->p_gradient_cube,
+    p_backward_element_mul_kernel->compute(p_output_layer->p_data_cube, output_g_cube,
         p_backward_outputgrad);
   } else {
-    p_backward_outputgrad = p_output_layer->p_gradient_cube;
+    p_backward_outputgrad = output_g_cube;
   }
 
   // (2) calculate the GEMM between the gradient of output and old kernel to calc the update on grad
@@ -314,30 +310,35 @@ backward() {
 
   // (3) update the bias term, summing over the gradients for each O and B
   if (bias_term) {
-    const size_t output_feature_size = oR*oC;
-    p_bias_gradient_cube->reset_cube();
-    DataType * const bias_term = p_bias_gradient_cube->get_p_data();
-    for (size_t o_b = 0; o_b < oB; ++o_b) {
-      for (size_t o_d = 0; o_d < oD; ++o_d) {
-        const LogicalMatrix<DataType> input_grad_slice = p_output_layer->p_gradient_cube->get_logical_matrix(o_d, o_b);
-        DataType sum = DataType(0.0);
-        for (size_t i = 0; i < output_feature_size; ++i) {
-          sum += input_grad_slice.p_data[i];
-        }
-        //bias_term[o_d] -= stepsize*sum;
-        bias_term[o_d] += sum;
-      }
-    }
+    DeviceMemoryPointer * input = input_g_cube->get_device_pointer(p_driver);
+    DeviceMemoryPointer * bias = p_bias_gradient_cube->get_device_pointer(p_driver);
+    p_driver->sconstant_initialize(bias, DataType(0.));
+
+    _bias_arg_helper _arg1;
+    _arg1.src_skip = oR*oC*sizeof(DataType);
+    _arg1.DataTypeSize = sizeof(DataType);
+    _arg1.oD = oD;
+
+    size_t ORxOC = oR*oC;
+
+    DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg1,
+      sizeof(_bias_arg_helper));
+
+    DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&ORxOC,
+        sizeof(size_t));
+
+    p_driver->template parallel_map<_f_src_to_dst_bias_backward,
+      _f_bias_backward>(bias, input, _arg1.src_skip, arg1, arg2);
   }
 
   // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
-  p_backward_outputgrad->template remap_output<LOWERING_TYPE1>(oB, num_output_features, oR*oC, p_driver);
+  p_forward_lower_connector->remap_output(*p_backward_outputgrad, oB, num_output_features, oR*oC);
 
-  if(needs_to_calc_backward_grad){
+  if (needs_to_calc_backward_grad) {
     //    - 2.1 GEMM between the gradient of output and old kernel
     p_backward_gemm_updategrad_kernel->compute(&lowered_model, &lowered_outputgrad, p_backward_inputgrad);
     //    - 2.2 undo the lowering (i.e., sum together all grad corresponding to the same unlowered position)
-    p_forward_lower_connector->inverse_lower_cube(p_backward_inputgrad, p_input_layer->p_gradient_cube);
+    p_forward_lower_connector->inverse_lower_cube(p_backward_inputgrad, input_g_cube);
   }
 
   // (4) calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
@@ -350,6 +351,14 @@ backward() {
   if (FUNC != FUNC_NOFUNC) {
     report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_element_mul_kernel->report_last_lowering);
   }
+
+  // Copy input grad to Host. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal2(p_input_layer->p_gradient_cube->get_p_data(),
+      input_g_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost2 = p_driver->get_device_pointer(input_g_cube->get_p_data(),
+      input_g_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(&plocal2, phost2);
 
   report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updategrad_kernel->report_last_lowering);
   report_backward_updateweight_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_inverse_lowering);

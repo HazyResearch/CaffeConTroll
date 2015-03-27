@@ -4,7 +4,7 @@
 
 #include "../sched/DeviceHeader.h"
 
-struct _bias_forward_arg_helper {
+struct _bias_arg_helper {
   size_t src_skip;
   size_t DataTypeSize;
   size_t oD;
@@ -19,5 +19,15 @@ size_t _f_src_to_dst_bias_forward(size_t src_pos, void * const _arg);
 __host__ __device__
 #endif
 void _f_bias_forward(void * bias, void * output, void * const _arg, const size_t dst_index);
+
+#ifdef _GPU_TARGET
+__host__ __device__
+#endif
+size_t _f_src_to_dst_bias_backward(size_t src_pos, void * const _arg);
+
+#ifdef _GPU_TARGET
+__host__ __device__
+#endif
+void _f_bias_backward(void * bias, void * input, void * const _arg, const size_t dst_index);
 
 #endif
