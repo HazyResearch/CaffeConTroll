@@ -1,3 +1,5 @@
+
+#include "../src/sched/DeviceDriver_CPU.h"
 #include "../src/Kernel.h"
 #include "../src/LogicalCube.h"
 #include "../src/Layer.h"
@@ -13,7 +15,8 @@
 #include <cmath>
 #include <cstring>
 
-typedef vector<AbstractBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> *> BridgeVector;
+typedef vector<AbstractBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver> *> BridgeVector;
+
 void WriteModelToFile(const BridgeVector bridges){
   std::string filename = std::string("tests/test_write.bin");
   FILE * pFile;
@@ -78,17 +81,16 @@ class ReadWriteTest : public ::testing::Test {
       solver_param.set_lr_policy("step");
       solver_param.set_stepsize(10000);
 
-      ConvolutionBridge_ = new ParallelizedBridge<T,
-        ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB> >\
-        (layer1, layer2, &layer_param, &solver_param, 1, 1);
+      ConvolutionBridge_ = new ParallelizedBridge<T, ConvolutionBridge<CPU_CONV_LOWERINGTYPE1,
+                         TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB, CPUDriver>, CPUDriver>(layer1,
+                             layer2, &layer_param, &solver_param, &pdriver, 1, 1);
       ConvolutionBridge_->needs_to_calc_backward_grad = true;
     }
 
     cnn::SolverParameter solver_param;
 
-    ParallelizedBridge<T,
-      ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>
-    > * ConvolutionBridge_;
+    ParallelizedBridge<T, ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T,
+      Layout_CRDB, CPUDriver>, CPUDriver> * ConvolutionBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
     LogicalCube<T, Layout_CRDB>* grad1;
@@ -98,6 +100,8 @@ class ReadWriteTest : public ::testing::Test {
 
     Layer<T, Layout_CRDB>* layer1;
     Layer<T, Layout_CRDB>* layer2;
+
+    CPUDriver pdriver;
 
     static const int mB = 4;
     static const int iD = 3;
@@ -158,7 +162,7 @@ TYPED_TEST(ReadWriteTest, Model) {
     this->grad2->get_p_data()[i] = i*0.1;
   }
 
-  vector<AbstractBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB> *> bridges;
+  vector<AbstractBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver> *> bridges;
   bridges.push_back(this->ConvolutionBridge_);
 
   for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {

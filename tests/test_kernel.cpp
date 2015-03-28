@@ -1,3 +1,5 @@
+
+#include "../src/sched/DeviceDriver_CPU.h"
 #include "../src/Kernel.h"
 #include "test_types.h"
 #include "gtest/gtest.h"
@@ -58,7 +60,8 @@ class BlasNNKernelTest : public ::testing::Test {
   	cube1 = new LogicalCube<T, Layout_CRDB>(i1R, i1C, 1, 1);
     cube2 = new LogicalCube<T, Layout_CRDB>(i1C, i2C, 1, 1);
     cube3 = new LogicalCube<T, Layout_CRDB>(i1R, i2C, 1, 1);
-  	kernel_ = new Kernel<T, Layout_CRDB, T, Layout_CRDB, T, Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS>(cube1, cube2, cube3);
+  	kernel_ = new Kernel<T, Layout_CRDB, T, Layout_CRDB, T, Layout_CRDB, Kernel_GEMM_OpenBlas,
+                KernelConfig_GEMM_NOTRANS_NOTRANS>(cube1, cube2, cube3, &pdriver);
   }
 
   virtual ~BlasNNKernelTest() { delete kernel_; }
@@ -69,6 +72,7 @@ class BlasNNKernelTest : public ::testing::Test {
   const int i1R = 10;
   const int i1C = 8;
   const int i2C = 15;
+  CPUDriver pdriver;
 };
 
 TYPED_TEST_CASE(BlasNNKernelTest, DTypes);
@@ -100,7 +104,8 @@ class ElemMulKernelTest : public ::testing::Test {
     cube1 = new LogicalCube<T, Layout_CRDB>(i1R, i1C, 1, 1);
     cube2 = new LogicalCube<T, Layout_CRDB>(i1R, i1C, 1, 1);
     cube3 = new LogicalCube<T, Layout_CRDB>(i1R, i1C, 1, 1);
-    kernel_ = new Kernel<T, Layout_CRDB, T, Layout_CRDB, T, Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KernelConfig_NONE>(cube1, cube2, cube3);
+    kernel_ = new Kernel<T, Layout_CRDB, T, Layout_CRDB, T, Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU,
+            KernelConfig_NONE>(cube1, cube2, cube3, &pdriver);
   }
 
   virtual ~ElemMulKernelTest() { delete kernel_; }
@@ -110,6 +115,7 @@ class ElemMulKernelTest : public ::testing::Test {
   LogicalCube<T, Layout_CRDB>* cube3;
   const int i1R = 10;
   const int i1C = 8;
+  CPUDriver pdriver;
 };
 
 TYPED_TEST_CASE(ElemMulKernelTest, DTypes);
@@ -140,7 +146,8 @@ class ElemMulTanhKernelTest : public ::testing::Test {
     cube1 = new LogicalCube<T, Layout_CRDB>(i1R, i1C, 1, 1);
     cube2 = new LogicalCube<T, Layout_CRDB>(i1R, i1C, 1, 1);
     cube3 = new LogicalCube<T, Layout_CRDB>(i1R, i1C, 1, 1);
-    kernel_ = new Kernel<T, Layout_CRDB, T, Layout_CRDB, T, Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KernelConfig_TANHGRAD_ON_INPUT1>(cube1, cube2, cube3);
+    kernel_ = new Kernel<T, Layout_CRDB, T, Layout_CRDB, T, Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU,
+            KernelConfig_TANHGRAD_ON_INPUT1>(cube1, cube2, cube3, &pdriver);
   }
 
   virtual ~ElemMulTanhKernelTest() { delete kernel_; }
@@ -150,6 +157,7 @@ class ElemMulTanhKernelTest : public ::testing::Test {
   LogicalCube<T, Layout_CRDB>* cube3;
   const int i1R = 10;
   const int i1C = 8;
+  CPUDriver pdriver;
 };
 
 TYPED_TEST_CASE(ElemMulTanhKernelTest, DTypes);
@@ -180,7 +188,8 @@ class BlasTNKernelTest : public ::testing::Test {
     cube1 = new LogicalCube<T, Layout_CRDB>(5, 2, 1, 1);
     cube2 = new LogicalCube<T, Layout_CRDB>(5, 3, 1, 1);
     cube3 = new LogicalCube<T, Layout_CRDB>(2, 3, 1, 1);
-    kernel_ = new Kernel<T, Layout_CRDB, T, Layout_CRDB, T, Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_TRANS_NOTRANS>(cube1, cube2, cube3);
+    kernel_ = new Kernel<T, Layout_CRDB, T, Layout_CRDB, T, Layout_CRDB, Kernel_GEMM_OpenBlas,
+            KernelConfig_GEMM_TRANS_NOTRANS>(cube1, cube2, cube3, &pdriver);
   }
 
   virtual ~BlasTNKernelTest() { delete kernel_; }
@@ -188,6 +197,7 @@ class BlasTNKernelTest : public ::testing::Test {
   LogicalCube<T, Layout_CRDB>* cube1;
   LogicalCube<T, Layout_CRDB>* cube2;
   LogicalCube<T, Layout_CRDB>* cube3;
+  CPUDriver pdriver;
 };
 
 TYPED_TEST_CASE(BlasTNKernelTest, DTypes);
@@ -220,7 +230,8 @@ class BlasNTKernelTest : public ::testing::Test {
     cube1 = new LogicalCube<T, Layout_CRDB>(2, 5, 1, 1);
     cube2 = new LogicalCube<T, Layout_CRDB>(3, 5, 1, 1);
     cube3 = new LogicalCube<T, Layout_CRDB>(2, 3, 1, 1);
-    kernel_ = new Kernel<T, Layout_CRDB, T, Layout_CRDB, T, Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_TRANS>(cube1, cube2, cube3);
+    kernel_ = new Kernel<T, Layout_CRDB, T, Layout_CRDB, T, Layout_CRDB, Kernel_GEMM_OpenBlas,
+            KernelConfig_GEMM_NOTRANS_TRANS>(cube1, cube2, cube3, &pdriver);
   }
 
   virtual ~BlasNTKernelTest() { delete kernel_; }
@@ -228,6 +239,7 @@ class BlasNTKernelTest : public ::testing::Test {
   LogicalCube<T, Layout_CRDB>* cube1;
   LogicalCube<T, Layout_CRDB>* cube2;
   LogicalCube<T, Layout_CRDB>* cube3;
+  CPUDriver pdriver;
 };
 
 TYPED_TEST_CASE(BlasNTKernelTest, DTypes);

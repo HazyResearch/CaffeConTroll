@@ -200,8 +200,6 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
   //     op = MDB_NEXT;
   //   }
   // }
-
-
 }
 
 
