@@ -178,7 +178,6 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     LogicalCubeType * p_bias_gradient_cube;
 
     LogicalCubeType * p_forward_lowered_data;
-    LogicalCubeType * p_backward_outputgrad;
     LogicalCubeType * p_backward_inputgrad;
 
     size_t mR, mC, mD, mB; /*< Size of the model LogicalCube */
@@ -189,16 +188,13 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
       * p_forward_lower_connector;
 
     Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
-      Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS> * p_forward_gemm_kernel;
+      Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS, DriverClass> * p_forward_gemm_kernel;
 
     Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
-      Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KernelConfig_TANHGRAD_ON_INPUT1> * p_backward_element_mul_kernel;
+      Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_TRANS, DriverClass> * p_backward_gemm_updateweight_kernel;
 
     Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
-      Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_TRANS> * p_backward_gemm_updateweight_kernel;
-
-    Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
-      Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_TRANS_NOTRANS> * p_backward_gemm_updategrad_kernel;
+      Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_TRANS_NOTRANS, DriverClass> * p_backward_gemm_updategrad_kernel;
 
     void initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter filler_param);
 };

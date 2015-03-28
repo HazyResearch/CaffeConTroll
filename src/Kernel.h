@@ -9,7 +9,11 @@
 #ifndef moka_Kernel_h
 #define moka_Kernel_h
 
-#include "sched/DeviceDriver.h"
+#ifdef _GPU_TARGET
+#include "sched/DeviceDriver_GPU.h"
+#endif
+#include "sched/DeviceDriver_CPU.h"
+
 #include "LogicalCube.h"
 #include "Report.h"
 
@@ -29,9 +33,10 @@ enum KernelConfig {
 
 template
 <typename Input1DataType, LayoutType Input1Layout,
-typename Input2DataType, LayoutType Input2Layout,
-typename OutputDataType, LayoutType OutputLayout,
-KernelType KERNELTYPE, KernelConfig KERNELCONFIG>
+ typename Input2DataType, LayoutType Input2Layout,
+ typename OutputDataType, LayoutType OutputLayout,
+ KernelType KERNELTYPE, KernelConfig KERNELCONFIG,
+ typename DriverClass>
 class Kernel {
 public:
 
@@ -47,7 +52,7 @@ public:
     Report report_last_lowering; /*< Performance reporter for the last run of transfer() function. */
     Report report_history; /*< Performance reporter for all transfer() functions aggregated. */
 
-    DeviceDriver * p_driver;
+    DriverClass * p_driver;
 
     /**
      * Similar to Connector()'s constructor.
@@ -55,7 +60,7 @@ public:
     Kernel(const Input1LogicalCubeType * const p_input1_cube,
            const Input2LogicalCubeType * const p_input2_cube,
            const OutputLogicalCubeType * const p_output_cube,
-           DeviceDriver * _p_driver):
+           DriverClass * _p_driver):
         i1R(0), i1C(0), i1D(0), i1B(0),
         i2R(0), i2C(0), i2D(0), i2B(0),
         oR(0), oC(0), oD(0), oB(0)
@@ -76,10 +81,10 @@ public:
 /******
  * Specializations
  */
-template <typename DataType, KernelConfig KERNELCONFIG>
-class Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_GEMM_OpenBlas, KERNELCONFIG> {
+template <typename DataType, KernelConfig KERNELCONFIG, typename DriverClass>
+class Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
+      Kernel_GEMM_OpenBlas, KERNELCONFIG, DriverClass> {
 public:
-
     typedef LogicalCube<DataType, Layout_CRDB> Input1LogicalCubeType;
     typedef LogicalCube<DataType, Layout_CRDB> Input2LogicalCubeType;
     typedef LogicalCube<DataType, Layout_CRDB> OutputLogicalCubeType;
@@ -98,20 +103,20 @@ public:
     Report report_last_lowering;
     Report report_history;
 
-    DeviceDriver * p_driver;
+    DriverClass * p_driver;
 
     Kernel(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
-           const OutputLogicalCubeType * const p_output_cube, DeviceDriver * _p_driver);
+           const OutputLogicalCubeType * const p_output_cube, DriverClass * _p_driver);
 
     void compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
                   OutputLogicalCubeType * const p_output_cube);
 
 };
 
-template <typename DataType, KernelConfig KERNELCONFIG>
-class Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU, KERNELCONFIG> {
+template <typename DataType, KernelConfig KERNELCONFIG, typename DriverClass>
+class Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
+      Kernel_ELEMENTWISEMUL_CPU, KERNELCONFIG, DriverClass> {
 public:
-
     typedef LogicalCube<DataType, Layout_CRDB> Input1LogicalCubeType;
     typedef LogicalCube<DataType, Layout_CRDB> Input2LogicalCubeType;
     typedef LogicalCube<DataType, Layout_CRDB> OutputLogicalCubeType;
@@ -127,12 +132,13 @@ public:
     Report report_last_lowering;
     Report report_history;
 
-    DeviceDriver * p_driver;
+    DriverClass * p_driver;
 
     Kernel(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
-           const OutputLogicalCubeType * const p_output_cube, DeviceDriver * _p_driver);
+           const OutputLogicalCubeType * const p_output_cube, DriverClass * _p_driver);
 
-    void compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube, OutputLogicalCubeType * const p_output_cube);
+    void compute(const Input1LogicalCubeType * const p_input1_cube, const Input2LogicalCubeType * const p_input2_cube,
+        OutputLogicalCubeType * const p_output_cube);
 
 };
 

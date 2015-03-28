@@ -69,22 +69,22 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
                                 padding, stride, p_driver);
 
   p_forward_gemm_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
-                        Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS>(&lowered_forward_model,
+                        Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS, DriverClass>(&lowered_forward_model,
                             p_forward_lowered_data, &lowered_forward_output, p_driver);
 
   p_backward_inputgrad = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*iB, 1, 1);
 
   p_backward_gemm_updateweight_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType,
-                                      Layout_CRDB, Kernel_GEMM_OpenBlas,
-                                      KernelConfig_GEMM_NOTRANS_TRANS>(&lowered_forward_output,
-                                          p_forward_lowered_data, &lowered_forward_model, p_driver);
+                                      Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_TRANS,
+                                      DriverClass>(&lowered_forward_output, p_forward_lowered_data,
+                                          &lowered_forward_model, p_driver);
   p_backward_gemm_updateweight_kernel->alpha = 1.0;
   p_backward_gemm_updateweight_kernel->beta = 0.0;
 
   p_backward_gemm_updategrad_kernel = new Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB,
-                                    DataType_SFFloat, Layout_CRDB, Kernel_GEMM_OpenBlas,
-                                    KernelConfig_GEMM_TRANS_NOTRANS>(&lowered_forward_model,
-                                        &lowered_forward_output, p_backward_inputgrad, p_driver);
+                                    DataType_SFFloat, Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_TRANS_NOTRANS,
+                                    DriverClass>(&lowered_forward_model, &lowered_forward_output, p_backward_inputgrad,
+                                        p_driver);
 
   report_forward_constructor.end(0, 0, 0);
 }

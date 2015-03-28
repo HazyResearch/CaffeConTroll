@@ -21,9 +21,8 @@
 
 #ifdef _GPU_TARGET
 #include "../sched/DeviceDriver_GPU.h"
-#else
-#include "../sched/DeviceDriver_CPU.h"
 #endif
+#include "../sched/DeviceDriver_CPU.h"
 
 template
 <typename InputLayerDataType, LayoutType InputLayerLayout,

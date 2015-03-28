@@ -85,41 +85,24 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
                                 padding, stride, p_driver);
 
   p_forward_gemm_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
-                        Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS>(&lowered_forward_model,
+                        Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS, DriverClass>(&lowered_forward_model,
                             p_forward_lowered_data, &lowered_forward_output, p_driver);
 
   p_forward_applyfunc_scanner = new Scanner<DataType, Layout_CRDB, FUNC>(p_output_layer->p_data_cube,
                                   p_driver);
 
-  // second, allocate the space we need for backward
-  // (only if we're applying a non-linear function
-  // after the convolution)
-  if (FUNC != FUNC_NOFUNC) {
-    p_backward_outputgrad = new LogicalCube<DataType, Layout_CRDB>(oR, oC, oD, oB, p_driver);
-      // this should be allocated on device
-  }
-
   p_backward_inputgrad = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*iB, 1, 1, p_driver);
-      // this should be allocated on device
+  // this should be allocated on device
 
-  // TODO: figure out a better way to support other functions besides tanh
-  if (FUNC != FUNC_NOFUNC) {
-    p_backward_element_mul_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType,
-                                  Layout_CRDB, Kernel_ELEMENTWISEMUL_CPU,
-                                  KernelConfig_TANHGRAD_ON_INPUT1>(p_output_layer->p_data_cube,
-                                      p_output_layer->p_gradient_cube, p_backward_outputgrad, p_driver);
-  }
-
-  // TODO: this constructor doesn't make any sense -- we're passing in different arguments later, in backward()
   p_backward_gemm_updateweight_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType,
-                                      Layout_CRDB, Kernel_GEMM_OpenBlas,
-                                      KernelConfig_GEMM_NOTRANS_TRANS>(&lowered_forward_output,
-                                          p_forward_lowered_data, &lowered_forward_model, p_driver);
+                                      Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_TRANS,
+                                      DriverClass>(&lowered_forward_output, p_forward_lowered_data,
+                                          &lowered_forward_model, p_driver);
 
   p_backward_gemm_updategrad_kernel = new Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB,
-                                    DataType_SFFloat, Layout_CRDB, Kernel_GEMM_OpenBlas,
-                                    KernelConfig_GEMM_TRANS_NOTRANS>(&lowered_forward_model,
-                                        &lowered_forward_output, p_backward_inputgrad, p_driver);
+                                    DataType_SFFloat, Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_TRANS_NOTRANS,
+                                    DriverClass>(&lowered_forward_model, &lowered_forward_output, p_backward_inputgrad,
+                                        p_driver);
 
   report_forward_constructor.end(0, 0, 0);
 }
@@ -293,20 +276,12 @@ backward() {
 
   report_backward_updateweight_last_transfer.reset();
 
-  // (1) calculate the gradient of output and store in the buffer
-  if (FUNC != FUNC_NOFUNC) {
-    p_backward_element_mul_kernel->compute(p_output_layer->p_data_cube, output_g_cube,
-        p_backward_outputgrad);
-  } else {
-    p_backward_outputgrad = output_g_cube;
-  }
-
   // (2) calculate the GEMM between the gradient of output and old kernel to calc the update on grad
   // Note: lowered_model is storing p_model_cube_history, not p_model_cube. We need this for the momentum
   // update.
   LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->get_p_data(), num_output_features, K*K*iD, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_model_grad(p_model_gradient_cube->get_p_data(), num_output_features, K*K*iD, 1, 1);
-  LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(p_backward_outputgrad->get_p_data(), num_output_features, oR*oC*iB, 1, 1);
+  LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(output_g_cube->get_p_data(), num_output_features, oR*oC*iB, 1, 1);
 
   // (3) update the bias term, summing over the gradients for each O and B
   if (bias_term) {
@@ -332,7 +307,7 @@ backward() {
   }
 
   // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
-  p_forward_lower_connector->remap_output(*p_backward_outputgrad, oB, num_output_features, oR*oC);
+  p_forward_lower_connector->remap_output(*output_g_cube, oB, num_output_features, oR*oC);
 
   if (needs_to_calc_backward_grad) {
     //    - 2.1 GEMM between the gradient of output and old kernel
@@ -347,10 +322,6 @@ backward() {
   p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model_grad);
 
   report_backward_updateweight_last_transfer.end();
-
-  if (FUNC != FUNC_NOFUNC) {
-    report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_element_mul_kernel->report_last_lowering);
-  }
 
   // Copy input grad to Host. This should be refactor'ed out into the
   // scheduler.
@@ -373,10 +344,6 @@ backward() {
 template <typename DataType, NonLinearFunction FUNC, typename DriverClass>
 ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
 ~ConvolutionBridge() {
-  if (FUNC != FUNC_NOFUNC) {
-    delete p_backward_element_mul_kernel;
-    delete p_backward_outputgrad;
-  }
   if (bias_term) {
     delete p_bias_cube;
     delete p_bias_gradient_cube;

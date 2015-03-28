@@ -31,6 +31,8 @@ class ScannerTANHTest : public ::testing::Test {
 
 typedef ::testing::Types<FloatBDRC, FloatCRDB> DataTypes;
 
+/*
+ * Scanner no longer supports TANH; should be its own layer, like ReLU
 TYPED_TEST_CASE(ScannerTANHTest, DataTypes);
 
 TYPED_TEST(ScannerTANHTest, TestApply) {
@@ -44,6 +46,7 @@ TYPED_TEST(ScannerTANHTest, TestApply) {
     EXPECT_NEAR(this->cube_->get_p_data()[i], tanh(i), EPS);
   }
 }
+*/
 
 template <typename TypeParam>
 class ScannerNO_FUNCTest : public ::testing::Test {
