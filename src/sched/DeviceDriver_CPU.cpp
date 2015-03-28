@@ -57,9 +57,10 @@ inline void _spmap_cpu(float* const dst, float * const src, PMapHelper args,
 	point.block = input_block;
 	point.data = src[
 		args.sR * args.sC * (args.sD * input_block.b + input_block.d) +
-		datar + args.sC +
+		datar * args.sC +
 		datac
 	];
+
 	point.r = thread_y;
 	point.c = thread_x;
 

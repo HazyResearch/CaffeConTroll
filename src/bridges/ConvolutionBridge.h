@@ -168,14 +168,16 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
 
     void backward();
 
+    LogicalCubeType * p_model_cube;
+
+    LogicalCubeType * p_bias_cube;
+
   protected:
 
     LogicalCubeType * p_model_gradient_cube;
-    LogicalCubeType * p_model_cube;
     LogicalCubeType * p_model_cube_shadow;
 
     LogicalCubeType * p_bias_gradient_cube;
-    LogicalCubeType * p_bias_cube;
 
     LogicalCubeType * p_forward_lowered_data;
     LogicalCubeType * p_backward_outputgrad;

@@ -65,6 +65,8 @@ lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeTyp
   args.dBR = args.dR; args.dBC = args.dC;
   args.sBR = min((size_t)32, args.sR); args.sBC = min((size_t)32, args.sC);
   args.kR = kernel_size; args.kC = kernel_size; args.kD = p_input_cube->D; args.kB = 1;
+  args.stride = stride;
+  args.padding = padding;
 
   p_driver->template pmap2d_read_coalesce<_fpmap_id,_fmap_lower>
     (output, input, args);
@@ -91,6 +93,8 @@ remap_output(LogicalCube<DataType, InputLayout>& cube, const size_t R, const siz
   args.sR = cube.R; args.sC = cube.C; args.sD = cube.D; args.sB = cube.B;
   args.dBR = args.dR; args.dBC = args.dC;
   args.sBR = min((size_t)32, args.sR); args.sBC = min((size_t)32, args.sC);
+  args.stride = stride;
+  args.padding = padding;
 
   p_driver->template pmap2d_read_coalesce<_fpmap_id,_fmap_remap>(output, copy, args);
 

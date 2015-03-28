@@ -20,7 +20,7 @@ inline void _fpmap_id(Block2D * const output_block, const Block2D * const input_
 __host__ __device__ 
 #endif
 inline void _fmap_lower(float * output, const Block2D * const output_block, const PointIn2DBlock * const input_point, const PMapHelper * const args){
-	
+
 	const int ir = (int) input_point->r;
 	const int ic = (int) input_point->c;
 	const int ib = (int) input_point->block.b;
@@ -31,23 +31,42 @@ inline void _fmap_lower(float * output, const Block2D * const output_block, cons
 	const int iR = (int) args->sR;
 	const int iC = (int) args->sC;
 	const int iB = (int) args->sB;
-	const int o_base_col = ib * (iR-kR+1)*(iC-kC+1);
+
+	const int padding = (int) args->padding;
+	const int stride = (int) args->stride;
+
+	const int o_base_col = ib * (iR-kR+1+2*padding)/stride*(iC-kC+1+2*padding)/stride;
 	const int o_base_row = id * kR * kC;
-	const int oC = iB * (iR-kR+1)*(iC-kC+1);
+	const int oC = iB * (iR-kR+1+2*padding)/stride*(iC-kC+1+2*padding)/stride;
 
 	const float input = input_point->data;
 
-	for(int r=ir-kR;r<=ir;r++){
+	int rstart = (ir-kR+1) + padding + 100*stride;
+	int cstart = (ic-kC+1) + padding + 100*stride;
+	if(rstart % stride != 0){
+		rstart += (stride-rstart%stride);
+	}
+	if(cstart % stride != 0){
+		cstart += (stride-cstart%stride);
+	}
+	rstart = rstart - padding - 100*stride;
+	cstart = cstart - padding - 100*stride;
+
+	for(int r=rstart;r<=ir;r+=stride){
 		int dr = ir-r;
-		for(int c=ic-kC;c<=ic;c++){
+		for(int c=cstart;c<=ic;c+=stride){
 			int dc = ic-c;
-			int ocol = r*iC+c;
+			
+			int ocol = (r+padding)/stride*(iC-kC+2*padding+1)/stride+(c+padding)/stride;
 			int orow = dr*kC+dc;
+
 			int ocol2 = ocol + o_base_col;
 			int orow2 = orow + o_base_row;
 			// then write to ocol, orow
-			if(ocol >= 0 && ocol < (iR-kR+1)*(iC-kC+1) && orow >= 0 && orow < kR*kC){
-				output[ocol2 + orow2*oC] = input;
+
+			if(c >= -padding && c < (iC-kC+1)+padding && r >= -padding && r < (iR-kR+1)+padding){
+				output[ocol2 + orow2*oC] = input;					
+								
 			}
 		}
 	}
@@ -67,11 +86,18 @@ inline void _fmap_remap(float * output, const Block2D * const output_block, cons
 	const size_t iB = args->sB;
 	const size_t iD = args->sD;
 
-	const size_t reald = (id * iD + ib) / (iB);
-	const size_t realb = (id * iD + ib) % (iB);
+	//std::cout << ir << ", " << ic << ", " << ib << ", " << id << std::endl;
+	//std::cout << "   " << iR << ", " << iC << ", " << iB << ", " << iD << std::endl;
+
+	const size_t reald = (id + ib * iD) / (iB);
+	const size_t realb = (id + ib * iD) % (iB);
+
+	//std::cout << "reald = " << reald << std::endl;
+	//std::cout << "realb = " << realb << std::endl;
 
 	const float input = input_point->data;
 
+	//std::cout << "   " << ic + ir*iC + reald*iR*iC + realb*iR*iC*iD << std::endl;
 	output[ ic + ir*iC + reald*iR*iC + realb*iR*iC*iD] = input;
 }
 

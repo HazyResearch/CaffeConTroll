@@ -27,6 +27,8 @@ struct PMapHelper{
 
   // lowering
   size_t kR, kC, kD, kB;  // kernel RCDB
+  size_t stride;
+  size_t padding;
 };
 
 struct Block2D{

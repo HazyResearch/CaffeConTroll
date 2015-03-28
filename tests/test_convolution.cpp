@@ -102,6 +102,17 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
     CPUDriver pdriver;
 
     /*
+    static const int mB = 1;
+    static const int iD = 3;
+    static const int oD = 10;
+    static const int iR = 3;
+    static const int iC = 3;
+    static const int k = 2;
+    static const int s = 2;
+    static const int p = 1;
+    */
+
+    /*
     static const int mB = 4;
     static const int iD = 3;
     static const int oD = 10;
@@ -112,7 +123,19 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
     static const int p = 2;
     */
 
-    static const int mB = 256;
+    
+    static const int mB = 4;
+    static const int iD = 3;
+    static const int oD = 10;
+    static const int iR = 20;
+    static const int iC = 20;
+    static const int k = 5;
+    static const int s = 4;
+    static const int p = 2;
+    
+
+    /*
+    static const int mB = 32;
     static const int iD = 48;
     static const int oD = 128;
     static const int iR = 27;
@@ -120,6 +143,7 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
     static const int k = 5;
     static const int s = 1;
     static const int p = 2;
+    */    
 
     static const int oR = static_cast<int>((static_cast<float>(iR + 2*p - k) / s)) + 1;
     static const int oC = static_cast<int>((static_cast<float>(iC + 2*p - k) / s)) + 1;
@@ -137,10 +161,87 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestInitialization){
 
 TYPED_TEST(ParallelizedConvolutionBridgeTest, TestForward){
 
+  
+  std::fstream input("tests/input/conv_forward_in.txt", std::ios_base::in);
+  if (input.is_open()){
+    for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
+      input >> this->data1->get_p_data()[i];
+      this->grad1->get_p_data()[i] = 0;
+    }
+  }
+  else{
+    FAIL();
+  }
+  input.close();
+
+  std::fstream model("tests/input/conv_model.txt", std::ios_base::in);
+  if (model.is_open()){
+    for(int i=0;i<this->iR*this->iC*this->iD*this->oD;i++){
+      model >> this->ConvolutionBridge_->get_model_cube()->get_p_data()[i];
+    }
+  }
+  else{
+    FAIL();
+  }
+  model.close();
+
+  std::fstream bias_file("tests/input/conv_bias_in.txt", std::ios_base::in);
+  if (bias_file.is_open()){
+    for(int i=0;i<this->oD;i++){
+      bias_file >> this->ConvolutionBridge_->get_bias_cube()->get_p_data()[i];
+    }
+  }
+  else{
+    FAIL();
+  }
+  bias_file.close();
+  
+
+  /*
+  for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
+      this->data1->get_p_data()[i] = i;
+  }
+
+  for(int i=0;i<this->k*this->k*this->iD*this->oD;i++){
+    this->ConvolutionBridge_->get_model_cube()->get_p_data()[i] = 1;
+  }
+  */
+  
+
+  this->ConvolutionBridge_->run_with_n_threads = 2;
   this->ConvolutionBridge_->forward();
 
   this->ConvolutionBridge_->report_forward_last_transfer.print();
   this->ConvolutionBridge_->report_forward_kernel.print();
   this->ConvolutionBridge_->report_forward_lowering.print();
 
+  //this->data2->logical_print();
+  // float sum = 0.0;
+  // for (int i=0;i<this->data2->R*this->data2->C*this->data2->D*this->data2->B;i++) {
+  //   sum += this->data2->get_p_data()[i];
+  // }
+  // cout << "sum: " << sum << endl;
+
+  //this->ConvolutionBridge_->backward();
+
+  
+  std::fstream expected_output("tests/output/conv_forward.txt", std::ios_base::in);
+  if(TypeParam::FUNC == FUNC_NOFUNC){
+    float output;
+    int idx = 0;
+    if (expected_output.is_open()) {
+
+      while (expected_output >> output)
+        EXPECT_NEAR(this->data2->get_p_data()[idx++], output, EPS);
+
+    }else{
+      FAIL();
+    }
+    expected_output.close();
+  }
+  
+
 }
+
+
+

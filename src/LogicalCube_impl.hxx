@@ -48,6 +48,7 @@ template <typename T, LayoutType LAYOUT>
 template<LoweringType LOWERING>
 void LogicalCube<T, LAYOUT>::remap_output(const size_t O,
     const size_t B, const size_t kernel_size, DeviceDriver * p_driver) {
+  std::cout << "##############" << std::endl;
   return LoweringHelper<LOWERING>::remap_output(*this, O, B, kernel_size, p_driver);
 }
 
@@ -121,8 +122,14 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output
   // TODO: This buffer does not make much sense, but lets get
   // the logical refactoring done first in a way as before
   // before over optimize. 
+
+  std::cout << "!!" <<sizeof(T)*cube.R*cube.C*cube.B*cube.D << std::endl;
+
   DeviceMemoryPointer * copy = p_driver->get_device_pointer(NULL, sizeof(T)*cube.R*cube.C*cube.B*cube.D);
   p_driver->malloc(copy);
+
+  std::cout << "~~~~~~~~~~" <<sizeof(T)*cube.R*cube.C*cube.B*cube.D << std::endl;
+
   DeviceMemoryPointer * output = cube.get_device_pointer(p_driver);
   p_driver->memcpy(copy, output);
 

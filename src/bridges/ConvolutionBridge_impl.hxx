@@ -74,6 +74,8 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*iB,
       1, 1, p_driver);
       // this should be allocated on device
+  DeviceMemoryPointer * p_lowered_result = p_forward_lowered_data->get_device_pointer(p_driver);
+  p_driver->sconstant_initialize(p_lowered_result, (DataType) 0.0);
 
   LogicalCube<DataType, Layout_CRDB> lowered_forward_model(p_model_cube_shadow->get_p_data(), num_output_features,
       K*K*iD, 1, 1);
@@ -225,6 +227,8 @@ forward() {
   }
 
   p_forward_lower_connector->remap_output(*output_d_cube, num_output_features, iB, oR*oC);
+
+  //output_d_cube->logical_print();
 
   // TODO Refactor the following code into another module
   // This code is here mainly to speed-up the refactoring
