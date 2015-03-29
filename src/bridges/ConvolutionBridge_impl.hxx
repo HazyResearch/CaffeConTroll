@@ -285,7 +285,7 @@ backward() {
 
   // (3) update the bias term, summing over the gradients for each O and B
   if (bias_term) {
-    DeviceMemoryPointer * input = input_g_cube->get_device_pointer(p_driver);
+    DeviceMemoryPointer * output = output_g_cube->get_device_pointer(p_driver);
     DeviceMemoryPointer * bias = p_bias_gradient_cube->get_device_pointer(p_driver);
     p_driver->sconstant_initialize(bias, DataType(0.));
 
@@ -303,7 +303,7 @@ backward() {
         sizeof(size_t));
 
     p_driver->template parallel_map<_f_src_to_dst_bias_backward,
-      _f_bias_backward>(bias, input, _arg1.src_skip, arg1, arg2);
+      _f_bias_backward>(bias, output, _arg1.src_skip, arg1, arg2);
   }
 
   // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube

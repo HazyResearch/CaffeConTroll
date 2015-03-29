@@ -215,13 +215,12 @@ TYPED_TEST(FCBridgeTest, TestBackward) {
   this->ConvolutionBridge_->forward();
   this->FullyConnectedBridge_->forward();
 
-  // this->ConvolutionBridge_->backward();
+  this->ConvolutionBridge_->backward();
   this->FullyConnectedBridge_->backward();
 
-
-  // for (int i=0;i<this->iR*this->iC*this->iD*this->mB;i++) {
-  //   EXPECT_NEAR(this->grad1->get_p_data()[i], this->grad1c->get_p_data()[i], EPS);
-  // }
+  for (int i=0;i<this->iR*this->iC*this->iD*this->mB;i++) {
+    EXPECT_NEAR(this->grad1->get_p_data()[i], this->grad1c->get_p_data()[i], EPS);
+  }
 
   for (int i=0;i<this->oD;i++) {
     EXPECT_NEAR(this->FullyConnectedBridge_->get_bias_cube()->get_p_data()[i],
@@ -232,5 +231,4 @@ TYPED_TEST(FCBridgeTest, TestBackward) {
     EXPECT_NEAR(this->FullyConnectedBridge_->get_model_cube()->get_p_data()[i],
       this->ConvolutionBridge_->get_model_cube()->get_p_data()[i], EPS);
   }
-
 }

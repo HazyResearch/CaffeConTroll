@@ -231,6 +231,10 @@ template void CPUDriver::pmap2d_read_coalesce<_fpmap_id,_fmap_remap>(DeviceMemor
 template void CPUDriver::parallel_map<_f_idx_strid4_copy,_f_strid4_copy>(DeviceMemoryPointer * dst,
     DeviceMemoryPointer * src, size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
     DeviceMemoryPointer * const func_curry);
+// inverse_lower_cube
+template void CPUDriver::parallel_map<_f_src_to_dst_inverse_lower_cube,_f_inverse_lower_cube>(DeviceMemoryPointer * dst,
+    DeviceMemoryPointer * src, size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
+    DeviceMemoryPointer * const func_curry);
 // Conv/FC Bias forward
 template void CPUDriver::parallel_map<_f_src_to_dst_bias_forward,_f_bias_forward>(DeviceMemoryPointer * dst,
     DeviceMemoryPointer * src, size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,

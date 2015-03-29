@@ -10,7 +10,6 @@
 #define moka_Connector_imple_Lowering_type1_hxx
 
 #include <iostream>
-//#include "kernels/lowering.h"
 
 template<typename DataType, LayoutType InputLayout, typename DriverClass>
 Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1, DriverClass>::
@@ -116,15 +115,73 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
   assert(p_output_cube->B == oB);
 #endif
 
-  DeviceMemoryPointer * input = p_input_cube->get_device_pointer(p_driver);
+  p_input_cube->reset_cube();
+
+  size_t out_index = 0;
+  const DataType * const output_data = p_output_cube->get_p_data();
+
+  const size_t data_output_width = (iR + 2 * padding - kernel_size) / stride + 1;  // the number of rows in the output gradient cube
+  const size_t data_output_height = (iC + 2 * padding - kernel_size) / stride + 1; // the number of cols in the output gradient cube
+
+  // First, we iterate over K * K * iD , which is the number of rows in the output gradient
+  // cube. (Remember: the output gradient cube has dimensions K * K * iD x oR * oC * iB x 1 x 1,
+  // where oR and oC do NOT refer the variables above. TODO: We REALLY need to standardize this!)
+  for (size_t kd = 0; kd < iD; ++kd) {
+    for (size_t kr = 0; kr < kernel_size; ++kr) {
+      for (size_t kc = 0; kc < kernel_size; ++kc) {
+
+        // Then, we iterate over oR * oC * iB, the number of columns in the output gradient
+        for (size_t ib = 0; ib < iB; ++ib) {
+          // cr and cc represent the row index and column index of the convolutional "window"
+          // in the input gradient cube, which means that they must be incremented by stride
+          for (size_t cr = 0; cr < stride * data_output_width; cr += stride) {
+            const int input_row_index = cr + kr - padding;
+
+            for (size_t cc = 0; cc < stride * data_output_height; cc += stride) {
+              const int input_col_index = cc + kc - padding;
+
+              // (cr + kr - padding, cc + kc - padding) represents the index into
+              // the input gradient cube. If we aren't within [0, iR) and [0, iC)
+              // then we shouldn't update, because we are in the padded area
+              if (input_row_index >= 0 &&
+                  input_row_index < iR  &&
+                  input_col_index >= 0 &&
+                  input_col_index < iC) {
+                *p_input_cube->logical_get(input_row_index, input_col_index, kd, ib) += output_data[out_index];
+              }
+              // increment out_index regardless, a single cell from the output gradient cube
+              // can only make a single contribution to the input gradient cube (Remember: this
+              // is the *lowered* output gradient cube!)
+              ++out_index;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // DeviceMemoryPointer * input = p_input_cube->get_device_pointer(p_driver);
   // DeviceMemoryPointer * output = p_output_cube->get_device_pointer(p_driver);
 
-  p_driver->sconstant_initialize(input, DataType(0.));
+  // p_driver->sconstant_initialize(input, DataType(0.));
 
-  // const size_t data_output_width = (iR + 2 * padding - kernel_size) / stride + 1;  // the number of rows in the output gradient cube
-  // const size_t data_output_height = (iC + 2 * padding - kernel_size) / stride + 1; // the number of cols in the output gradient cube
+  // _inverse_lower_cube_arg_helper _arg;
+  // _arg.data_output_width = (iR + 2 * padding - kernel_size) / stride + 1;  // the number of rows in the output gradient cube
+  // _arg.data_output_height = (iC + 2 * padding - kernel_size) / stride + 1; // the number of cols in the output gradient cube
+  // _arg.kernel_size = kernel_size;
+  // _arg.stride = stride;
+  // _arg.padding = padding;
+  // _arg.iR = iR;
+  // _arg.iC = iC;
 
-  assert(false);
+  // DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg,
+  //     sizeof(_inverse_lower_cube_arg_helper));
+
+  // DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg,
+  //     sizeof(_inverse_lower_cube_arg_helper));
+
+  // p_driver->template parallel_map<_f_src_to_dst_inverse_lower_cube,
+  //   _f_inverse_lower_cube>(output, input, iR*iC*sizeof(DataType), arg1, arg2);
 
   report_last_inverse_lowering.end(iR*iC*iD*iB*sizeof(DataType), oR*oC*oD*oB*sizeof(DataType), 0);
   report_history.aggregate(report_last_inverse_lowering);
@@ -152,5 +209,13 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
    p_driver->parallel_map(output, input, iR*iC*sizeof(DataType),
    &func_src_to_dst_conv_ilowering, parg1, &func_ilowering, parg2);
    */
+  // p_input_cube->reset_cube();
+  // const size_t data_output_width =
+  // const size_t data_output_height =
+
+  // const DataType * const output_data = p_output_cube->get_p_data();
+  // const size_t data_output_width = (iR + 2 * padding - kernel_size) / stride + 1;  // the number of rows in the output gradient cube
+  // const size_t data_output_height = (iC + 2 * padding - kernel_size) / stride + 1; // the number of cols in the output gradient cube
+
 
 #endif
