@@ -126,7 +126,7 @@ initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter
 template <typename DataType, typename DriverClass>
 void FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
 forward() {
-  Util::set_num_threads(run_with_n_threads);
+  p_driver->set_num_threads(run_with_n_threads);
 
   // Copy input to Device. This should be refactor'ed out into the
   // scheduler.
@@ -232,7 +232,7 @@ forward() {
 template <typename DataType, typename DriverClass>
 void FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
 backward() {
-  Util::set_num_threads(run_with_n_threads);
+  p_driver->set_num_threads(run_with_n_threads);
 
   // Copy output grad to Device. This should be refactor'ed out into the
   // scheduler.

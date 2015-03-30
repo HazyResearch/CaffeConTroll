@@ -120,7 +120,7 @@ void CPUDriver::smath_axpby(const float alpha, DeviceMemoryPointer * X, const fl
   float * _X = (float*) X->ptr;
   float * _Y = (float*) Y->ptr;
   for(int i = N; i > 0; _X++, _Y++, --i) {
-    *Y = alpha**_X + beta* *_Y;
+    *_Y = alpha**_X + beta* *_Y;
   }
 #else
 #error "Select a BLAS framework."
