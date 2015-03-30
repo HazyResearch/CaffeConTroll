@@ -36,14 +36,18 @@ class MaxPoolingBridgeTest : public ::testing::Test {
       pool_param->set_kernel_size(k);
       pool_param->set_stride(s);
 
-      MaxPoolingBridge_ = new ParallelizedBridge<DataType_SFFloat, MaxPoolingBridge<T, Layout_CRDB, T, Layout_CRDB> >(layer1,
-          layer2, &layer_param, &solver_param, 4, 1);
+      MaxPoolingBridge_ = new ParallelizedBridge<DataType_SFFloat, MaxPoolingBridge<T, Layout_CRDB, T,
+                        Layout_CRDB, CPUDriver>, CPUDriver>(layer1, layer2, &layer_param, &solver_param,
+                            &pdriver, 4, 1);
     }
 
-    virtual ~MaxPoolingBridgeTest() { delete data1; delete data2; delete grad1; delete grad2; delete layer1; delete layer2;}
-    ParallelizedBridge<DataType_SFFloat, MaxPoolingBridge<T, Layout_CRDB, T, Layout_CRDB> >* MaxPoolingBridge_;
+    virtual ~MaxPoolingBridgeTest() { delete layer1; delete layer2; }
+    ParallelizedBridge<DataType_SFFloat, MaxPoolingBridge<T, Layout_CRDB, T, Layout_CRDB, CPUDriver>,
+      CPUDriver>* MaxPoolingBridge_;
 
     cnn::SolverParameter solver_param;
+
+    CPUDriver pdriver;
 
     LogicalCube<T, Layout_CRDB>* data1;
     LogicalCube<T, Layout_CRDB>* grad1;
@@ -82,7 +86,7 @@ TYPED_TEST(MaxPoolingBridgeTest, TestForward) {
   std::fstream input("tests/input/pooling_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
-      input >> this->data1->p_data[i];
+      input >> this->data1->get_p_data()[i];
     }
   }
   else{
@@ -98,7 +102,7 @@ TYPED_TEST(MaxPoolingBridgeTest, TestForward) {
   int idx = 0;
   if (expected_output.is_open()) {
     while (expected_output >> output) {
-      EXPECT_NEAR(this->data2->p_data[idx], output, EPS);
+      EXPECT_NEAR(this->data2->get_p_data()[idx], output, EPS);
       idx++;
     }
   }
@@ -114,8 +118,8 @@ TYPED_TEST(MaxPoolingBridgeTest, TestBackward) {
   std::fstream input("tests/input/pooling_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
-      input >> this->data1->p_data[i];
-      this->grad1->p_data[i] = 0;
+      input >> this->data1->get_p_data()[i];
+      this->grad1->get_p_data()[i] = 0;
     }
   }
   else{
@@ -127,7 +131,7 @@ TYPED_TEST(MaxPoolingBridgeTest, TestBackward) {
   int oC = this->oC;
 
   for(int i=0;i<oR*oC*this->iD*this->mB;i++) {
-    this->grad2->p_data[i] = i;
+    this->grad2->get_p_data()[i] = i;
   }
 
   this->MaxPoolingBridge_->forward();
@@ -140,7 +144,7 @@ TYPED_TEST(MaxPoolingBridgeTest, TestBackward) {
   int idx = 0;
   if (expected_output.is_open()) {
     while (expected_output >> output)
-      EXPECT_NEAR(this->grad1->p_data[idx++], output, EPS);
+      EXPECT_NEAR(this->grad1->get_p_data()[idx++], output, EPS);
   }else{
     FAIL();
   }

@@ -18,7 +18,7 @@ class LenetTest : public ::testing::Test {
       Parser::read_net_params_from_text_file(solver_param.net(), &net_param);
     }
 
-    BridgeVector bridges;  
+    BridgeVector bridges;
     cnn::NetParameter net_param;
     cnn::SolverParameter solver_param;
 };
@@ -50,29 +50,29 @@ TYPED_TEST(LenetTest, RunTest) {
     pFile = fopen (corpus->filename.c_str(), "rb");
 
     for (size_t batch = 0, corpus_batch_index = 0; batch < corpus->num_mini_batches - 1; ++batch,
-      corpus_batch_index += corpus->mini_batch_size) {
-      fread(corpus->images->p_data, sizeof(DataType_SFFloat), corpus->images->n_elements, pFile);
+        corpus_batch_index += corpus->mini_batch_size) {
+      fread(corpus->images->get_p_data(), sizeof(DataType_SFFloat), corpus->images->n_elements, pFile);
 
       float * const mini_batch = corpus->images->physical_get_RCDslice(0);
-      input_data->p_data = mini_batch;
+      input_data->get_p_data() = mini_batch;
 
       softmax->reset_loss();
 
       // initialize labels for this mini batch
-      labels->p_data = corpus->labels->physical_get_RCDslice(corpus_batch_index);
+      labels->set_p_data(corpus->labels->physical_get_RCDslice(corpus_batch_index));
       // forward pass
       for (auto bridge = this->bridges.begin(); bridge != this->bridges.end(); ++bridge) {
         (*bridge)->p_input_layer->p_gradient_cube->reset_cube();
         (*bridge)->p_output_layer->p_data_cube->reset_cube();
         (*bridge)->forward();
       }
-       total_accuracy += find_accuracy(labels, softmax->p_output_layer->p_data_cube);
+      total_accuracy += find_accuracy(labels, softmax->p_output_layer->p_data_cube);
     }
 
     std::fstream expected_accuracy("tests/accuracy_train.txt", std::ios_base::in);
     double output;
     if (expected_accuracy.is_open()) {
-      expected_accuracy >> output;  
+      expected_accuracy >> output;
       EXPECT_NEAR((1.0*total_accuracy/((corpus->num_mini_batches - 1)*corpus->mini_batch_size)), output, 0.01);
     }else{
       FAIL();

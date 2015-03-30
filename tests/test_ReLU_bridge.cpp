@@ -28,14 +28,15 @@ class ReLUBridgeTest : public ::testing::Test {
       layer2 = new Layer<T, Layout_CRDB>(data2, grad2);
 
       cnn::LayerParameter layer_param;
-      ReLUBridge_ = new ParallelizedBridge<T, ReLUBridge<T, Layout_CRDB, T, Layout_CRDB> >(layer1,
-          layer2, &layer_param, &solver_param, 4, 1);
+      ReLUBridge_ = new ParallelizedBridge<T, ReLUBridge<T, Layout_CRDB, T, Layout_CRDB, CPUDriver>,
+                  CPUDriver>(layer1, layer2, &layer_param, &solver_param, &pdriver, 4, 1);
     }
 
     cnn::SolverParameter solver_param;
+    CPUDriver pdriver;
 
-    virtual ~ReLUBridgeTest() { delete data1; delete data2; delete grad1; delete grad2; delete layer1; delete layer2;}
-    ParallelizedBridge<T, ReLUBridge<T, Layout_CRDB, T, Layout_CRDB> >* ReLUBridge_;
+    virtual ~ReLUBridgeTest() { delete layer1; delete layer2; }
+    ParallelizedBridge<T, ReLUBridge<T, Layout_CRDB, T, Layout_CRDB, CPUDriver>, CPUDriver>* ReLUBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
     LogicalCube<T, Layout_CRDB>* grad1;
@@ -69,8 +70,8 @@ TYPED_TEST(ReLUBridgeTest, TestForward) {
   std::fstream input("tests/input/relu_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
-      input >> this->data1->p_data[i];
-    }  
+      input >> this->data1->get_p_data()[i];
+    }
   }
   else{
     FAIL();
@@ -84,8 +85,8 @@ TYPED_TEST(ReLUBridgeTest, TestForward) {
   T output;
   int idx = 0;
   if (expected_output.is_open()) {
-    while (expected_output >> output) 
-      EXPECT_NEAR(this->data2->p_data[idx++], output, EPS);
+    while (expected_output >> output)
+      EXPECT_NEAR(this->data2->get_p_data()[idx++], output, EPS);
   }else{
     FAIL();
   }
@@ -99,8 +100,8 @@ TYPED_TEST(ReLUBridgeTest, TestBackward) {
   std::fstream input("tests/input/relu_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
-      input >> this->data1->p_data[i];
-    }  
+      input >> this->data1->get_p_data()[i];
+    }
   }
   else{
     FAIL();
@@ -111,8 +112,8 @@ TYPED_TEST(ReLUBridgeTest, TestBackward) {
   int oC = this->iC;
 
   for(int i=0;i<oR*oC*this->iD*this->mB;i++) {
-    this->data2->p_data[i] = 1;
-    this->grad2->p_data[i] = i;
+    this->data2->get_p_data()[i] = 1;
+    this->grad2->get_p_data()[i] = i;
   }
 
   this->ReLUBridge_->forward();
@@ -124,8 +125,8 @@ TYPED_TEST(ReLUBridgeTest, TestBackward) {
   T output;
   int idx = 0;
   if (expected_output.is_open()) {
-    while (expected_output >> output) 
-      EXPECT_NEAR(this->grad1->p_data[idx++], output, EPS);
+    while (expected_output >> output)
+      EXPECT_NEAR(this->grad1->get_p_data()[idx++], output, EPS);
   }else{
     FAIL();
   }

@@ -13,15 +13,18 @@
 #include "../util.h"
 
 template
-<typename InputLayerDataType, LayoutType InputLayerLayout, typename OutputLayerDataType, LayoutType OutputLayerLayout>
-class MaxPoolingBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType, OutputLayerLayout> {
+<typename InputLayerDataType, LayoutType InputLayerLayout, typename OutputLayerDataType,
+  LayoutType OutputLayerLayout, typename DriverClass>
+class MaxPoolingBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
+  OutputLayerLayout, DriverClass> {
   public:
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
 
     MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param,
-        const cnn::SolverParameter * const _solver_param) {
+        const cnn::SolverParameter * const _solver_param,
+        DriverClass * const _p_driver) {
       NOT_IMPLEMENTED;
     }
 
@@ -37,34 +40,40 @@ class MaxPoolingBridge : public AbstractBridge<InputLayerDataType, InputLayerLay
 /******
  * Specializations
  */
-template <typename DataType>
-class MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> {
+template <typename DataType, typename DriverClass>
+class MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass> : public AbstractBridge<DataType,
+      Layout_CRDB, DataType, Layout_CRDB, DriverClass> {
   protected:
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::curr_B;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::curr_B;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::input_d_cube;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::input_g_cube;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::output_d_cube;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::output_g_cube;
 
   public:
     /* Re-declare these member fields so that they don't have to be resolved using vtable lookups */
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_forward_constructor;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_forward_last_transfer;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_forward_history;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_backward_updateweight_constructor;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_backward_updateweight_last_transfer;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_backward_updateweight_history;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::report_forward_constructor;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::report_forward_last_transfer;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::report_forward_history;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::report_backward_updateweight_constructor;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::report_backward_updateweight_last_transfer;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::report_backward_updateweight_history;
 
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iR;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iC;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iD;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iB;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oR;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oC;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oD;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oB;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::iR;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::iC;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::iD;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::iB;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::oR;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::oC;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::oD;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::oB;
 
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::layer_param;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::solver_param;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::layer_param;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::solver_param;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::p_driver;
 
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_input_layer;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_output_layer;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::p_input_layer;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::p_output_layer;
 
     /* Re-declare these typedefs */
     typedef Layer<DataType, Layout_CRDB> InputLayerType;
@@ -72,7 +81,8 @@ class MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> : public Ab
 
     MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param,
-        const cnn::SolverParameter * const _solver_param);
+        const cnn::SolverParameter * const _solver_param,
+        DriverClass * const _p_driver);
 
     ~MaxPoolingBridge();
 

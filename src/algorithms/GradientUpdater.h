@@ -1,10 +1,10 @@
 
+#ifndef _GradientUpdater_H
+#define _GradientUpdater_H
+
 #include <algorithm>
 #include "../parser/corpus.h"
 #include "../util.h"
-
-#ifndef _GradientUpdater_H
-#define _GradientUpdater_H
 
 /**
  * The job of a GradientUpdater is simple, it takes
@@ -46,6 +46,8 @@ class GradientUpdater {
 
     GradientUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver, float _blr, float _br) :
       current_iter(0), n_elements(_n_elements), p_model(_p_model), p_solver(_p_solver), base_learning_rate(_blr), base_regularization(_br) {}
+
+    virtual ~GradientUpdater() {}
 };
 
 template<class DataType>

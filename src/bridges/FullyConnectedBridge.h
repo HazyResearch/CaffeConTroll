@@ -20,8 +20,9 @@
  **/
 template
 <typename InputLayerDataType, LayoutType InputLayerLayout,
-  typename OutputLayerDataType, LayoutType OutputLayerLayout>
-class FullyConnectedBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType, OutputLayerLayout> {
+  typename OutputLayerDataType, LayoutType OutputLayerLayout, typename DriverClass>
+class FullyConnectedBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
+  OutputLayerLayout, DriverClass> {
   public:
 
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
@@ -36,7 +37,8 @@ class FullyConnectedBridge : public AbstractBridge<InputLayerDataType, InputLaye
     FullyConnectedBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param,
-        const cnn::SolverParameter * const _solver_param) {
+        const cnn::SolverParameter * const _solver_param,
+        DriverClass * const _p_driver) {
       NOT_IMPLEMENTED;
     }
 
@@ -56,36 +58,41 @@ class FullyConnectedBridge : public AbstractBridge<InputLayerDataType, InputLaye
 /******
  * Specializations
  */
-template <typename DataType>
-class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
-: public AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB> {
+template <typename DataType, typename DriverClass>
+class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>
+: public AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass> {
   protected:
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::curr_B;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::curr_B;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::input_d_cube;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::input_g_cube;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::output_d_cube;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::output_g_cube;
 
   public:
     /* Re-declare these member fields so that they don't have to be resolved using vtable lookups */
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_forward_constructor;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_forward_last_transfer;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_forward_history;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::run_with_n_threads;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_backward_updateweight_constructor;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_backward_updateweight_last_transfer;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::report_backward_updateweight_history;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::report_forward_constructor;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::report_forward_last_transfer;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::report_forward_history;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::run_with_n_threads;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::report_backward_updateweight_constructor;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::report_backward_updateweight_last_transfer;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::report_backward_updateweight_history;
 
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iR;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iC;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iD;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::iB;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oR;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oC;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oD;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::oB;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::iR;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::iC;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::iD;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::iB;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::oR;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::oC;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::oD;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::oB;
 
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::layer_param;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::solver_param;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::layer_param;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::solver_param;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::p_driver;
 
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_input_layer;
-    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::p_output_layer;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::p_input_layer;
+    using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::p_output_layer;
 
     Report report_forward_kernel;
     Report report_backward_kernel;
@@ -110,16 +117,15 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
     const cnn::FillerParameter bias_filler;
 
     void set_model_cube(LogicalCube<DataType, Layout_CRDB> * model) {
-      p_model_cube->p_data = model->p_data;
-      //Util::_our_memcpy(p_model_cube->p_data, model->p_data, p_model_cube->n_elements*sizeof(DataType));
+      p_model_cube->set_p_data(model->get_p_data());
     }
 
     LogicalCube<DataType, Layout_CRDB> * const get_model_cube() {
-      return p_model_cube;
+      return p_model_cube_shadow;
     }
 
     void set_bias_cube(LogicalCube<DataType, Layout_CRDB> * bias) {
-      Util::_our_memcpy(p_bias_cube->p_data, bias->p_data, p_bias_cube->n_elements*sizeof(DataType));
+      Util::_our_memcpy(p_bias_cube->get_p_data(), bias->get_p_data(), p_bias_cube->n_elements*sizeof(DataType));
     }
 
     LogicalCube<DataType, Layout_CRDB> * const get_bias_cube() {
@@ -137,7 +143,8 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
     FullyConnectedBridge(InputLayerType * const _p_input_layer,
         OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param,
-        const cnn::SolverParameter * const _solver_param);
+        const cnn::SolverParameter * const _solver_param,
+        DriverClass * const _p_driver);
 
     ~FullyConnectedBridge();
 
@@ -146,9 +153,9 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
     void backward();
 
   protected:
-
     LogicalCubeType * p_model_gradient_cube;
     LogicalCubeType * p_model_cube;
+    LogicalCubeType * p_model_cube_shadow;
 
     LogicalCubeType * p_bias_gradient_cube;
     LogicalCubeType * p_bias_cube;
@@ -157,19 +164,19 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>
 
     size_t mR, mC, mD, mB; /*< Size of the model LogicalCube */
 
-    Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, LOWERING_TYPE1>
+    Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, LOWERING_TYPE1, DriverClass>
       * p_forward_lower_connector;
 
     Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
-      Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS> * p_forward_gemm_kernel;
+      Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS, DriverClass> * p_forward_gemm_kernel;
 
     LogicalCube<DataType, Layout_CRDB> * p_backward_inputgrad;
 
     Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
-      Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_TRANS> * p_backward_gemm_updateweight_kernel;
+      Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_TRANS, DriverClass> * p_backward_gemm_updateweight_kernel;
 
     Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
-      Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_TRANS_NOTRANS> * p_backward_gemm_updategrad_kernel;
+      Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_TRANS_NOTRANS, DriverClass> * p_backward_gemm_updategrad_kernel;
 
     void initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter filler_param);
 };

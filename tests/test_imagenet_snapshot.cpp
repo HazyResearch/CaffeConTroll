@@ -16,11 +16,11 @@ void compare_to_expected(const LogicalCube<float, Layout_CRDB> * const actual,
     const blob_map & expected) {
    EXPECT_NEAR(actual->n_elements, expected.nValues, 0);
    for (int i = 0; i < expected.nValues; ++i) {
-     if(fabs(actual->p_data[i]) < 0.00001){  // when the value is too small, relative
+     if(fabs(actual->get_p_data()[i]) < 0.00001){  // when the value is too small, relative
                                                   // error does not make much sense
-       EXPECT_NEAR(actual->p_data[i], expected.values[i], 0.0000001);
+       EXPECT_NEAR(actual->get_p_data()[i], expected.values[i], 0.0000001);
      }else{ // when the value is too large, absolute error does not make much sense
-       EXPECT_NEAR(actual->p_data[i], expected.values[i], EPS*fabs(expected.values[i]));
+       EXPECT_NEAR(actual->get_p_data()[i], expected.values[i], EPS*fabs(expected.values[i]));
      }
    }
 }
@@ -29,7 +29,7 @@ void copy_blob_to_cube(const LogicalCube<float, Layout_CRDB> * const cube,
     const blob_map & blob) {
    assert((int) cube->n_elements == blob.nValues);
    for (int i = 0; i < blob.nValues; ++i) {
-     cube->p_data[i] = blob.values[i];
+     cube->get_p_data()[i] = blob.values[i];
    }
 }
 
@@ -110,7 +110,7 @@ TEST(ImageNetSnapshotTest, RunTest) {
 
       // The last batch may be smaller, but all other batches should be the appropriate size.
       // rs will then contain the real number of entires
-      size_t rs = fread(corpus->images->p_data, sizeof(DataType_SFFloat), corpus->images->n_elements, pFile);
+      size_t rs = fread(corpus->images->get_p_data(), sizeof(DataType_SFFloat), corpus->images->n_elements, pFile);
       if (rs != corpus->images->n_elements && batch != corpus->num_mini_batches - 1) {
         std::cout << "Error in reading data from " << corpus->filename << " in batch " << batch << " of " << corpus->num_mini_batches << std::endl;
         std::cout << "read:  " << rs << " expected " << corpus->images->n_elements << std::endl;
@@ -125,12 +125,12 @@ TEST(ImageNetSnapshotTest, RunTest) {
       // to make the switching between this and the master branch (that load everything in memory)
       // dynamically and improve code reuse.
       float * const mini_batch = corpus->images->physical_get_RCDslice(0);
-      input_data->p_data = mini_batch;
+      input_data->set_p_data(mini_batch);
 
       softmax->reset_loss();
 
       // initialize labels for this mini batch
-      labels->p_data = corpus->labels->physical_get_RCDslice(corpus_batch_index);
+      labels->set_p_data(corpus->labels->physical_get_RCDslice(corpus_batch_index));
       const int iter = epoch + batch;
 
       // force inputs for first layer

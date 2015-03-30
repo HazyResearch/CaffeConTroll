@@ -60,9 +60,8 @@ class Util {
     }
 
     /**
-     *
-     * Acknowledgement: Following code is directly forked from https://github.com/BVLC/caffe/blob/master/src/caffe/solver.cpp#L363
-     *
+     * Acknowledgement: Following code is directly forked
+     * from https://github.com/BVLC/caffe/blob/master/src/caffe/solver.cpp#L363
      **/
     static inline float get_learning_rate(std::string lr_policy, float base_lr, float gamma,
       float iter, float caffe_stepsize, float power, float max_iter){
@@ -168,7 +167,8 @@ class Util {
 	*Y = alpha**X + beta* *Y;
       }
     }
-    static inline void set_num_threads(const int nThreads) {   }
+    // http://math-atlas.sourceforge.net/faq.html#tnum Atlas manages the thread pool.
+    static inline void set_num_threads(const int nThreads) {  /* std::cerr << "[Warning] Atlas ignores set_num_threads(nThreads); " << nThreads << std::endl;*/ }
 #else
       #error "Select a BLAS framework."
 #endif

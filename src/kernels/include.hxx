@@ -1,0 +1,10 @@
+
+#include "lowering.hxx"
+#include "mul.hxx"
+#include "test.hxx"
+#include "conv.hxx"
+#include "pool.hxx"
+#include "dropout.hxx"
+#include "lrn.hxx"
+#include "relu.hxx"
+#include "softmax.hxx"
