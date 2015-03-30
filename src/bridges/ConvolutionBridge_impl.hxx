@@ -146,7 +146,7 @@ initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter
 template <typename DataType, NonLinearFunction FUNC, typename DriverClass>
 void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
 forward() {
-  Util::set_num_threads(run_with_n_threads);
+  p_driver->set_num_threads(run_with_n_threads);
 
   // Copy input to Device. This should be refactor'ed out into the
   // scheduler.
@@ -264,7 +264,7 @@ forward() {
 template <typename DataType, NonLinearFunction FUNC, typename DriverClass>
 void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
 backward() {
-  Util::set_num_threads(run_with_n_threads);
+  p_driver->set_num_threads(run_with_n_threads);
 
   // Copy output grad to Device. This should be refactor'ed out into the
   // scheduler.

@@ -117,8 +117,8 @@ void CPUDriver::smath_axpby(const float alpha, DeviceMemoryPointer * X, const fl
 #elif _VANILLA_BLAS
 #warning "[PERFORMANCE WARNING] Using hand-written BLAS calls. Hope you have a good compiler!"
   const int N = X->size_in_byte/sizeof(float);
-  float * _X = X->ptr;
-  float * _Y = Y->ptr;
+  float * _X = (float*) X->ptr;
+  float * _Y = (float*) Y->ptr;
   for(int i = N; i > 0; _X++, _Y++, --i) {
     *Y = alpha**_X + beta* *_Y;
   }
