@@ -46,14 +46,14 @@ class Util {
 
     template<typename T>
     static inline void regularize(std::string regularization_type,
-        const size_t n, float lambda, T * const gradient, const T * const current_param){
-      if(regularization_type == "L2"){
-        for(int i=0;i<n;i++){ // To is easily compiled to SIMD, so let's
+        const int n, float lambda, T * const gradient, const T * const current_param) {
+      if (regularization_type == "L2") {
+        for (int i = 0; i < n; ++i) { // To is easily compiled to SIMD, so let's
                               // not over-optimize before it becomes bottleneck
           gradient[i] += lambda * current_param[i];
         }
-      }else if(regularization_type == "L1"){
-        for(int i=0;i<n;i++){
+      }else if (regularization_type == "L1") {
+        for (int i = 0; i < n; ++i) {
           gradient[i] += lambda * (current_param[i] > 0 ? 1 : -1);
         }
       }
@@ -64,7 +64,7 @@ class Util {
      * from https://github.com/BVLC/caffe/blob/master/src/caffe/solver.cpp#L363
      **/
     static inline float get_learning_rate(std::string lr_policy, float base_lr, float gamma,
-      float iter, float caffe_stepsize, float power, float max_iter){
+      float iter, float caffe_stepsize, float power, float max_iter) {
       float rate, current_step_;
       if (lr_policy == "fixed") {
         rate = base_lr;
@@ -182,7 +182,7 @@ class Util {
     // Note: this is only used for shorts and floats, since _our_memset will only work for ints
     template <typename T>
     static inline void constant_initialize(T * const arr, const T value, const size_t n_arr_elements) {
-      for(size_t i = 0; i < n_arr_elements; ++i)
+      for (size_t i = 0; i < n_arr_elements; ++i)
         arr[i] = value;
     }
 

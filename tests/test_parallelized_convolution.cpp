@@ -69,7 +69,7 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
       ParallelizedConvolutionBridge_ = new ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
               Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver>(layer1,
-                  layer2, &layer_param, &solver_param, &pdriver, 4, 1);
+                  layer2, &layer_param, &solver_param, &pdriver, 1, 1);
 
       ParallelizedConvolutionBridge_->needs_to_calc_backward_grad = true;
     }

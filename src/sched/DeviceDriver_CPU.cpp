@@ -36,7 +36,6 @@ template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
 inline void _spmap_cpu(float* const dst, float * const src, PMapHelper args,
     const size_t block_x, const size_t block_y, const size_t thread_x, const size_t thread_y){
 
-  //const size_t nRblock = args.sR/args.sBR;
   const size_t nCblock = args.sC/args.sBC;
 
   Block2D input_block;
@@ -80,10 +79,10 @@ void CPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPoin
   size_t n_block_X = args.sR*args.sC/sBC/sBR;
   size_t n_block_Y = args.sD*args.sB;
 
-  for(size_t block_x=0;block_x<n_block_X;block_x++){
-    for(size_t block_y=0;block_y<n_block_Y;block_y++){
-      for(size_t thread_x=0;thread_x<n_thread_per_block_C;thread_x++){
-        for(size_t thread_y=0;thread_y<n_thread_per_block_R;thread_y++){
+  for (size_t block_x = 0; block_x < n_block_X; block_x++) {
+    for (size_t block_y = 0; block_y < n_block_Y; block_y++) {
+      for (size_t thread_x = 0; thread_x < n_thread_per_block_C; thread_x++) {
+        for (size_t thread_y = 0; thread_y < n_thread_per_block_R; thread_y++) {
           _spmap_cpu<f_id,f_data>((float*) dst->ptr, (float*) src->ptr, args,
               block_x, block_y, thread_x, thread_y);
         }
@@ -131,14 +130,13 @@ void CPUDriver::set_num_threads(const int nThreads){
 #ifdef _USE_OPENBLAS
   openblas_set_num_threads(nThreads);
 #elif _USE_ATLAS
-  set_num_threads(nThreads);
+
 #elif _VANILLA_BLAS
 
 #else
 #error "Select a BLAS framework."
 #endif
 }
-
 
 void CPUDriver::sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB,
     int M, int N, int K, float alpha, float * pA, int LDA, float * pB, int LDB,

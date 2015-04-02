@@ -58,8 +58,9 @@ MAIN_CUDA_OBJ_FILES = $(patsubst %.cu,%.o,$(MAIN_CUDA_SOURCES))
 TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest
 TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.cpp \
 	       src/sched/DeviceDriver_CPU.cpp \
+	       tests/test_parallelized_convolution.cpp \
+	       tests/test_grouping.cpp \
 	       tests/test_model_write.cpp \
-	       #tests/test_parallelized_convolution.cpp \
 	       tests/test_fc_bridge.cpp \
 	       tests/test_scanner.cpp \
 	       tests/test_kernel.cpp \
@@ -68,16 +69,14 @@ TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.
 	       tests/test_softmax_bridge.cpp \
 	       tests/test_dropout_bridge.cpp \
 	       tests/test_lrn_bridge.cpp \
+	       tests/test_device_driver_cpu.cpp \
 	       tests/test_cube.cpp \
 	       tests/test_report.cpp \
 	       tests/test_connector.cpp \
-	       tests/test_grouping.cpp \
 	       tests/test_convolution.cpp \
+	       tests/test_lenet_network.cpp
 
-	       # tests/test_device_driver.cpp \
-	       tests/test_model_write.cpp \
-	       tests/test_device_driver_gpu.cpp \
-	       #tests/test_lenet_network.cpp
+	       # tests/test_device_driver_gpu.cpp \
 # snapshot-parser/simple_parse.cpp tests/test_imagenet_snapshot.cpp \
 
 TEST_OBJ_FILES = $(patsubst %.cpp,%.o,$(TEST_SOURCES))

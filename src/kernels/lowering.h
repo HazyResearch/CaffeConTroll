@@ -27,6 +27,8 @@ struct _inverse_lower_cube_arg_helper {
   size_t padding;
   size_t iR;
   size_t iC;
+  size_t iD;
+  size_t iB;
 };
 
 #ifdef _GPU_TARGET
@@ -37,6 +39,6 @@ size_t _f_src_to_dst_inverse_lower_cube(size_t src_pos, void * const _arg);
 #ifdef _GPU_TARGET
 __host__ __device__
 #endif
-void _f_inverse_lower_cube(void * output, void * input, void * const _arg, const size_t dst_index);
+void _f_inverse_lower_cube(void * input, void * output, void * const _arg, const size_t dst_index);
 
 #endif
