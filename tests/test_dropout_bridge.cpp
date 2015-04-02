@@ -30,14 +30,15 @@ class dropoutBridgeTest : public ::testing::Test {
       cnn::DropoutParameter * const dropout_param = layer_param.mutable_dropout_param();
       dropout_param->set_dropout_ratio(ratio);
 
-      dropoutBridge_ = new DropoutBridge<T, Layout_CRDB, T, Layout_CRDB>(layer1, layer2, &layer_param, &solver_param);
+      dropoutBridge_ = new DropoutBridge<T, Layout_CRDB, T, Layout_CRDB, CPUDriver>(layer1, layer2,
+          &layer_param, &solver_param, &pdriver);
     }
 
     cnn::SolverParameter solver_param;
-
+    CPUDriver pdriver;
 
     virtual ~dropoutBridgeTest() { delete layer1; delete layer2; }
-    DropoutBridge<T, Layout_CRDB, T, Layout_CRDB>* dropoutBridge_;
+    DropoutBridge<T, Layout_CRDB, T, Layout_CRDB, CPUDriver>* dropoutBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
     LogicalCube<T, Layout_CRDB>* grad1;

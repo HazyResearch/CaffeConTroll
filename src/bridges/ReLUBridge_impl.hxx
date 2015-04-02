@@ -9,12 +9,12 @@
 #ifndef moka_ReLUBridge_impl_hxx
 #define moka_ReLUBridge_impl_hxx
 
-template <typename DataType>
-ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::ReLUBridge(InputLayerType * const _p_input_layer,
+template <typename DataType, typename DriverClass>
+ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::ReLUBridge(InputLayerType * const _p_input_layer,
     OutputLayerType * const _p_output_layer, const cnn::LayerParameter * const _layer_param,
-    const cnn::SolverParameter * const _solver_param)
-: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer, _p_output_layer,
-    _layer_param, _solver_param) {
+    const cnn::SolverParameter * const _solver_param, DriverClass * const _p_driver)
+: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>(_p_input_layer, _p_output_layer,
+    _layer_param, _solver_param, _p_driver) {
 
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();
@@ -31,40 +31,79 @@ ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::ReLUBridge(InputLayerT
  * Implements ReLU in the forward direction. (Note: we don't support
  * a negative slope parameter yet, like Caffe.)
  **/
-template <typename DataType>
-void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
+template <typename DataType, typename DriverClass>
+void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forward() {
+  // Copy input data to Device. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal(p_input_layer->p_data_cube->get_p_data(),
+    input_d_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost = p_driver->get_device_pointer(input_d_cube->get_p_data(),
+    input_d_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(phost, &plocal);
+
   report_forward_last_transfer.reset();
 
-  const size_t num_elements = p_input_layer->p_data_cube->n_elements;
-  const DataType* const input_data = p_input_layer->p_data_cube->get_p_data();
-  DataType* const output_data = p_output_layer->p_data_cube->get_p_data();
+  ////////////////////////////////////////////////////////////////////////////////
+  DeviceMemoryPointer * input = input_d_cube->get_device_pointer(p_driver);
+  DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
 
-  for (size_t i = 0; i < num_elements; ++i) {
-    output_data[i] = max(input_data[i], DataType(0));
-  }
+  DeviceMemoryPointer * arg1 = p_driver->get_device_pointer(NULL, 0);
+  DeviceMemoryPointer * arg2 = p_driver->get_device_pointer(NULL, 0);
+
+  p_driver->template parallel_map<_f_src_to_dst_relu_forward,
+    _f_relu_forward>(input, output, sizeof(DataType), arg1, arg2);
+  ////////////////////////////////////////////////////////////////////////////////
+
+  // Copy output data to Host. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal2(p_output_layer->p_data_cube->get_p_data(),
+    output_d_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost2 = p_driver->get_device_pointer(output_d_cube->get_p_data(),
+    output_d_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(&plocal2, phost2);
 
   report_forward_last_transfer.end();
   report_forward_history.aggregate(report_forward_last_transfer);
 }
 
-
 /**
  * Implements ReLU in the backward direction. (Note: we don't support
  * a negative slope parameter yet, like Caffe.)
  **/
-template <typename DataType>
-void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
+template <typename DataType, typename DriverClass>
+void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::backward() {
+  // Copy output grad to Device. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal(p_output_layer->p_gradient_cube->get_p_data(),
+      output_g_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost = p_driver->get_device_pointer(output_g_cube->get_p_data(),
+      output_g_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(phost, &plocal);
+
   report_backward_updateweight_last_transfer.reset();
 
-  const size_t num_elements = p_input_layer->p_data_cube->n_elements;
-  const DataType* const input_data = p_input_layer->p_data_cube->get_p_data();
+  ////////////////////////////////////////////////////////////////////////////////
+  DeviceMemoryPointer * input = input_g_cube->get_device_pointer(p_driver);
+  DeviceMemoryPointer * output = output_g_cube->get_device_pointer(p_driver);
 
-  DataType* const input_gradient = p_input_layer->p_gradient_cube->get_p_data();
-  const DataType* const output_gradient = p_output_layer->p_gradient_cube->get_p_data();
+  _relu_backward_arg_helper _arg;
+  _arg.input_data = (char *) p_input_layer->p_data_cube->get_p_data();
 
-  for (size_t i = 0; i < num_elements; ++i) {
-    input_gradient[i] = output_gradient[i] * (input_data[i] > 0);
-  }
+  DeviceMemoryPointer * arg1 = p_driver->get_device_pointer(NULL, 0);
+  DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg,
+      sizeof(_relu_backward_arg_helper));
+
+  p_driver->template parallel_map<_f_src_to_dst_relu_backward,
+    _f_relu_backward>(input, output, sizeof(DataType), arg1, arg2);
+  ////////////////////////////////////////////////////////////////////////////////
+
+  // Copy input grad to Host. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal2(p_input_layer->p_gradient_cube->get_p_data(),
+      input_g_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost2 = p_driver->get_device_pointer(input_g_cube->get_p_data(),
+      input_g_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(&plocal2, phost2);
 
   report_backward_updateweight_last_transfer.end();
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);

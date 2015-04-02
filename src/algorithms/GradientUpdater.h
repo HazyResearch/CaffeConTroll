@@ -1,10 +1,10 @@
 
+#ifndef _GradientUpdater_H
+#define _GradientUpdater_H
+
 #include <algorithm>
 #include "../parser/corpus.h"
 #include "../util.h"
-
-#ifndef _GradientUpdater_H
-#define _GradientUpdater_H
 
 /**
  * The job of a GradientUpdater is simple, it takes
@@ -87,12 +87,15 @@ class SGDGradientUpdater : public GradientUpdater<DataType> {
       // std::cout << "STEPSIZE = " << stepsize << " MOMENTUM = " << momentum << " BASE_LR = "
       //	<< base_learning_rate << " BASE_REG = " << base_regularization << std::endl ;
 
-      Util::math_axpby(n_elements, stepsize, p_gradient, momentum, p_history_updates);
-      Util::math_apply_grad<DataType>(n_elements, p_model, p_history_updates);
-      //for (int i=0;i<n_elements;i++) {
-      //	p_history_updates[i] = stepsize * p_gradient[i] + momentum * p_history_updates[i];
-      //	p_model[i] -= p_history_updates[i];
-      //}
+      #warning "[BROKEN ABSTRACTION] Using Util when we should be using a driver "
+
+      // This is the right code?
+      // p_driver->math_axpby(n_elements, stepsize, p_gradient, momentum, p_history_updates);
+      // p_driver->math_axpy(n_elements, -1.0, p_history_updates, p_model);
+      for (int i=0;i<n_elements;i++) {
+      	p_history_updates[i] = stepsize * p_gradient[i] + momentum * p_history_updates[i];
+      	p_model[i] -= p_history_updates[i];
+      }
     }
 
     float get_momentum() const {

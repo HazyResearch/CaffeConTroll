@@ -9,6 +9,8 @@
 #ifndef moka_Scanner_h
 #define moka_Scanner_h
 
+#include "sched/DeviceDriver.h"
+
 #include "LogicalCube.h"
 #include "Report.h"
 
@@ -31,7 +33,9 @@ public:
     Report report_last_apply; /*< Performance reporter for the last run of transfer() function. */
     Report report_history; /*< Performance reporter for all transfer() functions aggregated. */
 
-    Scanner(const LogicalCubeType * const p_cube){
+    DeviceDriver * p_driver;
+
+    Scanner(const LogicalCubeType * const p_cube, DeviceDriver * _p_driver){
         std::cerr << "ERROR: Using a scanner with unsupported Layout or DataType." << std::endl;
         assert(false);
     }
@@ -57,7 +61,9 @@ public:
     Report report_last_apply; /*< Performance reporter for the last run of transfer() function. */
     Report report_history; /*< Performance reporter for all transfer() functions aggregated. */
 
-    Scanner(const LogicalCubeType * const p_cube);
+    DeviceDriver * p_driver;
+
+    Scanner(const LogicalCubeType * const p_cube, DeviceDriver * _p_driver);
 
     void apply(LogicalCubeType * const p_cube);
 
@@ -74,7 +80,9 @@ public:
     Report report_last_apply; /*< Performance reporter for the last run of transfer() function. */
     Report report_history; /*< Performance reporter for all transfer() functions aggregated. */
 
-    Scanner(const LogicalCubeType * const p_cube){
+    DeviceDriver * p_driver;
+
+    Scanner(const LogicalCubeType * const p_cube, DeviceDriver * _p_driver){
         report_constructor.reset();
         report_last_apply.reset();
         report_history.reset();

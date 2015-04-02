@@ -1,3 +1,4 @@
+
 #include "../src/Kernel.h"
 #include "../src/LogicalCube.h"
 #include "../src/Layer.h"
@@ -28,11 +29,11 @@ class softmaxBridgeTest : public ::testing::Test {
       layer1 = new Layer<T, Layout_CRDB>(data1, grad1);
       layer2 = new Layer<T, Layout_CRDB>(data2, grad2);
 
-      softmaxBridge_ = new SoftmaxLossBridge<T, Layout_CRDB, T, Layout_CRDB>(layer1, layer2, label);
+      softmaxBridge_ = new SoftmaxLossBridge<T, Layout_CRDB, T, Layout_CRDB, CPUDriver>(layer1, layer2, label, &pdriver);
     }
 
     virtual ~softmaxBridgeTest() { delete layer1; delete layer2; }
-    SoftmaxLossBridge<T, Layout_CRDB, T, Layout_CRDB>* softmaxBridge_;
+    SoftmaxLossBridge<T, Layout_CRDB, T, Layout_CRDB, CPUDriver>* softmaxBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
     LogicalCube<T, Layout_CRDB>* grad1;
@@ -45,6 +46,8 @@ class softmaxBridgeTest : public ::testing::Test {
     Layer<T, Layout_CRDB>* layer1;
     Layer<T, Layout_CRDB>* layer2;
 
+    CPUDriver pdriver;
+
     static const int mB = 5;
     static const int iD = 100;
 };
@@ -53,7 +56,6 @@ typedef ::testing::Types<FloatCRDB> DataTypes;
 
 TYPED_TEST_CASE(softmaxBridgeTest, DataTypes);
 
-//openblas_set_num_threads -- undefined reference -- currently disabled
 TYPED_TEST(softmaxBridgeTest, TestInitialization){
   EXPECT_TRUE(this->softmaxBridge_);
   EXPECT_TRUE(this->layer1);

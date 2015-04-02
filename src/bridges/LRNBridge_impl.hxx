@@ -9,37 +9,12 @@
 #ifndef moka_LRNBridge_impl_hxx
 #define moka_LRNBridge_impl_hxx
 
-/**
- * This function is from
- * http://martin.ankerl.com/2012/01/25/optimized-approximative-pow-in-c-and-cpp/
- **/
-inline double fastPrecisePow(double a, double b) {
-  int e = (int) b;
-  union {
-    double d;
-    int x[2];
-  } u = { a };
-  u.x[1] = (int)((b - e) * (u.x[1] - 1072632447) + 1072632447);
-  u.x[0] = 0;
-
-  double r = 1.0;
-  while (e) {
-    if (e & 1) {
-      r *= a;
-    }
-    a *= a;
-    e >>= 1;
-  }
-
-  return r * u.d;
-}
-
-template <typename DataType>
-LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::LRNBridge(InputLayerType * const _p_input_layer,
+template <typename DataType, typename DriverClass>
+LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::LRNBridge(InputLayerType * const _p_input_layer,
     OutputLayerType * const _p_output_layer, const cnn::LayerParameter * const _layer_param,
-    const cnn::SolverParameter * const _solver_param)
-: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_p_input_layer,
-    _p_output_layer, _layer_param, _solver_param),
+    const cnn::SolverParameter * const _solver_param, DriverClass * const _p_driver)
+: AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>(_p_input_layer,
+    _p_output_layer, _layer_param, _solver_param, _p_driver),
  alpha(layer_param->lrn_param().alpha()), beta(layer_param->lrn_param().beta()),
  local_size(layer_param->lrn_param().local_size()) {
 
@@ -65,94 +40,57 @@ LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::LRNBridge(InputLayerTyp
  * This is implemented very differently from Caffe, but it should still
  * produce the same result.
  **/
-template <typename DataType>
-void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
+template <typename DataType, typename DriverClass>
+void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forward() {
+  // Copy input to Device. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal(p_input_layer->p_data_cube->get_p_data(),
+    input_d_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost = p_driver->get_device_pointer(input_d_cube->get_p_data(),
+    input_d_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(phost, &plocal);
+
   report_forward_last_transfer.reset();
 
-  p_input_layer->p_gradient_cube->reset_cube();
+  ////////////////////////////////////////////////////////////////////////////////
+  DeviceMemoryPointer * input = input_d_cube->get_device_pointer(p_driver);
+  DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
 
-  const DataType alpha_over_size = alpha / local_size;
+  _lrn_forward_arg_helper _arg2;
+  _arg2.iR = iR;
+  _arg2.iC = iC;
+  _arg2.iD = iD;
+  _arg2.norm_window = (int) local_size / 2;
+  _arg2.denoms = (char *) denoms->get_p_data();
 
-  const int norm_window = (int) local_size / 2;
+  DeviceMemoryPointer * arg1 = p_driver->get_device_pointer(NULL, 0);
+  DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg2,
+      sizeof(_lrn_forward_arg_helper));
 
-  const int _iB = iB;
-  const int _iD = iD;
-  const int _iC = iC;
-  const int _iR = iR;
+  // calculate denoms
+  p_driver->template parallel_map<_f_src_to_dst_lrn_forward,
+    _f_lrn_forward>(input, output, sizeof(DataType)*iR*iC*iD, arg1, arg2);
 
-  const int iRiC = iR*iC;
+  _lrn_forward_normalize_arg_helper _arg3;
+  _arg3.alpha_over_size = alpha / local_size;
+  _arg3.beta = beta;
+  _arg3.denoms = (char *) denoms->get_p_data();
 
-  DataType * p_denoms = denoms->get_p_data();
-  DataType * p_output = p_output_layer->p_data_cube->get_p_data();
-  DataType * p_input, * p_input_toremove, * p_input_toadd, * p_input_tmp, *p_input_all;
-  p_input_all = p_input_layer->p_data_cube->get_p_data();
-
-  // first, fill in p_denoms with the sum
-  for (int i_b = 0; i_b < _iB; ++i_b) {
-
-    // do the first depth in the old way
-    p_input = p_input_layer->p_data_cube->logical_get(0, 0, 0, i_b);
-    for (int iric = 0; iric < iRiC; iric ++) {
-      DataType sum = DataType(0.);
-      p_input_tmp = p_input;
-      for (int i = 0; i <= norm_window; ++i) {
-        sum += (i < 0 || i >= iD) ? 0 : (*p_input_tmp)*(*p_input_tmp);
-        p_input_tmp += iRiC;
-      }
-      *p_denoms = sum;
-      p_input ++;
-      p_denoms ++;
-    }
-
-    // for other batch, reuse the old result
-    for (int i_d = 1; i_d < _iD; ++i_d) {
-
-      DataType * p_denoms2 = p_denoms;
-      for (int iric = 0; iric < iRiC; iric ++) {
-        *(p_denoms2) = *(p_denoms2 - iRiC);
-        p_denoms2 ++;
-      }
-
-      p_denoms2 = p_denoms;
-      if(i_d-norm_window-1 >= 0){
-        p_input_toremove = p_input_layer->p_data_cube->logical_get(0, 0, i_d-norm_window-1, i_b);
-        for (int iric = 0; iric < iRiC; iric ++) {
-          *p_denoms2 -= (*p_input_toremove) * (*p_input_toremove);
-          p_input_toremove ++;
-          p_denoms2 ++;
-        }
-      }
-
-      p_denoms2 = p_denoms;
-      if(i_d+norm_window < _iD){
-        p_input_toadd = p_input_layer->p_data_cube->logical_get(0, 0, i_d+norm_window, i_b);
-        for (int iric = 0; iric < iRiC; iric ++) {
-          *p_denoms2 += (*p_input_toadd) * (*p_input_toadd);
-          p_input_toadd ++;
-          p_denoms2 ++;
-        }
-      }
-
-      p_denoms += iRiC;
-    }
-
-  }
+  DeviceMemoryPointer * arg3 = p_driver->get_device_pointer((void*)&_arg3,
+      sizeof(_lrn_forward_normalize_arg_helper));
 
   // then do normalization
-  p_denoms = denoms->get_p_data();
-  p_output = p_output_layer->p_data_cube->get_p_data();
-  const size_t n_elements = _iB*_iD*_iC*_iR;
-  for (size_t i = 0; i < n_elements; ++i) {
-    *p_denoms = alpha_over_size*(*p_denoms) + 1;
-#ifdef _FASTPOW
-    *p_output = (*p_input_all)/fastPrecisePow(*p_denoms, beta);
-#else
-    *p_output = (*p_input_all)/pow(*p_denoms, beta);
-#endif
-    p_output ++;
-    p_denoms ++;
-    p_input_all ++;
-  }
+  p_driver->template parallel_map<_f_src_to_dst_lrn_forward,
+    _f_lrn_forward_normalize>(input, output, sizeof(DataType), arg1, arg3);
+  ////////////////////////////////////////////////////////////////////////////////
+
+  // Copy output to Host. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal2(p_output_layer->p_data_cube->get_p_data(),
+    output_d_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost2 = p_driver->get_device_pointer(output_d_cube->get_p_data(),
+    output_d_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(&plocal2, phost2);
 
   report_forward_last_transfer.end();
   report_forward_history.aggregate(report_forward_last_transfer);
@@ -164,58 +102,55 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::forward() {
  * This is also implemented very differently from Caffe, but it should still
  * produce the same result.
  **/
-template <typename DataType>
-void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::backward() {
+template <typename DataType, typename DriverClass>
+void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::backward() {
+  // Copy output grad to Device. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal(p_output_layer->p_gradient_cube->get_p_data(),
+      output_g_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost = p_driver->get_device_pointer(output_g_cube->get_p_data(),
+      output_g_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(phost, &plocal);
+
   report_backward_updateweight_last_transfer.reset();
 
-  const DataType alpha_over_size = alpha / local_size;
-  const int norm_window = (int) local_size / 2;
+  ////////////////////////////////////////////////////////////////////////////////
+  DeviceMemoryPointer * input = input_g_cube->get_device_pointer(p_driver);
+  DeviceMemoryPointer * output = output_g_cube->get_device_pointer(p_driver);
+  p_driver->sconstant_initialize(input, DataType(0.));
 
-  for (size_t o_b = 0; o_b < iB; ++o_b) {
-    for (int o_d = 0; o_d < iD; ++o_d) {
-      for (size_t o_c = 0; o_c < iC; ++o_c) {
-        for (size_t o_r = 0; o_r < iR; ++o_r) {
-          const DataType denom_no_exponent = *denoms->logical_get(o_r, o_c, o_d, o_b);
+  _lrn_backward_arg_helper _arg;
+  _arg.oR = oR;
+  _arg.oC = oC;
+  _arg.oD = oD;
+  _arg.alpha_over_size = alpha / local_size;
+  _arg.beta = beta;
+  _arg.norm_window = (int) local_size / 2;
+  _arg.denoms = (char *) denoms->get_p_data();
+  _arg.input_data = (char *) p_input_layer->p_data_cube->get_p_data();
 
-#ifdef _FASTPOW
-          const DataType denom = fastPrecisePow(denom_no_exponent, beta);
-#else
-          const DataType denom = pow(denom_no_exponent, beta);
-#endif
-          const DataType denom_n1 = 1.0/(denom*denom_no_exponent);
-          const DataType output_grad = *p_output_layer->p_gradient_cube->logical_get(o_r, o_c, o_d, o_b);
-          const DataType window_data = *p_input_layer->p_data_cube->logical_get(o_r, o_c, o_d, o_b);
+  DeviceMemoryPointer * arg1 = p_driver->get_device_pointer(NULL, 0);
+  DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg,
+      sizeof(_lrn_backward_arg_helper));
 
-          DataType input_grad;
-          DataType input_grad2;
-          input_grad2 = beta * denom_n1 * alpha_over_size * 2 * window_data;
+  p_driver->template parallel_map<_f_src_to_dst_lrn_backward,
+    _f_lrn_backward>(input, output, sizeof(DataType)*oR*oC*oD, arg1, arg2);
+  ////////////////////////////////////////////////////////////////////////////////
 
-          for (int i = -norm_window; i <= norm_window; ++i) {
-            const int channel = o_d + i;
-            if (channel < 0 || channel >= iD) {
-              continue; // in the padding region, so we're adding 0
-            }
-            const DataType input_data = *p_input_layer->p_data_cube->logical_get(o_r, o_c, channel, o_b);
-
-            if(i==0){
-              input_grad = 1.0/denom -  input_grad2 * input_data;
-            }else{
-              input_grad = - input_grad2 * input_data;
-            }
-
-            *p_input_layer->p_gradient_cube->logical_get(o_r, o_c, channel, o_b) += input_grad * output_grad;
-          }
-        }
-      }
-    }
-  }
+  // Copy input grad to Host. This should be refactor'ed out into the
+  // scheduler.
+  DeviceMemoryPointer_Local_RAM plocal2(p_input_layer->p_gradient_cube->get_p_data(),
+      input_g_cube->n_elements*sizeof(DataType));
+  DeviceMemoryPointer * phost2 = p_driver->get_device_pointer(input_g_cube->get_p_data(),
+      input_g_cube->n_elements*sizeof(DataType));
+  p_driver->memcpy(&plocal2, phost2);
 
   report_backward_updateweight_last_transfer.end();
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
 }
 
-template <typename DataType>
-LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::~LRNBridge() {
+template <typename DataType, typename DriverClass>
+LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::~LRNBridge() {
   delete denoms;
 }
 

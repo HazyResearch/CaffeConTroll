@@ -5,18 +5,19 @@
 //  Created by Firas Abuzaid on 2/8/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
-#include <csignal> // or signal.h if C code
 
 #ifndef moka_ParallelizedBridge_impl_hxx
 #define moka_ParallelizedBridge_impl_hxx
 
-template<typename DataType, typename BridgeType>
-ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layout_CRDB> * const _input_layer,
+#include <csignal> // or signal.h if C code
+
+template<typename DataType, typename BridgeType, typename DriverClass>
+ParallelizedBridge<DataType, BridgeType, DriverClass>::ParallelizedBridge(Layer<DataType,Layout_CRDB> * const _input_layer,
     Layer<DataType, Layout_CRDB> * const _output_layer, const cnn::LayerParameter * const _layer_param,
-    const cnn::SolverParameter * const _solver_param, size_t _n_partition,
-    size_t _n_thread_per_partition) : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>(_input_layer,
-      _output_layer, _layer_param, _solver_param), n_partition(_n_partition), n_batch(_input_layer->dB),
-n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch / n_partition),
+    const cnn::SolverParameter * const _solver_param, DriverClass * const _p_driver, size_t _n_partition,
+    size_t _n_thread_per_partition) : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>(_input_layer,
+      _output_layer, _layer_param, _solver_param, _p_driver), n_partition(_n_partition), n_batch(_input_layer->dB),
+    n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch / n_partition),
     model_base_learning_rate(1.0),
     bias_base_learning_rate(1.0),
     model_base_regularization(1.0),
@@ -71,7 +72,7 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
   for (size_t ib = 0; ib < _data_cubes_lower.size(); ib++) {
     _bridges.push_back(
         new BridgeType(_partitioned_layers_lower[ib], _partitioned_layers_higher[ib],
-          layer_param, solver_param)
+          layer_param, solver_param, p_driver)
         );
   }
 
@@ -81,7 +82,6 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
   }
 
   stratum.set_executor_bound(stratum.executors.size());
-
 
   // create the master model for this parallel bridge
   assert(_bridges.size() >= 1); // we need at least one partition.
@@ -134,8 +134,8 @@ n_thread_per_partition(_n_thread_per_partition), n_batch_per_partition(n_batch /
   report_forward_constructor.end(0, 0, 0);
 }
 
-template<typename DataType, typename BridgeType>
-void ParallelizedBridge<DataType, BridgeType>::forward() {
+template<typename DataType, typename BridgeType, typename DriverClass>
+void ParallelizedBridge<DataType, BridgeType, DriverClass>::forward() {
   report_forward_last_transfer.reset();
   assert(curr_B <= n_batch);
 
@@ -166,8 +166,8 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
   report_forward_history.aggregate(report_forward_last_transfer);
 }
 
-template<typename DataType, typename BridgeType>
-void ParallelizedBridge<DataType, BridgeType>::backward() {
+template<typename DataType, typename BridgeType, typename DriverClass>
+void ParallelizedBridge<DataType, BridgeType, DriverClass>::backward() {
   report_backward_updateweight_last_transfer.reset();
   assert(curr_B <= n_batch);
 
@@ -195,7 +195,7 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
   **/
 
   if (p_model_cube != NULL) {
-    // After backward, it is the responsibility of ParallelizedConvolutionBridge to merge
+    // After backward, it is the responsibility of ParallelizedBridge to merge
     // result back.
     // TODO: each bridge can hold their gradient, in this way, we can save the first for
     // loop. But I do not really so how this could be a bottleneck...
@@ -244,8 +244,8 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
 }
 
-template<typename DataType, typename BridgeType>
-ParallelizedBridge<DataType, BridgeType>::~ParallelizedBridge() {
+template<typename DataType, typename BridgeType, typename DriverClass>
+ParallelizedBridge<DataType, BridgeType, DriverClass>::~ParallelizedBridge() {
   for (auto layer = _partitioned_layers_lower.begin(); layer != _partitioned_layers_lower.end(); ++layer) {
     delete (*layer);
   }
@@ -272,4 +272,3 @@ ParallelizedBridge<DataType, BridgeType>::~ParallelizedBridge() {
 }
 
 #endif
-

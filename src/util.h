@@ -46,26 +46,25 @@ class Util {
 
     template<typename T>
     static inline void regularize(std::string regularization_type,
-        const size_t n, float lambda, T * const gradient, const T * const current_param){
-      if(regularization_type == "L2"){
-        for(int i=0;i<n;i++){ // To is easily compiled to SIMD, so let's
+        const int n, float lambda, T * const gradient, const T * const current_param) {
+      if (regularization_type == "L2") {
+        for (int i = 0; i < n; ++i) { // To is easily compiled to SIMD, so let's
                               // not over-optimize before it becomes bottleneck
           gradient[i] += lambda * current_param[i];
         }
-      }else if(regularization_type == "L1"){
-        for(int i=0;i<n;i++){
+      }else if (regularization_type == "L1") {
+        for (int i = 0; i < n; ++i) {
           gradient[i] += lambda * (current_param[i] > 0 ? 1 : -1);
         }
       }
     }
 
     /**
-     *
-     * Acknowledgement: Following code is directly forked from https://github.com/BVLC/caffe/blob/master/src/caffe/solver.cpp#L363
-     *
+     * Acknowledgement: Following code is directly forked
+     * from https://github.com/BVLC/caffe/blob/master/src/caffe/solver.cpp#L363
      **/
     static inline float get_learning_rate(std::string lr_policy, float base_lr, float gamma,
-      float iter, float caffe_stepsize, float power, float max_iter){
+      float iter, float caffe_stepsize, float power, float max_iter) {
       float rate, current_step_;
       if (lr_policy == "fixed") {
         rate = base_lr;
@@ -145,34 +144,45 @@ class Util {
       }
     }
 
-#ifdef _USE_OPENBLAS
-    static inline void math_axpy(const int N, const double alpha, const float * X, float * Y)   { cblas_saxpby(N, alpha, X, 1, 1., Y, 1);}
-    static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) { cblas_daxpby(N, alpha, X, 1, 1., Y, 1); }
-    static inline void math_axpby(const int N, const double alpha, const double * X, const double beta, double * Y) { cblas_daxpby(N, alpha, X, 1, beta, Y, 1); }
-    static inline void math_axpby(const int N, const float alpha, const float * X, const float beta, float * Y) { cblas_saxpby(N, alpha, X, 1, beta, Y, 1); }
+    /* static inline void math_axpy(const int N, const float  alpha, const float  * X, float * Y)  { cblas_saxpy(N, alpha, X, 1, Y, 1); } */
+    /* static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) { cblas_daxpy(N, alpha, X, 1, Y, 1); } */
 
-    static inline void set_num_threads(const int nThreads) { openblas_set_num_threads(nThreads); }
-#elif _USE_ATLAS
-    static inline void math_axpy(const int N, const double alpha, const float * X, float * Y)   { catlas_saxpby(N, alpha, X, 1, 1., Y, 1); }
-    static inline void math_axpy(const int N, const double alpha, const double * X, double * Y) { catlas_daxpby(N, alpha, X, 1, 1., Y, 1);}
-    static inline void math_axpby(const int N, const double alpha, const double * X, const double beta, double * Y) { catlas_daxpby(N, alpha, X, 1, beta, Y, 1); }
-    static inline void math_axpby(const int N, const float alpha, const float * X, const float beta, float * Y) { catlas_saxpby(N, alpha, X, 1, beta, Y, 1); }
-    // http://math-atlas.sourceforge.net/faq.html#tnum Atlas manages the thread pool.
-    static inline void set_num_threads(const int nThreads) {  /* std::cerr << "[Warning] Atlas ignores set_num_threads(nThreads); " << nThreads << std::endl;*/ }
-#else
-      #error "Select a BLAS framework."
-#endif
-    template<typename T>
-    static inline void math_apply_grad(const int N, T *X, const T *Y) {
-      T *px = X;
-      const T *py = Y;
-      for(int i = N; i > 0; --i, px++,py++) *px -= *py;
-    }
+/* #ifdef _USE_OPENBLAS */
+/*     static inline void math_axpby(const int N, const double alpha, const double * X, const double beta, double * Y) { cblas_daxpby(N, alpha, X, 1, beta, Y, 1); } */
+/*     static inline void math_axpby(const int N, const float alpha, const float * X, const float beta, float * Y) { cblas_saxpby(N, alpha, X, 1, beta, Y, 1); } */
+/*     static inline void set_num_threads(const int nThreads) { openblas_set_num_threads(nThreads); } */
+/* #elif _USE_ATLAS */
+/*     static inline void math_axpby(const int N, const double alpha, const double * X, const double beta, double * Y) { catlas_daxpby(N, alpha, X, 1, beta, Y, 1); } */
+/*     static inline void math_axpby(const int N, const float alpha, const float * X, const float beta, float * Y) { catlas_saxpby(N, alpha, X, 1, beta, Y, 1); } */
+/*     static inline void set_num_threads(const int nThreads) {  set_num_threads(nThreads); } */
+/* #elif _VANILLA_BLAS */
+/*     #warning "[PERFORMANCE WARNING] Using hand-written BLAS calls. Hope you have a good compiler!" */
+/*     static inline void math_axpby(const int N, const double alpha, const double * X, const double beta, double * Y) { */
+/*       for(int i = N; i > 0; X++, Y++, --i) { */
+/* 	*Y = alpha**X + beta* *Y; */
+/*       } */
+/*     } */
+/*     static inline void math_axpby(const int N, const float alpha, const float * X, const float beta, float * Y) { */
+/*       for(int i = N; i > 0; X++, Y++, --i) { */
+/* 	*Y = alpha**X + beta* *Y; */
+/*       } */
+/*     } */
+/*     // http://math-atlas.sourceforge.net/faq.html#tnum Atlas manages the thread pool. */
+/*     static inline void set_num_threads(const int nThreads) {  /\* std::cerr << "[Warning] Atlas ignores set_num_threads(nThreads); " << nThreads << std::endl;*\/ } */
+/* #else */
+/*       #error "Select a BLAS framework." */
+/* #endif */
+    /* template<typename T> */
+    /* static inline void math_apply_grad(const int N, T *X, const T *Y) { */
+    /*   T *px = X; */
+    /*   const T *py = Y; */
+    /*   for(int i = N; i > 0; --i, px++,py++) *px -= *py; */
+    /* } */
 
     // Note: this is only used for shorts and floats, since _our_memset will only work for ints
     template <typename T>
     static inline void constant_initialize(T * const arr, const T value, const size_t n_arr_elements) {
-      for(size_t i = 0; i < n_arr_elements; ++i)
+      for (size_t i = 0; i < n_arr_elements; ++i)
         arr[i] = value;
     }
 

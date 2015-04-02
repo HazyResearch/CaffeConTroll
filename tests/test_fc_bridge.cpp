@@ -52,19 +52,19 @@ class FCBridgeTest : public ::testing::Test {
       cnn::InnerProductParameter * const inn_param = layer_param.mutable_inner_product_param();
       inn_param->set_num_output(oD);
 
-      ConvolutionBridge_ = new ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>(layer1,
-          layer2, &layer_param, &solver_param);
+      ConvolutionBridge_ = new ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB,
+                         CPUDriver>(layer1, layer2, &layer_param, &solver_param, &pdriver);
 
       ConvolutionBridge_->needs_to_calc_backward_grad = true;
 
-      FullyConnectedBridge_ = new FullyConnectedBridge< T, Layout_CRDB, T, Layout_CRDB>(layer1c,
-          layer2c, &layer_param, &solver_param);
+      FullyConnectedBridge_ = new FullyConnectedBridge< T, Layout_CRDB, T, Layout_CRDB, CPUDriver>(layer1c,
+          layer2c, &layer_param, &solver_param, &pdriver);
     }
 
     virtual ~FCBridgeTest() { delete layer1; delete layer2; delete layer1c; delete layer2c; }
 
-    ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB>* ConvolutionBridge_;
-    FullyConnectedBridge< T, Layout_CRDB, T, Layout_CRDB>* FullyConnectedBridge_;
+    ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB, CPUDriver>* ConvolutionBridge_;
+    FullyConnectedBridge< T, Layout_CRDB, T, Layout_CRDB, CPUDriver>* FullyConnectedBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
     LogicalCube<T, Layout_CRDB>* grad1;
@@ -83,6 +83,8 @@ class FCBridgeTest : public ::testing::Test {
 
     Layer<T, Layout_CRDB>* layer1c;
     Layer<T, Layout_CRDB>* layer2c;
+
+    CPUDriver pdriver;
 
     static const int mB = 7;
     static const int iD = 12;
@@ -216,7 +218,6 @@ TYPED_TEST(FCBridgeTest, TestBackward) {
   this->ConvolutionBridge_->backward();
   this->FullyConnectedBridge_->backward();
 
-
   for (int i=0;i<this->iR*this->iC*this->iD*this->mB;i++) {
     EXPECT_NEAR(this->grad1->get_p_data()[i], this->grad1c->get_p_data()[i], EPS);
   }
@@ -230,5 +231,4 @@ TYPED_TEST(FCBridgeTest, TestBackward) {
     EXPECT_NEAR(this->FullyConnectedBridge_->get_model_cube()->get_p_data()[i],
       this->ConvolutionBridge_->get_model_cube()->get_p_data()[i], EPS);
   }
-
 }

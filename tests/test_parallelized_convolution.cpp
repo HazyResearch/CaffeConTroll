@@ -68,8 +68,8 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
       // TODO: set #partition to 8 does not halt
       ParallelizedConvolutionBridge_ = new ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
-              Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
-              (layer1, layer2, &layer_param, &solver_param, 4, 1);
+              Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver>(layer1,
+                  layer2, &layer_param, &solver_param, &pdriver, 1, 1);
 
       ParallelizedConvolutionBridge_->needs_to_calc_backward_grad = true;
     }
@@ -77,7 +77,7 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
     virtual ~ParallelizedConvolutionBridgeTest() { delete layer1; delete layer2; }
     ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
-              Layout_CRDB, DataType_SFFloat, Layout_CRDB> >* ParallelizedConvolutionBridge_;
+              Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver>* ParallelizedConvolutionBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
     LogicalCube<T, Layout_CRDB>* grad1;
@@ -89,6 +89,8 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
     Layer<T, Layout_CRDB>* layer2;
 
     cnn::SolverParameter solver_param;
+
+    CPUDriver pdriver;
 
     static const int mB = 4;
     static const int iD = 3;
@@ -215,9 +217,7 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
 
 
   this->ParallelizedConvolutionBridge_->forward();
-
   this->ParallelizedConvolutionBridge_->backward();
-  //this->bias->logical_print();
 
   std::fstream expected_output("tests/output/conv_backward.txt", std::ios_base::in);
   T output;
@@ -236,8 +236,6 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
 
   idx = 0;
 
-  // TODO: I feel like this test is trivial -- please add some
-  // non-trivial test case for bias term such that I can debug the bias term...
   if (expected_bias.is_open()) {
     while (expected_bias >> output) {
       float actual_bias = this->ParallelizedConvolutionBridge_->p_bias_cube->get_p_data()[idx];

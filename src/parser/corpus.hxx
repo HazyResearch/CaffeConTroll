@@ -1,12 +1,13 @@
 //
-//  corpus.cpp
+//  corpus.hxx
 //  moka
 //
 //  Created by Firas Abuzaid on 1/29/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#include "corpus.h"
+#ifndef Corpus_hxx
+#define Corpus_hxx
 
 #ifndef MDB_NOTLS
 #define 	MDB_NOTLS   0x200000
@@ -199,8 +200,6 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
   //     op = MDB_NEXT;
   //   }
   // }
-
-
 }
 
 
@@ -348,9 +347,6 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
             const size_t data_index = d * n_rows * n_cols + r * n_cols + c;
             float datum_element = static_cast<float>(static_cast<uint8_t>(data[data_index]));
             single_input_batch[data_index] = (datum_element - mean->p_data[data_index])*scale;
-
-:cp
-:q
           }
         }
       }
@@ -365,3 +361,5 @@ Corpus::~Corpus() {
   delete labels;
   delete mean;
 }
+
+#endif

@@ -28,14 +28,15 @@ class ReLUBridgeTest : public ::testing::Test {
       layer2 = new Layer<T, Layout_CRDB>(data2, grad2);
 
       cnn::LayerParameter layer_param;
-      ReLUBridge_ = new ParallelizedBridge<T, ReLUBridge<T, Layout_CRDB, T, Layout_CRDB> >(layer1,
-          layer2, &layer_param, &solver_param, 4, 1);
+      ReLUBridge_ = new ParallelizedBridge<T, ReLUBridge<T, Layout_CRDB, T, Layout_CRDB, CPUDriver>,
+                  CPUDriver>(layer1, layer2, &layer_param, &solver_param, &pdriver, 4, 1);
     }
 
     cnn::SolverParameter solver_param;
+    CPUDriver pdriver;
 
     virtual ~ReLUBridgeTest() { delete layer1; delete layer2; }
-    ParallelizedBridge<T, ReLUBridge<T, Layout_CRDB, T, Layout_CRDB> >* ReLUBridge_;
+    ParallelizedBridge<T, ReLUBridge<T, Layout_CRDB, T, Layout_CRDB, CPUDriver>, CPUDriver>* ReLUBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
     LogicalCube<T, Layout_CRDB>* grad1;

@@ -9,6 +9,9 @@
 #ifndef moka_LogicalCube_h
 #define moka_LogicalCube_h
 
+#include "sched/DeviceDriver.h"
+#include "sched/DeviceMemoryPointer.h"
+
 #include "LogicalMatrix.h"
 #include "LoweringType.h"
 #include "util.h"
@@ -30,6 +33,15 @@ enum LayoutType {
  * Although not precise, we abuse the name by
  * still calling `r` row, `c` column, and `d`
  * depth. We call `b` batch.
+ *
+ * 20150303:
+ *   Note that, in the context of multiple
+ * devices, a LogicalCube should be guarentee'ed
+ * to be located in a place that a DeviceDriver
+ * can manipulate. This responsibility is currently
+ * enforced by the invoker, however, in future,
+ * it should be the job of the worker.
+ *
  */
 template <typename T, LayoutType LAYOUT>
 class LogicalCube {
@@ -48,6 +60,10 @@ class LogicalCube {
      **/
     LogicalCube(void * _p_data, size_t _R, size_t _C, size_t _D, size_t _B);
 
+    DeviceMemoryPointer * get_device_pointer(DeviceDriver * p_driver) const{
+        return p_driver->get_device_pointer(p_data, n_elements*sizeof(T));
+    }
+
     /**
      * Constuctor that actually allocates the data.
      * If a cube allcoates the data, it needs to
@@ -55,6 +71,14 @@ class LogicalCube {
      *  - own_data = True
      **/
     LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B);
+
+    /**
+     * Constuctor that actually allocates the data
+     * ON DEVICE. If a cube allcoates the data, 
+     * it needs to free it.
+     *  - own_data = True
+     **/
+    LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B, DeviceDriver * p_driver);
 
     ~LogicalCube();
 
@@ -115,16 +139,7 @@ class LogicalCube {
     LogicalMatrix<T> get_logical_matrix(size_t depth_index, size_t batch_index) const;
 
     template<LoweringType LOWERING>
-      void lower_logical_matrix(const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i,
-          const size_t kernel_size);
-
-    template<LoweringType LOWERING>
-      void lower_logical_matrix(const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i,
-          const size_t kernel_size, const size_t stride, const size_t padding);
-
-    template<LoweringType LOWERING>
-      void remap_output(const size_t O, const size_t B, const size_t kernel_size);
-
+      void remap_output(const size_t O, const size_t B, const size_t kernel_size, DeviceDriver * p_driver);
 
     void reset_cube();
     void reset_cube(const T val);
@@ -176,38 +191,19 @@ class LogicalCube {
 
     template<typename DUMMY>
       struct LoweringHelper<LOWERING_TYPE1, DUMMY> {
-        inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
-            const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const size_t kernel_size);
-
-        inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
-            const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const int kernel_size,
-            const int stride, const int padding);
-
-        inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size);
+        inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size, DeviceDriver * p_driver);
       };
 
     template<typename DUMMY>
       struct LoweringHelper<LOWERING_TYPE2, DUMMY> {
-        inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
-            const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const size_t kernel_size);
 
-        inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
-            const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const int kernel_size,
-            const int stride, const int padding);
-
-        inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size);
+        inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size, DeviceDriver * p_driver);
       };
 
     template<typename DUMMY>
       struct LoweringHelper<LOWERING_TYPE3, DUMMY> {
-        inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
-            const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const size_t kernel_size);
 
-        inline static void lower_logical_matrix(const LogicalCube<T, LAYOUT>& cube,
-            const LogicalMatrix<T> * const input_matrix, const size_t b_i, const size_t d_i, const int kernel_size,
-            const int stride, const int padding);
-
-        inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size);
+        inline static void remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C, const size_t kernel_size, DeviceDriver * p_driver);
       };
 };
 
