@@ -100,8 +100,8 @@ ParallelizedBridge<DataType, BridgeType, DriverClass>::ParallelizedBridge(Layer<
     if (_layer_param->weight_decay_size() != 0) {
       model_base_regularization = _layer_param->weight_decay(0);
     }
-    p_grad_updater = new SGDGradientUpdater<DataType>(p_model_cube->n_elements, p_model_cube->get_p_data(),
-						      _solver_param, model_base_learning_rate, model_base_regularization);
+    p_grad_updater = new SGDGradientUpdater<DataType, DriverClass>(p_model_cube->n_elements, p_model_cube->get_p_data(),
+						      _solver_param, model_base_learning_rate, model_base_regularization, p_driver);
   } else {
     p_model_cube = NULL;
     p_model_grad = NULL;
@@ -121,8 +121,8 @@ ParallelizedBridge<DataType, BridgeType, DriverClass>::ParallelizedBridge(Layer<
         bias_base_regularization = _layer_param->weight_decay(1);
       }
 
-      p_grad_updater_bias = new SGDGradientUpdater<DataType>(p_bias_cube->n_elements, p_bias_cube->get_p_data(),
-							     _solver_param, bias_base_learning_rate, bias_base_regularization);
+      p_grad_updater_bias = new SGDGradientUpdater<DataType, DriverClass>(p_bias_cube->n_elements, p_bias_cube->get_p_data(),
+							     _solver_param, bias_base_learning_rate, bias_base_regularization, p_driver);
     } else {
       p_bias_cube = NULL;
     }

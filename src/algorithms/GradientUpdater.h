@@ -5,7 +5,6 @@
 #include <algorithm>
 #include "../parser/corpus.h"
 #include "../util.h"
-
 /**
  * The job of a GradientUpdater is simple, it takes
  * as input the gradient, and update the model. It
@@ -18,7 +17,7 @@
  * are just a list of parameters.
  *
  **/
-template<class DataType>
+template<class DataType, typename DriverClass>
 class GradientUpdater {
   public:
 
@@ -28,6 +27,7 @@ class GradientUpdater {
     const cnn::SolverParameter * const p_solver; /*< object that contains solver parameters. */
     float base_learning_rate, base_regularization;
 
+    const DriverClass * const p_driver;
     /**
      * Given a gradient, update the model.
      **/
@@ -44,28 +44,28 @@ class GradientUpdater {
 
     float get_weight_decay() { return p_solver->weight_decay() * base_regularization; }
 
-    GradientUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver, float _blr, float _br) :
-      current_iter(0), n_elements(_n_elements), p_model(_p_model), p_solver(_p_solver), base_learning_rate(_blr), base_regularization(_br) {}
+ GradientUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver, float _blr, float _br, const DriverClass * const _p_driver) :
+    current_iter(0), n_elements(_n_elements), p_model(_p_model), p_solver(_p_solver), base_learning_rate(_blr), base_regularization(_br), p_driver(_p_driver) {}
 
     virtual ~GradientUpdater() {}
 };
 
-template<class DataType>
-class SGDGradientUpdater : public GradientUpdater<DataType> {
+template<class DataType, class DriverClass>
+class SGDGradientUpdater : public GradientUpdater<DataType, DriverClass> {
   public:
 
-    using GradientUpdater<DataType>::current_iter;
-    using GradientUpdater<DataType>::n_elements;
-    using GradientUpdater<DataType>::p_model;
-    using GradientUpdater<DataType>::p_solver;
-    using GradientUpdater<DataType>::get_stepsize;
-    using GradientUpdater<DataType>::get_weight_decay;
+  using GradientUpdater<DataType, DriverClass>::current_iter;
+  using GradientUpdater<DataType, DriverClass>::n_elements;
+  using GradientUpdater<DataType, DriverClass>::p_model;
+  using GradientUpdater<DataType, DriverClass>::p_solver;
+  using GradientUpdater<DataType, DriverClass>::get_stepsize;
+  using GradientUpdater<DataType, DriverClass>::get_weight_decay;
 
     const float momentum;
     DataType * const p_history_updates; /*< Update History */
 
-    SGDGradientUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver, float _blr, float _br) :
-      GradientUpdater<DataType>(_n_elements, _p_model, _p_solver, _blr, _br), momentum(p_solver->momentum()),
+ SGDGradientUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver, float _blr, float _br, const DriverClass * const _p_driver) :
+    GradientUpdater<DataType, DriverClass>(_n_elements, _p_model, _p_solver, _blr, _br, _p_driver), momentum(p_solver->momentum()),
       p_history_updates(new DataType[_n_elements]) {
         std::fill(p_history_updates, p_history_updates+n_elements, DataType(0.0));
       }
@@ -87,15 +87,15 @@ class SGDGradientUpdater : public GradientUpdater<DataType> {
       // std::cout << "STEPSIZE = " << stepsize << " MOMENTUM = " << momentum << " BASE_LR = "
       //	<< base_learning_rate << " BASE_REG = " << base_regularization << std::endl ;
 
-      #warning "[BROKEN ABSTRACTION] Using Util when we should be using a driver "
+      //#warning "[BROKEN ABSTRACTION] Using Util when we should be using a driver "
 
       // This is the right code?
-      // p_driver->math_axpby(n_elements, stepsize, p_gradient, momentum, p_history_updates);
-      // p_driver->math_axpy(n_elements, -1.0, p_history_updates, p_model);
-      for (int i=0;i<n_elements;i++) {
-      	p_history_updates[i] = stepsize * p_gradient[i] + momentum * p_history_updates[i];
-      	p_model[i] -= p_history_updates[i];
-      }
+      this->p_driver->math_saxpby(n_elements,stepsize, p_gradient, momentum, p_history_updates);
+      this->p_driver->math_saxpy(n_elements, -1.0, p_history_updates, p_model);
+      /* for (int i=0;i<n_elements;i++) { */
+      /* 	p_history_updates[i] = stepsize * p_gradient[i] + momentum * p_history_updates[i]; */
+      /* 	p_model[i] -= p_history_updates[i]; */
+      /* } */
     }
 
     float get_momentum() const {
@@ -103,21 +103,21 @@ class SGDGradientUpdater : public GradientUpdater<DataType> {
     }
 };
 
-template<class DataType>
-class AdaGradUpdater : public GradientUpdater<DataType> {
+template<class DataType, class DriverClass>
+class AdaGradUpdater : public GradientUpdater<DataType, DriverClass> {
   public:
 
-    using GradientUpdater<DataType>::current_iter;
-    using GradientUpdater<DataType>::n_elements;
-    using GradientUpdater<DataType>::p_model;
-    using GradientUpdater<DataType>::p_solver;
-    using GradientUpdater<DataType>::get_stepsize;
-    using GradientUpdater<DataType>::get_weight_decay;
+    using GradientUpdater<DataType, DriverClass>::current_iter;
+    using GradientUpdater<DataType, DriverClass>::n_elements;
+    using GradientUpdater<DataType, DriverClass>::p_model;
+    using GradientUpdater<DataType, DriverClass>::p_solver;
+    using GradientUpdater<DataType, DriverClass>::get_stepsize;
+    using GradientUpdater<DataType, DriverClass>::get_weight_decay;
 
     DataType * const p_history_updates; /*< Update History */
 
     AdaGradUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver) :
-      GradientUpdater<DataType>(_n_elements, _p_model, _p_solver),
+      GradientUpdater<DataType, DriverClass>(_n_elements, _p_model, _p_solver),
       p_history_updates(new DataType[_n_elements]) {
         std::fill(p_history_updates, p_history_updates+n_elements, DataType(0.0));
       }
@@ -148,21 +148,21 @@ class AdaGradUpdater : public GradientUpdater<DataType> {
     }
 };
 
-template<class DataType>
-class NesterovUpdater : public GradientUpdater<DataType> {
+template<class DataType, typename DriverClass>
+class NesterovUpdater : public GradientUpdater<DataType, DriverClass> {
   public:
-    using GradientUpdater<DataType>::current_iter;
-    using GradientUpdater<DataType>::n_elements;
-    using GradientUpdater<DataType>::p_model;
-    using GradientUpdater<DataType>::p_solver;
-    using GradientUpdater<DataType>::get_stepsize;
-    using GradientUpdater<DataType>::get_weight_decay;
+    using GradientUpdater<DataType, DriverClass>::current_iter;
+    using GradientUpdater<DataType, DriverClass>::n_elements;
+    using GradientUpdater<DataType, DriverClass>::p_model;
+    using GradientUpdater<DataType, DriverClass>::p_solver;
+    using GradientUpdater<DataType, DriverClass>::get_stepsize;
+    using GradientUpdater<DataType, DriverClass>::get_weight_decay;
 
     const float momentum;
     DataType * const p_history_updates; /*< Update History */
 
-    NesterovUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver) :
-      GradientUpdater<DataType>(_n_elements, _p_model, _p_solver), momentum(p_solver->momentum()),
+ NesterovUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver, DriverClass * const _p_driver) :
+    GradientUpdater<DataType, DriverClass>(_n_elements, _p_model, _p_solver, _p_driver), momentum(p_solver->momentum()),
       p_history_updates(new DataType[_n_elements]) {
         std::fill(p_history_updates, p_history_updates+n_elements, DataType(0.0));
       }

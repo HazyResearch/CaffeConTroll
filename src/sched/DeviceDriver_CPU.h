@@ -29,10 +29,13 @@ public:
     size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
     DeviceMemoryPointer * const func_curry);
 
-  void smath_axpy(const float alpha, DeviceMemoryPointer * X, DeviceMemoryPointer * Y);
+  void math_saxpy(const float alpha, DeviceMemoryPointer * X, DeviceMemoryPointer * Y) const;
+  void math_saxpby(const float alpha, DeviceMemoryPointer * X, const float beta, DeviceMemoryPointer * Y) const;
 
-  void smath_axpby(const float alpha, DeviceMemoryPointer * X, const float beta, DeviceMemoryPointer * Y) ;
+  void math_saxpy(int nElements, const float alpha, float * X, float * Y) const;
+  void math_saxpby(int nElements, const float alpha, float * X, const float beta, float * Y) const;
 
+  
   void sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB, 
         int M, int N, int K, float alpha, float * pA, int LDA, float * pB, int LDB,
         float beta, float * pC, int LDC);

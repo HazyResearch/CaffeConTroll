@@ -75,7 +75,7 @@ TEST(DeviceDriverTest, CPU_AXPBY) {
 
 	float alpha = 0.1;
 	float beta = 0.5;
-	driver.smath_axpby(alpha, &p1, beta, &p2);
+	driver.math_saxpby(alpha, &p1, beta, &p2);
   	memcpy(numbers, p2.ptr, p2.size_in_byte);
 
 	test_array_equals_constant(numbers, 1000, 1.1);
@@ -99,7 +99,7 @@ TEST(DeviceDriverTest, CPU_AXPY) {
 	driver.sapply<_f_set>(&p2, &p_two);
 
 	float alpha = 0.1;
-	driver.smath_axpy(alpha, &p1, &p2);
+	driver.math_saxpy(alpha, &p1, &p2);
   	memcpy(numbers, p2.ptr, p2.size_in_byte);
 	test_array_equals_constant(numbers, 1000, 2.1);
 

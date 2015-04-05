@@ -96,7 +96,7 @@ inline void _fmap_lower(float * output, const Block2D * const output_block, cons
   const int iB = (int) args->sB;
 
   const int padding = (int) args->padding;
-  const int stride = (int) args->stride;
+  const int stride = (int) args->stride; assert(stride > 0);
 
   const int o_base_col = ib * (iR-kR+1+2*padding)/stride*(iC-kC+1+2*padding)/stride;
   const int o_base_row = id * kR * kC;

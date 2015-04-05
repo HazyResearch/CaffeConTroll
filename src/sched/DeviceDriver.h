@@ -127,15 +127,15 @@ public:
   /**
    * Single-precision operations.
    **/
-  virtual void smath_axpy(const float alpha, DeviceMemoryPointer * X, DeviceMemoryPointer * Y) = 0;
+  virtual void math_saxpy(const float alpha, DeviceMemoryPointer * X, DeviceMemoryPointer * Y) const = 0;
 
   template<FUNC_STRANSFORM func>
   void sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const func_curry){
     assert(false);
   }
 
-  virtual void smath_axpby(const float alpha, DeviceMemoryPointer * X, const float beta, DeviceMemoryPointer *Y) = 0;
-  virtual void set_num_threads(const int nThreads) = 0;
+  virtual void math_saxpby(const float alpha, DeviceMemoryPointer * X, const float beta, DeviceMemoryPointer *Y) const = 0;
+  virtual void set_num_threads(const int nThreads)  = 0;
   virtual void sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB,
         int M, int N, int K, float alpha, float * pA, int LDA, float * pB, int LDB,
         float beta, float * pC, int LDC) = 0;
@@ -163,7 +163,7 @@ public:
   }
 
   void smath_apply_grad(DeviceMemoryPointer *X, DeviceMemoryPointer *Y) {
-    smath_axpy(-1.0, Y, X);
+    math_saxpy(-1.0, Y, X);
   }
 
 };

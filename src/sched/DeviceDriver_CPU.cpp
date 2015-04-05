@@ -75,8 +75,8 @@ void CPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPoin
   // input block sizes
   size_t sBR = args.sBR, sBC = args.sBC;
   size_t n_thread_per_block_C = sBC;
-  size_t n_thread_per_block_R = sBR;
-  size_t n_block_X = args.sR*args.sC/sBC/sBR;
+  size_t n_thread_per_block_R = sBR; assert(sBC*sBR > 0);
+  size_t n_block_X = args.sR*args.sC/(sBC*sBR) ;
   size_t n_block_Y = args.sD*args.sB;
 
   for (size_t block_x = 0; block_x < n_block_X; block_x++) {
@@ -104,22 +104,28 @@ void CPUDriver::parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * sr
   }
 }
 
-void CPUDriver::smath_axpy(const float alpha, DeviceMemoryPointer * X, DeviceMemoryPointer * Y){
-  cblas_saxpy(X->size_in_byte/sizeof(float), alpha, (float *) X->ptr, 1, (float *) Y->ptr, 1);
+void CPUDriver::math_saxpy(const float alpha, DeviceMemoryPointer * X, DeviceMemoryPointer * Y) const {
+  math_saxpby(X->size_in_byte/sizeof(float), alpha, (float *) X->ptr, 1.0, (float *) Y->ptr);
 }
 
-void CPUDriver::smath_axpby(const float alpha, DeviceMemoryPointer * X, const float beta, DeviceMemoryPointer * Y){
+void CPUDriver::math_saxpby(const float alpha, DeviceMemoryPointer * X, const float beta, DeviceMemoryPointer * Y) const {
+  math_saxpby(X->size_in_byte/sizeof(float), alpha, (float *) X->ptr, beta, (float *) Y->ptr);
+}
+
+void CPUDriver::math_saxpy(int nItems, const float alpha, float * X, float * Y) const {
+  math_saxpby(nItems, alpha, X, 1.0, Y);
+}
+
+void CPUDriver::math_saxpby(int nItems, const float alpha, float * X, const float beta, float * Y) const {
 #ifdef _USE_OPENBLAS
-  cblas_saxpby(X->size_in_byte/sizeof(float), alpha, (float*)X->ptr, 1, beta, (float*) Y->ptr, 1);
+  cblas_saxpby(nItems, alpha, X, 1, beta, Y, 1);
 #elif _USE_ATLAS
-  catlas_saxpby(X->size_in_byte/sizeof(float), alpha, (float*)X->ptr, 1, beta, (float*) Y->ptr, 1);
+  catlas_saxpby(nItems, alpha, X, 1, beta, Y, 1);
 #elif _VANILLA_BLAS
 #warning "[PERFORMANCE WARNING] Using hand-written BLAS calls. Hope you have a good compiler!"
   const int N = X->size_in_byte/sizeof(float);
-  float * _X = (float*) X->ptr;
-  float * _Y = (float*) Y->ptr;
-  for(int i = N; i > 0; _X++, _Y++, --i) {
-    *_Y = alpha**_X + beta* *_Y;
+  for(int i = N; i > 0; X++, Y++, --i) {
+    *Y = alpha**X + beta* *Y;
   }
 #else
 #error "Select a BLAS framework."

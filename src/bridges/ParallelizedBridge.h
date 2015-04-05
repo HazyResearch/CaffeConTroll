@@ -66,8 +66,8 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     float model_base_regularization;
     float bias_base_regularization;
 
-    GradientUpdater<DataType> * p_grad_updater;
-    GradientUpdater<DataType> * p_grad_updater_bias;
+    GradientUpdater<DataType, DriverClass> * p_grad_updater;
+    GradientUpdater<DataType, DriverClass> * p_grad_updater_bias;
 
     ParallelizedBridge(Layer<DataType, Layout_CRDB> * const _input_layer,
         Layer<DataType, Layout_CRDB> * const _output_layer,
@@ -90,11 +90,11 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
         return p_bias_cube;
     }
 
-    GradientUpdater<DataType> * const get_model_updater() {
+    GradientUpdater<DataType, DriverClass> * const get_model_updater() {
         return p_grad_updater;
     }
 
-    GradientUpdater<DataType> * const get_bias_updater() {
+    GradientUpdater<DataType, DriverClass> * const get_bias_updater() {
         return p_grad_updater_bias;
     }
 

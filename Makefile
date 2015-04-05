@@ -14,7 +14,7 @@ LIB_STR=$(foreach d, $(LIB_DIRS), -L$d)
 
 # For Mac OS X 10.10 x86_64 Yosemite
 ifeq ($(UNAME), Darwin)
-  CFLAGS = -Wall -std=c++11
+  CFLAGS = -Wall -std=c++11 -fsanitize-undefined-trap-on-error -fsanitize=integer-divide-by-zero
   LDFLAGS = $(LD_BASE) -lboost_program_options-mt -lboost_serialization -lpthread
   NVCCFLAGS = -D_GPU_TARGET -std=c++11 $(LD_BASE) -lcublas -lcuda -lboost_program_options-mt -lboost_serialization -gencode arch=compute_20,code=sm_20 -gencode arch=compute_20,code=sm_21 -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35 -gencode arch=compute_50,code=sm_50 -gencode arch=compute_50,code=compute_50
 # For Ubuntu 12.04 x86_64 (raiders3 machine)
@@ -26,7 +26,7 @@ else ifeq ($(UNAME), Linux)
 endif
 CFLAGS += $(BLAS_DEFS)
 
-DEBUG_FLAGS = -g -O0 -DDEBUG
+DEBUG_FLAGS = -g -O3 -DDEBUG
 ifeq ($(UNAME), Darwin)
   DEBUG_FLAGS += -ferror-limit=10
 endif
@@ -83,8 +83,7 @@ TEST_OBJ_FILES = $(patsubst %.cpp,%.o,$(TEST_SOURCES))
 TEST_EXECUTABLE=test
 
 #TEST_CUDA_SOURCES = src/sched/DeviceDriver_GPU.cu \
-#					tests/test_convolution.cu
-					
+#					tests/test_convolution.cu					
 TEST_CUDA_OBJ_FILES = $(patsubst %.cu,%.o,$(TEST_CUDA_SOURCES))
 
 SNAPSHOT_SOURCES = src/util.cpp src/timer.cpp tests/test_main.cpp \

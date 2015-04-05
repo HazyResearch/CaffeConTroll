@@ -98,11 +98,11 @@ class AbstractBridge : public PhysicalOperator {
     }
 
     // Need these for snapshot tests
-    virtual GradientUpdater<InputLayerDataType> * const get_model_updater() {
+    virtual GradientUpdater<InputLayerDataType, DriverClass> * const get_model_updater() {
         return NULL;
     }
 
-    virtual GradientUpdater<InputLayerDataType> * const get_bias_updater() {
+    virtual GradientUpdater<InputLayerDataType, DriverClass> * const get_bias_updater() {
         return NULL;
     }
 
