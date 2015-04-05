@@ -32,8 +32,8 @@ public:
   void math_saxpy(const float alpha, DeviceMemoryPointer * X, DeviceMemoryPointer * Y) const;
   void math_saxpby(const float alpha, DeviceMemoryPointer * X, const float beta, DeviceMemoryPointer * Y) const;
 
-  void math_saxpy(int nElements, const float alpha, float * X, float * Y) const;
-  void math_saxpby(int nElements, const float alpha, float * X, const float beta, float * Y) const;
+  void math_saxpy(const int nElements, const float alpha, float * X, float * Y) const;
+  void math_saxpby(const int nElements, const float alpha, float * X, const float beta, float * Y) const;
 
   
   void sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB, 

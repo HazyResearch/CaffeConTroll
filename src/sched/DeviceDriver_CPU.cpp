@@ -112,18 +112,17 @@ void CPUDriver::math_saxpby(const float alpha, DeviceMemoryPointer * X, const fl
   math_saxpby(X->size_in_byte/sizeof(float), alpha, (float *) X->ptr, beta, (float *) Y->ptr);
 }
 
-void CPUDriver::math_saxpy(int nItems, const float alpha, float * X, float * Y) const {
+void CPUDriver::math_saxpy(const int nItems, const float alpha, float * X, float * Y) const {
   math_saxpby(nItems, alpha, X, 1.0, Y);
 }
 
-void CPUDriver::math_saxpby(int nItems, const float alpha, float * X, const float beta, float * Y) const {
+void CPUDriver::math_saxpby(const int N, const float alpha, float * X, const float beta, float * Y) const {
 #ifdef _USE_OPENBLAS
-  cblas_saxpby(nItems, alpha, X, 1, beta, Y, 1);
+  cblas_saxpby(N, alpha, X, 1, beta, Y, 1);
 #elif _USE_ATLAS
-  catlas_saxpby(nItems, alpha, X, 1, beta, Y, 1);
+  catlas_saxpby(N, alpha, X, 1, beta, Y, 1);
 #elif _VANILLA_BLAS
 #warning "[PERFORMANCE WARNING] Using hand-written BLAS calls. Hope you have a good compiler!"
-  const int N = X->size_in_byte/sizeof(float);
   for(int i = N; i > 0; X++, Y++, --i) {
     *Y = alpha**X + beta* *Y;
   }
