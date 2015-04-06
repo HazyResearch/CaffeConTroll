@@ -36,13 +36,16 @@ SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::So
  **/
 template <typename DataType, typename DriverClass>
 void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forward() {
-  // Copy input to Device. This should be refactor'ed out into the
-  // scheduler.
-  DeviceMemoryPointer_Local_RAM plocal(p_input_layer->p_data_cube->get_p_data(),
-    input_d_cube->n_elements*sizeof(DataType));
-  DeviceMemoryPointer * phost = p_driver->get_device_pointer(input_d_cube->get_p_data(),
-    input_d_cube->n_elements*sizeof(DataType));
-  p_driver->memcpy(phost, &plocal);
+  // Copy input to device memory
+  AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(input_d_cube,
+      p_input_layer->p_data_cube);
+  // If DriverClass == CPUDriver, we also need to update the p_data pointer of output_d_cube to point to
+  // p_output_layer->p_data_cube->p_data
+  if (std::is_same<DriverClass, CPUDriver>::value) {
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(
+        output_d_cube, p_output_layer->p_data_cube
+        );
+  }
 
   report_forward_last_transfer.reset();
 
@@ -66,13 +69,12 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass
     _f_softmax_forward>(output, input, sizeof(DataType)*iR*iC*iD, arg1, arg2);
   ////////////////////////////////////////////////////////////////////////////////
 
-  // Copy output to Host. This should be refactor'ed out into the
-  // scheduler.
-  DeviceMemoryPointer_Local_RAM plocal2(p_output_layer->p_data_cube->get_p_data(),
-    output_d_cube->n_elements*sizeof(DataType));
-  DeviceMemoryPointer * phost2 = p_driver->get_device_pointer(output_d_cube->get_p_data(),
-    output_d_cube->n_elements*sizeof(DataType));
-  p_driver->memcpy(&plocal2, phost2);
+  // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy output to host memory here
+  if (!std::is_same<DriverClass, CPUDriver>::value) {
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(
+        p_output_layer->p_data_cube, output_d_cube
+        );
+  }
 
   report_forward_last_transfer.end();
   report_forward_history.aggregate(report_forward_last_transfer);
@@ -83,7 +85,14 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass
  **/
 template <typename DataType, typename DriverClass>
 void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::backward() {
-  // First, we copy the output data (in host) into the input gradient (on device)
+  // If DriverClass == CPUDriver, we need to update the p_data pointer of input_g_cube to point to
+  // p_input_layer->p_gradient_cube->p_data
+  if (std::is_same<DriverClass, CPUDriver>::value) {
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(
+        input_g_cube, p_input_layer->p_gradient_cube
+        );
+  }
+  // We copy the output data (in host) into the input gradient (on device)
   // (This is because output grad is empty for Softmax Loss, since it's the last layer
   // in the network.)
   DeviceMemoryPointer_Local_RAM plocal(p_output_layer->p_data_cube->get_p_data(),
@@ -114,13 +123,12 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass
     _f_softmax_backward>(output, input, sizeof(DataType)*iR*iC*iD, arg1, arg2);
   ////////////////////////////////////////////////////////////////////////////////
 
-  // Copy input grad to Host. This should be refactor'ed out into the
-  // scheduler.
-  DeviceMemoryPointer_Local_RAM plocal2(p_input_layer->p_gradient_cube->get_p_data(),
-      input_g_cube->n_elements*sizeof(DataType));
-  DeviceMemoryPointer * phost2 = p_driver->get_device_pointer(input_g_cube->get_p_data(),
-      input_g_cube->n_elements*sizeof(DataType));
-  p_driver->memcpy(&plocal2, phost2);
+  // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy input grad to host memory here
+  if (!std::is_same<DriverClass, CPUDriver>::value) {
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(
+        p_input_layer->p_gradient_cube, input_g_cube
+        );
+  }
 
   report_backward_updateweight_last_transfer.end();
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);

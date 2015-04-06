@@ -126,6 +126,7 @@ message SolverParameter {
   enum SolverMode {
     CPU = 0;
     GPU = 1;
+    CPU_AND_GPU = 2;
   }
   optional SolverMode solver_mode = 17 [default = GPU];
   // the device_id will that be used in GPU mode. Use device_id = 0 in default.

@@ -117,13 +117,22 @@ template<typename T, LayoutType LAYOUT>
 LogicalCube<T, LAYOUT>::LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B, DeviceDriver * p_driver) :
   n_elements(_R*_C*_D*_B),
   R(_R), C(_C), D(_D), B(_B),
-  own_data(true){
+  own_data(true) {
+
+#ifdef _DETAILED_PROFILING
   std::cout << "Allocating " << 1.0*sizeof(T)*_R*_C*_D*_B/1024/1024 << " MB..." << std::endl;
+#endif
   DeviceMemoryPointer * ptr = p_driver->get_device_pointer(NULL, sizeof(T)*_R*_C*_D*_B);
   p_driver->malloc(ptr);
   p_data = (T*) ptr->ptr;
-
 }
+template<typename T, LayoutType LAYOUT>
+LogicalCube<T, LAYOUT>::LogicalCube(void * _p_data, size_t _R, size_t _C, size_t _D, size_t _B,
+    DeviceDriver * p_driver) :
+  n_elements(_R*_C*_D*_B),
+  R(_R), C(_C), D(_D), B(_B),
+  own_data(false),
+  p_data(reinterpret_cast<T*>(_p_data)) {}
 
 template<typename T, LayoutType LAYOUT>
 void LogicalCube<T, LAYOUT>::reset_cube() {

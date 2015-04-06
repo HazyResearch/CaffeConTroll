@@ -13,7 +13,7 @@ int main(int argc, const char * argv[]) {
   //srand(0); // TODO: for determinsitic
 
   if (argc < 3) {
-    cout << "Usage: ./caffe-ct <train/test> <solver.prototxt>" << endl;
+    cout << "Usage: ./caffe-ct <train/test> <solver.prototxt> [-data-binary|-b data_binary_file] [-model|-m model_binary_file]" << endl;
     exit(1);
   }
 
@@ -22,13 +22,13 @@ int main(int argc, const char * argv[]) {
 
   boost::program_options::options_description desc("Options for my program");
   desc.add_options()
-      // Option 'data-binary' and 'b' are equivalent.
-      ("data-binary,b", boost::program_options::value<string>(& data_binary)->default_value("toprocess.bin"),
-          "Processed data binary")
-      // Option 'model' and 'm' are equivalent.
-      ("model,m", boost::program_options::value<string>(& model_file)->default_value("NA"),
-          "Model binary")
-      ;
+    // Option 'data-binary' and 'b' are equivalent.
+    ("data-binary,b", boost::program_options::value<string>(& data_binary)->default_value("toprocess.bin"),
+     "Processed data binary")
+    // Option 'model' and 'm' are equivalent.
+    ("model,m", boost::program_options::value<string>(& model_file)->default_value("NA"),
+     "Model binary")
+    ;
 
   boost::program_options::variables_map vm;
   boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);

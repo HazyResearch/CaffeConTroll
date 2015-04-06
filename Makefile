@@ -26,18 +26,16 @@ else ifeq ($(UNAME), Linux)
 endif
 CFLAGS += $(BLAS_DEFS)
 
-DEBUG_FLAGS = -g -O3 -DDEBUG
+DEBUG_FLAGS = -g -O0 -DDEBUG
 ifeq ($(UNAME), Darwin)
   DEBUG_FLAGS += -ferror-limit=10
 endif
 ASSEMBLY_FLAGS= -S
 
 DIR_PARAMS=$(INCLUDE_STR) $(LIB_STR)
-#PROTOBUF     = `pkg-config --cflags protobuf`
-#PROTOBUF_LIB = `pkg-config --cflags --libs protobuf`
 PROTOBUF_LIB = -lprotobuf
 WARNING_FLAGS = -Wextra
-PRODUCT_FLAGS = -Ofast
+PRODUCT_FLAGS = -O3
 
 # Protobuf variables
 PROTO_SRC_DIR=src/parser/
@@ -66,9 +64,9 @@ TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.
 	       tests/test_kernel.cpp \
 	       tests/test_MaxPooling_bridge.cpp \
 	       tests/test_ReLU_bridge.cpp \
-	       tests/test_softmax_bridge.cpp \
 	       tests/test_dropout_bridge.cpp \
 	       tests/test_lrn_bridge.cpp \
+	       tests/test_softmax_bridge.cpp \
 	       tests/test_device_driver_cpu.cpp \
 	       tests/test_cube.cpp \
 	       tests/test_report.cpp \
@@ -117,10 +115,15 @@ profile: LINKFLAG += -D_DETAILED_PROFILING -D_FASTPOW  $(PRODUCT_FLAGS)
 profile: $(OBJ_FILES) cnn.pb.o
 	$(LINKCC) $^ -o $(TARGET) $(LINKFLAG) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
-test: CFLAGS += $(DEBUG_FLAGS) -I $(GTEST_INCLUDE)
-test: LINKFLAG += $(DEBUG_FLAGS) -I $(GTEST_INCLUDE)
+test: CFLAGS += $(PRODUCT_FLAGS) -I $(GTEST_INCLUDE)
+test: LINKFLAG += $(PRODUCT_FLAGS) -I $(GTEST_INCLUDE)
 test: $(TEST_OBJ_FILES) $(TEST_CUDA_OBJ_FILES) $(TEST_OBJ_FILES) cnn.pb.o 
 	$(LINKCC) $^ -o $(TEST_EXECUTABLE) $(LINKFLAG) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB) 
+
+test_debug: CFLAGS += $(DEBUG_FLAGS) -I $(GTEST_INCLUDE)
+test_debug: LINKFLAG += $(DEBUG_FLAGS) -I $(GTEST_INCLUDE)
+test_debug: $(TEST_OBJ_FILES) $(TEST_CUDA_OBJ_FILES) $(TEST_OBJ_FILES) cnn.pb.o
+	$(LINKCC) $^ -o $(TEST_EXECUTABLE) $(LINKFLAG) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB)
 
 snapshot: CFLAGS += $(PRODUCT_FLAGS) -I $(GTEST_INCLUDE)
 snapshot: LINKFLAG += $(PRODUCT_FLAGS) -I $(GTEST_INCLUDE)

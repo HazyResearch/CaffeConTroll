@@ -176,8 +176,6 @@ class DeepNet {
       std::vector<Layer<DataType_SFFloat, Layout_CRDB> *> prev_layers, next_layers;
       prev_layers.push_back(new Layer<DataType_SFFloat, Layout_CRDB>(prev_data, prev_grad));
 
-      //Layer<DataType_SFFloat, Layout_CRDB> * prev_layer = new Layer<DataType_SFFloat, Layout_CRDB>(prev_data, prev_grad);
-
       const size_t num_layers = net_param.layers_size();
 
       Bridge * bridge = NULL;
@@ -245,7 +243,7 @@ class DeepNet {
                   // if input group == output group, then for each
                   // input group, create a separate bridge and a
                   // seperate output bridge
-                  for (size_t i=0;i<n_previous_groups;i++) {
+                  for (size_t i = 0; i < n_previous_groups; i++) {
                     // for each group, create bridges
                     next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
                     next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
@@ -320,7 +318,6 @@ class DeepNet {
                 next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
                 next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
-                // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
                 bridge = new ParallelizedBridge<DataType_SFFloat, FullyConnectedBridge<DataType_SFFloat,
                        Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver>
                          (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), 16);
@@ -371,7 +368,6 @@ class DeepNet {
                   next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
                   next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
-                  // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
                   bridge = new ParallelizedBridge<DataType_SFFloat, ReLUBridge<DataType_SFFloat, Layout_CRDB,
                          DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver>(prev_layers[i], next_layer, &layer_param,
                              &solver_param, driver, min<size_t>(16, corpus.mini_batch_size), 1);
@@ -393,7 +389,7 @@ class DeepNet {
                   next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
                   next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
                   next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
-                  // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+
                   bridge = new ParallelizedBridge<DataType_SFFloat, LRNBridge<DataType_SFFloat, Layout_CRDB,
                          DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver>(prev_layers[i], next_layer, &layer_param,
                              &solver_param, driver, min<size_t>(16, corpus.mini_batch_size), 1);
@@ -410,7 +406,7 @@ class DeepNet {
                 std::cout << "Constructing DROPOUT layer " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
 
                 // input_[R,C,D] is the same as output_[R,C,D]
-                for (size_t i=0;i<n_previous_groups;i++) {
+                for (size_t i = 0; i < n_previous_groups; i++) {
 
                   next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
                   next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
@@ -455,20 +451,13 @@ class DeepNet {
             assert(false);
           }
 
-          // Appending the bridge to our vector of bridges, and updating pointers
-          // and values for the next iteration.
-          //bridges.push_back(bridge);
-
           input_R = output_R, input_C = output_C, input_D = output_D;
-          //prev_data = next_data, prev_grad = next_grad;
-          //prev_layer = next_layer;
-          //ReadModelFromFile(bridges);
 
           /**
            * Swap next_layers with prev_layers and empty next;
            */
           prev_layers.clear();
-          for (size_t i=0;i<next_layers.size();i++) {
+          for (size_t i = 0; i < next_layers.size(); i++) {
             prev_layers.push_back(next_layers[i]);
           }
           next_layers.clear();
@@ -591,7 +580,7 @@ class DeepNet {
 
           // TODO: handle the very last batch, which may not have the same
           // batch size as the rest of the batches
-          cout << "Average Time (seconds) per Epoch: " << t_total.elapsed()/(epoch+1) << endl;
+          cout << "Average Time (seconds) per Epoch: " << t_total.elapsed()/(epoch + 1) << endl;
         }
         cout << "Total Time (seconds): " << t_total.elapsed() << endl;
 

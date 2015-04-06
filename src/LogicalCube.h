@@ -60,7 +60,7 @@ class LogicalCube {
      **/
     LogicalCube(void * _p_data, size_t _R, size_t _C, size_t _D, size_t _B);
 
-    DeviceMemoryPointer * get_device_pointer(DeviceDriver * p_driver) const{
+    DeviceMemoryPointer * get_device_pointer(DeviceDriver * p_driver) const {
         return p_driver->get_device_pointer(p_data, n_elements*sizeof(T));
     }
 
@@ -74,11 +74,13 @@ class LogicalCube {
 
     /**
      * Constuctor that actually allocates the data
-     * ON DEVICE. If a cube allcoates the data, 
+     * ON DEVICE. If a cube allcoates the data,
      * it needs to free it.
      *  - own_data = True
      **/
     LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B, DeviceDriver * p_driver);
+    LogicalCube(void * _p_data, size_t _R, size_t _C, size_t _D, size_t _B,
+        DeviceDriver * p_driver);
 
     ~LogicalCube();
 

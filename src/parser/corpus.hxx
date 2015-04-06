@@ -163,7 +163,7 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
   filename = data_binary;
 
   //if (filename != "NA"){
-    FILE * pFile = fopen (filename.c_str(), "wb+");
+    FILE * pFile = fopen(filename.c_str(), "wb+");
     if (pFile == NULL) {
       // perror("Error");
       throw std::runtime_error("File open error: " + filename + " " + strerror(errno)); // TODO: REAL MESSAGE
