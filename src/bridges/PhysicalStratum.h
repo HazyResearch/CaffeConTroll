@@ -26,20 +26,9 @@ class PhysicalStratum : public PhysicalOperator {
   protected:
     size_t executor_bound;
 
-    /**
-     * Wrapper of calling the forward() function -- only
-     * used when we call thread
-     **/
-    void _forward(PhysicalOperator * const bridge) {
-      bridge->forward();
-    }
-
-    void _backward(PhysicalOperator * const bridge) {
-      bridge->backward();
-    }
-
   public:
     vector<PhysicalOperator *> executors; // STL overhead is not that crucial here,
+
     // so we just use a vector
     PhysicalStratum() {
       report_forward_constructor.reset();
@@ -60,20 +49,17 @@ class PhysicalStratum : public PhysicalOperator {
       // TODO: benchmark to see whether we want more sophisticated
       //       thread pool.
 
-      // TODO: CHANGE TO PTHREAD
+      vector<thread> threads;
       for (size_t i = 0; i < executor_bound; i++) {
-        _forward(executors[i]);
+        //threads.push_back(thread(_forward, executors[i]));
+        threads.push_back(thread([this, i]()
+              {
+              executors[i]->forward();
+              }));
       }
-
-      /***
-        vector<thread> threads;
-        for (size_t i = 0; i < executor_bound; i++) {
-        threads.push_back(thread(_forward, executors[i]));
-        }
-        for (size_t i = 0; i < executor_bound; i++) {
+      for (size_t i = 0; i < executor_bound; i++) {
         threads[i].join();
-        }
-       ***/
+      }
       report_forward_last_transfer.end();
 
       for (size_t i = 0; i < executor_bound; i++) {
@@ -86,20 +72,16 @@ class PhysicalStratum : public PhysicalOperator {
       report_backward_updateweight_last_transfer.reset();
       vector<thread> threads;
 
-
-      // TODO: CHANGE TO PTHREAD
       for (size_t i = 0; i < executor_bound; i++) {
-        _backward(executors[i]);
+        // threads.push_back(thread(_backward, executors[i]));
+        threads.push_back(thread([this, i]()
+              {
+              executors[i]->backward();
+              }));
       }
-
-      /***
-        for (size_t i = 0; i < executor_bound; i++) {
-        threads.push_back(thread(_backward, executors[i]));
-        }
-        for (size_t i = 0; i < executor_bound; i++) {
+      for (size_t i = 0; i < executor_bound; i++) {
         threads[i].join();
-        }
-       ***/
+      }
       report_backward_updateweight_last_transfer.end();
 
       for (size_t i = 0; i < executor_bound; i++) {
