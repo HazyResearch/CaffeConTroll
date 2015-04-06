@@ -2,6 +2,7 @@
 #include "gtest/gtest.h"
 
 #include "../src/DeepNet.h"
+#include "../src/sched/DeviceDriver_CPU.h"
 #include "../src/Kernel.h"
 #include "../src/LogicalCube.h"
 #include "../src/Layer.h"
@@ -33,7 +34,7 @@ void copy_blob_to_cube(const LogicalCube<float, Layout_CRDB> * const cube,
    }
 }
 
-void check_update(const string & filename, GradientUpdater<float> * const updater) {
+void check_update(const string & filename, GradientUpdater<float, CPUDriver> * const updater) {
  std::ifstream i(filename);
  if (i.fail()) { std::cout << "Failed to open file!" << filename << std::endl; exit(-1); }
  update_file f(i);
@@ -41,16 +42,16 @@ void check_update(const string & filename, GradientUpdater<float> * const update
 
  const float stepsize = updater->get_stepsize();
  EXPECT_NEAR(f.get_local_rate(), stepsize, 1e-8);
- if (dynamic_cast<SGDGradientUpdater<float> *>(updater)) {
-   const float momentum = ((SGDGradientUpdater<float> *) updater)->get_momentum();
+ if (dynamic_cast<SGDGradientUpdater<float, CPUDriver> *>(updater)) {
+   const float momentum = ((SGDGradientUpdater<float, CPUDriver> *) updater)->get_momentum();
    EXPECT_NEAR(f.get_momentum(), momentum, 1e-7);
- } else if (dynamic_cast<NesterovUpdater<float> *>(updater)) {
-   const float momentum = ((NesterovUpdater<float> *) updater)->get_momentum();
+ } else if (dynamic_cast<NesterovUpdater<float, CPUDriver> *>(updater)) {
+   const float momentum = ((NesterovUpdater<float, CPUDriver> *) updater)->get_momentum();
    EXPECT_NEAR(f.get_momentum(), momentum, 1e-7);
  }
 }
 
-void check_regularization(const string & filename, GradientUpdater<float> * const updater) {
+void check_regularization(const string & filename, GradientUpdater<float, CPUDriver> * const updater) {
  std::ifstream i(filename);
  if (i.fail()) { std::cout << "Failed to open file!" << filename << std::endl; exit(-1); }
  regularized_update_file r(i);
@@ -68,11 +69,9 @@ TEST(ImageNetSnapshotTest, RunTest) {
 
   Corpus * corpus = DeepNet::load_network(file, data_binary, solver_param, net_param, bridges, true);
 
-  SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> * const softmax =
-    (SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> *) bridges.back();
+  SoftmaxBridge * const softmax = (SoftmaxBridge *) bridges.back();
 
-  AbstractBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> * const first =
-    (AbstractBridge<DataType_SFFloat, Layout_CRDB,DataType_SFFloat, Layout_CRDB> *) bridges.front();
+  Bridge * const first = (Bridge *) bridges.front();
 
   LogicalCubeFloat * const labels = softmax->p_data_labels;
   LogicalCubeFloat * const input_data = first->p_input_layer->p_data_cube;
@@ -239,7 +238,7 @@ TEST(ImageNetSnapshotTest, RunTest) {
           string filename = update_file::generate_filename(snapshot_dir, iter, name, num_params - param_id - 2);
 	        string filename_regu = regularized_update_file::generate_filename(snapshot_dir, iter, name,
               num_params - param_id - 2);
-          GradientUpdater<float> * const model_updater = curr_bridge->get_model_updater();
+          GradientUpdater<float, CPUDriver> * const model_updater = curr_bridge->get_model_updater();
           cout << curr_bridge->name << " BACKWARD model update" << endl;
           cerr << curr_bridge->name << " BACKWARD model update" << endl;
           check_update(filename, model_updater);
@@ -250,7 +249,7 @@ TEST(ImageNetSnapshotTest, RunTest) {
 
         if (curr_bridge->get_bias_cube() != NULL) {
           string filename = update_file::generate_filename(snapshot_dir, iter, name, num_params - param_id - 1);
-          GradientUpdater<float> * const bias_updater = curr_bridge->get_bias_updater();
+          GradientUpdater<float, CPUDriver> * const bias_updater = curr_bridge->get_bias_updater();
           cout << curr_bridge->name << " BACKWARD bias update" << endl;
           cerr << curr_bridge->name << " BACKWARD bias update" << endl;
           check_update(filename, bias_updater);
