@@ -60,7 +60,8 @@ lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeTyp
   args.dR = p_output_cube->R; args.dC = p_output_cube->C; args.dD = p_output_cube->D; args.dB = p_output_cube->B;
   args.sR = p_input_cube->R; args.sC = p_input_cube->C; args.sD = p_input_cube->D; args.sB = p_input_cube->B;
   args.dBR = args.dR; args.dBC = args.dC;
-  args.sBR = min((size_t)32, args.sR); args.sBC = min((size_t)32, args.sC);
+  // args.sBR = min((size_t)32, args.sR); args.sBC = min((size_t)32, args.sC);
+  args.sBR = args.sR; args.sBC = args.sC;
   args.kR = kernel_size; args.kC = kernel_size; args.kD = p_input_cube->D; args.kB = 1;
   args.stride = stride;
   args.padding = padding;
@@ -88,7 +89,8 @@ remap_output(LogicalCube<DataType, InputLayout>& cube, const size_t depth, const
   args.dR = cube.R; args.dC = cube.C; args.dD = cube.D; args.dB = cube.B;
   args.sR = cube.R; args.sC = cube.C; args.sD = depth; args.sB = batch;
   args.dBR = args.dR; args.dBC = args.dC;
-  args.sBR = min((size_t)32, args.sR); args.sBC = min((size_t)32, args.sC);
+  // args.sBR = min((size_t)32, args.sR); args.sBC = min((size_t)32, args.sC);
+  args.sBR = args.sR; args.sBC = args.sC;
   args.stride = stride;
   args.padding = padding;
 

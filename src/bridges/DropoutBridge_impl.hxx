@@ -22,7 +22,9 @@ DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::Dropou
 #ifdef _DO_ASSERT
   assert(oR == iR); assert(oC == iC);
   assert(oB == iB); assert(oD == iD);
+#ifndef _SNAPSHOT
   assert(dropout_ratio > 0.);
+#endif
   assert(dropout_ratio < 1.);
 #endif
 

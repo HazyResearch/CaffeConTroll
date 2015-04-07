@@ -15,21 +15,18 @@ LIB_STR=$(foreach d, $(LIB_DIRS), -L$d)
 # For Mac OS X 10.10 x86_64 Yosemite
 ifeq ($(UNAME), Darwin)
   CFLAGS = -Wall -std=c++11 -fsanitize-undefined-trap-on-error -fsanitize=integer-divide-by-zero
+  DEBUG_FLAGS = -g -O0 -DDEBUG -ferror-limit=10
   LDFLAGS = $(LD_BASE) -lboost_program_options-mt -lboost_serialization -lpthread
   NVCCFLAGS = -D_GPU_TARGET -std=c++11 $(LD_BASE) -lcublas -lcuda -lboost_program_options-mt -lboost_serialization -gencode arch=compute_20,code=sm_20 -gencode arch=compute_20,code=sm_21 -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35 -gencode arch=compute_50,code=sm_50 -gencode arch=compute_50,code=compute_50
 # For Ubuntu 12.04 x86_64 (raiders3 machine)
 else ifeq ($(UNAME), Linux)
-  #CFLAGS = -Wall -std=c++11 -Wl,--no-as-needed
-  CFLAGS = -std=c++11 -I/usr/local/cuda-6.5/targets/x86_64-linux/include/
+  CFLAGS = -Wall -Wl,--no-as-needed -std=c++11 -I/usr/local/cuda-6.5/targets/x86_64-linux/include/
+  DEBUG_FLAGS = -gdwarf-3 -O0 -DDEBUG # -gdwarf-3 necessary for debugging with gdb v7.4
   NVCCFLAGS = -D_GPU_TARGET -std=c++11 $(LD_BASE) -lcublas -lcuda -lboost_program_options -lboost_serialization -I/usr/local/cuda-6.5/targets/x86_64-linux/include/ -gencode arch=compute_20,code=sm_20 -gencode arch=compute_20,code=sm_21 -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35 -gencode arch=compute_50,code=sm_50 -gencode arch=compute_50,code=compute_50
   LDFLAGS = $(LD_BASE) -lrt -lboost_program_options -lboost_serialization -lpthread 
 endif
 CFLAGS += $(BLAS_DEFS)
 
-DEBUG_FLAGS = -g -O0 -DDEBUG
-ifeq ($(UNAME), Darwin)
-  DEBUG_FLAGS += -ferror-limit=10
-endif
 ASSEMBLY_FLAGS= -S
 
 DIR_PARAMS=$(INCLUDE_STR) $(LIB_STR)
@@ -75,7 +72,6 @@ TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.
 	       tests/test_lenet_network.cpp
 
 	       # tests/test_device_driver_gpu.cpp \
-# snapshot-parser/simple_parse.cpp tests/test_imagenet_snapshot.cpp \
 
 TEST_OBJ_FILES = $(patsubst %.cpp,%.o,$(TEST_SOURCES))
 TEST_EXECUTABLE=test
@@ -84,8 +80,9 @@ TEST_EXECUTABLE=test
 #					tests/test_convolution.cu					
 TEST_CUDA_OBJ_FILES = $(patsubst %.cu,%.o,$(TEST_CUDA_SOURCES))
 
-SNAPSHOT_SOURCES = src/util.cpp src/timer.cpp tests/test_main.cpp \
-                   snapshot-parser/simple_parse.cpp tests/test_imagenet_snapshot.cpp \
+SNAPSHOT_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.cpp \
+	       src/sched/DeviceDriver_CPU.cpp \
+	       snapshot-parser/simple_parse.cpp tests/test_imagenet_snapshot.cpp \
 
 SNAPSHOT_OBJ_FILES = $(patsubst %.cpp,%.o,$(SNAPSHOT_SOURCES))
 SNAPSHOT_EXECUTABLE=snapshot
@@ -125,9 +122,14 @@ test_debug: LINKFLAG += $(DEBUG_FLAGS) -I $(GTEST_INCLUDE)
 test_debug: $(TEST_OBJ_FILES) $(TEST_CUDA_OBJ_FILES) $(TEST_OBJ_FILES) cnn.pb.o
 	$(LINKCC) $^ -o $(TEST_EXECUTABLE) $(LINKFLAG) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB)
 
-snapshot: CFLAGS += $(PRODUCT_FLAGS) -I $(GTEST_INCLUDE)
+snapshot: CFLAGS += $(PRODUCT_FLAGS) -D_SNAPSHOT -I $(GTEST_INCLUDE)
 snapshot: LINKFLAG += $(PRODUCT_FLAGS) -I $(GTEST_INCLUDE)
 snapshot: $(SNAPSHOT_OBJ_FILES) cnn.pb.o
+	$(CC) $^ -o $(SNAPSHOT_EXECUTABLE) $(LINKFLAG) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB) 
+
+snapshot_debug: CFLAGS += $(DEBUG_FLAGS) -D_SNAPSHOT -I $(GTEST_INCLUDE)
+snapshot_debug: LINKFLAG += $(DEBUG_FLAGS) -I $(GTEST_INCLUDE)
+snapshot_debug: $(SNAPSHOT_OBJ_FILES) cnn.pb.o
 	$(CC) $^ -o $(SNAPSHOT_EXECUTABLE) $(LINKFLAG) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB) 
 
 %.o: %.cpp $(PROTO_COMPILED_SRC)

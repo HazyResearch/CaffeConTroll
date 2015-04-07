@@ -64,7 +64,7 @@ void check_regularization(const string & filename, GradientUpdater<float, CPUDri
 TEST(ImageNetSnapshotTest, RunTest) {
 
   BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
-  char const * file = "tests/imagenet_train/solver/imagenet_snapshot_solver_10_iters_1_batch.prototxt";
+  char const * file = "tests/imagenet_train/solver/imagenet_snapshot_solver_6_iters_2_batch.prototxt";
   const std::string data_binary = "imagenet.bin";
 
   Corpus * corpus = DeepNet::load_network(file, data_binary, solver_param, net_param, bridges, true);
