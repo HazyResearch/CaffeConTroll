@@ -130,11 +130,14 @@ void FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::
 forward() {
   Util::set_num_threads(run_with_n_threads);
 
+  Timer t; float seconds_elapsed = 0.;
+  seconds_elapsed = t.elapsed(); std::cout << "PROFILE device copy: " << seconds_elapsed << " seconds." << std::endl; t.restart();
   report_forward_last_transfer.reset();
 
   if (p_model_cube->get_p_data() == NULL) {
     p_model_cube->set_p_data(p_model_cube_shadow->get_p_data());
   }
+
   // (0) cast input model and output to matrix
   // This one should be refactored with the matrix interface
   LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->get_p_data(), num_output_features,
@@ -144,9 +147,11 @@ forward() {
 
   // (1) do the lowering
   p_forward_lower_connector->lower_cube(p_input_layer->p_data_cube, p_forward_lowered_data);
+  seconds_elapsed = t.elapsed(); std::cout << "PROFILE Lowering: " << seconds_elapsed << " seconds." << std::endl; t.restart();
 
     // (2) call GEMM kernel
   p_forward_gemm_kernel->compute(&lowered_model, p_forward_lowered_data, &lowered_output);
+  seconds_elapsed = t.elapsed(); std::cout << "PROFILE Kernel: " << seconds_elapsed << " seconds." << std::endl; t.restart();
 
   // Right now the output we get is of the form:
   // [(b_0, d_0), (b_1, d_0), ... , (b_n, d_0)
@@ -162,6 +167,7 @@ forward() {
   //  needing to call remap
 
   p_output_layer->p_data_cube->template remap_output<LOWERING_TYPE1>(num_output_features, iB, oR*oC);
+  seconds_elapsed = t.elapsed(); std::cout << "PROFILE Remap: " << seconds_elapsed << " seconds." << std::endl; t.restart();
   // add bias
   if (bias_term) {
     if (p_bias_cube->get_p_data() == NULL) {
