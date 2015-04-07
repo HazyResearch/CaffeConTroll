@@ -23,28 +23,27 @@ int clock_gettime(int /*clk_id*/, struct timespec* t);
 
 
 
-  /**
-   * Timer class that keeps track of time
-   */
-  class Timer {
-  public:
-
+/**
+ * Timer class that keeps track of time
+ */
+class Timer {
+  protected:
     struct timespec _start;
     struct timespec _end;
 
+  public:
     Timer();
 
-    /** 
+    /**
      * Restart the timer
      */
     void restart();
 
     /**
-     * Returns time elapsed
+     * Returns time elapsed (in seconds)
      */
     float elapsed();
-
-  };
+};
 
 
 

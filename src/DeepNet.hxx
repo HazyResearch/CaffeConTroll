@@ -563,7 +563,7 @@ Corpus * DeepNet::load_network(const char * file, const string & data_binary, cn
   Parser::read_net_params_from_text_file(solver_param.net(), &net_param)) {
     Corpus * corpus = DeepNet::read_corpus_from_lmdb(net_param, data_binary, train);
 
-#ifdef _DO_WARNING
+#ifdef DEBUG
     cout << "Corpus train loaded" << endl;
     cout << "CORPUS NUM IMAGES: " << corpus.n_images << endl;
     cout << "CORPUS NUM ROWS: " << corpus.n_rows << endl;

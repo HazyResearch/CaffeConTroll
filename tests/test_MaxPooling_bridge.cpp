@@ -4,7 +4,7 @@
 #include "../src/Kernel.h"
 #include "../src/LogicalCube.h"
 #include "../src/Layer.h"
-#include "../src/config.h"
+#include "../src/util.h"
 #include "../src/Connector.h"
 #include "../src/bridges/MaxPoolingBridge.h"
 #include "../src/bridges/ParallelizedBridge.h"

@@ -4,7 +4,6 @@
 #include <iostream>
 #include <algorithm>
 #include <boost/program_options.hpp>
-#include "config.h"
 #include "LogicalCube.h"
 #include "Layer.h"
 #include "Connector.h"
@@ -597,7 +596,7 @@ class DeepNet {
             Parser::read_net_params_from_text_file(solver_param.net(), &net_param)) {
           Corpus * corpus = DeepNet::read_corpus_from_lmdb(net_param, data_binary, train);
 
-#ifdef _DO_WARNING
+#ifdef DEBUG
           cout << "Corpus train loaded" << endl;
           cout << "CORPUS NUM IMAGES: " << corpus.n_images << endl;
           cout << "CORPUS NUM ROWS: " << corpus.n_rows << endl;

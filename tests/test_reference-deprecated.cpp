@@ -8,7 +8,7 @@
 
 #include <iostream>
 
-#include "config.h"
+#include "util.h"
 #include "LogicalCube.h"
 #include "Connector.h"
 #include "Kernel.h"

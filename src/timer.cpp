@@ -13,16 +13,16 @@ int clock_gettime(int /*clk_id*/, struct timespec* t) {
 #endif
 
 
-  Timer::Timer(){
+  Timer::Timer() {
     clock_gettime(CLOCK_MONOTONIC, &_start);
   }
 
 
-  void Timer::restart(){
+  void Timer::restart() {
     clock_gettime(CLOCK_MONOTONIC, &_start);
   }
 
-  float Timer::elapsed(){
+  float Timer::elapsed() {
     clock_gettime(CLOCK_MONOTONIC, &_end);
     return (_end.tv_sec - _start.tv_sec) + (_end.tv_nsec - _start.tv_nsec) / 1000000000.0;
   }

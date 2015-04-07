@@ -2,7 +2,7 @@
 #include "../src/Kernel.h"
 #include "../src/LogicalCube.h"
 #include "../src/Layer.h"
-#include "../src/config.h"
+#include "../src/util.h"
 #include "../src/Connector.h"
 #include "../src/bridges/SoftmaxLossBridge.h"
 #include "test_types.h"
@@ -14,10 +14,10 @@
 #include <cstring>
 
 template <typename TypeParam>
-class softmaxBridgeTest : public ::testing::Test {
+class SoftmaxBridgeTest : public ::testing::Test {
   public:
     typedef typename TypeParam::T T;
-    softmaxBridgeTest(){
+    SoftmaxBridgeTest(){
       data1 = new LogicalCube<T, Layout_CRDB>(1, 1, iD, mB);
       grad1 = new LogicalCube<T, Layout_CRDB>(1, 1, iD, mB);
 
@@ -32,7 +32,7 @@ class softmaxBridgeTest : public ::testing::Test {
       softmaxBridge_ = new SoftmaxLossBridge<T, Layout_CRDB, T, Layout_CRDB, CPUDriver>(layer1, layer2, label, &pdriver);
     }
 
-    virtual ~softmaxBridgeTest() { delete layer1; delete layer2; }
+    virtual ~SoftmaxBridgeTest() { delete layer1; delete layer2; }
     SoftmaxLossBridge<T, Layout_CRDB, T, Layout_CRDB, CPUDriver>* softmaxBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
@@ -54,16 +54,16 @@ class softmaxBridgeTest : public ::testing::Test {
 
 typedef ::testing::Types<FloatCRDB> DataTypes;
 
-TYPED_TEST_CASE(softmaxBridgeTest, DataTypes);
+TYPED_TEST_CASE(SoftmaxBridgeTest, DataTypes);
 
-TYPED_TEST(softmaxBridgeTest, TestInitialization){
+TYPED_TEST(SoftmaxBridgeTest, TestInitialization){
   EXPECT_TRUE(this->softmaxBridge_);
   EXPECT_TRUE(this->layer1);
   EXPECT_TRUE(this->layer2);
   EXPECT_TRUE(this->label);
 }
 
-TYPED_TEST(softmaxBridgeTest, TestForward){
+TYPED_TEST(SoftmaxBridgeTest, TestForward){
   typedef typename TypeParam::T T;
 
   std::fstream input("tests/input/softmax_forward_in.txt", std::ios_base::in);
@@ -103,7 +103,7 @@ TYPED_TEST(softmaxBridgeTest, TestForward){
 }
 
 
-TYPED_TEST(softmaxBridgeTest, TestBackward){
+TYPED_TEST(SoftmaxBridgeTest, TestBackward){
   typedef typename TypeParam::T T;
 
   std::fstream label_file("tests/input/softmax_label.txt", std::ios_base::in);

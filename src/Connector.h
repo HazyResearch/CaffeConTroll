@@ -121,43 +121,6 @@ public:
 
 };
 
-/*
-template
-<typename DataType, LayoutType InputLayout, typename DriverClass>
-class Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE2, DriverClass> {
-public:
-
-    typedef LogicalCube<DataType, InputLayout> InputLogicalCubeType;
-    typedef LogicalCube<DataType, Layout_CRDB> OutputLogicalCubeType;
-
-    const size_t iR, iC, iD, iB;
-    const size_t oR, oC, oD, oB;
-
-    Report report_constructor;
-    Report report_last_lowering;
-    Report report_history;
-
-    Report report_last_inverse_lowering;
-    Report report_inverse_history;
-
-    const size_t kernel_size;
-    const size_t padding;
-    const size_t stride;
-
-    DriverClass * p_driver;
-
-    Connector(const InputLogicalCubeType * const p_input_cube, const OutputLogicalCubeType * const p_output_cube,
-        const size_t _kernel_size, const size_t _padding, const size_t _stride,
-        DriverClass * _p_driver);
-
-    void lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube);
-
-    void inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube);
-
-};
-*/
-
 #include "Connector_impl_Lowering_type1.hxx"
-//#include "Connector_impl_Lowering_type2.hxx"
 
 #endif
