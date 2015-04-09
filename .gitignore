@@ -1,6 +1,7 @@
 -# binaries
 caffe-ct
 test
+snapshot
 tests/test
 *.bin
 *.mdb
