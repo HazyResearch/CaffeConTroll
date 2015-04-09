@@ -3,7 +3,6 @@
 #define elly_Timer_h
 
 #include <time.h>
-#include <sys/time.h>
 
 #ifdef __MACH__
 #include <mach/clock.h>
@@ -17,11 +16,6 @@ int clock_gettime(int /*clk_id*/, struct timespec* t);
 
 #define CLOCK_MONOTONIC 0
 #endif
-
-
-#include <time.h>
-
-
 
 /**
  * Timer class that keeps track of time

@@ -598,13 +598,13 @@ class DeepNet {
 
 #ifdef DEBUG
           cout << "Corpus train loaded" << endl;
-          cout << "CORPUS NUM IMAGES: " << corpus.n_images << endl;
-          cout << "CORPUS NUM ROWS: " << corpus.n_rows << endl;
-          cout << "CORPUS NUM COLS: " << corpus.n_cols << endl;
-          cout << "CORPUS NUM CHANNELS: " << corpus.dim << endl;
-          cout << "CORPUS MINI BATCH SIZE: " << corpus.mini_batch_size << endl;
-          cout << "CORPUS NUM MINI BATCHES: " << corpus.num_mini_batches << endl;
-          cout << "CORPUS LAST BATCH SIZE: " << corpus.last_batch_size << endl;
+          cout << "CORPUS NUM IMAGES: " << corpus->n_images << endl;
+          cout << "CORPUS NUM ROWS: " << corpus->n_rows << endl;
+          cout << "CORPUS NUM COLS: " << corpus->n_cols << endl;
+          cout << "CORPUS NUM CHANNELS: " << corpus->dim << endl;
+          cout << "CORPUS MINI BATCH SIZE: " << corpus->mini_batch_size << endl;
+          cout << "CORPUS NUM MINI BATCHES: " << corpus->num_mini_batches << endl;
+          cout << "CORPUS LAST BATCH SIZE: " << corpus->last_batch_size << endl;
 #endif
 
           DeepNet::construct_network(bridges, *corpus, net_param, solver_param);

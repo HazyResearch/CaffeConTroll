@@ -1,40 +1,39 @@
 
 #include "DeviceDriver_CPU.h"
-
 #include "../kernels/include.hxx"
 
-CPUDriver::CPUDriver(){
+CPUDriver::CPUDriver() {
 
 }
 
-DeviceMemoryPointer * CPUDriver::get_device_pointer(void * ptr, size_t size_in_byte){
+DeviceMemoryPointer * CPUDriver::get_device_pointer(void * ptr, size_t size_in_byte) {
   return new DeviceMemoryPointer_Local_RAM(ptr, size_in_byte);
 }
 
-void CPUDriver::malloc(DeviceMemoryPointer * dst){
+void CPUDriver::malloc(DeviceMemoryPointer * dst) {
   dst->ptr = ::malloc(dst->size_in_byte);
 }
 
-void CPUDriver::free(DeviceMemoryPointer * dst){
+void CPUDriver::free(DeviceMemoryPointer * dst) {
   ::free(dst->ptr);
 }
 
-void CPUDriver::memcpy(DeviceMemoryPointer * dst, DeviceMemoryPointer * src){
+void CPUDriver::memcpy(DeviceMemoryPointer * dst, DeviceMemoryPointer * src) {
   char *s1 = (char*) dst->ptr;
   const char *s2 = (const char*) src->ptr;
   size_t n = dst->size_in_byte;
-  for(; 0<n; --n)*s1++ = *s2++;
+  for (; 0<n; --n)*s1++ = *s2++;
 }
 
-void CPUDriver::memset(DeviceMemoryPointer * dst, const char value){
+void CPUDriver::memset(DeviceMemoryPointer * dst, const char value) {
   char *s1 = (char*) dst->ptr;
   size_t n = dst->size_in_byte;
-  for(; 0<n; --n)*s1++ = value;
+  for (; 0<n; --n)*s1++ = value;
 }
 
 template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
 inline void _spmap_cpu(float* const dst, float * const src, PMapHelper args,
-    const size_t block_x, const size_t block_y, const size_t thread_x, const size_t thread_y){
+    const size_t block_x, const size_t block_y, const size_t thread_x, const size_t thread_y) {
 
   const size_t nCblock = args.sC/args.sBC;
 
@@ -49,34 +48,41 @@ inline void _spmap_cpu(float* const dst, float * const src, PMapHelper args,
   Block2D output_block;
   f_id(&output_block, &input_block, &args);
 
-  const size_t datar = thread_y + input_block.r * args.sR;
-  const size_t datac = thread_x + input_block.c * args.sC;
+  // const size_t datar = thread_y + input_block.r * args.sR;
+  const size_t datar = thread_y + input_block.r * args.sBR;
+  // const size_t datac = thread_x + input_block.c * args.sC;
+  const size_t datac = thread_x + input_block.c * args.sBC;
+  // std::cout << "datar: " << datar << ", datac: " << datac << std::endl;
 
   PointIn2DBlock point;
   point.block = input_block;
+  assert(args.sR * args.sC * (args.sD * input_block.b + input_block.d) +
+    datar * args.sC + datac < args.sR * args.sC * args.sD * args.sB
+      );
+
   point.data = src[
     args.sR * args.sC * (args.sD * input_block.b + input_block.d) +
     datar * args.sC +
     datac
     ];
 
-  point.r = thread_y;
-  point.c = thread_x;
+  point.r = datar;
+  point.c = datac;
 
   f_data(dst, &output_block, &point, &args);
-
 }
 
 // This function could be much faster.
 template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
 void CPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
-    const struct PMapHelper args){
+    const struct PMapHelper args) {
 
   // input block sizes
   size_t sBR = args.sBR, sBC = args.sBC;
   size_t n_thread_per_block_C = sBC;
   size_t n_thread_per_block_R = sBR; assert(sBC*sBR > 0);
-  size_t n_block_X = args.sR*args.sC/(sBC*sBR) ;
+  // size_t n_block_X = args.sR*args.sC/(sBC*sBR) ;
+  size_t n_block_X = (args.sR / args.sBR)*(args.sC / args.sBC);
   size_t n_block_Y = args.sD*args.sB;
 
   for (size_t block_x = 0; block_x < n_block_X; block_x++) {
@@ -95,11 +101,11 @@ void CPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPoin
 template<FUNC_IDX_MAPPING f_dst_pos, FUNC_MM_MAPPING func>
 void CPUDriver::parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
-    DeviceMemoryPointer * const func_curry){
+    DeviceMemoryPointer * const func_curry) {
   char * p_dst = (char*) dst->ptr;
   char * p_src = (char*) src->ptr;
   const size_t src_size = src->size_in_byte;
-  for(size_t i=0; i<src_size; i+=src_skip){
+  for (size_t i=0; i<src_size; i+=src_skip) {
     func(&p_dst[f_dst_pos(i, f_dst_pos_curry->ptr)], &p_src[i], func_curry->ptr, f_dst_pos(i, f_dst_pos_curry->ptr));
   }
 }
@@ -123,7 +129,7 @@ void CPUDriver::math_saxpby(const int N, const float alpha, float * X, const flo
   catlas_saxpby(N, alpha, X, 1, beta, Y, 1);
 #elif _VANILLA_BLAS
 #warning "[PERFORMANCE WARNING] Using hand-written BLAS calls. Hope you have a good compiler!"
-  for(int i = N; i > 0; X++, Y++, --i) {
+  for (int i = N; i > 0; X++, Y++, --i) {
     *Y = alpha**X + beta* *Y;
   }
 #else
@@ -131,7 +137,7 @@ void CPUDriver::math_saxpby(const int N, const float alpha, float * X, const flo
 #endif
 }
 
-void CPUDriver::set_num_threads(const int nThreads){
+void CPUDriver::set_num_threads(const int nThreads) {
 #ifdef _USE_OPENBLAS
   openblas_set_num_threads(nThreads);
 #elif _USE_ATLAS
@@ -145,7 +151,7 @@ void CPUDriver::set_num_threads(const int nThreads){
 
 void CPUDriver::sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB,
     int M, int N, int K, float alpha, float * pA, int LDA, float * pB, int LDB,
-    float beta, float * pC, int LDC){
+    float beta, float * pC, int LDC) {
 
   cblas_sgemm(order, TA, TB, M, N, K, alpha,
       pA, LDA,
@@ -154,10 +160,10 @@ void CPUDriver::sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TR
 }
 
 template<FUNC_STRANSFORM func>
-void CPUDriver::sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const func_curry){
+void CPUDriver::sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const func_curry) {
   const size_t n_element = dst->size_in_byte/sizeof(float);
   float * p = (float*) dst->ptr;
-  for(size_t i=0;i<n_element;i++){
+  for (size_t i=0;i<n_element;i++) {
     *(p) = func(*(p), func_curry->ptr);
     p++;
   }
@@ -165,17 +171,17 @@ void CPUDriver::sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const fu
 
 template<FUNC_SREDUCE func>
 void CPUDriver::selementwise_reduce2(DeviceMemoryPointer * dst, DeviceMemoryPointer * src1,
-    DeviceMemoryPointer * src2, DeviceMemoryPointer * const func_curry){
+    DeviceMemoryPointer * src2, DeviceMemoryPointer * const func_curry) {
   const size_t n_element = dst->size_in_byte / sizeof(float);
   float * const p_dst = (float*) dst->ptr;
   const float * const p_src1 = (float*) src1->ptr;
   const float * const p_src2 = (float*) src2->ptr;
-  for(size_t i = 0; i < n_element; i++){
+  for (size_t i = 0; i < n_element; i++) {
     p_dst[i] = func(p_src1[i], p_src2[i], func_curry->ptr);
   }
 }
 
-void CPUDriver::sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch){
+void CPUDriver::sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch) {
   const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
   const size_t fan_in = n_arr_elements / n_batch;
   const float scale = sqrt(3.0 / fan_in);
@@ -183,41 +189,41 @@ void CPUDriver::sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batc
   mt19937 gen(rd());
   uniform_real_distribution<float> uni(-scale, scale);
   float * temp = (float*) arr->ptr;
-  for(int i=0;i<n_arr_elements;i++){
+  for (unsigned int i = 0; i < n_arr_elements; i++) {
     temp[i] = uni(gen);
   }
 }
 
-void CPUDriver::sbernoulli_initialize(DeviceMemoryPointer *arr, const float p){
+void CPUDriver::sbernoulli_initialize(DeviceMemoryPointer *arr, const float p) {
   const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
 
   mt19937 gen(rd());
   bernoulli_distribution bern(p);
   float * temp = (float*) arr->ptr;
-  for(int i=0;i<n_arr_elements;i++){
+  for (unsigned int i = 0; i < n_arr_elements; i++) {
     temp[i] = bern(gen);
   }
 }
 
-void CPUDriver::sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev){
+void CPUDriver::sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev) {
   const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
   mt19937 gen(rd());
   normal_distribution<float> gaussian(mean, std_dev);
   float * temp = (float*) arr->ptr;
-  for(int i=0;i<n_arr_elements;i++){
+  for (unsigned int i = 0; i < n_arr_elements; i++) {
     temp[i] = gaussian(gen);
   }
 }
 
-void CPUDriver::sconstant_initialize(DeviceMemoryPointer *arr, const float value){
+void CPUDriver::sconstant_initialize(DeviceMemoryPointer *arr, const float value) {
   const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
   float * const temp = (float*) arr->ptr;
-  for(int i=0;i<n_arr_elements;i++){
+  for (unsigned int i = 0; i < n_arr_elements; i++) {
     temp[i] = value;
   }
 }
 
-void * CPUDriver::choose_ptr(void * host, void * device){
+void * CPUDriver::choose_ptr(void * host, void * device) {
   return host;
 }
 

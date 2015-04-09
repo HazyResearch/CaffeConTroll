@@ -131,8 +131,8 @@ __host__ __device__
 inline void _f_lrn_backward(void * input, void * output, void * const _arg,
     const size_t dst_index) {
   const _lrn_backward_arg_helper * const arg = (_lrn_backward_arg_helper *) _arg;
-  const int oR = arg->oR;
-  const int oC = arg->oC;
+  const unsigned int oR = arg->oR;
+  const unsigned int oC = arg->oC;
   const int oD = arg->oD;
   const float alpha_over_size = arg->alpha_over_size;
   const float beta = arg->beta;
