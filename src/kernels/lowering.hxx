@@ -112,62 +112,69 @@ inline void _fmap_lower(float * output, const Block2D * const output_block, cons
   const int output_R = (iR - kR + 2*padding + 1) / stride ;
   const int output_C = (iC - kC + 2*padding + 1) / stride ;
 
-  const int old_o_base_col = ib * (iR-kR+1+2*padding)/stride*(iC-kC+1+2*padding)/stride;
   const int o_base_col = ib * output_R * output_C;
   
   const int o_base_row = id * kR * kC;
   const int oC = iB * output_R * output_C;
-  const int old_oC = iB * (iR-kR+1+2*padding)/stride*(iC-kC+1+2*padding)/stride;
-  assert(o_base_col == old_o_base_col);
-  assert(oC == old_oC);
+  // Old indexing code
+  // const int old_o_base_col = ib * (iR-kR+1+2*padding)/stride*(iC-kC+1+2*padding)/stride;
+  // const int old_oC = iB * (iR-kR+1+2*padding)/stride*(iC-kC+1+2*padding)/stride;
+  // assert(o_base_col == old_o_base_col);
+  // assert(oC == old_oC);
 
   const float input = input_point->data;
 
   // Starting Code computation. TODO give a real comment here.
-    //int r_begin = next_multiple(std::max(ir - kR + 1 + padding, -padding), stride) - padding;
-  const int r_begin = next_multiple(ir - kR + 1 + padding, stride) - padding;
+  int r_begin = next_multiple(ir - kR + 1 + padding, stride) - padding;
+  while(r_begin < -padding) r_begin += stride;// TODO: remove while loop!
+  
   const int r_end   = std::min(ir + 1, (iR - kR + 1) + padding);
-  const int i_start = (r_begin + padding) / stride;
+  const int i_start = (r_begin + padding) / stride; 
 
-  //int c_begin = next_multiple(std::max(ic - kC + 1 + padding, -padding), stride) - padding;
   int c_begin       = next_multiple(ic - kC + 1 + padding, stride) - padding;
+  while(c_begin < -padding) r_begin += stride; // remove while loop to use modern division technology...
+  
   const int c_end   = std::min(ic + 1, (iC - kC + 1) + padding);
   const int j_start = (c_begin + padding) / stride;
 
-  int rstart = (ir-kR+1) + padding + 100*stride;
-  int cstart = (ic-kC+1) + padding + 100*stride;
-  if(rstart % stride != 0){
-    rstart += (stride-rstart%stride);
-  }
-  if(cstart % stride != 0){
-    cstart += (stride-cstart%stride);
-  }
-  rstart = rstart - padding - 100*stride;
-  cstart = cstart - padding - 100*stride;
+  // Ce's old indexing code
+  // int rstart = (ir-kR+1) + padding + 100*stride;
+  // int cstart = (ic-kC+1) + padding + 100*stride;
+  // if(rstart % stride != 0){
+  //   rstart += (stride-rstart%stride);
+  // }
+  // if(cstart % stride != 0){
+  //   cstart += (stride-cstart%stride);
+  // }
+  // rstart = rstart - padding - 100*stride;
+  // cstart = cstart - padding - 100*stride;
 
-  assert(rstart == r_begin);
-  assert(cstart == c_begin);
+  // assert(rstart == r_begin);
+  // assert(cstart == c_begin);
 
-  for(int r=rstart, i=i_start;r< r_end;r+=stride,++i){
-    int dr = ir-r;
-    assert(i == (r+padding)/stride);
-    for(int c=cstart, j=j_start;c< c_end;c+=stride, j++){
-      int dc = ic-c;
-      assert(j == (c+padding)/stride);
+  for(int r=r_begin, i=i_start;r < r_end;r+=stride,++i){
+    const int dr = ir-r;
+    const int drKc = dr*kC;
+    const int ioC  = i*output_C;
+    
+    // assert(i == (r+padding)/stride);
+    for(int c=c_begin, j=j_start;c < c_end;c+=stride, j++){
+      const int dc = ic-c;
+      // assert(j == (c+padding)/stride);
 
-      const int ocol = i*output_C+j;
+      const int ocol = ioC+j;
 
-      int old_ocol = (r+padding)/stride*(iC-kC+2*padding+1)/stride+(c+padding)/stride;
-      assert(ocol == old_ocol);
-      int orow = dr*kC+dc;
+      // int old_ocol = (r+padding)/stride*(iC-kC+2*padding+1)/stride+(c+padding)/stride;
+      // assert(ocol == old_ocol);
+      int orow = drKc+dc;
 
       int ocol2 = ocol + o_base_col;
       int orow2 = orow + o_base_row;
       // then write to ocol, orow
 
-      //      if(c >= -padding && c < (iC-kC+1)+padding && r >= -padding && r < (iR-kR+1)+padding)
-      if(c >= -padding && r >= -padding)
-        output[ocol2 + orow2*oC] = input;
+      // if(c >= -padding && c < (iC-kC+1)+padding && r >= -padding && r < (iR-kR+1)+padding)
+      // if(c >= -padding && r >= -padding)
+      output[ocol2 + orow2*oC] = input;
 
     }
   }
