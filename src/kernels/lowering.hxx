@@ -148,10 +148,10 @@ inline void _fmap_lower(float * output, const Block2D * const output_block, cons
   assert(rstart == r_begin);
   assert(cstart == c_begin);
 
-  for(int r=rstart, i=i_start;r<=ir;r+=stride,++i){
+  for(int r=rstart, i=i_start;r< r_end;r+=stride,++i){
     int dr = ir-r;
     assert(i == (r+padding)/stride);
-    for(int c=cstart, j=j_start;c<=ic;c+=stride, j++){
+    for(int c=cstart, j=j_start;c< c_end;c+=stride, j++){
       int dc = ic-c;
       assert(j == (c+padding)/stride);
 
@@ -165,10 +165,10 @@ inline void _fmap_lower(float * output, const Block2D * const output_block, cons
       int orow2 = orow + o_base_row;
       // then write to ocol, orow
 
-      if(c >= -padding && c < (iC-kC+1)+padding && r >= -padding && r < (iR-kR+1)+padding){
+      //      if(c >= -padding && c < (iC-kC+1)+padding && r >= -padding && r < (iR-kR+1)+padding)
+      if(c >= -padding && r >= -padding)
         output[ocol2 + orow2*oC] = input;
 
-      }
     }
   }
 }
