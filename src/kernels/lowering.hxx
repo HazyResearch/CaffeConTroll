@@ -26,8 +26,8 @@ void _f_inverse_lower_cube(void * input, void * output, void * const _arg, const
   const size_t padding = arg->padding;
   const int iR = arg->iR;
   const int iC = arg->iC;
-  const unsigned int iD = arg->iD;
-  const unsigned int iB = arg->iB;
+  const int iD = arg->iD;
+  const int iB = arg->iB;
 
   float * const input_data = (float *) input;
   const float * const output_data = (float *) output;
@@ -43,26 +43,23 @@ void _f_inverse_lower_cube(void * input, void * output, void * const _arg, const
       // cr and cc represent the row index and column index of the convolutional "window"
       // in the input gradient cube, which means that they must be incremented by stride
       for (size_t ib = 0; ib < iB; ++ib) {
-        const int batch_offset = ib*iR*iC*iD;
         for (size_t cr = 0; cr < stride * data_output_width; cr += stride) {
           const int input_row_index = cr + kr - padding;
-          if (input_row_index >= 0 && input_row_index < iR) {
-            const int row_offset = input_row_index*iC;
 
-            for (size_t cc = 0; cc < stride * data_output_height; cc += stride) {
-              const int input_col_index = cc + kc - padding;
+          for (size_t cc = 0; cc < stride * data_output_height; cc += stride) {
+            const int input_col_index = cc + kc - padding;
 
-              // (cr + kr - padding, cc + kc - padding) represents the index into
-              // the input gradient cube. If we aren't within [0, iR) and [0, iC)
-              // then we shouldn't update, because we are in the padded area
-              if (input_col_index >= 0 && input_col_index < iC) {
-                input_data[input_col_index + row_offset + batch_offset] += output_data[out_index];
-              }
-              // increment out_index regardless, a single cell from the output gradient cube
-              // can only make a single contribution to the input gradient cube (Remember: this
-              // is the *lowered* output gradient cube!)
-              ++out_index;
+            // (cr + kr - padding, cc + kc - padding) represents the index into
+            // the input gradient cube. If we aren't within [0, iR) and [0, iC)
+            // then we shouldn't update, because we are in the padded area
+            if (input_row_index >= 0 && input_row_index < iR  &&
+                input_col_index >= 0 && input_col_index < iC) {
+              input_data[input_col_index + input_row_index*iC + ib*iR*iC*iD] += output_data[out_index];
             }
+            // increment out_index regardless, a single cell from the output gradient cube
+            // can only make a single contribution to the input gradient cube (Remember: this
+            // is the *lowered* output gradient cube!)
+            ++out_index;
           }
         }
       }
@@ -73,7 +70,7 @@ void _f_inverse_lower_cube(void * input, void * output, void * const _arg, const
 #ifdef _GPU_TARGET
 __host__ __device__
 #endif
-inline void _fpmap_id(Block2D * const output_block, const Block2D * const input_block, const PMapHelper * const args) {
+inline void _fpmap_id(Block2D * const output_block, const Block2D * const input_block, const PMapHelper * const args){
   output_block->r = 0;
   output_block->c = 0;
   output_block->d = 0;
@@ -82,37 +79,25 @@ inline void _fpmap_id(Block2D * const output_block, const Block2D * const input_
   output_block->dc = args->kC;
 };
 
-inline void set_output(const int ic, const int c, const int i, const int j, const int padding_over_stride,
-    const int output_C, const int dr, const int kC, const int o_base_col, const int o_base_row,
-    const int oC, const float input, float * const output) {
-  int dc = ic - c;
-
-  int ocol = (i + padding_over_stride)*output_C + (j + padding_over_stride);
-  int orow = dr*kC + dc;
-
-  int ocol2 = ocol + o_base_col;
-  int orow2 = orow + o_base_row;
-  // then write to ocol, orow
-
-  output[ocol2 + orow2*oC] = input;
-}
-
+#ifdef _GPU_TARGET
+__host__ __device__
+#endif
 inline int next_multiple(int x, const int s) {
-  int m = x % s;
+  const int m = x % s;
   x += (x > 0 && m > 0) ? s - m : -m;
   return x;
 }
 
+
 #ifdef _GPU_TARGET
 __host__ __device__
 #endif
-inline void _fmap_lower(float * output, const Block2D * const output_block, const PointIn2DBlock * const input_point,
-    const PMapHelper * const args) {
+inline void _fmap_lower(float * output, const Block2D * const output_block, const PointIn2DBlock * const input_point, const PMapHelper * const args){
 
   const int ir = (int) input_point->r;
   const int ic = (int) input_point->c;
-  const int id = (int) input_point->block.d;
   const int ib = (int) input_point->block.b;
+  const int id = (int) input_point->block.d;
 
   const int kR = (int) args->kR;
   const int kC = (int) args->kC;
@@ -121,42 +106,69 @@ inline void _fmap_lower(float * output, const Block2D * const output_block, cons
   const int iB = (int) args->sB;
 
   const int padding = (int) args->padding;
-  const int stride = (int) args->stride;
+  const int stride = (int) args->stride; assert(stride > 0);
 
-  const int output_R = (iR - kR + 2*padding) / stride + 1;
-  const int output_C = (iC - kC + 2*padding) / stride + 1;
 
+  const int output_R = (iR - kR + 2*padding + 1) / stride ;
+  const int output_C = (iC - kC + 2*padding + 1) / stride ;
+
+  const int old_o_base_col = ib * (iR-kR+1+2*padding)/stride*(iC-kC+1+2*padding)/stride;
   const int o_base_col = ib * output_R * output_C;
+  
   const int o_base_row = id * kR * kC;
   const int oC = iB * output_R * output_C;
+  const int old_oC = iB * (iR-kR+1+2*padding)/stride*(iC-kC+1+2*padding)/stride;
+  assert(o_base_col == old_o_base_col);
+  assert(oC == old_oC);
 
   const float input = input_point->data;
 
-  const int padding_over_stride = padding / stride;
+  // Starting Code computation. TODO give a real comment here.
+    //int r_begin = next_multiple(std::max(ir - kR + 1 + padding, -padding), stride) - padding;
+  const int r_begin = next_multiple(ir - kR + 1 + padding, stride) - padding;
+  const int r_end   = std::min(ir + 1, (iR - kR + 1) + padding);
+  const int i_start = (r_begin + padding) / stride;
 
-  const int r_begin = next_multiple(std::max(ir - kR + 1, -padding), stride);
-  const int r_end   = std::min(ir, iR - kR + padding) + 1;
-  const int i_start = r_begin / stride;
+  //int c_begin = next_multiple(std::max(ic - kC + 1 + padding, -padding), stride) - padding;
+  int c_begin       = next_multiple(ic - kC + 1 + padding, stride) - padding;
+  const int c_end   = std::min(ic + 1, (iC - kC + 1) + padding);
+  const int j_start = (c_begin + padding) / stride;
 
-  const int c_begin = next_multiple(std::max(ic - kC + 1, -padding), stride);
-  const int c_end   = std::min(ic, (iC - kC) + padding) + 1;
-  const int j_start = c_begin / stride;
+  int rstart = (ir-kR+1) + padding + 100*stride;
+  int cstart = (ic-kC+1) + padding + 100*stride;
+  if(rstart % stride != 0){
+    rstart += (stride-rstart%stride);
+  }
+  if(cstart % stride != 0){
+    cstart += (stride-cstart%stride);
+  }
+  rstart = rstart - padding - 100*stride;
+  cstart = cstart - padding - 100*stride;
 
-  // Invariant: i is always equal to r/stride, since r is incremented by stride each time
-  for (int r = r_begin, i = i_start; r < r_end; r += stride, ++i) {
-    const int dr = ir - r;
-    // Invariant: j is always equal to c/stride, since c is incremented by stride each time
-    for (int c = c_begin, j = j_start; c < c_end; c += stride, ++j) {
-      const int dc = ic - c;
+  assert(rstart == r_begin);
+  assert(cstart == c_begin);
 
-      const int ocol = (i + padding_over_stride)*output_C + (j + padding_over_stride);
-      const int orow = dr*kC + dc;
+  for(int r=rstart, i=i_start;r<=ir;r+=stride,++i){
+    int dr = ir-r;
+    assert(i == (r+padding)/stride);
+    for(int c=cstart, j=j_start;c<=ic;c+=stride, j++){
+      int dc = ic-c;
+      assert(j == (c+padding)/stride);
 
-      const int ocol2 = ocol + o_base_col;
-      const int orow2 = orow + o_base_row;
+      const int ocol = i*output_C+j;
+
+      int old_ocol = (r+padding)/stride*(iC-kC+2*padding+1)/stride+(c+padding)/stride;
+      assert(ocol == old_ocol);
+      int orow = dr*kC+dc;
+
+      int ocol2 = ocol + o_base_col;
+      int orow2 = orow + o_base_row;
       // then write to ocol, orow
 
-      output[ocol2 + orow2*oC] = input;
+      if(c >= -padding && c < (iC-kC+1)+padding && r >= -padding && r < (iR-kR+1)+padding){
+        output[ocol2 + orow2*oC] = input;
+
+      }
     }
   }
 }
@@ -164,7 +176,7 @@ inline void _fmap_lower(float * output, const Block2D * const output_block, cons
 #ifdef _GPU_TARGET
 __host__ __device__
 #endif
-inline void _fmap_remap(float * output, const Block2D * const output_block, const PointIn2DBlock * const input_point, const PMapHelper * const args) {
+inline void _fmap_remap(float * output, const Block2D * const output_block, const PointIn2DBlock * const input_point, const PMapHelper * const args){
   const size_t ir = input_point->r;
   const size_t ic = input_point->c;
   const size_t ib = input_point->block.b;
