@@ -51,13 +51,14 @@ void _f_inverse_lower_cube(void * input, void * output, void * const _arg, const
         for (size_t cr = 0; cr < stride * data_output_width; cr += stride) {
           const int input_row_index = cr + kr - padding;
 
-          if (input_row_index >= 0 && input_row_index < iR) {
+          // if (input_row_index >= 0 && input_row_index < iR) {
             const int row_offset = input_row_index*iC;
 
             for (size_t cc = 0; cc < stride * data_output_height; cc += stride) {
               const int input_col_index = cc + kc - padding;
 
-              if (input_col_index >= 0 && input_col_index < iC) {
+              if (input_row_index >= 0 && input_row_index < iR &&
+                  input_col_index >= 0 && input_col_index < iC) {
                 input_data[input_col_index + row_offset + batch_offset] += output_data[out_index];
               }
               // increment out_index regardless, a single cell from the output gradient cube
@@ -65,9 +66,9 @@ void _f_inverse_lower_cube(void * input, void * output, void * const _arg, const
               // is the *lowered* output gradient cube!)
               ++out_index;
             }
-          } else {
-            out_index += data_output_height; // if we skip this row, we need still need to update out_index
-          }
+          // } else {
+            //out_index += data_output_height; // if we skip this row, we need still need to update out_index
+          // }
         }
       }
     }
