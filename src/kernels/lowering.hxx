@@ -97,10 +97,17 @@ inline void set_output(const int ic, const int c, const int i, const int j, cons
   output[ocol2 + orow2*oC] = input;
 }
 
+inline int next_multiple(int x, const int s) {
+  int m = x % s;
+  x += (x > 0 && m > 0) ? s - m : -m;
+  return x;
+}
+
 #ifdef _GPU_TARGET
 __host__ __device__
 #endif
-inline void _fmap_lower(float * output, const Block2D * const output_block, const PointIn2DBlock * const input_point, const PMapHelper * const args) {
+inline void _fmap_lower(float * output, const Block2D * const output_block, const PointIn2DBlock * const input_point,
+    const PMapHelper * const args) {
 
   const int ir = (int) input_point->r;
   const int ic = (int) input_point->c;
@@ -125,83 +132,33 @@ inline void _fmap_lower(float * output, const Block2D * const output_block, cons
 
   const float input = input_point->data;
 
-  int rstart = (ir - kR + 1) + padding + 100*stride;
-  int cstart = (ic - kC + 1) + padding + 100*stride;
-
-  if (rstart % stride != 0) {
-    rstart += (stride - (rstart % stride));
-  }
-  if (cstart % stride != 0) {
-    cstart += (stride - (cstart % stride));
-  }
-
-  rstart = rstart - padding - 100*stride;
-  cstart = cstart - padding - 100*stride;
-
   const int padding_over_stride = padding / stride;
 
-  const int r_begin = std::max(rstart, -padding); // TODO: this needs to be modded just like from above
-  const int r_end   = std::min(ir, (iR - kR + 1) + padding);
+  const int r_begin = next_multiple(std::max(ir - kR + 1, -padding), stride);
+  const int r_end   = std::min(ir, iR - kR + padding) + 1;
   const int i_start = r_begin / stride;
 
-  const int c_begin = std::max(cstart, -padding); // TODO: this needs to be modded just like from above
-  const int c_end   = std::min(ic, (iC - kC + 1) + padding);
+  const int c_begin = next_multiple(std::max(ic - kC + 1, -padding), stride);
+  const int c_end   = std::min(ic, (iC - kC) + padding) + 1;
   const int j_start = c_begin / stride;
 
   // Invariant: i is always equal to r/stride, since r is incremented by stride each time
-  for (int r = r_begin, i = i_start; r <= r_end; r += stride, ++i) {
-    int dr = ir - r;
+  for (int r = r_begin, i = i_start; r < r_end; r += stride, ++i) {
+    const int dr = ir - r;
     // Invariant: j is always equal to c/stride, since c is incremented by stride each time
-    for (int c = c_begin, j = j_start; c <= c_end; c += stride, ++j) {
-      int dc = ic - c;
+    for (int c = c_begin, j = j_start; c < c_end; c += stride, ++j) {
+      const int dc = ic - c;
 
-      assert (i + padding_over_stride == (r + padding) / stride);
-      assert (j + padding_over_stride == (c + padding) / stride);
-      int ocol = (i + padding_over_stride)*output_C + (j + padding_over_stride);
-      int orow = dr*kC + dc;
+      const int ocol = (i + padding_over_stride)*output_C + (j + padding_over_stride);
+      const int orow = dr*kC + dc;
 
-      int ocol2 = ocol + o_base_col;
-      int orow2 = orow + o_base_row;
+      const int ocol2 = ocol + o_base_col;
+      const int orow2 = orow + o_base_row;
       // then write to ocol, orow
 
       output[ocol2 + orow2*oC] = input;
     }
   }
-
-  /**
-   * Consider the case where stride = 4, and r_begin = -2.
-   * r        | -2 | 2 | 6
-   * r/stride |  0 | 0 | 1
-   * i        |  0 | 1 | 2
-   *
-   * To correct this without using division inside the loop, we split the loop into two:
-   * The first loop is strictly for negative values of r, and the second loop
-   * is strictly non-negative for values of r. Now, we have the invariant that
-   * i is always equal to r/stride, since r is incremented by stride each time,
-   * and j is always equal to c/stride, since c is incremented by stride each time.
-   */
-  // int r = r_begin;
-  // for (int i = i_start; r <= 0; r += stride, ++i) {
-  //   int dr = ir - r;
-  //   int c = c_begin;
-  //   for (int j = j_start; c <= 0; c += stride, ++j) {
-  //     set_output(ic, c, i, j, padding_over_stride, output_C, dr, kC, o_base_col, o_base_row, oC, input, output);
-  //   }
-  //   for (int j = 0; c <= c_end; c += stride, ++j) {
-  //     set_output(ic, c, i, j, padding_over_stride, output_C, dr, kC, o_base_col, o_base_row, oC, input, output);
-  //   }
-  // }
-  // for (int i = 0; r <= r_end; r += stride, ++i) {
-  //   int dr = ir - r;
-  //   int c = c_begin;
-  //   for (int j = j_start; c <= 0; c += stride, ++j) {
-  //     set_output(ic, c, i, j, padding_over_stride, output_C, dr, kC, o_base_col, o_base_row, oC, input, output);
-  //   }
-  //   for (int j = 0; c <= c_end; c += stride, ++j) {
-  //     set_output(ic, c, i, j, padding_over_stride, output_C, dr, kC, o_base_col, o_base_row, oC, input, output);
-  //   }
-  // }
-
 }
 
 #ifdef _GPU_TARGET
