@@ -42,7 +42,7 @@ __global__ void _spmap(float * dst, float * src, int numElements, int srcSkip,
   src_idx = i;
   if(src_idx < numElements*srcSkip){
     dst_idx = idx_func(src_idx, idx_func_curry);
-    func(&dst[dst_idx/sizeof(float)], &src[src_idx/sizeof(float)], func_curry);
+    func(&dst[dst_idx/sizeof(float)], &src[src_idx/sizeof(float)], func_curry, dst_idx/sizeof(float));
   }
 }
 

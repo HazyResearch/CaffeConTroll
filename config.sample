@@ -13,6 +13,8 @@
 
 # C compiler
 CC=clang++ 
+# CUDA compiler
+NVCC=
 
 # absolute path to CcT
 CCT=

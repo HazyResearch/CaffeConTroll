@@ -5,7 +5,7 @@
 #include "lowering.h"
 
 #ifdef _GPU_TARGET
-__host__ __device__
+inline __host__ __device__ // Inline to prevent multiple definitions
 #endif
 size_t _f_src_to_dst_inverse_lower_cube(size_t src_pos, void * const _arg) {
   const _inverse_lower_cube_arg_helper * const arg = (_inverse_lower_cube_arg_helper *) _arg;
@@ -14,7 +14,7 @@ size_t _f_src_to_dst_inverse_lower_cube(size_t src_pos, void * const _arg) {
 }
 
 #ifdef _GPU_TARGET
-__host__ __device__
+inline __host__ __device__ // Inline to prevent multiple definitions
 #endif
 void _f_inverse_lower_cube(void * input, void * output, void * const _arg, const size_t dst_index) {
 

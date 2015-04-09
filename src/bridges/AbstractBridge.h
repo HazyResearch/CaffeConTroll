@@ -448,10 +448,10 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
 
     // This needs to be virtual, so we can delete the subclass bridges
     virtual ~AbstractBridge() {
-      delete input_d_cube;
-      delete input_g_cube;
-      delete output_d_cube;
-      delete output_g_cube;
+      delete input_d_cube; input_d_cube = NULL;
+      delete input_g_cube; input_g_cube = NULL;
+      delete output_d_cube; output_d_cube = NULL;
+      delete output_g_cube; output_g_cube = NULL;
     }
 };
 #endif // _GPU_TARGET

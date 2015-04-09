@@ -19,7 +19,11 @@ inline void _f_relu_forward(void * input, void * output, void * const _arg,
   float * const input_data = (float *) input;
   float * const output_data = (float *) output;
 
-  output_data[0] = std::max<float>(input_data[0], 0.);
+  if (input_data[0] >= 0.) {
+    output_data[0] = input_data[0];
+  } else {
+    output_data[0] = 0.;
+  }
 }
 
 #ifdef _GPU_TARGET

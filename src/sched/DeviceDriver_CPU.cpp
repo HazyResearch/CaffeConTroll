@@ -56,10 +56,11 @@ inline void _spmap_cpu(float* const dst, float * const src, PMapHelper args,
 
   PointIn2DBlock point;
   point.block = input_block;
-  assert(args.sR * args.sC * (args.sD * input_block.b + input_block.d) +
-    datar * args.sC + datac < args.sR * args.sC * args.sD * args.sB
-      );
-
+#ifdef _DO_ASSERT
+  assert(args.sR * args.sC * args.sD * args.sB > args.sR * args.sC * (args.sD * input_block.b + input_block.d) +
+    datar * args.sC +
+    datac);
+#endif
   point.data = src[
     args.sR * args.sC * (args.sD * input_block.b + input_block.d) +
     datar * args.sC +
