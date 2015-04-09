@@ -88,6 +88,15 @@ inline int next_multiple(int x, const int s) {
   return x;
 }
 
+// return smallest j >= 0 such that x + j*stride >= p
+inline int next_largest_multiple(const int x, const int p, const int stride) {
+  if(x >= p) return x;
+  const int q = (p - x)/stride;
+  int y       = x + q*stride;
+  if(y < p) { y += stride; }
+  return y;
+}
+ 
 
 #ifdef _GPU_TARGET
 __host__ __device__
@@ -116,6 +125,7 @@ inline void _fmap_lower(float * output, const Block2D * const output_block, cons
   
   const int o_base_row = id * kR * kC;
   const int oC = iB * output_R * output_C;
+  
   // Old indexing code
   // const int old_o_base_col = ib * (iR-kR+1+2*padding)/stride*(iC-kC+1+2*padding)/stride;
   // const int old_oC = iB * (iR-kR+1+2*padding)/stride*(iC-kC+1+2*padding)/stride;
@@ -126,13 +136,20 @@ inline void _fmap_lower(float * output, const Block2D * const output_block, cons
 
   // Starting Code computation. TODO give a real comment here.
   int r_begin = next_multiple(ir - kR + 1 + padding, stride) - padding;
-  while(r_begin < -padding) r_begin += stride;// TODO: remove while loop!
-  
+  r_begin     = next_largest_multiple(r_begin, -padding, stride);
   const int r_end   = std::min(ir + 1, (iR - kR + 1) + padding);
+  // assert(r + padding >= 0);
+  // Note that r+padding >= 0 since r >= r_begin >= -padding.
+  // This is an important invariant for the blocking optimization below.
+  // To see why, if r+padding were allowed to be negative, then set stride= 4, padding = 0, r = -2
+  // r = -2, 2, 6 
+  // i = 0, 1, 2
+  // r/stride = 0, 0, 1 <-- we would count incorrectly around 0.
+
   const int i_start = (r_begin + padding) / stride; 
 
   int c_begin       = next_multiple(ic - kC + 1 + padding, stride) - padding;
-  while(c_begin < -padding) r_begin += stride; // remove while loop to use modern division technology...
+  c_begin           = next_largest_multiple(c_begin, -padding, stride);
   
   const int c_end   = std::min(ic + 1, (iC - kC + 1) + padding);
   const int j_start = (c_begin + padding) / stride;
@@ -152,6 +169,11 @@ inline void _fmap_lower(float * output, const Block2D * const output_block, cons
   // assert(rstart == r_begin);
   // assert(cstart == c_begin);
 
+  // Hence, 
+  // Why doesn't this come up in the current code?
+  // This example seems legal since r_begin >= -padding. 
+ 
+  
   for(int r=r_begin, i=i_start;r < r_end;r+=stride,++i){
     const int dr = ir-r;
     const int drKc = dr*kC;
