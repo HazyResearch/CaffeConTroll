@@ -51,8 +51,9 @@ OBJ_FILES = $(patsubst %.cpp,%.o,$(SRC))
 TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest -lpthread 
 TEST_SOURCES = src/DeepNet.cpp src/bridges/PhysicalStratum_impl.cpp \
 	       src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp tests/test_main.cpp \
-	       tests/test_lenet_network.cpp
-	       #tests/test_lrn_bridge.cpp \
+	       tests/test_perf_convolution.cpp \
+	       #tests/test_lenet_network.cpp \
+	       tests/test_lrn_bridge.cpp \
 	       tests/test_ReLU_bridge.cpp \
 	       tests/test_MaxPooling_bridge.cpp \
 	       tests/test_connector.cpp \
@@ -92,9 +93,13 @@ profile: CFLAGS += -D_DETAILED_PROFILING -D_FASTPOW  $(PRODUCT_FLAGS)
 profile: $(OBJ_FILES) cnn.pb.o
 	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
-test: CFLAGS += -D_DETAILED_PROFILING $(PRODUCT_FLAGS) -I $(GTEST_INCLUDE)
+test: CFLAGS += $(PRODUCT_FLAGS) -I $(GTEST_INCLUDE)
 test: $(TEST_OBJ_FILES) cnn.pb.o 
 	$(CC) $^ -o $(TEST_EXECUTABLE) $(CFLAGS) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB) 
+
+test_profile: CFLAGS += -D_DETAILED_PROFILING $(PRODUCT_FLAGS) -I $(GTEST_INCLUDE)
+test_profile: $(TEST_OBJ_FILES) cnn.pb.o
+	$(CC) $^ -o $(TEST_EXECUTABLE) $(CFLAGS) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB)
 
 snapshot: CFLAGS += $(PRODUCT_FLAGS) -I $(GTEST_INCLUDE)
 snapshot: $(SNAPSHOT_OBJ_FILES) cnn.pb.o
