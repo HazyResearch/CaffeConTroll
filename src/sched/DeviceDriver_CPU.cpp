@@ -48,11 +48,8 @@ inline void _spmap_cpu(float* const dst, float * const src, PMapHelper args,
   Block2D output_block;
   f_id(&output_block, &input_block, &args);
 
-  // const size_t datar = thread_y + input_block.r * args.sR;
   const size_t datar = thread_y + input_block.r * args.sBR;
-  // const size_t datac = thread_x + input_block.c * args.sC;
   const size_t datac = thread_x + input_block.c * args.sBC;
-  // std::cout << "datar: " << datar << ", datac: " << datac << std::endl;
 
   PointIn2DBlock point;
   point.block = input_block;

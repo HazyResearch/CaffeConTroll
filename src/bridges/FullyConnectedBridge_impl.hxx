@@ -128,7 +128,7 @@ void FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverCl
 forward() {
   p_driver->set_num_threads(run_with_n_threads);
 
-  PROFILE_ONLY(Timer t; float seconds_elapsed = 0.;)
+  // PROFILE_ONLY(Timer t; float seconds_elapsed = 0.;)
   // Copy input to device memory
   AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(input_d_cube,
       p_input_layer->p_data_cube);
@@ -139,7 +139,7 @@ forward() {
         output_d_cube, p_output_layer->p_data_cube
         );
   }
-  PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "PROFILE device copy: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
+  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "FC PROFILE Forward Device Copy: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
 
   report_forward_last_transfer.reset();
 
@@ -157,11 +157,11 @@ forward() {
 
   // (1) do the lowering
   p_forward_lower_connector->lower_cube(input_d_cube, p_forward_lowered_data);
-  PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "PROFILE Lowering: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
+  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "FC PROFILE Forward Lowering: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
 
   // (2) call GEMM kernel
   p_forward_gemm_kernel->compute(&lowered_model, p_forward_lowered_data, &lowered_output);
-  PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "PROFILE Kernel: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
+  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "FC PROFILE Forward Kernel: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
 
   // Right now the output we get is of the form:
   // [(b_0, d_0), (b_1, d_0), ... , (b_n, d_0)
@@ -176,7 +176,7 @@ forward() {
   //  inputs so that we get the correct output without
   //  needing to call remap
   p_forward_lower_connector->remap_output(*output_d_cube, num_output_features, iB, oR*oC);
-  PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "PROFILE Remap: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
+  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "FC PROFILE Forward Remap: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
 
   // add bias
   if (bias_term) {
@@ -199,6 +199,7 @@ forward() {
     p_driver->template parallel_map<_f_src_to_dst_bias_forward,
       _f_bias_forward>(bias, output, _arg1.src_skip, arg1, arg2);
   }
+  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "FC PROFILE Forward Bias: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
   ////////////////////////////////////////////////////////////////////////////////
 
   // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy output to host memory here
