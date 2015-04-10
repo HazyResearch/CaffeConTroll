@@ -49,11 +49,11 @@ MAIN_CUDA_SOURCES = src/sched/DeviceDriver_GPU.cu
 MAIN_CUDA_OBJ_FILES = $(patsubst %.cu,%.o,$(MAIN_CUDA_SOURCES))
 
 # SOURCE FILE FOR TEST
-#TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest -lpthread 
 TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest
 TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.cpp \
 	       src/sched/DeviceDriver_CPU.cpp \
-	       tests/test_parallelized_convolution.cpp \
+	       tests/test_perf_convolution.cpp \
+	       #tests/test_parallelized_convolution.cpp \
 	       tests/test_grouping.cpp \
 	       tests/test_model_write.cpp \
 	       tests/test_fc_bridge.cpp \

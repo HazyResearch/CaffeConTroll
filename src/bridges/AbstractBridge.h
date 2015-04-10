@@ -64,7 +64,7 @@ class AbstractBridge : public PhysicalOperator {
 
     void report_forward() {
         std::cout << std::endl;
-        std::cout << "## FOWARD REPORT OF LAYER " << name << " ##" << std::endl;
+        std::cout << "## FORWARD REPORT OF LAYER " << name << " ##" << std::endl;
         report_forward_last_transfer.print();
     }
 
@@ -206,7 +206,7 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
 
     void report_forward() {
         std::cout << std::endl;
-        std::cout << "## FOWARD REPORT OF LAYER " << name << " ##" << std::endl;
+        std::cout << "## FORWARD REPORT OF LAYER " << name << " ##" << std::endl;
         report_forward_last_transfer.print();
     }
 
@@ -360,7 +360,7 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
 
     void report_forward() {
         std::cout << std::endl;
-        std::cout << "## FOWARD REPORT OF LAYER " << name << " ##" << std::endl;
+        std::cout << "## FORWARD REPORT OF LAYER " << name << " ##" << std::endl;
         report_forward_last_transfer.print();
     }
 

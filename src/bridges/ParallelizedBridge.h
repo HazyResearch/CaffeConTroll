@@ -98,6 +98,7 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
         return p_grad_updater_bias;
     }
 
+    vector<BridgeType *> _bridges; // TODO: move this back to protected, create a getter
   protected:
     vector<LogicalCubeType *> _data_cubes_lower;
     vector<LogicalCubeType *> _grad_cubes_lower;
@@ -108,7 +109,6 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     vector<LayerType *> _partitioned_layers_lower;
     vector<LayerType *> _partitioned_layers_higher;
 
-    vector<BridgeType *> _bridges;
 
     PhysicalStratum stratum;
 };

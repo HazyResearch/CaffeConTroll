@@ -148,7 +148,7 @@ void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Data
 forward() {
   p_driver->set_num_threads(run_with_n_threads);
 
-  PROFILE_ONLY(Timer t; float seconds_elapsed = 0.;)
+  // PROFILE_ONLY(Timer t; float seconds_elapsed = 0.;)
   // Copy input to device memory
   AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(input_d_cube,
       p_input_layer->p_data_cube);
@@ -159,7 +159,7 @@ forward() {
         output_d_cube, p_output_layer->p_data_cube
         );
   }
-  PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Forward Device Copy: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
+  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Forward Device Copy: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
 
   report_forward_last_transfer.reset();
 
@@ -177,11 +177,11 @@ forward() {
 
   // (1) do the lowering
   p_forward_lower_connector->lower_cube(input_d_cube, p_forward_lowered_data);
-  PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Forward Lowering: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
+  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Forward Lowering: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
 
   // (2) call GEMM kernel
   p_forward_gemm_kernel->compute(&lowered_model, p_forward_lowered_data, &lowered_output);
-  PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Forward Kernel: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
+  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Forward Kernel: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
 
   // (3) apply non-linear functions
   if (FUNC != FUNC_NOFUNC) {
@@ -201,7 +201,7 @@ forward() {
   //  inputs so that we get the correct output without
   //  needing to call remap
   p_forward_lower_connector->remap_output(*output_d_cube, num_output_features, iB, oR*oC);
-  PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Forward Remap: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
+  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Forward Remap: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
 
   // TODO Refactor the following code into another module
   // This code is here mainly to speed-up the refactoring
@@ -227,7 +227,7 @@ forward() {
     p_driver->template parallel_map<_f_src_to_dst_bias_forward,
       _f_bias_forward>(bias, output, _arg1.src_skip, arg1, arg2);
   }
-  PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Forward Bias: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
+  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Forward Bias: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
   ////////////////////////////////////////////////////////////////////////////////
 
   // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy output to host memory here
@@ -274,7 +274,7 @@ void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Data
 backward() {
   p_driver->set_num_threads(run_with_n_threads);
 
-  PROFILE_ONLY(Timer t; float seconds_elapsed = 0.;)
+  // PROFILE_ONLY(Timer t; float seconds_elapsed = 0.;)
   // Copy output grad to device memory
   AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(output_g_cube,
       p_output_layer->p_gradient_cube);
@@ -285,7 +285,7 @@ backward() {
         input_g_cube, p_input_layer->p_gradient_cube
         );
   }
-  PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Backward Device Copy: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
+  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Backward Device Copy: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
 
   report_backward_updateweight_last_transfer.reset();
 
@@ -318,26 +318,26 @@ backward() {
     p_driver->template parallel_map<_f_src_to_dst_bias_backward,
       _f_bias_backward>(bias, output, _arg1.src_skip, arg1, arg2);
   }
-  PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Backward Bias: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
+  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Backward Bias: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
 
   // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
   p_forward_lower_connector->remap_output(*output_g_cube, oB, num_output_features, oR*oC);
-  PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Backward Remap: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
+  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Backward Remap: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
 
   if (needs_to_calc_backward_grad) {
     //    - 2.1 GEMM between the gradient of output and old kernel
     p_backward_gemm_updategrad_kernel->compute(&lowered_model, &lowered_outputgrad, p_backward_inputgrad);
-    PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Backward Grad Kernel: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
+    // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Backward Grad Kernel: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
     //    - 2.2 undo the lowering (i.e., sum together all grad corresponding to the same unlowered position)
     p_forward_lower_connector->inverse_lower_cube(p_backward_inputgrad, input_g_cube);
-    PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Backward Grad Inverse Lower: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
+    // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Backward Grad Inverse Lower: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
   }
 
   // (4) calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
   p_backward_gemm_updateweight_kernel->alpha = 1.0;
   p_backward_gemm_updateweight_kernel->beta = 0.0;
   p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model_grad);
-  PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Backward Weight Kernel: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
+  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Backward Weight Kernel: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
 
   report_backward_updateweight_last_transfer.end();
 
