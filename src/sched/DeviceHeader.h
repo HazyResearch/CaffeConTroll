@@ -5,7 +5,10 @@
 
 #include "DeviceMemoryPointer.h"
 #include "cblas.h"
-
+#include "../util.h"
+#ifdef _DETAILED_PROFILING
+#include "../timer.h"
+#endif
 
 /**
  * We use C style function pointer here just becauses
@@ -19,7 +22,7 @@ typedef void (*FUNC_MM_MAPPING) (void *, void *, void * const, size_t);
 typedef float (*FUNC_STRANSFORM) (float, void * const);
 typedef float (*FUNC_SREDUCE) (float, float, void * const);
 
-struct PMapHelper{
+struct PMapHelper {
   size_t dR, dC, dD, dB;  // dst RCDB
   size_t sR, sC, sD, sB;  // src RCDB
   size_t dBR, dBC;  // dst block
@@ -31,12 +34,12 @@ struct PMapHelper{
   size_t padding;
 };
 
-struct Block2D{
+struct Block2D {
   size_t r, c, d, b;
   size_t dr, dc;
 };
 
-struct PointIn2DBlock{
+struct PointIn2DBlock {
   float data;
   size_t r, c;
   Block2D block;

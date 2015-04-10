@@ -39,8 +39,4 @@ class Timer {
     float elapsed();
 };
 
-
-
-
-
 #endif
