@@ -100,6 +100,38 @@ void Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
    K = i1R; // A is transposed
    LDA = i1C; // A is transposed
    LDB = i2C; // not transposed
+  } else if (KERNELCONFIG == KernelConfig_GEMM_NOTRANS_TRANS_NO_DIM_FLIP) {
+   TA = CblasNoTrans;
+   TB = CblasTrans;
+   M = i1R; // Don't change dimensions
+   N = i2C;
+   K = i1C;
+   LDA = i1C; // columns in A
+   LDB = i1C; // B is transposed
+  } else if (KERNELCONFIG == KernelConfig_GEMM_TRANS_NO_DIM_FLIP_NOTRANS) {
+   TA = CblasTrans;
+   TB = CblasNoTrans;
+   M = i1R; // Don't change dimensions
+   N = i2C;
+   K = i1C;
+   LDA = i2C; // A is transposed
+   LDB = i2C; // not transposed
+  } else if (KERNELCONFIG == KernelConfig_GEMM_NOTRANS_NOTRANS_DIM_FLIP) {
+   TA = CblasNoTrans;
+   TB = CblasNoTrans;
+   M = i1R; // A is not transposed
+   N = i2R; // B is transposed
+   K = i1C; // cols in A not transposed
+   LDA = i1C; // columns in A
+   LDB = i2R; // B is transposed
+  } else if (KERNELCONFIG == KernelConfig_GEMM_NOTRANS_DIM_FLIP_NOTRANS) {
+   TA = CblasNoTrans;
+   TB = CblasNoTrans;
+   M = i1C; // A is transposed
+   N = i2C; // B is not transposed
+   K = i1R; // A is transposed
+   LDA = i1R; // A is transposed
+   LDB = i2C; // not transposed
   }
 
   // we reverse A and B here by default

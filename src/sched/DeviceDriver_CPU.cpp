@@ -95,9 +95,63 @@ inline void CPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMem
 
 }
 
-void CPUDriver::lower_cube(DeviceMemoryPointer * const input, DeviceMemoryPointer * const output, const size_t kernel_size,
-    const size_t stride, const size_t padding) {
+// Type 1 lowering as defined in the paper
+// Note the result D_hat is transposed compared to the expected format
+void CPUDriver::lower_cube
+(
+    DeviceMemoryPointer * const device_mem_ptr_D,
+    DeviceMemoryPointer * const device_mem_ptr_D_lowered,
+    const int n,
+    const int d,
+    const int k,
+    const int s,
+    const int p,
+    const int b
+)
+{
+    // Implement equation 4 of
+    // "Formulation of Type 1 Lowering with Padding and Stride"
+    // Optimizations are possible, e.g. lifting out padding checks and blocking loops
+    float * const D = (float *)device_mem_ptr_D->ptr;
+    float * const D_lowered = (float *)device_mem_ptr_D_lowered->ptr;
 
+    const int m = (n + 2*p - k) / s + 1;
+    
+    // TODO: Can re-order loops below for better blocking
+    
+    // Top of equation 4 (for bi, r and c in ...)
+    for (int bi=0; bi<b; ++bi) {
+        for (int r=0; r<m; ++r) {
+            for (int c=0; c<m; ++c) {
+            
+                // Get the row of D_lowered
+                // This is the left hand side of equation 4
+                float *current_row = &(D_lowered[(bi*m*m + r*m + c)*k*k*d]);
+
+                // Calculate the right hand side of equation 4 by concatenating
+                // the k*k*d cube of D
+                for (int Dd=0; Dd<d; ++Dd) {
+                    for (int Dr=0; Dr<k; ++Dr) {
+                        // Do edge checks for padding
+                        // TODO: Hoist these out
+                        if ( (r*s-p+Dr) >= 0 && (r*s-p+Dr) < n ) {
+                            for (int Dc=0; Dc<k; ++Dc) {
+                                if ( (c*s-p+Dc) >= 0 && (c*s-p+Dc) < n ) {
+                                    current_row[Dd*k*k + Dr*k + Dc] = D[bi*n*n*d + Dd*n*n + (r*s-p+Dr)*n + (c*s-p+Dc)];
+                                } else {
+                                    current_row[Dd*k*k + Dr*k + Dc] = 0;
+                                }
+                            }
+                        } else {
+                            for (int Dc=0; Dc<k; ++Dc) {
+                                current_row[Dd*k*k + Dr*k + Dc] = 0;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 template<FUNC_IDX_MAPPING f_dst_pos, FUNC_MM_MAPPING func>

@@ -1,0 +1,183 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\setlength\parindent{0pt}
+
+\title{Formulation of Type 1 Lowering with Padding and Stride}
+\author{}
+\date{April 2015}
+
+\begin{document}
+
+\maketitle
+
+\section{Notation}
+
+The following notation is used throughout this document:\\
+
+$\widehat{D} \in \mathbb{R}^{m^2 b \times k^2 d}, \widehat{K} \in \mathbb{R}^{k^2 d \times o},$ and $\widehat{R} = \widehat{D} \times \widehat{K} \in \mathbb{R}^{m^2 b \times o}$,\\
+
+$\widehat{D}, \widehat{K}$ and $\widehat{R}$ are the (type 1) lowered versions of $D, K, $ and $R$ respectively. $D \in \mathbb{R}^{n \times n \times d \times b}, K \in \mathbb{R}^{k \times k \times d \times o},$ and $R \in \mathbb{R}^{m \times m \times o \times b}$. \\
+
+In words, $n \times n$ is the size of an input feature map of $D$, and $d$ is the depth of a cube of $D$ and $K$. $b$ is the batch size or number of $n \times n \times d$ cubes in $D$. $o$ is the number of output feature maps, or the depth of a single cube in $R$. The number of cubes in $R$ is also $b$. $m$ is given by the following equation,
+
+\begin{equation} \label{eq_for_m}
+\begin{split}
+m = \frac{n + 2p - k}{s} + 1
+\end{split}
+\end{equation}
+
+where $p$ is the padding and $s$ is the stride.
+
+\section{Running Example}
+
+The formulations presented in this document reference the following example of $D$, in which $n=4$, $d=1$, and $b=1$.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lllll}
+a & b & c & d  \\
+e & f & g & h  \\
+i & j & k & l  \\
+m & n & o & p  
+\end{tabular}
+\end{table}
+
+The kernel cube always has $k=2$ and $o=1$. These simplifications allow the focus of the examples to be the impact of padding and stride on $\widehat{D}$. Moreover in all cases $\widehat{K}$ and $\widehat{R}$ require trivial lifting, and it is always true that $\widehat{R} = \widehat{D} \times \widehat{K}$, so the examples will focus on the formulation of $\widehat{D}$ only.
+
+
+\section{No padding, stride=1}
+
+First consider the case of $p=0$ and $s=1$. Then $m = \frac{n+2p-k}{s}+1 = n-k+1$. For $r, c \in 0, \ldots, m-1$, and $b_i \in 0, \ldots, b-1$,
+
+\begin{equation} \label{eq_for_no_p_or_s}
+\begin{split}
+\widehat{D}[b_i m^2 + rm + c, :] = \textbf{vec}(D[r:r+k,c:c+k,:,b_i])
+\end{split}
+\end{equation}
+
+Revisiting the example, $\widehat{D} =$
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lllll}
+a & b & e & f \\
+b & c & f & g \\
+c & d & g & h \\
+e & f & i & j \\
+f & g & j & k \\
+g & h & k & l \\
+i & j & m & n \\
+j & k & n & o \\
+k & l & o & p
+\end{tabular}
+\end{table}
+
+\section{Stride $\geq 1$}
+
+Including arbitrary stride $s \geq 1$ into equation~\ref{eq_for_no_p_or_s}, for $r, c \in 0, \ldots, m-1$, and $b_i \in 0, \ldots, b-1$,
+
+\begin{equation} \label{eq_for_no_p}
+\begin{split}
+\widehat{D}[b_i m^2 + rm + c, :] = \textbf{vec}(D[rs:rs+k,cs:cs+k,:,b_i])
+\end{split}
+\end{equation}
+
+Note that $m$ has also changed according to equation~\ref{eq_for_m}. Also notice in the example that this amounts to eliminating certain rows from $\widehat{D}$, shown here for $s=2$:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lllll}
+a & b & e & f \\
+c & d & g & h \\
+i & j & m & n \\
+k & l & o & p
+\end{tabular}
+\end{table}
+
+\section{Stride $\geq 1$ and Padding $\geq 0$}
+
+Including arbitrary padding $p \geq 0$ into equation~\ref{eq_for_no_p}, for $r, c \in 0, \ldots, m-1$, and $b_i \in 0, \ldots, b-1$,
+
+\begin{equation} \label{eq_with_p_and_s}
+\begin{split}
+\widehat{D}[b_i m^2 + rm + c, :] = \textbf{vec}(D[rs-p:rs-p+k,cs-p:cs-p+k,:,b_i])
+\end{split}
+\end{equation}
+
+Note that this is true only when the check is in-bounds. Otherwise, that element of $\widehat{D}$ is equal to zero.
+
+\section{Examples}
+
+These examples are generated using \texttt{pad\_stride\_example.py} and checked by hand.
+
+\subsection{p=1,s=2}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lllll}
+0 & 0 & 0 & a \\
+0 & 0 & b & c \\
+0 & 0 & d & 0 \\
+0 & e & 0 & i \\
+f & g & j & k \\
+h & 0 & l & 0 \\
+0 & m & 0 & 0 \\
+n & o & 0 & 0 \\
+p & 0 & 0 & 0
+\end{tabular}
+\end{table}
+
+\subsection{p=1,s=3}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lllll}
+0 & 0 & 0 & a \\
+0 & 0 & c & d \\
+0 & i & 0 & m \\
+k & l & o & p
+\end{tabular}
+\end{table}
+
+\subsection{n=5,k=3,d=b=o=1,p=2,s=2}
+
+For this example $D = $
+
+\begin{table}[h]
+\centering
+\begin{tabular}{llllll}
+a & b & c & d & e \\
+f & g & h & i & j \\
+k & l & m & n & o \\
+p & q & r & s & t \\
+u & v & w & x & y
+\end{tabular}
+\end{table}
+
+The lowered version is $\widehat{D} = $
+
+\begin{table}[h]
+\centering
+\begin{tabular}{llllllllll}
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & a \\
+0 & 0 & 0 & 0 & 0 & 0 & a & b & c \\
+0 & 0 & 0 & 0 & 0 & 0 & c & d & e \\
+0 & 0 & 0 & 0 & 0 & 0 & e & 0 & 0 \\
+0 & 0 & a & 0 & 0 & f & 0 & 0 & k \\
+a & b & c & f & g & h & k & l & m \\
+c & d & e & h & i & j & m & n & o \\
+e & 0 & 0 & j & 0 & 0 & o & 0 & 0 \\
+0 & 0 & k & 0 & 0 & p & 0 & 0 & u \\
+k & l & m & p & q & r & u & v & w \\
+m & n & o & r & s & t & w & x & y \\
+o & 0 & 0 & t & 0 & 0 & y & 0 & 0 \\
+0 & 0 & u & 0 & 0 & 0 & 0 & 0 & 0 \\
+u & v & w & 0 & 0 & 0 & 0 & 0 & 0 \\
+w & x & y & 0 & 0 & 0 & 0 & 0 & 0 \\
+y & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0
+\end{tabular}
+\end{table}
+
+\end{document}

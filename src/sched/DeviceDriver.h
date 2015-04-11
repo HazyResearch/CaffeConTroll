@@ -127,8 +127,8 @@ public:
    * The current implementation for lower_cube (in Connector_impl_Lowering_type1.hxx) is slow for the CPUDriver, which
    * calls pmap2d_read_coalesce, and passes _fmap_id and _fmap_lower
    **/
-  void lower_cube(DeviceMemoryPointer * const input, DeviceMemoryPointer * const output, const size_t kernel_size,
-      const size_t stride, const size_t padding) {
+  void lower_cube(DeviceMemoryPointer * const device_mem_ptr_D, DeviceMemoryPointer * const device_mem_ptr_D_lowered, const int n,
+      const int d, const int k, const int s, const int p, const int b) {
     assert(false);
   }
 
