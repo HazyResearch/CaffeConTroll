@@ -67,6 +67,7 @@ lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeTyp
   args.padding = padding;
 
   p_driver->template pmap2d_read_coalesce<_fpmap_id,_fmap_lower>(output, input, args);
+  // p_driver->template lower_cube(input, output, kernel_size, stride, padding);
 
   report_last_lowering.end(iR*iC*iD*iB*sizeof(DataType), oR*oC*oD*oB*sizeof(DataType), 0);
   report_history.aggregate(report_last_lowering);

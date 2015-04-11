@@ -53,7 +53,7 @@ using std::normal_distribution;
  * TODO:
  *  - Template this by double, float etc.
  **/
-class DeviceDriver{
+class DeviceDriver {
 public:
 
   /**
@@ -89,7 +89,6 @@ public:
    * All functions could take as input args as an argument. So, if you have
    * auxiliary information that you need in f (e.g., kernel size of lowering),
    * just put it in args.
-   *
    **/
   template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
   void pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
@@ -109,18 +108,27 @@ public:
    * For GPU Device, this could be a kernel that uses func.
    *
    * Strictly speaking, this function has the name `map` mainly because
-   * is access pattern and ability to be executed in parallel, instead of
+   * its access pattern and ability to be executed in parallel, instead of
    * its semantic--It is possible to introduce side-effect on `src` and
    * `f_dst_pos` is not necessarily non-overlapping (it often is, but the
    * interface does not have a way to enforce it). So maybe a better
    * way of thinking about this function is a parallel for loop with more
    * structured side-effect (i.e., only on src and dst with a known mapping).
-   *
    **/
   template<FUNC_IDX_MAPPING f_dst_pos, FUNC_MM_MAPPING func>
   void parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
     DeviceMemoryPointer * const func_curry){
+    assert(false);
+  }
+
+  /**
+   *
+   * The current implementation for lower_cube (in Connector_impl_Lowering_type1.hxx) is slow for the CPUDriver, which
+   * calls pmap2d_read_coalesce, and passes _fmap_id and _fmap_lower
+   **/
+  void lower_cube(DeviceMemoryPointer * const input, DeviceMemoryPointer * const output, const size_t kernel_size,
+      const size_t stride, const size_t padding) {
     assert(false);
   }
 

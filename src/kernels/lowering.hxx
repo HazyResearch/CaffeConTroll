@@ -77,6 +77,56 @@ void _f_inverse_lower_cube(void * input, void * output, void * const _arg, const
 #ifdef _GPU_TARGET
 __host__ __device__
 #endif
+void _f_lower_cube(void * output, void * input, void * const _arg, const size_t dst_index, const size_t b_i,
+    const size_t d_i) {
+
+  // const _lower_cube_arg_helper * const arg = (_lower_cube_arg_helper *) _arg;
+  // const size_t kernel_size  = arg->kernel_size;
+  // const size_t stride       = arg->stride;
+  // const size_t padding      = arg->padding;
+  // const int height          = arg->iR;
+  // const int width           = arg->iC;
+
+  // // const int height = input_matrix->R;
+  // // const int width = input_matrix->C;
+
+  // // const T * const input_data = input_matrix->p_data;
+  // const float * const input_data = (float *) input;
+
+  // const size_t single_lowering_width  = (width + 2 * padding - kernel_size) / stride + 1;
+  // const size_t single_lowering_height = (height + 2 * padding - kernel_size) / stride + 1;
+
+  // const size_t dst_row_base = d_i * kernel_size * kernel_size; // K^2*D
+  // const size_t dst_col_base = b_i * single_lowering_height * single_lowering_width; // M^2*B
+
+  // const int num_height_windows  = (height + 2 * padding - kernel_size) / stride + 1; // number of convolution "windows" row-wise
+  // const int num_width_windows   = (width + 2 * padding - kernel_size) / stride + 1;  // number of convolution "windows" column-wise
+
+  // // i & j keep track of which "window" we're currently calculating. Incremented by 1 each time.
+  // // src_row_base and src_col_base indicate the starting indices for the window. Incremented by stride each time.
+  // // dst_col increases every time we calculate a new window. Incremented by 1 each time.
+  // for (int src_row_base = -padding, i = 0, dst_col = dst_col_base; i < num_height_windows; src_row_base += stride, ++i) {
+  //   for (int src_col_base = -padding, j = 0; j < num_width_windows; src_col_base += stride, ++dst_col, ++j) {
+  //     // src_row and src_col start at src_row_base and src_col_base, respectively, and iterate a total of kernel_size times. Incremented by 1 each time.
+  //     // dst_row_i starts at dst_row_base. Incremented by kernel_size each time.
+  //     // dst_row starts at dst_row_i. Incremented by 1 each time.
+  //     for (int src_row = src_row_base, dst_row_i = dst_row_base; src_row < kernel_size + src_row_base; ++src_row, dst_row_i += kernel_size) {
+  //       for (int src_col = src_col_base, dst_row = dst_row_i; src_col < kernel_size + src_col_base; ++src_col, ++dst_row) {
+  //         const size_t dst = dst_col + dst_row*cube.C;
+  //         if (src_row < 0 || src_row >= width || src_col < 0 || src_col >= height) {
+  //           cube.p_data[dst] = 0;
+  //         } else {
+  //           cube.p_data[dst] = input_data[src_row*width + src_col];
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
+}
+
+#ifdef _GPU_TARGET
+__host__ __device__
+#endif
 inline void _fpmap_id(Block2D * const output_block, const Block2D * const input_block, const PMapHelper * const args) {
   output_block->r = 0;
   output_block->c = 0;

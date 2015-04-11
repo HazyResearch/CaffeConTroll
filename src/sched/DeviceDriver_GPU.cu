@@ -82,6 +82,9 @@ __global__ void _spmap_readc(float* dst, float * src, PMapHelper args){
 
 }
 
+void GPUDriver::lower_cube(DeviceMemoryPointer * const input, DeviceMemoryPointer * const output, const size_t kernel_size,
+    const size_t stride, const size_t padding) {
+}
 
 template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
 void GPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 

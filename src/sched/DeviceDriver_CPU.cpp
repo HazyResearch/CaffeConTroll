@@ -72,14 +72,13 @@ inline void _spmap_cpu(float* const dst, float * const src, PMapHelper args,
 
 // This function could be much faster.
 template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
-void CPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
+inline void CPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     const struct PMapHelper args) {
 
   // input block sizes
   size_t sBR = args.sBR, sBC = args.sBC;
   size_t n_thread_per_block_C = sBC;
   size_t n_thread_per_block_R = sBR; assert(sBC*sBR > 0);
-  // size_t n_block_X = args.sR*args.sC/(sBC*sBR) ;
   size_t n_block_X = (args.sR / args.sBR)*(args.sC / args.sBC);
   size_t n_block_Y = args.sD*args.sB;
 
@@ -93,6 +92,11 @@ void CPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPoin
       }
     }
   }
+
+}
+
+void CPUDriver::lower_cube(DeviceMemoryPointer * const input, DeviceMemoryPointer * const output, const size_t kernel_size,
+    const size_t stride, const size_t padding) {
 
 }
 

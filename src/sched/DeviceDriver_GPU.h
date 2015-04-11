@@ -15,7 +15,7 @@ public:
   int threadsPerBlock = 256;
 
   cublasStatus_t status;
-  
+
   cublasHandle_t handle;
 
   cudaError_t err;
@@ -32,12 +32,18 @@ public:
 
   void memset(DeviceMemoryPointer * dst, const char value);
 
+  void lower_cube(DeviceMemoryPointer * const input, DeviceMemoryPointer * const output,
+      const size_t kernel_size, const size_t stride, const size_t padding);
+
   template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
-  void pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+  void pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     const struct PMapHelper args);
 
+  void lower_cube(DeviceMemoryPointer * const input, DeviceMemoryPointer * const output, const size_t kernel_size,
+      const size_t stride, const size_t padding);
+
   template<FUNC_IDX_MAPPING f_dst_pos, FUNC_MM_MAPPING func>
-  void parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+  void parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
     DeviceMemoryPointer * const func_curry);
 
@@ -45,7 +51,7 @@ public:
 
   void smath_axpby(const float alpha, DeviceMemoryPointer * X, const float beta, DeviceMemoryPointer * Y) ;
 
-  void sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB, 
+  void sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB,
         int M, int N, int K, float alpha, float * pA, int LDA, float * pB, int LDB,
         float beta, float * pC, int LDC);
 
@@ -55,7 +61,7 @@ public:
   void set_num_threads(const int nThreads);
 
   template<FUNC_SREDUCE func>
-  void selementwise_reduce2(DeviceMemoryPointer * dst, DeviceMemoryPointer * src1, 
+  void selementwise_reduce2(DeviceMemoryPointer * dst, DeviceMemoryPointer * src1,
     DeviceMemoryPointer * src2, DeviceMemoryPointer * const func_curry);
 
   void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch);
@@ -63,7 +69,7 @@ public:
   void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p);
 
   void sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev);
-  
+
   void sconstant_initialize(DeviceMemoryPointer *arr, const float value);
 
   void * choose_ptr(void * host, void * device);
