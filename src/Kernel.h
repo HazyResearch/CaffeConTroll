@@ -28,7 +28,60 @@ enum KernelConfig {
     KernelConfig_GEMM_NOTRANS_NOTRANS = 1,
     KernelConfig_GEMM_NOTRANS_TRANS = 2,
     KernelConfig_GEMM_TRANS_NOTRANS = 3,
-    KernelConfig_TANHGRAD_ON_INPUT1 = 4
+    KernelConfig_TANHGRAD_ON_INPUT1 = 4,
+
+    // Transpose parameters to BLAS can be interpreted
+    // in two ways. Consider if we want to do:
+    //
+    //       C    =   A   *   B
+    //      ___      ___     ___
+    //    M|   |   M|   |  K|   |
+    //     |___|    |___|   |___|
+    //       N        K       N
+    // 
+    // In BLAS terminology, this is C = op(A) * op(B), where
+    // op(A) and op(B) are the transformed versions of A and
+    // B after applying transpose or conjugate.
+    // See: https://software.intel.com/en-us/node/468480
+    //
+    // Consider if A is stored in memory how we want (i.e. each row 
+    // of size K is concatenated), but B is transposed in memory, i.e. 
+    // stored in column-major order instead of row major.
+    // Then, the number of elements in B is still K*N = N*K, but there are
+    // two possibilities:
+    // 
+    //  1. B is viewed as a K*N matrix stored in column-major order
+    //  2. B is viewed as an N*K matrix stored in row-major order
+    // 
+    // In case 1, we need to set the blas flag to transpose B, and we
+    // need to change LDB, but we do not need to change arguments m,n,k
+    // to sgemm. In case 2, we also need to set the flag to transpose B,
+    // and we need to give blas m,k,n instead of m,n,k as the sizes, but
+    // we do not need to change LDB.
+    // 
+    // Currently this distinction is important because we do:
+    //
+    //      R_hat = K_hat * D_hat
+    //
+    // R_hat is o*mmb, K_hat is o*kkd and D_hat is kkd*mmb
+    // The new implementation of lowering following equation 4 of 
+    // "Formulation of Type 1 Lowering with Padding and Stride"
+    // transposes how D_hat is stored in memory. However none of the
+    // matrix dimensions changed. So previously it was necessary to
+    // just multiply K_hat * D_hat, but now it is necessary to 
+    // multiply K_hat * D_hat' (transpose), but without changing the
+    // dimensions (i.e. case 1 above). Because KernelConfig_GEMM_NOTRANS_TRANS
+    // instead implements case 2 above (i.e. assumes the matrix data 
+    // and dimensions are transposed) I added KernelConfig_GEMM_NOTRANS_TRANS_NO_DIM_FLIP
+    // to transpose and not flip dimensions.
+    // I also added KernelConfig_GEMM_NOTRANS_NOTRANS_DIM_FLIP to flip dimensions but
+    // not transpose. 
+    // This might not be the best way to do it (e.g. use remap instead) but 
+    // if BLAS can handle transposes for "free" this might be faster.
+    KernelConfig_GEMM_NOTRANS_TRANS_NO_DIM_FLIP = 5,
+    KernelConfig_GEMM_TRANS_NO_DIM_FLIP_NOTRANS = 6,
+    KernelConfig_GEMM_NOTRANS_NOTRANS_DIM_FLIP = 7,
+    KernelConfig_GEMM_NOTRANS_DIM_FLIP_NOTRANS = 8
 };
 
 template
