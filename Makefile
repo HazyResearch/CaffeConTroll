@@ -27,7 +27,7 @@ else ifeq ($(UNAME), Linux)
 endif
 CFLAGS += $(BLAS_DEFS)
 
-ASSEMBLY_FLAGS= -S
+ASSEMBLY_FLAGS= -march=native -masm=intel -fverbose-asm -S
 
 DIR_PARAMS=$(INCLUDE_STR) $(LIB_STR)
 PROTOBUF_LIB = -lprotobuf
