@@ -46,6 +46,34 @@ alpha(1.0), beta(0), p_driver(_p_driver) {
     assert(i1C==oR);
     assert(i1R==i2R);
     assert(i2C==oC);
+  } else if (KERNELCONFIG == KernelConfig_GEMM_NOTRANS_TRANS_NO_DIM_FLIP) {
+    assert(i1D==1); assert(i1B==1);
+    assert(i2D==1); assert(i2B==1);
+    assert(oD==1); assert(oB==1);
+    assert(i1R==oR);
+    assert(i1C==i2R);
+    assert(i2C==oC);
+  } else if (KERNELCONFIG == KernelConfig_GEMM_TRANS_NO_DIM_FLIP_NOTRANS) {
+    assert(i1D==1); assert(i1B==1);
+    assert(i2D==1); assert(i2B==1);
+    assert(oD==1); assert(oB==1);
+    assert(i1R==oR);
+    assert(i1C==i2R);
+    assert(i2C==oC);
+  } else if (KERNELCONFIG == KernelConfig_GEMM_NOTRANS_NOTRANS_DIM_FLIP) {
+    assert(i1D==1); assert(i1B==1);
+    assert(i2D==1); assert(i2B==1);
+    assert(oD==1); assert(oB==1);
+    assert(i1R==oR);
+    assert(i1C==i2C);
+    assert(i2R==oC);
+  } else if (KERNELCONFIG == KernelConfig_GEMM_NOTRANS_DIM_FLIP_NOTRANS) {
+    assert(i1D==1); assert(i1B==1);
+    assert(i2D==1); assert(i2B==1);
+    assert(oD==1); assert(oB==1);
+    assert(i1C==oR);
+    assert(i1R==i2R);
+    assert(i2C==oC);
   } else {
     std::cerr << "ERROR: Unsupported KernelConfig for GEMM." << std::endl;
     assert(false);
