@@ -52,7 +52,13 @@ MAIN_CUDA_OBJ_FILES = $(patsubst %.cu,%.o,$(MAIN_CUDA_SOURCES))
 TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest
 TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.cpp \
 	       src/sched/DeviceDriver_CPU.cpp \
-	       tests/test_perf_convolution.cpp \
+	       tests/test_perf_convolution_1.cpp \
+	       tests/test_perf_convolution_2.cpp \
+	       tests/test_perf_convolution_3.cpp \
+	       tests/test_perf_convolution_4.cpp \
+	       tests/test_perf_convolution_5.cpp \
+	       tests/test_perf_convolution_6.cpp \
+	       tests/test_perf_convolution_7.cpp \
 	       #tests/test_parallelized_convolution.cpp \
 	       tests/test_grouping.cpp \
 	       tests/test_model_write.cpp \
