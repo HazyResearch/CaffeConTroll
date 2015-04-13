@@ -95,6 +95,8 @@ inline void CPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMem
 
 }
 
+#define FW_LOWER_OPTIMIZATIONS 1
+
 // Type 1 lowering as defined in the paper
 // Note the result D_hat is transposed compared to the expected format
 void CPUDriver::lower_cube
@@ -112,11 +114,126 @@ void CPUDriver::lower_cube
     // Implement equation 4 of
     // "Formulation of Type 1 Lowering with Padding and Stride"
     // Optimizations are possible, e.g. lifting out padding checks and blocking loops
-    float * const D = (float *)device_mem_ptr_D->ptr;
+    const float * const D = (float *)device_mem_ptr_D->ptr;
     float * const D_lowered = (float *)device_mem_ptr_D_lowered->ptr;
+    const int m = ( (n + 2*p - k) / s + 1 );
 
-    const int m = (n + 2*p - k) / s + 1;
+#if FW_LOWER_OPTIMIZATIONS
+    const int D_BLOCK_SIZE = 8;
     
+    // Handle blocking of d
+
+    // Special case:  If d is a multiple of block size no need for internal checking
+    // Currently commented out, need to do more experiments
+    if (d % D_BLOCK_SIZE == 0)
+    {
+        for (int bi=0; bi<b; ++bi) {
+            for (int r=0; r<m; ++r) {
+                for (int c=0; c<m; ++c) {
+                    float *const current_row = &(D_lowered[(bi*m*m + r*m + c)*k*k*d]);
+                    for (int Dd_block=0; Dd_block<d; Dd_block+=D_BLOCK_SIZE) {
+                        for (int Dr=0; Dr<k; ++Dr) {
+                            for (int Dc=0; Dc<k; ++Dc) {
+                                for (int Dd=Dd_block; Dd<Dd_block+D_BLOCK_SIZE; ++Dd) {
+                                    if ( (r*s-p+Dr) >= 0 && (r*s-p+Dr) < n && (c*s-p+Dc) >= 0 && (c*s-p+Dc) < n ) {
+                                        current_row[Dd*k*k + Dr*k + Dc] = D[bi*n*n*d + Dd*n*n + (r*s-p+Dr)*n + (c*s-p+Dc)];
+                                    } else {
+                                        current_row[Dd*k*k + Dr*k + Dc] = 0;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // Special case: If d < D_BLOCK_SIZE no need to block it at all
+    // Currently commented out, need to do more experiments
+    else if (d < D_BLOCK_SIZE)
+    {
+        for (int bi=0; bi<b; ++bi) {
+            for (int r=0; r<m; ++r) {
+                for (int c=0; c<m; ++c) {
+                    float *const current_row = &(D_lowered[(bi*m*m + r*m + c)*k*k*d]);
+                    for (int Dd=0; Dd<d; ++Dd) {
+                        for (int Dr=0; Dr<k; ++Dr) {
+                            for (int Dc=0; Dc<k; ++Dc) {
+                                if ( (r*s-p+Dr) >= 0 && (r*s-p+Dr) < n && (c*s-p+Dc) >= 0 && (c*s-p+Dc) < n ) {
+                                    current_row[Dd*k*k + Dr*k + Dc] = D[bi*n*n*d + Dd*n*n + (r*s-p+Dr)*n + (c*s-p+Dc)];
+                                } else {
+                                    current_row[Dd*k*k + Dr*k + Dc] = 0;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // Most general case
+    else
+    {
+        for (int bi=0; bi<b; ++bi) {
+            for (int r=0; r<m; ++r) {
+                //const int start_Dr = std::max(0,p-r*s);
+                //const int end_Dr =   std::min(k,n-r*s+p);
+                for (int c=0; c<m; ++c) {
+                    //const int start_Dc = std::max(0,p-c*s);
+                    //const int end_Dc =   std::min(k,n-c*s+p);
+                    float *const current_row = &(D_lowered[(bi*m*m + r*m + c)*k*k*d]);
+                    
+                    // Blocking d: This is not as much for locality as it is for
+                    // branch prediction. Blocking d reduces the number of branch 
+                    // predictor misses by 4x (e.g. LeNet conv2).
+                    for (int Dd_block=0; Dd_block<d; Dd_block+=D_BLOCK_SIZE)
+                    {
+                        // Handle edge cases
+                        if (d-Dd_block < D_BLOCK_SIZE)
+                        {
+                            for (int Dd=Dd_block; Dd<(d-Dd_block); ++Dd) {
+                                for (int Dr=0; Dr<k; ++Dr) {
+                                    for (int Dc=0; Dc<k; ++Dc) {
+                                        if ( (r*s-p+Dr) >= 0 && (r*s-p+Dr) < n && (c*s-p+Dc) >= 0 && (c*s-p+Dc) < n ) {
+                                            current_row[Dd*k*k + Dr*k + Dc] = D[bi*n*n*d + Dd*n*n + (r*s-p+Dr)*n + (c*s-p+Dc)];
+                                        } else {
+                                            current_row[Dd*k*k + Dr*k + Dc] = 0;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        // Main block of D_BLOCK_SIZE: move the Dd check inside
+                        // We lose the locality of writing back to current_row this way.
+                        // However, k is usually small. TODO: special-case large k.
+                        else
+                        {
+                            for (int Dr=0; Dr<k; ++Dr) {
+                                for (int Dc=0; Dc<k; ++Dc) {
+                                    for (int Dd=Dd_block; Dd<Dd_block+D_BLOCK_SIZE; ++Dd) {
+                                        if ( (r*s-p+Dr) >= 0 && (r*s-p+Dr) < n && (c*s-p+Dc) >= 0 && (c*s-p+Dc) < n ) {
+                                            current_row[Dd*k*k + Dr*k + Dc] = D[bi*n*n*d + Dd*n*n + (r*s-p+Dr)*n + (c*s-p+Dc)];
+                                        } else {
+                                            current_row[Dd*k*k + Dr*k + Dc] = 0;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+// Below is the unoptimized forward lowering code
+// The above code is the same except it handles special cases
+// e.g. to support blocking.
+// The original code below is a good starting-point for optimization
+// and for understanding the optimized code above.
+
+#else // No FW_LOWER_OPTIMIZATIONS
+
     // TODO: Can re-order loops below for better blocking
     
     // Top of equation 4 (for bi, r and c in ...)
@@ -152,6 +269,7 @@ void CPUDriver::lower_cube
             }
         }
     }
+#endif // FW_LOWER_OPTIMIZATIONS
 }
 
 template<FUNC_IDX_MAPPING f_dst_pos, FUNC_MM_MAPPING func>
