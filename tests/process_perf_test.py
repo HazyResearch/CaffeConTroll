@@ -21,8 +21,6 @@ for line in f:
         test_to_metric_table[current_test][current_metric] = (line.split())[3]
         
 for i,test in enumerate(sorted(list(test_to_metric_table.keys()))):
-    #print test
-    #for metric in test_to_metric_table[test]:
-    #    print "  " + metric[7:] + "\t" + test_to_metric_table[test][metric]
+    print test
     for metric in test_to_metric_table[test]:
-        print str(i+1) + "  " + metric[7:] + "  " + test_to_metric_table[test][metric]
+       print "  " + metric[7:] + "\t" + test_to_metric_table[test][metric]

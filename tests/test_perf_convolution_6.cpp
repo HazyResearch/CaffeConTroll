@@ -85,6 +85,7 @@ typedef ::testing::Types<FloatNOFUNC> DataTypes;
 
 TYPED_TEST_CASE(PerfConvolutionBridgeTest_6, DataTypes);
 
+/*
 TYPED_TEST(PerfConvolutionBridgeTest_6, TestForward){
 
   // Create random data and model parameters
@@ -112,12 +113,15 @@ TYPED_TEST(PerfConvolutionBridgeTest_6, TestForward){
   //std::cout<<"\nreport_forward_kernel\n";
   //this->ParallelizedConvolutionBridge_->_bridges[0]->report_forward_kernel.print();
 }
+*/
 
 
-/*
-TYPED_TEST(PerfConvolutionBridgeTest_6, TestBackward){
+TYPED_TEST(PerfConvolutionBridgeTest_6, TestForwardBackward){
+
+  // Create random data and model parameters
   for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
     this->data1->get_p_data()[i] = float(rand()%100) / 100.0;
+    this->grad1->get_p_data()[i] = 0;
   }
   for(int i=0;i<this->k*this->k*this->iD*this->oD;i++){
     this->ParallelizedConvolutionBridge_->p_model_cube->get_p_data()[i] = float(rand()%100) / 100.0;
@@ -125,18 +129,26 @@ TYPED_TEST(PerfConvolutionBridgeTest_6, TestBackward){
   for(int i=0;i<this->oD;i++){
     this->ParallelizedConvolutionBridge_->p_bias_cube->get_p_data()[i] = float(rand()%100) / 100.0;
   }
-
-  int oR = this->oR;
-  int oC = this->oC;
-
-  for (int i=0;i<oR*oC*this->oD*this->mB;i++) {
+  for (int i=0;i<this->oR*this->oC*this->oD*this->mB;i++) {
     this->data2->get_p_data()[i] = 0;
     this->grad2->get_p_data()[i] = i*0.1;
   }
 
-  this->ParallelizedConvolutionBridge_->forward();
-  this->ParallelizedConvolutionBridge_->report_forward();
-  this->ParallelizedConvolutionBridge_->backward();
-  this->ParallelizedConvolutionBridge_->report_backward();
+  // Run FW and BW pass many times
+  for (int i = 0; i < 10; ++i) {
+    this->ParallelizedConvolutionBridge_->forward();
+    //this->ParallelizedConvolutionBridge_->report_forward();
+    this->ParallelizedConvolutionBridge_->backward();
+    //this->ParallelizedConvolutionBridge_->report_backward();
+  }
+  
+  // Print results
+  //std::cout<<"\nreport_forward_history\n";
+  //this->ParallelizedConvolutionBridge_->_bridges[0]->report_forward_history.print();
+  std::cout<<"\nreport_forward_lowering\n";
+  this->ParallelizedConvolutionBridge_->_bridges[0]->report_forward_lowering.print();
+  std::cout<<"\nreport_backward_lowering\n";
+  this->ParallelizedConvolutionBridge_->_bridges[0]->report_backward_inverse_lowering.print();
+  //std::cout<<"\nreport_forward_kernel\n";
+  //this->ParallelizedConvolutionBridge_->_bridges[0]->report_forward_kernel.print();
 }
-*/
