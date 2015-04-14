@@ -94,6 +94,7 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     }
 
     vector<BridgeType *> _bridges; // TODO: move this back to protected, create a getter
+
   protected:
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB>::curr_B;
 
@@ -105,7 +106,6 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
 
     vector<LayerType *> _partitioned_layers_lower;
     vector<LayerType *> _partitioned_layers_higher;
-
 
     PhysicalStratum stratum;
 };
