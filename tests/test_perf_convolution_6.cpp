@@ -149,6 +149,10 @@ TYPED_TEST(PerfConvolutionBridgeTest_6, TestForwardBackward){
   this->ParallelizedConvolutionBridge_->_bridges[0]->report_forward_lowering.print();
   std::cout<<"\nreport_backward_lowering\n";
   this->ParallelizedConvolutionBridge_->_bridges[0]->report_backward_inverse_lowering.print();
-  //std::cout<<"\nreport_forward_kernel\n";
-  //this->ParallelizedConvolutionBridge_->_bridges[0]->report_forward_kernel.print();
+  std::cout<<"\nreport_forward_kernel\n";
+  this->ParallelizedConvolutionBridge_->_bridges[0]->report_forward_kernel.print();
+  std::cout<<"\nreport_backward_grad_kernel\n";
+  this->ParallelizedConvolutionBridge_->_bridges[0]->report_backward_grad_kernel.print();
+  std::cout<<"\nreport_backward_weight_kernel\n";
+  this->ParallelizedConvolutionBridge_->_bridges[0]->report_backward_weight_kernel.print();
 }
