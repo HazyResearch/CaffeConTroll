@@ -33,7 +33,7 @@ DIR_PARAMS=$(INCLUDE_STR) $(LIB_STR)
 PROTOBUF     = `pkg-config --cflags protobuf`
 PROTOBUF_LIB = `pkg-config --cflags --libs protobuf`
 WARNING_FLAGS = -Wextra
-PRODUCT_FLAGS = -Ofast
+PRODUCT_FLAGS = -Ofast -D_FASTPOW
 
 # Protobuf variables
 PROTO_SRC_DIR=src/parser/
@@ -51,7 +51,8 @@ OBJ_FILES = $(patsubst %.cpp,%.o,$(SRC))
 TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest -lpthread 
 TEST_SOURCES = src/DeepNet.cpp src/bridges/PhysicalStratum_impl.cpp \
 	       src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp tests/test_main.cpp \
-	       tests/test_perf_convolution_1.cpp \
+	       tests/test_alexnet_network.cpp \
+	       #tests/test_perf_convolution_1.cpp \
 	       tests/test_perf_convolution_2.cpp \
 	       tests/test_perf_convolution_3.cpp \
 	       tests/test_perf_convolution_4.cpp \
@@ -95,7 +96,7 @@ release: CFLAGS += $(PRODUCT_FLAGS)
 release: $(OBJ_FILES) cnn.pb.o
 	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
-profile: CFLAGS += -D_DETAILED_PROFILING -D_FASTPOW  $(PRODUCT_FLAGS)
+profile: CFLAGS += -D_DETAILED_PROFILING  $(PRODUCT_FLAGS)
 profile: $(OBJ_FILES) cnn.pb.o
 	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 

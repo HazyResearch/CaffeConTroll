@@ -466,7 +466,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 #ifdef _DETAILED_PROFILING
   const int display_iter = 1;
 #else
-  const int display_iter = 50;
+  const int display_iter = 1;
 #endif
 
   const size_t num_epochs = solver_param.max_iter();
@@ -482,7 +482,7 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
     for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches - 1; ++batch,
         corpus_batch_index += corpus.mini_batch_size) {
 #else
-    for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches; ++batch,
+    for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches - 1; ++batch,
         corpus_batch_index += corpus.mini_batch_size) {
 #endif
 
