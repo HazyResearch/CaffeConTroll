@@ -33,7 +33,7 @@ DIR_PARAMS=$(INCLUDE_STR) $(LIB_STR)
 PROTOBUF     = `pkg-config --cflags protobuf`
 PROTOBUF_LIB = `pkg-config --cflags --libs protobuf`
 WARNING_FLAGS = -Wextra
-PRODUCT_FLAGS = -Ofast
+PRODUCT_FLAGS = -Ofast -D_FASTPOW
 
 # Protobuf variables
 PROTO_SRC_DIR=src/parser/
@@ -51,7 +51,8 @@ OBJ_FILES = $(patsubst %.cpp,%.o,$(SRC))
 TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest -lpthread 
 TEST_SOURCES = src/DeepNet.cpp src/bridges/PhysicalStratum_impl.cpp \
 	       src/parser/parser.cpp src/parser/corpus.cpp src/util.cpp src/timer.cpp tests/test_main.cpp \
-	       tests/test_lrn_bridge.cpp tests/test_ReLU_bridge.cpp tests/test_MaxPooling_bridge.cpp \
+	       tests/test_alexnet_network.cpp
+	       #tests/test_lrn_bridge.cpp tests/test_ReLU_bridge.cpp tests/test_MaxPooling_bridge.cpp \
 	       tests/test_connector.cpp tests/test_model_write.cpp \
 	       tests/test_softmax_bridge.cpp tests/test_dropout_bridge.cpp tests/test_cube.cpp \
 	       tests/test_report.cpp tests/test_kernel.cpp tests/test_scanner.cpp \
@@ -77,9 +78,9 @@ profile: CFLAGS += -D_DETAILED_PROFILING -D_FASTPOW  $(PRODUCT_FLAGS)
 profile: $(OBJ_FILES) cnn.pb.o
 	$(CC) $^ -o $(TARGET) $(CFLAGS) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
-test: CFLAGS += -O0 -g -I $(GTEST_INCLUDE)
+test: CFLAGS += $(PRODUCT_FLAGS) -I $(GTEST_INCLUDE)
 test: $(TEST_OBJ_FILES) cnn.pb.o 
-	$(CC) $^ -o $(TEST_EXECUTABLE) $(DEBUG_FLAGS) $(CFLAGS) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB) 
+	$(CC) $^ -o $(TEST_EXECUTABLE) $(PRODUCT_FLAGS) $(CFLAGS) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB) 
 
 %.o: %.cpp $(PROTO_COMPILED_SRC)
 	$(CC) $(CFLAGS) $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $< -o $@
