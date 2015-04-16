@@ -96,13 +96,8 @@ SNAPSHOT_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetCon
 SNAPSHOT_OBJ_FILES = $(patsubst %.cpp,%.o,$(SNAPSHOT_SOURCES))
 SNAPSHOT_EXECUTABLE=snapshot
 
-ifdef NVCC
-LINKCC = $(NVCC)
-LINKFLAG = $(NVCCFLAGS)
-else
 LINKCC = $(CC)
 LINKFLAG = $(CFLAGS) $(LDFLAGS)
-endif
 
 .PHONY: all assembly clean product test warning
 
