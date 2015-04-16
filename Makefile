@@ -32,7 +32,7 @@ ASSEMBLY_FLAGS= -march=native -masm=intel -fverbose-asm -S
 DIR_PARAMS=$(INCLUDE_STR) $(LIB_STR)
 PROTOBUF_LIB = -lprotobuf
 WARNING_FLAGS = -Wextra
-PRODUCT_FLAGS = -O3 -D_FASTPOW
+PRODUCT_FLAGS = -Ofast -D_FASTPOW
 
 # Protobuf variables
 PROTO_SRC_DIR=src/parser/

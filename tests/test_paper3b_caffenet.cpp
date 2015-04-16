@@ -9,11 +9,12 @@
 #include "test_types.h"
 
 
-TEST(AlexnetTrainTest, RunTest) {
+TEST(CaffenetPaper3bTrainTest, RunTest) {
 
   char const * a = "deepnet";
   char const * b = "train";
-  char const * c = "tests/imagenet_train/solver/imagenet_snapshot_solver_6_iters_2_batch.prototxt";
+  //char const * c = "tests/imagenet_train/solver/imagenet_snapshot_solver_6_iters_2_batch.prototxt";
+  char const * c = "tests/imagenet_train/solver/alexnet_solver_1000.prototxt";
   char const * argv[3];
   argv[0] = a;
   argv[1] = b;
