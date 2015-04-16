@@ -101,16 +101,19 @@ TYPED_TEST(PerfConvolutionBridgeTest_paper3a, TestForwardBackward){
     this->data2->get_p_data()[i] = 0;
     this->grad2->get_p_data()[i] = i*0.1;
   }
+  
+  // Run first without timing
+  this->ParallelizedConvolutionBridge_->forward();
+  this->ParallelizedConvolutionBridge_->backward();
 
-  // Run FW and BW pass many times
+  Timer t;
+  
+  // Run FW and BW pass 10 times
   for (int i = 0; i < 10; ++i) {
     this->ParallelizedConvolutionBridge_->forward();
-    //this->ParallelizedConvolutionBridge_->report_forward();
     this->ParallelizedConvolutionBridge_->backward();
-    //this->ParallelizedConvolutionBridge_->report_backward();
   }
   
-  // Print results
-  std::cout<<"\nreport_forward_history\n";
-  this->ParallelizedConvolutionBridge_->_bridges[0]->report_forward_history.print();
+  float t_pass = t.elapsed();
+  std::cout << "Time for 10 FW, BW passes: " << t_pass;
 }
