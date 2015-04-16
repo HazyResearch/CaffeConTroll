@@ -26,9 +26,8 @@ for line in f:
 for k in layer_to_time.keys():
     time_list = layer_to_time[k]
     total_sum = sum(time_list)
-    #total_num = len(time_list)
-    #mean = total_sum / float(total_num)
-    #print k + "\t" + str(total_num) + "\t" + str(mean)
-    print k + "\t" + str(total_sum)
+    total_num = len(time_list)
+    mean = total_sum / float(total_num)
+    print k + "\t" + str(total_num) + "\t" + str(mean)
 
 f.close()

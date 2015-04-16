@@ -13,7 +13,8 @@ TEST(LenetTrainTest, RunTest) {
 
   char const * a = "deepnet";
   char const * b = "train";
-  char const * c = "tests/imagenet_train/solver/imagenet_snapshot_solver_6_iters_2_batch.prototxt";
+  //char const * c = "tests/imagenet_train/solver/imagenet_snapshot_solver_6_iters_2_batch.prototxt";
+  char const * c = "tests/imagenet_train/solver/alexnet_solver_1000.prototxt";
   char const * argv[3];
   argv[0] = a;
   argv[1] = b;
@@ -22,7 +23,7 @@ TEST(LenetTrainTest, RunTest) {
   std::string model_file = "tests/model.bin";
 
   DeepNet::load_and_train_network(argv[2], data_binary, model_file);
-  float acc = DeepNet::load_and_test_network(argv[2], data_binary, model_file);
+  //float acc = DeepNet::load_and_test_network(argv[2], data_binary, model_file);
 
   // std::fstream expected_accuracy("tests/output/accuracy_train.txt", std::ios_base::in);
   // double output;
