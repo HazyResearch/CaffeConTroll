@@ -13,22 +13,29 @@
 using namespace std;
 
 template<typename T, LayoutType LAYOUT>
+// Simple implementation of Type 1 lowering
+// Lowers entire rows at a time as described in the paper
 void simple_lowering(LogicalCube<T, LAYOUT>* in, LogicalCube<T, Layout_CRDB>* out, int k, int s){
-  int outc,outr=0;
-  for(size_t kd=0;kd<in->D;kd++) {
-    for(size_t kr=0;kr<k;kr++) {
-      for(size_t kc=0;kc<k;kc++) {
-        outc = 0;
-        for(size_t ib=0;ib<in->B;ib++) {
-          for(size_t cr=0;cr<(in->R-k)/s+1;cr++) {
-            for(size_t cc=0;cc<(in->C-k)/s+1;cc++) {
-              *out->logical_get(outr, outc, 0, 0) =
-                *in->logical_get(cr*s+kr, cc*s+kc, kd, ib);
-              outc ++;
+  
+  assert(in->C == in->R);
+  const int p = 0;
+  const int m = (in->C + 2*p - k) / s + 1;
+  
+  for (int bi=0; bi<in->B; ++bi) {
+    for (int r=0; r<m; ++r) {
+      for (int c=0; c<m; ++c) {
+        float *current_row = &(out->get_p_data()[(bi*m*m + r*m + c)*k*k*in->D]);
+        for (int Dd=0; Dd<in->D; ++Dd) {
+          for (int Dr=0; Dr<k; ++Dr) {
+            for (int Dc=0; Dc<k; ++Dc) {
+              if ( (r*s-p+Dr) >= 0 && (r*s-p+Dr) < in->R && (c*s-p+Dc) >= 0 && (c*s-p+Dc) < in->C ) {
+                current_row[Dd*k*k + Dr*k + Dc] = in->get_p_data()[bi*in->R*in->C*in->D + Dd*in->R*in->C + (r*s-p+Dr)*in->C + (c*s-p+Dc)];
+              } else {
+                current_row[Dd*k*k + Dr*k + Dc] = 0;
+              }
             }
           }
         }
-        outr ++;
       }
     }
   }
