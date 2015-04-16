@@ -116,4 +116,4 @@ Contact
 -------
 
 Send flames to Chris and praise to those who did the actual work:
-Firas Abuzaid, Shubham Gupta, and Ce Zhang.
+Firas Abuzaid, Shubham Gupta, Stefan Hadjis, and Ce Zhang.
