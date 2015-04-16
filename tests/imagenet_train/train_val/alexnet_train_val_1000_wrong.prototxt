@@ -47,8 +47,8 @@ layers {
     kernel_size: 11
     stride: 4
     weight_filler {
-      type: "gaussian"
-      std: 0.01
+      type: "constant"
+      value: 0.01
     }
     bias_filler {
       type: "constant"
@@ -63,20 +63,9 @@ layers {
   top: "conv1"
 }
 layers {
-  name: "pool1"
-  type: POOLING
-  bottom: "conv1"
-  top: "pool1"
-  pooling_param {
-    pool: MAX
-    kernel_size: 3
-    stride: 2
-  }
-}
-layers {
   name: "norm1"
   type: LRN
-  bottom: "pool1"
+  bottom: "conv1"
   top: "norm1"
   lrn_param {
     local_size: 5
@@ -85,9 +74,20 @@ layers {
   }
 }
 layers {
+  name: "pool1"
+  type: POOLING
+  bottom: "norm1"
+  top: "pool1"
+  pooling_param {
+    pool: MAX
+    kernel_size: 3
+    stride: 2
+  }
+}
+layers {
   name: "conv2"
   type: CONVOLUTION
-  bottom: "norm1"
+  bottom: "pool1"
   top: "conv2"
   blobs_lr: 1
   blobs_lr: 2
@@ -99,12 +99,12 @@ layers {
     kernel_size: 5
     group: 2
     weight_filler {
-      type: "gaussian"
-      std: 0.01
+      type: "constant"
+      value: 0.01
     }
     bias_filler {
       type: "constant"
-      value: 1
+      value: 0.1
     }
   }
 }
@@ -115,20 +115,9 @@ layers {
   top: "conv2"
 }
 layers {
-  name: "pool2"
-  type: POOLING
-  bottom: "conv2"
-  top: "pool2"
-  pooling_param {
-    pool: MAX
-    kernel_size: 3
-    stride: 2
-  }
-}
-layers {
   name: "norm2"
   type: LRN
-  bottom: "pool2"
+  bottom: "conv2"
   top: "norm2"
   lrn_param {
     local_size: 5
@@ -137,9 +126,20 @@ layers {
   }
 }
 layers {
+  name: "pool2"
+  type: POOLING
+  bottom: "norm2"
+  top: "pool2"
+  pooling_param {
+    pool: MAX
+    kernel_size: 3
+    stride: 2
+  }
+}
+layers {
   name: "conv3"
   type: CONVOLUTION
-  bottom: "norm2"
+  bottom: "pool2"
   top: "conv3"
   blobs_lr: 1
   blobs_lr: 2
@@ -149,9 +149,10 @@ layers {
     num_output: 384
     pad: 1
     kernel_size: 3
+    group: 2
     weight_filler {
-      type: "gaussian"
-      std: 0.01
+      type: "constant"
+      value: 0.01
     }
     bias_filler {
       type: "constant"
@@ -180,12 +181,12 @@ layers {
     kernel_size: 3
     group: 2
     weight_filler {
-      type: "gaussian"
-      std: 0.01
+      type: "constant"
+      value: 0.01
     }
     bias_filler {
       type: "constant"
-      value: 1
+      value: 0.1
     }
   }
 }
@@ -210,12 +211,12 @@ layers {
     kernel_size: 3
     group: 2
     weight_filler {
-      type: "gaussian"
-      std: 0.01
+      type: "constant"
+      value: 0.01
     }
     bias_filler {
       type: "constant"
-      value: 1
+      value: 0.1
     }
   }
 }
@@ -248,12 +249,12 @@ layers {
   inner_product_param {
     num_output: 4096
     weight_filler {
-      type: "gaussian"
-      std: 0.005
+      type: "constant"
+      value: 0.005
     }
     bias_filler {
       type: "constant"
-      value: 1
+      value: 0.1
     }
   }
 }
@@ -284,12 +285,12 @@ layers {
   inner_product_param {
     num_output: 4096
     weight_filler {
-      type: "gaussian"
-      std: 0.005
+      type: "constant"
+      value: 0.005
     }
     bias_filler {
       type: "constant"
-      value: 1
+      value: 0.1
     }
   }
 }
@@ -320,8 +321,8 @@ layers {
   inner_product_param {
     num_output: 1000
     weight_filler {
-      type: "gaussian"
-      std: 0.01
+      type: "constant"
+      value: 0.01
     }
     bias_filler {
       type: "constant"
