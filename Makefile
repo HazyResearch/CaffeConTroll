@@ -68,7 +68,9 @@ TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.
 	       tests/test_report.cpp \
 	       tests/test_connector.cpp \
 	       tests/test_convolution.cpp \
-	       tests/test_lenet_network.cpp
+	       tests/test_parallelized_convolution_large_CPU.cpp \
+	       tests/test_lenet_network.cpp \
+	       #tests/test_parallelized_convolution_large_GPU.cpp \
 	       #tests/test_paper3a_conv_layer.cpp \
 	       #tests/test_paper3b_caffenet.cpp \
 	       #tests/test_perf_convolution_1.cpp \
