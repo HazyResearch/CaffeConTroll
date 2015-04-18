@@ -185,14 +185,19 @@ size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry, DeviceMemoryPointe
 
 }
 
-void GPUDriver::smath_axpy(const float alpha, DeviceMemoryPointer * X, DeviceMemoryPointer * Y)  { 
+void GPUDriver::math_saxpy(const float alpha, DeviceMemoryPointer * X, DeviceMemoryPointer * Y) const { 
 #ifdef _DO_ASSERT
 	assert(X->type==DEVICEMEMORY_LOCAL_RAM);
 	assert(Y->type==DEVICEMEMORY_LOCAL_RAM);
 	assert(X->size_in_byte==Y->size_in_byte);
 #endif
   int n_elements = X->size_in_byte / sizeof(float);
-  status = cublasSaxpy(handle, n_elements, &alpha, (float*)X->ptr, 1, (float*)Y->ptr, 1);
+  cublasStatus_t status = cublasSaxpy(handle, n_elements, &alpha, (float*)X->ptr, 1, (float*)Y->ptr, 1);
+  assert(status == CUBLAS_STATUS_SUCCESS);
+}
+
+void GPUDriver::math_saxpy(const int nElements, const float alpha, float * X, float * Y) const { 
+  cublasStatus_t status = cublasSaxpy(handle, nElements, &alpha, X, 1, Y, 1);
   assert(status == CUBLAS_STATUS_SUCCESS);
 }
 
@@ -225,17 +230,26 @@ void GPUDriver::sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const fu
 	cudaFree(d_func_curry);
 }
 
-void GPUDriver::smath_axpby(const float alpha, DeviceMemoryPointer * X, const float beta, DeviceMemoryPointer * Y) { 
+void GPUDriver::math_saxpby(const float alpha, DeviceMemoryPointer * X, const float beta, DeviceMemoryPointer * Y) const { 
 #ifdef _DO_ASSERT
   assert(X->size_in_byte == Y->size_in_byte);
   assert(X->size_in_byte % sizeof(float) == 0);
 #endif
 
   int n_elements = X->size_in_byte / sizeof(float);
-  status = cublasSscal(handle, n_elements, &beta, (float*)Y->ptr, 1);
+  cublasStatus_t status = cublasSscal(handle, n_elements, &beta, (float*)Y->ptr, 1);
   assert(status == CUBLAS_STATUS_SUCCESS);
 
   status = cublasSaxpy(handle, n_elements, &alpha, (float*)X->ptr, 1, (float*)Y->ptr, 1);
+  assert(status == CUBLAS_STATUS_SUCCESS);
+
+}
+
+void GPUDriver::math_saxpby(const int nElements, const float alpha, float * X, const float beta, float * Y) const { 
+  cublasStatus_t status = cublasSscal(handle, nElements, &beta, Y, 1);
+  assert(status == CUBLAS_STATUS_SUCCESS);
+
+  status = cublasSaxpy(handle, nElements, &alpha, X, 1, Y, 1);
   assert(status == CUBLAS_STATUS_SUCCESS);
 
 }

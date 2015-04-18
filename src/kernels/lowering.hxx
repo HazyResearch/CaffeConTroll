@@ -5,6 +5,13 @@
 #include "lowering.h"
 
 #ifdef _GPU_TARGET
+__host__ __device__
+#endif
+inline float device_min(const float a, const float b) {
+    return (a>b)?b:a;
+}
+
+#ifdef _GPU_TARGET
 inline __host__ __device__ // Inline to prevent multiple definitions
 #endif
 size_t _f_src_to_dst_inverse_lower_cube(size_t src_pos, void * const _arg) {
@@ -75,7 +82,7 @@ void _f_inverse_lower_cube(void * input, void * output, void * const _arg, const
 }
 
 #ifdef _GPU_TARGET
-__host__ __device__
+inline __host__ __device__
 #endif
 void _f_lower_cube(void * output, void * input, void * const _arg, const size_t dst_index, const size_t b_i,
     const size_t d_i) {
@@ -206,14 +213,14 @@ inline void _fmap_lower(float * output, const Block2D * const output_block, cons
   //
   int r_begin       = next_multiple(ir - kR + 1 + padding, stride) - padding;
   r_begin           = next_largest_multiple(r_begin, -padding, stride);
-  const int r_end   = std::min(ir, iR - kR + padding) + 1; // std::min is inlined
+  const int r_end   = device_min(ir, iR - kR + padding) + 1; // std::min is inlined
   const int i_start = (r_begin + padding) / stride; // Invariant: index i will always equal r / stride
 
   // Do the same for the column iteration. Same bounds as above apply, but for
   // the column indices instead of the row indices
   int c_begin       = next_multiple(ic - kC + 1 + padding, stride) - padding;
   c_begin           = next_largest_multiple(c_begin, -padding, stride);
-  const int c_end   = std::min(ic, iC - kC + padding) + 1;
+  const int c_end   = device_min(ic, iC - kC + padding) + 1;
   const int j_start = (c_begin + padding) / stride;
 
   // Note that  r + padding >= 0 since r >= r_begin >= -padding. (These also hold true for the index c.)

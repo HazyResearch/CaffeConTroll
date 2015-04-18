@@ -5,6 +5,7 @@
 #include "../src/Connector.h"
 #include "../src/bridges/ConvolutionBridge.h"
 #include "../src/bridges/ParallelizedBridge.h"
+#include "../src/sched/DeviceDriver_GPU.h"
 #include "test_types.h"
 #include "gtest/gtest.h"
 #include <iostream>
@@ -46,12 +47,15 @@ class ParallelizedConvolutionBridgeLargeGPUTest : public ::testing::Test {
       ParallelizedConvolutionBridge_ = new ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
               Layout_CRDB, DataType_SFFloat, Layout_CRDB, GPUDriver>, GPUDriver>(layer1,
-                  layer2, &layer_param, &solver_param, &pdriver, 1, 1);
+                  layer2, &layer_param, &solver_param, pdriver, 1, 1);
 
       ParallelizedConvolutionBridge_->needs_to_calc_backward_grad = true;
     }
 
-    virtual ~ParallelizedConvolutionBridgeLargeGPUTest() { delete layer1; delete layer2; }
+    virtual ~ParallelizedConvolutionBridgeLargeGPUTest() { 
+        delete layer1; delete layer2; delete data1; delete grad1; delete data2; delete grad2; delete ParallelizedConvolutionBridge_;
+    }
+    
     ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
               Layout_CRDB, DataType_SFFloat, Layout_CRDB, GPUDriver>, GPUDriver>* ParallelizedConvolutionBridge_;
@@ -67,7 +71,7 @@ class ParallelizedConvolutionBridgeLargeGPUTest : public ::testing::Test {
 
     cnn::SolverParameter solver_param;
 
-    GPUDriver pdriver;
+    GPUDriver * const pdriver = new GPUDriver();
 
     static const int mB = 4;
     static const int iD = 3;

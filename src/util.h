@@ -114,7 +114,7 @@ class Util {
       assert(value >= -1); // memset will not work correctly if the value is less than -1
 #endif
       char * s1 = (char *) b;
-      const unsigned char val = (const unsigned char) value;
+      const unsigned char val = (unsigned char) value;
       for(; 0<n; --n)*s1++ = val;
       return b;
     }

@@ -18,7 +18,7 @@ ifeq ($(UNAME), Darwin)
   DEBUG_FLAGS = -g -O0 -DDEBUG -ferror-limit=10
   LDFLAGS = $(LD_BASE) -lboost_program_options-mt -lboost_serialization -lpthread
   NVCCFLAGS = -D_GPU_TARGET -std=c++11 $(LD_BASE) -lcublas -lcuda -lboost_program_options-mt -lboost_serialization -gencode arch=compute_20,code=sm_20 -gencode arch=compute_20,code=sm_21 -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35 -gencode arch=compute_50,code=sm_50 -gencode arch=compute_50,code=compute_50
-# For Ubuntu 12.04 x86_64 (raiders3 machine)
+# For Ubuntu 12.04 x86_64
 else ifeq ($(UNAME), Linux)
   CFLAGS = -Wall -Wl,--no-as-needed -std=c++11 -I/usr/local/cuda-6.5/targets/x86_64-linux/include/
   DEBUG_FLAGS = -gdwarf-3 -O0 -DDEBUG # -gdwarf-3 necessary for debugging with gdb v7.4
@@ -45,14 +45,17 @@ TARGET = caffe-ct
 SRC = src/DeepNetConfig.cpp src/util.cpp src/timer.cpp src/main.cpp src/sched/DeviceDriver_CPU.cpp
 OBJ_FILES = $(patsubst %.cpp,%.o,$(SRC))
 
+ifdef NVCC
 MAIN_CUDA_SOURCES = src/sched/DeviceDriver_GPU.cu
 MAIN_CUDA_OBJ_FILES = $(patsubst %.cu,%.o,$(MAIN_CUDA_SOURCES))
+endif
 
 # SOURCE FILE FOR TEST
 TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest
 TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.cpp \
 	       src/sched/DeviceDriver_CPU.cpp \
-	       tests/test_parallelized_convolution.cpp \
+	       tests/test_parallelized_convolution_large_GPU.cpp \
+	       #tests/test_parallelized_convolution.cpp \
 	       tests/test_grouping.cpp \
 	       tests/test_model_write.cpp \
 	       tests/test_fc_bridge.cpp \
@@ -70,7 +73,6 @@ TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.
 	       tests/test_convolution.cpp \
 	       tests/test_parallelized_convolution_large_CPU.cpp \
 	       tests/test_lenet_network.cpp \
-	       #tests/test_parallelized_convolution_large_GPU.cpp \
 	       #tests/test_paper3a_conv_layer.cpp \
 	       #tests/test_paper3b_caffenet.cpp \
 	       #tests/test_perf_convolution_1.cpp \
@@ -87,9 +89,11 @@ TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.
 TEST_OBJ_FILES = $(patsubst %.cpp,%.o,$(TEST_SOURCES))
 TEST_EXECUTABLE=test
 
-#TEST_CUDA_SOURCES = src/sched/DeviceDriver_GPU.cu \
-#					tests/test_convolution.cu					
+ifdef NVCC
+TEST_CUDA_SOURCES = src/sched/DeviceDriver_GPU.cu \
+					#tests/test_convolution.cu					
 TEST_CUDA_OBJ_FILES = $(patsubst %.cu,%.o,$(TEST_CUDA_SOURCES))
+endif
 
 SNAPSHOT_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.cpp \
 	       src/sched/DeviceDriver_CPU.cpp \
@@ -101,37 +105,60 @@ SNAPSHOT_EXECUTABLE=snapshot
 LINKCC = $(CC)
 LINKFLAG = $(CFLAGS) $(LDFLAGS)
 
+ifdef NVCC
+LINKFLAG += -lcudart -lcublas
+NVCC_LINK = dlink.o
+endif
+ 
 .PHONY: all assembly clean product test warning
 
 all: CFLAGS += $(DEBUG_FLAGS) 
 all: LINKFLAG += $(DEBUG_FLAGS) 
 all: $(OBJ_FILES) cnn.pb.o $(MAIN_CUDA_OBJ_FILES)
-	$(LINKCC) $^ -o $(TARGET) $(LINKFLAG) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
+ifdef NVCC
+	$(NVCC) -dlink $^ -o $(NVCC_LINK)
+endif
+	$(LINKCC) $^ $(NVCC_LINK) -o $(TARGET) $(LINKFLAG) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
 release: CFLAGS += $(PRODUCT_FLAGS)
 release: LINKFLAG += $(PRODUCT_FLAGS)
-release: $(OBJ_FILES) cnn.pb.o 
-	$(LINKCC) $^ -o $(TARGET) $(LINKFLAG) $(BUILDFLAG) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
+release: $(OBJ_FILES) cnn.pb.o $(MAIN_CUDA_OBJ_FILES)
+ifdef NVCC
+	$(NVCC) -dlink $^ -o $(NVCC_LINK)
+endif
+	$(LINKCC) $^ $(NVCC_LINK) -o $(TARGET) $(LINKFLAG) $(BUILDFLAG) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
 profile: CFLAGS += -D_DETAILED_PROFILING -D_FASTPOW  $(PRODUCT_FLAGS)
 profile: LINKFLAG += -D_DETAILED_PROFILING -D_FASTPOW  $(PRODUCT_FLAGS)
-profile: $(OBJ_FILES) cnn.pb.o
-	$(LINKCC) $^ -o $(TARGET) $(LINKFLAG) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
+profile: $(OBJ_FILES) cnn.pb.o $(MAIN_CUDA_OBJ_FILES)
+ifdef NVCC
+	$(NVCC) -dlink $^ -o $(NVCC_LINK)
+endif
+	$(LINKCC) $^ $(NVCC_LINK) -o $(TARGET) $(LINKFLAG) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
 test: CFLAGS += $(PRODUCT_FLAGS) -I $(GTEST_INCLUDE)
 test: LINKFLAG += $(PRODUCT_FLAGS) -I $(GTEST_INCLUDE)
 test: $(TEST_OBJ_FILES) $(TEST_CUDA_OBJ_FILES) $(TEST_OBJ_FILES) cnn.pb.o
-	$(LINKCC) $^ -o $(TEST_EXECUTABLE) $(LINKFLAG) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB)
+ifdef NVCC
+	$(NVCC) -dlink $^ -o $(NVCC_LINK)
+endif
+	$(LINKCC) $^ $(NVCC_LINK) -o $(TEST_EXECUTABLE) $(LINKFLAG) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB)
 
 test_debug: CFLAGS += $(DEBUG_FLAGS) -I $(GTEST_INCLUDE)
 test_debug: LINKFLAG += $(DEBUG_FLAGS) -I $(GTEST_INCLUDE)
 test_debug: $(TEST_OBJ_FILES) $(TEST_CUDA_OBJ_FILES) $(TEST_OBJ_FILES) cnn.pb.o
-	$(LINKCC) $^ -o $(TEST_EXECUTABLE) $(LINKFLAG) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB)
+ifdef NVCC
+	$(NVCC) -dlink $^ -o $(NVCC_LINK)
+endif
+	$(LINKCC) $^ $(NVCC_LINK) -o $(TEST_EXECUTABLE) $(LINKFLAG) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB)
 
 test_profile: CFLAGS += -D_DETAILED_PROFILING $(PRODUCT_FLAGS) -I $(GTEST_INCLUDE)
 test_profile: LINKFLAG += -D_DETAILED_PROFILING $(PRODUCT_FLAGS) -I $(GTEST_INCLUDE)
 test_profile: $(TEST_OBJ_FILES) $(TEST_CUDA_OBJ_FILES) $(TEST_OBJ_FILES) cnn.pb.o
-	$(LINKCC) $^ -o $(TEST_EXECUTABLE) $(LINKFLAG) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB)
+ifdef NVCC
+	$(NVCC) -dlink $^ -o $(NVCC_LINK)
+endif
+	$(LINKCC) $^ $(NVCC_LINK) -o $(TEST_EXECUTABLE) $(LINKFLAG) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB)
 
 snapshot: CFLAGS += $(PRODUCT_FLAGS) -D_SNAPSHOT -I $(GTEST_INCLUDE)
 snapshot: LINKFLAG += $(PRODUCT_FLAGS) -I $(GTEST_INCLUDE)

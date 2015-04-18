@@ -7,6 +7,13 @@
 #ifdef _GPU_TARGET
 __host__ __device__
 #endif
+inline float device_max(const float a, const float b) {
+    return (a<b)?b:a;
+}
+
+#ifdef _GPU_TARGET
+__host__ __device__
+#endif
 inline size_t _f_src_to_dst_relu_forward(size_t src_pos, void * const _arg) {
   return src_pos;
 }
@@ -19,11 +26,7 @@ inline void _f_relu_forward(void * input, void * output, void * const _arg,
   float * const input_data = (float *) input;
   float * const output_data = (float *) output;
 
-  if (input_data[0] >= 0.) {
-    output_data[0] = input_data[0];
-  } else {
-    output_data[0] = 0.;
-  }
+  output_data[0] = device_max(input_data[0], 0.);
 }
 
 #ifdef _GPU_TARGET
