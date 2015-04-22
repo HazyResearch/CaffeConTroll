@@ -132,6 +132,12 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     const cnn::FillerParameter bias_filler;
 
     void set_model_cube(LogicalCube<DataType, Layout_CRDB> * model) {
+#ifdef _DO_ASSERT
+      // This is currently only ever be used as a special-case to prevent
+      // a memcpy when copying from the host, so assert that this is true
+      bool is_cpu_driver = std::is_same<DriverClass, CPUDriver>::value;
+      assert(is_cpu_driver);
+#endif
       p_model_cube->set_p_data(model->get_p_data());
     }
 
@@ -140,6 +146,13 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
     }
 
     void set_bias_cube(LogicalCube<DataType, Layout_CRDB> * bias) {
+#ifdef _DO_ASSERT
+      // This is currently only ever be used as a special-case to prevent
+      // a memcpy when copying from the host, so assert that this is true
+      bool is_cpu_driver = std::is_same<DriverClass, CPUDriver>::value;
+      assert(is_cpu_driver);
+#endif
+      // SHADJIS TODO: Why this is a memcpy but set_model_cube wasn't?
       Util::_our_memcpy(p_bias_cube->get_p_data(), bias->get_p_data(), p_bias_cube->n_elements*sizeof(DataType));
     }
 

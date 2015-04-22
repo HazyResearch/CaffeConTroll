@@ -204,7 +204,7 @@ forward() {
 
   // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy output to host memory here
   if (!std::is_same<DriverClass, CPUDriver>::value) {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_local(
         p_output_layer->p_data_cube, output_d_cube
         );
   }
@@ -304,7 +304,7 @@ backward() {
 
   // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy input grad to host memory here
   if (!std::is_same<DriverClass, CPUDriver>::value) {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_local(
         p_input_layer->p_gradient_cube, input_g_cube
         );
   }

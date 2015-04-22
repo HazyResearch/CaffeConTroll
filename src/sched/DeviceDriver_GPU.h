@@ -32,8 +32,9 @@ public:
 
   void memset(DeviceMemoryPointer * dst, const char value);
 
-  void lower_cube(DeviceMemoryPointer * const device_mem_ptr_D, DeviceMemoryPointer * const device_mem_ptr_D_lowered, const int n,
-      const int d, const int k, const int s, const int p, const int b);
+  template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
+  void lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
+    const struct PMapHelper args);
 
   template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
   void pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,

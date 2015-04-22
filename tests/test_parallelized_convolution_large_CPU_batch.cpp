@@ -5,7 +5,6 @@
 #include "../src/Connector.h"
 #include "../src/bridges/ConvolutionBridge.h"
 #include "../src/bridges/ParallelizedBridge.h"
-#include "../src/sched/DeviceDriver_GPU.h"
 #include "test_types.h"
 #include "gtest/gtest.h"
 #include <iostream>
@@ -17,10 +16,10 @@
 #define WRITE_MODE 0
 
 template <typename TypeParam>
-class ParallelizedConvolutionBridgeLargeGPUTest : public ::testing::Test {
+class ParallelizedConvolutionBridgeLargeCPU_batchTest : public ::testing::Test {
   public:
     typedef typename TypeParam::T T;
-    ParallelizedConvolutionBridgeLargeGPUTest(){
+    ParallelizedConvolutionBridgeLargeCPU_batchTest(){
       data1 = new LogicalCube<T, Layout_CRDB>(iR, iC, iD, mB);
       grad1 = new LogicalCube<T, Layout_CRDB>(iR, iC, iD, mB);
 
@@ -46,21 +45,16 @@ class ParallelizedConvolutionBridgeLargeGPUTest : public ::testing::Test {
       // TODO: set #partition to 8 does not halt
       ParallelizedConvolutionBridge_ = new ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
-              Layout_CRDB, DataType_SFFloat, Layout_CRDB, GPUDriver>, GPUDriver>(layer1,
-                  layer2, &layer_param, &solver_param, pdriver, 1, 1);
+              Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver>(layer1,
+                  layer2, &layer_param, &solver_param, &pdriver, 4, 1);
 
       ParallelizedConvolutionBridge_->needs_to_calc_backward_grad = true;
     }
 
-    virtual ~ParallelizedConvolutionBridgeLargeGPUTest() { 
-        delete layer1; 
-        delete layer2; 
-        // delete ParallelizedConvolutionBridge_;
-    }
-    
+    virtual ~ParallelizedConvolutionBridgeLargeCPU_batchTest() { delete layer1; delete layer2; }
     ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
-              Layout_CRDB, DataType_SFFloat, Layout_CRDB, GPUDriver>, GPUDriver>* ParallelizedConvolutionBridge_;
+              Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver>* ParallelizedConvolutionBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
     LogicalCube<T, Layout_CRDB>* grad1;
@@ -73,7 +67,7 @@ class ParallelizedConvolutionBridgeLargeGPUTest : public ::testing::Test {
 
     cnn::SolverParameter solver_param;
 
-    GPUDriver * const pdriver = new GPUDriver();
+    CPUDriver pdriver;
 
     static const int mB = 4;
     static const int iD = 3;
@@ -89,16 +83,16 @@ class ParallelizedConvolutionBridgeLargeGPUTest : public ::testing::Test {
 
 typedef ::testing::Types<FloatNOFUNC> DataTypes;
 
-TYPED_TEST_CASE(ParallelizedConvolutionBridgeLargeGPUTest, DataTypes);
+TYPED_TEST_CASE(ParallelizedConvolutionBridgeLargeCPU_batchTest, DataTypes);
 
-TYPED_TEST(ParallelizedConvolutionBridgeLargeGPUTest, TestInitialization){
+TYPED_TEST(ParallelizedConvolutionBridgeLargeCPU_batchTest, TestInitialization){
   EXPECT_TRUE(this->ParallelizedConvolutionBridge_);
   EXPECT_TRUE(this->layer1);
   EXPECT_TRUE(this->layer2);
 }
 
 
-TYPED_TEST(ParallelizedConvolutionBridgeLargeGPUTest, TestForward){
+TYPED_TEST(ParallelizedConvolutionBridgeLargeCPU_batchTest, TestForward){
   typedef typename TypeParam::T T;
 
   std::fstream input("tests/input/conv_forward_in_large.txt", std::ios_base::in); // File size: iR*iC*iD*mB = 127*127*3*4
@@ -144,6 +138,7 @@ TYPED_TEST(ParallelizedConvolutionBridgeLargeGPUTest, TestForward){
       expected_output << this->data2->get_p_data()[i] << " ";
     }
   }
+  expected_output.close();
 #else
   std::fstream expected_output("tests/output/conv_forward_large.txt", std::ios_base::in); // File size: oD*m*m*b = 
   if(TypeParam::FUNC == FUNC_NOFUNC){
@@ -162,7 +157,8 @@ TYPED_TEST(ParallelizedConvolutionBridgeLargeGPUTest, TestForward){
 #endif
 }
 
-TYPED_TEST(ParallelizedConvolutionBridgeLargeGPUTest, TestBackward){
+
+TYPED_TEST(ParallelizedConvolutionBridgeLargeCPU_batchTest, TestBackward){
   typedef typename TypeParam::T T;
 
   std::fstream input("tests/input/conv_forward_in_large.txt", std::ios_base::in);
@@ -279,4 +275,3 @@ TYPED_TEST(ParallelizedConvolutionBridgeLargeGPUTest, TestBackward){
 #endif
 
 }
-

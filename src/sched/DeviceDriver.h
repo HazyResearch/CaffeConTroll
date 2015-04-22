@@ -95,6 +95,15 @@ public:
     const struct PMapHelper args){
     assert(false);
   }
+  // Specialization of pmap2d_read_coalesce
+  // For GPU, just calls pmap2d_read_coalesce
+  // For CPU, bypasses this and calls a specialized lowering function
+  template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
+  void lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
+    const struct PMapHelper args){
+    assert(false);
+  }
+
 
   //virtual void pmap2d_write_coalesce();
 
@@ -119,16 +128,6 @@ public:
   void parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
     DeviceMemoryPointer * const func_curry){
-    assert(false);
-  }
-
-  /**
-   *
-   * The current implementation for lower_cube (in Connector_impl_Lowering_type1.hxx) is slow for the CPUDriver, which
-   * calls pmap2d_read_coalesce, and passes _fmap_id and _fmap_lower
-   **/
-  void lower_cube(DeviceMemoryPointer * const device_mem_ptr_D, DeviceMemoryPointer * const device_mem_ptr_D_lowered, const int n,
-      const int d, const int k, const int s, const int p, const int b) {
     assert(false);
   }
 

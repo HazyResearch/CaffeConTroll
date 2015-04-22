@@ -19,9 +19,6 @@
 #include "../parser/cnn.pb.h"
 #include "../algorithms/GradientUpdater.h"
 
-#ifdef _GPU_TARGET
-#include "../sched/DeviceDriver_GPU.h"
-#endif
 #include "../sched/DeviceDriver_CPU.h"
 
 template
@@ -76,7 +73,18 @@ class AbstractBridge : public PhysicalOperator {
 
     void copy_from_local_to_device(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
 	LogicalCube<InputLayerDataType, InputLayerLayout> * const src) {
-      dst->set_p_data(src->get_p_data());
+        // We know local is a CPU driver
+        CPUDriver *local_cpu_driver = new CPUDriver();
+        p_driver->memcpy(dst->get_device_pointer(p_driver), src->get_device_pointer(local_cpu_driver));
+        delete local_cpu_driver;
+    }
+
+    void copy_from_device_to_local(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
+	LogicalCube<InputLayerDataType, InputLayerLayout> * const src) {
+        // We know local is a CPU driver
+        CPUDriver *local_cpu_driver = new CPUDriver();
+        p_driver->memcpy(dst->get_device_pointer(local_cpu_driver), src->get_device_pointer(p_driver));
+        delete local_cpu_driver;
     }
 
     // Bridges which subclass AbstractBridge may override these four methods later
@@ -103,11 +111,11 @@ class AbstractBridge : public PhysicalOperator {
     }
 
     // Need these for snapshot tests
-    virtual GradientUpdater<InputLayerDataType, DriverClass> * const get_model_updater() {
+    virtual GradientUpdater<InputLayerDataType, CPUDriver> * const get_model_updater() {
         return NULL;
     }
 
-    virtual GradientUpdater<InputLayerDataType, DriverClass> * const get_bias_updater() {
+    virtual GradientUpdater<InputLayerDataType, CPUDriver> * const get_bias_updater() {
         return NULL;
     }
 
@@ -129,6 +137,7 @@ class AbstractBridge : public PhysicalOperator {
         p_output_layer(_p_output_layer), layer_param(_layer_param),
         solver_param(_solver_param), p_driver(_p_driver), bias_term(false) {
 
+          // Default non-softmax: Use constructor to own data. Allocates on the device.
           input_d_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(iR, iC, iD, iB, p_driver);
           input_g_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(iR, iC, iD, iB, p_driver);
           output_d_cube = new LogicalCube<OutputLayerDataType, OutputLayerLayout>(oR, oC, oD, oB, p_driver);
@@ -149,10 +158,11 @@ class AbstractBridge : public PhysicalOperator {
         layer_param(NULL), solver_param(NULL), p_driver(_p_driver),
         bias_term(false) {
 
-          input_d_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(NULL, iR, iC, iD, iB, p_driver);
-          input_g_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(NULL, iR, iC, iD, iB, p_driver);
-          output_d_cube = new LogicalCube<OutputLayerDataType, OutputLayerLayout>(NULL, oR, oC, oD, oB, p_driver);
-          output_g_cube = new LogicalCube<OutputLayerDataType, OutputLayerLayout>(NULL, oR, oC, oD, oB, p_driver);
+          // Default softmax: Use constructor to own data. Allocates on the device.
+          input_d_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(iR, iC, iD, iB, p_driver);
+          input_g_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(iR, iC, iD, iB, p_driver);
+          output_d_cube = new LogicalCube<OutputLayerDataType, OutputLayerLayout>(oR, oC, oD, oB, p_driver);
+          output_g_cube = new LogicalCube<OutputLayerDataType, OutputLayerLayout>(oR, oC, oD, oB, p_driver);
         }
 
     // This needs to be virtual, so we can delete the subclass bridges
@@ -222,6 +232,11 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
       dst->set_p_data(src->get_p_data());
     }
 
+    void copy_from_device_to_local(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
+	LogicalCube<InputLayerDataType, InputLayerLayout> * const src) {
+      dst->set_p_data(src->get_p_data());
+    }
+
     // Bridges which subclass AbstractBridge may override these four methods later
     // (e.g. ConvolutionBridge). Most, however, won't, since only ConvolutionBridge
     // and FullyConnected Bridge have weights that need to be updated
@@ -272,6 +287,7 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
         p_output_layer(_p_output_layer), layer_param(_layer_param),
         solver_param(_solver_param), p_driver(_p_driver), bias_term(false) {
 
+          // CPU: Use constructor to not own data. Does not allocate on the device.
           input_d_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(NULL, iR, iC, iD, iB, p_driver);
           input_g_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(NULL, iR, iC, iD, iB, p_driver);
           output_d_cube = new LogicalCube<OutputLayerDataType, OutputLayerLayout>(NULL, oR, oC, oD, oB, p_driver);
@@ -292,6 +308,7 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
         layer_param(NULL), solver_param(NULL), p_driver(_p_driver),
         bias_term(false) {
 
+          // CPU: Use constructor to not own data. Does not allocate on the device.
           input_d_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(NULL, iR, iC, iD, iB, p_driver);
           input_g_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(NULL, iR, iC, iD, iB, p_driver);
           output_d_cube = new LogicalCube<OutputLayerDataType, OutputLayerLayout>(NULL, oR, oC, oD, oB, p_driver);
@@ -306,6 +323,13 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
       delete output_g_cube;
     }
 };
+
+
+/* Above there is a CPU specialization which removes the need to allocate cubes on the cpu (since they already exist there)
+ * Other devices can have their own specializations or just use the default, which will be to own its own cubes
+ * (allocate its own copies of the data). 
+ * Below is the specialization for the GPU, but for now I commented it out and am using the default AbstractBridge.
+
 
 #ifdef _GPU_TARGET
 // GPUDriver specialization
@@ -349,6 +373,8 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
     bool bias_term;
 
     // If p_driver == GPUDriver, then we need to memcpy from local RAM to GPU RAM
+    // SHADJIS TODO: If multiple partitions run on the same GPU we only need to
+    // copy the data once, and then share it.
     void copy_from_local_to_device(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
 	LogicalCube<InputLayerDataType, InputLayerLayout> * const src) {
       DeviceMemoryPointer_Local_RAM plocal(dst->get_p_data(),
@@ -420,6 +446,7 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
         p_output_layer(_p_output_layer), layer_param(_layer_param),
         solver_param(_solver_param), p_driver(_p_driver), bias_term(false) {
 
+          // GPU: Use constructor to own data (for now). I.e. allocate this on the device.
           input_d_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(iR, iC, iD, iB, p_driver);
           input_g_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(iR, iC, iD, iB, p_driver);
           output_d_cube = new LogicalCube<OutputLayerDataType, OutputLayerLayout>(oR, oC, oD, oB, p_driver);
@@ -440,6 +467,7 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
         layer_param(NULL), solver_param(NULL), p_driver(_p_driver),
         bias_term(false) {
 
+          // GPU: Use constructor to own data (for now). I.e. allocate this on the device.
           input_d_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(iR, iC, iD, iB, p_driver);
           input_g_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(iR, iC, iD, iB, p_driver);
           output_d_cube = new LogicalCube<OutputLayerDataType, OutputLayerLayout>(oR, oC, oD, oB, p_driver);
@@ -455,5 +483,7 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
     }
 };
 #endif // _GPU_TARGET
+
+*/
 
 #endif

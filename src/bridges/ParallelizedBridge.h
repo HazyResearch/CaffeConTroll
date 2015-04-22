@@ -53,8 +53,14 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
                                         add optimization to share without copying) is the job
                                         of ParallelizedConvolutionBridge not its caller. **/
     LogicalCubeType * p_model_grad;
+    LogicalCubeType * p_model_subgrad;
     LogicalCubeType * p_bias_grad;
+    LogicalCubeType * p_bias_subgrad;
     LogicalCubeType * p_bias_cube;
+    
+    // A local CPU driver used by the scheduler
+    CPUDriver * scheduler_local_cpudriver;
+    
 
     const size_t n_partition;
     const size_t n_batch;
@@ -66,8 +72,10 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     float model_base_regularization;
     float bias_base_regularization;
 
-    GradientUpdater<DataType, DriverClass> * p_grad_updater;
-    GradientUpdater<DataType, DriverClass> * p_grad_updater_bias;
+    // For now, run the gradient updates on the CPU
+    // See comment in ParallelizedBridge_impl.hxx
+    GradientUpdater<DataType, CPUDriver> * p_grad_updater;
+    GradientUpdater<DataType, CPUDriver> * p_grad_updater_bias;
 
     ParallelizedBridge(Layer<DataType, Layout_CRDB> * const _input_layer,
         Layer<DataType, Layout_CRDB> * const _output_layer,
@@ -90,11 +98,11 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
         return p_bias_cube;
     }
 
-    GradientUpdater<DataType, DriverClass> * const get_model_updater() {
+    GradientUpdater<DataType, CPUDriver> * const get_model_updater() {
         return p_grad_updater;
     }
 
-    GradientUpdater<DataType, DriverClass> * const get_bias_updater() {
+    GradientUpdater<DataType, CPUDriver> * const get_bias_updater() {
         return p_grad_updater_bias;
     }
 

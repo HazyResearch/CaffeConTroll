@@ -28,6 +28,10 @@ PhysicalStratum::PhysicalStratum() {
 }
 
 void PhysicalStratum::forward() {
+
+  std::cout << "\n\nCalling deprecated (serial) forward() in PhysicalStratum.hxx\n\n";
+  assert(false);
+
   report_forward_last_transfer.reset();
   // We could build a thread pool; however, we are talking about
   // at most 20 threads / 10 seconds etc.
@@ -57,6 +61,10 @@ void PhysicalStratum::forward() {
 }
 
 void PhysicalStratum::backward() {
+
+  std::cout << "\n\nCalling deprecated (serial) backward() in PhysicalStratum.hxx\n\n";
+  assert(false);
+  
   report_backward_updateweight_last_transfer.reset();
   vector<thread> threads;
 

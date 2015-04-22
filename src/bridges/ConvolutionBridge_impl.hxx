@@ -56,6 +56,8 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   p_driver->sconstant_initialize(p_model_gradient_cube->get_device_pointer(p_driver), DataType(0.));
 
   if (bias_term) {
+    // SHADJIS TODO: There is a shadow and non-shadow (host) for model but
+    // not for bias
     p_bias_cube = new LogicalCubeType(1, 1, num_output_features, 1, p_driver);
         // this should be allocated to device
     initialize_logical_cube(p_bias_cube, bias_filler);
@@ -212,7 +214,7 @@ forward() {
     DeviceMemoryPointer * bias = p_bias_cube->get_device_pointer(p_driver);
 
     _bias_arg_helper _arg1;
-    _arg1.src_skip = oR*oC*sizeof(DataType);
+    _arg1.src_skip = oR*oC*sizeof(DataType); // skip m^2, i.e. iterate for every b and for every d
     _arg1.DataTypeSize = sizeof(DataType);
     _arg1.oD = oD;
 
@@ -232,7 +234,7 @@ forward() {
 
   // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy output to host memory here
   if (!std::is_same<DriverClass, CPUDriver>::value) {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_local(
         p_output_layer->p_data_cube, output_d_cube
         );
   }
@@ -343,11 +345,11 @@ backward() {
 
   // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy input grad to host memory here
   if (!std::is_same<DriverClass, CPUDriver>::value) {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_local(
         p_input_layer->p_gradient_cube, input_g_cube
         );
   }
-
+  
   report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updategrad_kernel->report_last_lowering);
   report_backward_updateweight_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_inverse_lowering);
   report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updateweight_kernel->report_last_lowering);

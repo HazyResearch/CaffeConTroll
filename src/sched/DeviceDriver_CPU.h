@@ -21,11 +21,12 @@ public:
   void memset(DeviceMemoryPointer * dst, const char value);
 
   template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
+  void lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
+    const struct PMapHelper args);
+    
+  template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
   void pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     const struct PMapHelper args);
-
-  void lower_cube(DeviceMemoryPointer * const device_mem_ptr_D, DeviceMemoryPointer * const device_mem_ptr_D_lowered, const int n,
-    const int d, const int k, const int s, const int p, const int b);
 
   template<FUNC_IDX_MAPPING f_dst_pos, FUNC_MM_MAPPING func>
   void parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,

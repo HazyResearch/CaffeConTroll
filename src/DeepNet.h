@@ -27,10 +27,6 @@ using namespace std;
 typedef LogicalCube<DataType_SFFloat, Layout_CRDB> LogicalCubeFloat;
 typedef AbstractBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver> Bridge;
 typedef SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver> SoftmaxBridge;
-#ifdef _GPU_TARGET
-typedef AbstractBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, GPUDriver> GPUBridge;
-typedef SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver> SoftmaxGPUBridge;
-#endif
 // TODO: we have a problem here....do we create another BridgeVector for GPU Bridges???
 typedef std::vector<Bridge *> BridgeVector;
 

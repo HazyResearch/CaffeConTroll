@@ -17,10 +17,10 @@
 #define WRITE_MODE 0
 
 template <typename TypeParam>
-class ParallelizedConvolutionBridgeLargeGPUTest : public ::testing::Test {
+class ParallelizedConvolutionBridgeLargeGPU_batchTest : public ::testing::Test {
   public:
     typedef typename TypeParam::T T;
-    ParallelizedConvolutionBridgeLargeGPUTest(){
+    ParallelizedConvolutionBridgeLargeGPU_batchTest(){
       data1 = new LogicalCube<T, Layout_CRDB>(iR, iC, iD, mB);
       grad1 = new LogicalCube<T, Layout_CRDB>(iR, iC, iD, mB);
 
@@ -47,12 +47,12 @@ class ParallelizedConvolutionBridgeLargeGPUTest : public ::testing::Test {
       ParallelizedConvolutionBridge_ = new ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
               Layout_CRDB, DataType_SFFloat, Layout_CRDB, GPUDriver>, GPUDriver>(layer1,
-                  layer2, &layer_param, &solver_param, pdriver, 1, 1);
+                  layer2, &layer_param, &solver_param, pdriver, 4, 1);
 
       ParallelizedConvolutionBridge_->needs_to_calc_backward_grad = true;
     }
 
-    virtual ~ParallelizedConvolutionBridgeLargeGPUTest() { 
+    virtual ~ParallelizedConvolutionBridgeLargeGPU_batchTest() { 
         delete layer1; 
         delete layer2; 
         // delete ParallelizedConvolutionBridge_;
@@ -89,16 +89,16 @@ class ParallelizedConvolutionBridgeLargeGPUTest : public ::testing::Test {
 
 typedef ::testing::Types<FloatNOFUNC> DataTypes;
 
-TYPED_TEST_CASE(ParallelizedConvolutionBridgeLargeGPUTest, DataTypes);
+TYPED_TEST_CASE(ParallelizedConvolutionBridgeLargeGPU_batchTest, DataTypes);
 
-TYPED_TEST(ParallelizedConvolutionBridgeLargeGPUTest, TestInitialization){
+TYPED_TEST(ParallelizedConvolutionBridgeLargeGPU_batchTest, TestInitialization){
   EXPECT_TRUE(this->ParallelizedConvolutionBridge_);
   EXPECT_TRUE(this->layer1);
   EXPECT_TRUE(this->layer2);
 }
 
 
-TYPED_TEST(ParallelizedConvolutionBridgeLargeGPUTest, TestForward){
+TYPED_TEST(ParallelizedConvolutionBridgeLargeGPU_batchTest, TestForward){
   typedef typename TypeParam::T T;
 
   std::fstream input("tests/input/conv_forward_in_large.txt", std::ios_base::in); // File size: iR*iC*iD*mB = 127*127*3*4
@@ -162,7 +162,7 @@ TYPED_TEST(ParallelizedConvolutionBridgeLargeGPUTest, TestForward){
 #endif
 }
 
-TYPED_TEST(ParallelizedConvolutionBridgeLargeGPUTest, TestBackward){
+TYPED_TEST(ParallelizedConvolutionBridgeLargeGPU_batchTest, TestBackward){
   typedef typename TypeParam::T T;
 
   std::fstream input("tests/input/conv_forward_in_large.txt", std::ios_base::in);

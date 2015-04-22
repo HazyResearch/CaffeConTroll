@@ -32,85 +32,98 @@ void CPUDriver::memset(DeviceMemoryPointer * dst, const char value) {
 }
 
 template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
+// SHADJIS TODO: This function uses float, not char like parallel_map
 inline void _spmap_cpu(float* const dst, float * const src, PMapHelper args,
     const size_t block_x, const size_t block_y, const size_t thread_x, const size_t thread_y) {
 
-  const size_t nCblock = args.sC/args.sBC;
+    const size_t nCblock = (args.sC + args.sBC-1)/args.sBC;
+    
+    Block2D input_block;
+    input_block.r = block_x / nCblock;
+    input_block.c = block_x % nCblock;
+    input_block.d = block_y % args.sD;
+    input_block.b = block_y / args.sD;
+    input_block.dr = args.sR;
+    input_block.dc = args.sC;
+    
+    Block2D output_block;
+    f_id(&output_block, &input_block, &args);
+    
+    const size_t datar = thread_y    + input_block.r * args.sBR;
+    const size_t datac = thread_x    + input_block.c * args.sBC;
 
-  Block2D input_block;
-  input_block.r = block_x / nCblock;
-  input_block.c = block_x % nCblock;
-  input_block.d = block_y % args.sD;
-  input_block.b = block_y / args.sD;
-  input_block.dr = args.sR;
-  input_block.dc = args.sC;
+    PointIn2DBlock point;
+    point.block = input_block;
 
-  Block2D output_block;
-  f_id(&output_block, &input_block, &args);
+    const size_t src_idx = args.sR * args.sC * (args.sD * input_block.b + input_block.d) + 
+            datar * args.sC + 
+            datac;
 
-  const size_t datar = thread_y + input_block.r * args.sBR;
-  const size_t datac = thread_x + input_block.c * args.sBC;
-
-  PointIn2DBlock point;
-  point.block = input_block;
+    // Check if in bounds
+    if (datar < args.sR && datac < args.sC)
+    {
 #ifdef _DO_ASSERT
-  assert(args.sR * args.sC * args.sD * args.sB > args.sR * args.sC * (args.sD * input_block.b + input_block.d) +
-    datar * args.sC +
-    datac);
+        assert(args.sR * args.sC * args.sD * args.sB > src_idx);
 #endif
-  point.data = src[
-    args.sR * args.sC * (args.sD * input_block.b + input_block.d) +
-    datar * args.sC +
-    datac
-    ];
-
-  point.r = datar;
-  point.c = datac;
-
-  f_data(dst, &output_block, &point, &args);
+        point.data = src[src_idx];
+        point.r = datar;
+        point.c = datac;
+        f_data(dst, &output_block, &point, &args);
+    }
 }
 
-// This function could be much faster.
+// SHADJIS TODO: This function can be made faster by blocking, etc.
+// SHADJIS TODO: For now rather than use pmap2d_read_coalesce for lowering
+// I wrote a separate type 1 lowering (lower_cube) which is faster due to
+// better access patterns. However, alternatively we can continue to call
+// pmap2d_read_coalesce but make this function faster, e.g. by blocking
+// the loops.
 template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
 inline void CPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     const struct PMapHelper args) {
 
-  // input block sizes
-  size_t sBR = args.sBR, sBC = args.sBC;
-  size_t n_thread_per_block_C = sBC;
-  size_t n_thread_per_block_R = sBR; assert(sBC*sBR > 0);
-  size_t n_block_X = (args.sR / args.sBR)*(args.sC / args.sBC);
-  size_t n_block_Y = args.sD*args.sB;
+    // input block sizes
+    size_t sBR = args.sBR, sBC = args.sBC;
+    assert(sBC*sBR > 0);
+    size_t n_thread_per_block_C = sBC;
+    size_t n_thread_per_block_R = sBR;
+    size_t n_block_X = ((args.sR + sBR-1)/sBR)*((args.sC + sBC-1)/sBC);
+    size_t n_block_Y = args.sD*args.sB;
 
-  for (size_t block_x = 0; block_x < n_block_X; block_x++) {
-    for (size_t block_y = 0; block_y < n_block_Y; block_y++) {
-      for (size_t thread_x = 0; thread_x < n_thread_per_block_C; thread_x++) {
-        for (size_t thread_y = 0; thread_y < n_thread_per_block_R; thread_y++) {
-          _spmap_cpu<f_id,f_data>((float*) dst->ptr, (float*) src->ptr, args,
-              block_x, block_y, thread_x, thread_y);
+    for (size_t block_x = 0; block_x < n_block_X; ++block_x) {
+        for (size_t block_y = 0; block_y < n_block_Y; ++block_y) {
+            for (size_t thread_x = 0; thread_x < n_thread_per_block_C; ++thread_x) {
+                for (size_t thread_y = 0; thread_y < n_thread_per_block_R; ++thread_y) {
+                    _spmap_cpu<f_id,f_data>((float*) dst->ptr, (float*) src->ptr, args,
+                    block_x, block_y, thread_x, thread_y);
+                }
+            }
         }
-      }
     }
-  }
-
 }
 
 #define FW_LOWER_OPTIMIZATIONS 1
 
 // Type 1 lowering as defined in the paper
 // Note the result D_hat is transposed compared to the expected format
-void CPUDriver::lower_cube
-(
-    DeviceMemoryPointer * const device_mem_ptr_D,
-    DeviceMemoryPointer * const device_mem_ptr_D_lowered,
-    const int n,
-    const int d,
-    const int k,
-    const int s,
-    const int p,
-    const int b
-)
-{
+template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
+inline void CPUDriver::lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
+    const struct PMapHelper args) {
+
+    DeviceMemoryPointer * const device_mem_ptr_D = src;
+    DeviceMemoryPointer * const device_mem_ptr_D_lowered = dst;
+    const int n = args.sR;
+    const int d = args.sD;
+    const int k = args.kR;
+    const int s = args.stride;
+    const int p = args.padding;
+    const int b = args.sB;
+
+#ifdef _DO_ASSERT
+    assert(args.sR == args.sC);
+    assert(args.kR == args.kC);
+#endif
+
     // Implement equation 4 of
     // "Formulation of Type 1 Lowering with Padding and Stride"
     // Optimizations are possible, e.g. lifting out padding checks and blocking loops
@@ -405,6 +418,9 @@ void * CPUDriver::choose_ptr(void * host, void * device) {
  * This is necessary for template to be instantiated.
  */
 template void CPUDriver::pmap2d_read_coalesce<_fpmap_id,_fmap_lower>(DeviceMemoryPointer * dst,
+    DeviceMemoryPointer * src, const struct PMapHelper args);
+
+template void CPUDriver::lower_cube<_fpmap_id,_fmap_lower>(DeviceMemoryPointer * dst,
     DeviceMemoryPointer * src, const struct PMapHelper args);
 
 template void CPUDriver::pmap2d_read_coalesce<_fpmap_id,_fmap_remap>(DeviceMemoryPointer * dst,

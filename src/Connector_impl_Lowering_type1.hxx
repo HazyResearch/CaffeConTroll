@@ -60,8 +60,12 @@ lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeTyp
   args.dR = p_output_cube->R; args.dC = p_output_cube->C; args.dD = p_output_cube->D; args.dB = p_output_cube->B;
   args.sR = p_input_cube->R; args.sC = p_input_cube->C; args.sD = p_input_cube->D; args.sB = p_input_cube->B;
   args.dBR = args.dR; args.dBC = args.dC;
-  // args.sBR = min((size_t)32, args.sR); args.sBC = min((size_t)32, args.sC);
-  args.sBR = args.sR; args.sBC = args.sC;
+
+  // This is mostly for the GPU. sBR and sBC are the block sizes for rows/columns.
+  // if we don't set a max of 16, 32, etc. then the kernel may not launch due to
+  // too many threads
+  // SHADJIS TODO: Determine this number somehow, don't hard-code 16x16 (256 threads/block)
+  args.sBR = min((size_t)16, args.sR); args.sBC = min((size_t)16, args.sC);
   args.kR = kernel_size; args.kC = kernel_size; args.kD = p_input_cube->D; args.kB = 1;
   args.stride = stride;
   args.padding = padding;
@@ -69,7 +73,7 @@ lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeTyp
 #ifdef _DO_ASSERT
   assert(iR == iC);
 #endif
-  p_driver->template lower_cube(input, output, iR, iD, kernel_size, stride, padding, iB);
+  p_driver->template lower_cube<_fpmap_id,_fmap_lower>(output, input, args);
 
   report_last_lowering.end(iR*iC*iD*iB*sizeof(DataType), oR*oC*oD*oB*sizeof(DataType), 0);
   report_history.aggregate(report_last_lowering);
@@ -92,13 +96,16 @@ remap_output(LogicalCube<DataType, InputLayout>& cube, const size_t depth, const
   args.dR = cube.R; args.dC = cube.C; args.dD = cube.D; args.dB = cube.B;
   args.sR = cube.R; args.sC = cube.C; args.sD = depth; args.sB = batch;
   args.dBR = args.dR; args.dBC = args.dC;
-  // args.sBR = min((size_t)32, args.sR); args.sBC = min((size_t)32, args.sC);
-  args.sBR = args.sR; args.sBC = args.sC;
+  
+  // This is mostly for the GPU. sBR and sBC are the block sizes for rows/columns.
+  // if we don't set a max of 16, 32, etc. then the kernel may not launch due to
+  // too many threads
+  args.sBR = min((size_t)16, args.sR); args.sBC = min((size_t)16, args.sC);
   args.stride = stride;
   args.padding = padding;
 
+  // SHADJIS TODO: Is remap ever needed? Can we get rid of it?
   p_driver->template pmap2d_read_coalesce<_fpmap_id,_fmap_remap>(output, copy, args);
-
   p_driver->free(copy);
   free(copy);
 }

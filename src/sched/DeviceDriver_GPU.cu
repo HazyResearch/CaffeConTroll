@@ -35,15 +35,25 @@ template<FUNC_IDX_MAPPING idx_func, FUNC_MM_MAPPING func>
 __global__ void _spmap(float * dst, float * src, int numElements, int srcSkip,
   void * const idx_func_curry, void * const func_curry){
 
-  int i = (blockDim.x * blockIdx.x + threadIdx.x);
-  i = i * srcSkip;
-  int src_idx, dst_idx;
-
-  src_idx = i;
-  if(src_idx < numElements*srcSkip){
-    dst_idx = idx_func(src_idx, idx_func_curry);
-    func(&dst[dst_idx/sizeof(float)], &src[src_idx/sizeof(float)], func_curry, dst_idx/sizeof(float));
+  // SHADJIS TODO: Running serial version for now like on CPU
+  // Not much of a parallel map currently
+  char * p_dst = (char*) dst;
+  char * p_src = (char*) src;
+  const size_t src_size = numElements*srcSkip;
+  for (size_t i=0; i<src_size; i+=srcSkip) {
+    func(&p_dst[idx_func(i, idx_func_curry)], &p_src[i], func_curry, idx_func(i, idx_func_curry));
   }
+
+  // Not sure why version below fails...
+/*
+  char * p_dst = (char*) dst;
+  char * p_src = (char*) src;
+  const size_t src_size = numElements*srcSkip;
+  size_t i = (blockDim.x * blockIdx.x + threadIdx.x) * srcSkip;
+  if(i < src_size){
+    func(&p_dst[idx_func(i, idx_func_curry)], &p_src[i], func_curry, idx_func(i, idx_func_curry));
+  }
+*/
 }
 
 template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
@@ -51,8 +61,7 @@ __global__ void _spmap_readc(float* dst, float * src, PMapHelper args){
 	const size_t block_x = blockIdx.x;
 	const size_t block_y = blockIdx.y;
 
-	//const size_t nRblock = args.sR/args.sBR;
-	const size_t nCblock = args.sC/args.sBC;
+	const size_t nCblock = (args.sC + args.sBC-1)/args.sBC;
 
 	Block2D input_block;
 	input_block.r = block_x / nCblock;
@@ -65,27 +74,31 @@ __global__ void _spmap_readc(float* dst, float * src, PMapHelper args){
 	Block2D output_block;
 	f_id(&output_block, &input_block, &args);
 
-	const size_t datar = threadIdx.y + input_block.r * args.sR;
-	const size_t datac = threadIdx.x + input_block.c * args.sC;
+	const size_t datar = threadIdx.y + input_block.r * args.sBR;
+	const size_t datac = threadIdx.x + input_block.c * args.sBC;
 
 	PointIn2DBlock point;
 	point.block = input_block;
-	point.data = src[
-		args.sR * args.sC * (args.sD * input_block.b + input_block.d) +
-		datar + args.sC +
-		datac
-	];
-	point.r = threadIdx.y;
-	point.c = threadIdx.x;
+    
+    const size_t src_idx = args.sR * args.sC * (args.sD * input_block.b + input_block.d) +
+            datar * args.sC +
+            datac;
 
-	f_data(dst, &output_block, &point, &args);
-
+    // Check if in bounds
+    if (datar < args.sR && datac < args.sC)
+    {
+        point.data = src[src_idx];
+        point.r = datar;
+        point.c = datac;
+        f_data(dst, &output_block, &point, &args);
+    }
 }
 
-void GPUDriver::lower_cube(DeviceMemoryPointer * const device_mem_ptr_D, DeviceMemoryPointer * const device_mem_ptr_D_lowered, const int n,
-    const int d, const int k, const int s, const int p, const int b) {
-    
-    assert(false);
+template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
+void GPUDriver::lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct PMapHelper args){
+    // Redirect to pmap2d_read_coalesce on GPU
+    pmap2d_read_coalesce<f_id, f_data>(dst, src, args);
 }
 
 template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
@@ -94,9 +107,12 @@ void GPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPoin
 
 	// input block sizes
 	size_t sBR = args.sBR, sBC = args.sBC;
+    
 	dim3 threadsPerBlock(sBC, sBR);	// trivial impl -- each input pixel is a single thread
-	dim3 numBlocks(args.sR*args.sC/sBC/sBR, args.sD*args.sB);
+	// The number of blocks and threads are chosen to to map to each pixel in input (1 thread/pixel)
+	dim3 numBlocks(((args.sR + sBR-1)/sBR)*((args.sC + sBC-1)/sBC), args.sD*args.sB);
 
+	cudaGetLastError(); // Reset the error status to success
 	_spmap_readc<f_id,f_data><<<numBlocks, threadsPerBlock>>>((float*) dst->ptr, (float*) src->ptr, args);
 	err = cudaGetLastError();
 	if(err != cudaSuccess){
@@ -164,9 +180,15 @@ size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry, DeviceMemoryPointe
 	cudaMemcpy(d_idx_func_curry, f_dst_pos_curry->ptr, f_dst_pos_curry->size_in_byte, cudaMemcpyHostToDevice);
 
 	// Run.
-	const int n_elements =  dst->size_in_byte / src_skip;
+	const int n_elements =  src->size_in_byte / src_skip;
+	/*
+	// SHADJIS TODO: Should this be (n_elements + threadsPerBlock - 1) / threadsPerBlock ?
 	int blocksPerGrid = (n_elements + 1 + threadsPerBlock - 1) / threadsPerBlock;
+	// SHADJIS TODO: Why call _spmap and not _spmap_readc?
 	_spmap<f_dst_pos,func><<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr, (float *) src->ptr,
+	*/
+	// SHADJIS TODO: This fails unless run serially, for now run serial version
+	_spmap<f_dst_pos,func><<<1, 1>>>((float*) dst->ptr, (float *) src->ptr,
 	  n_elements, src_skip, d_idx_func_curry, d_func_curry);
 	err = cudaGetLastError();
 	if(err != cudaSuccess){
@@ -204,7 +226,7 @@ void GPUDriver::math_saxpy(const int nElements, const float alpha, float * X, fl
 template<FUNC_STRANSFORM func>
 void GPUDriver::sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const func_curry){
 	#ifdef _DO_ASSERT
-	assert(dst->type==DEVICEMEMORY_LOCAL_RAM);
+	assert(dst->type==DEVICEMEMORY_LOCAL_GPURAM);
 	assert(dst->size_in_byte % sizeof(float) == 0);
 	#endif
 	// TODO: Refactoring
@@ -215,6 +237,7 @@ void GPUDriver::sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const fu
 	cudaMemcpy(d_func_curry, func_curry->ptr, func_curry->size_in_byte, cudaMemcpyHostToDevice);
 
 	// Run.
+	cudaGetLastError(); // Reset the error status to success
 	const int n_elements =  dst->size_in_byte / sizeof(float);
 	int blocksPerGrid = (n_elements + threadsPerBlock - 1) / threadsPerBlock;
 	_sapply<func><<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr, n_elements, d_func_curry);
@@ -262,13 +285,69 @@ void GPUDriver::sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TR
     int M, int N, int K, float alpha, float * pA, int LDA, float * pB, int LDB,
     float beta, float * pC, int LDC){
   
+	// SHADJIS TODO: See comment in Kernel.h regarding transpose. For the CPU it is fastest 
+	// to lower like equation 4 of "Formulation of Type 1 Lowering with Padding and Stride"
+	// but the GPU currently lowers as the transpose of what the CPU does. For now I change
+	// the parameters in here to match. It's pretty complicated to get these cuBLAS parameters
+	// right because cuBLAS also assumes things are stored in column-major order. It's made
+	// more complicated because the lowering on CPU and GPU differs (by transpose), so making
+	// the lowered versions match would make this easier to follow.
+
 	if(TA == CblasNoTrans && TB == CblasNoTrans){
 
 		cublasOperation_t ta = CUBLAS_OP_N;
+		// tb should also be no trans, but is transposed to match cpu lowering
+		cublasOperation_t tb = CUBLAS_OP_T; 
+
+		// cublas expects col major, so we change the parameters accordingly
+		status = cublasSgemm(handle, tb, ta, N, M, K, &alpha, 
+			pB, K, pA, K, &beta, pC, N); 
+
+		cudaDeviceSynchronize();
+		err = cudaGetLastError();
+		assert(err == cudaSuccess);
+
+		assert(status == CUBLAS_STATUS_SUCCESS);
+
+	}else if(TA == CblasTrans && TB == CblasNoTrans){
+
+		cublasOperation_t ta = CUBLAS_OP_T;
 		cublasOperation_t tb = CUBLAS_OP_N;
 
+		// cublas expects col major, so we change the parameters accordingly
+		status = cublasSgemm(handle, tb, ta, N, M, K, &alpha, 
+			pB, N, pA, M, &beta, pC, N); 
+
+		cudaDeviceSynchronize();
+		err = cudaGetLastError();
+		assert(err == cudaSuccess);
+
+		assert(status == CUBLAS_STATUS_SUCCESS);
+
+	}else if(TA == CblasNoTrans && TB == CblasTrans){
+
+		cublasOperation_t ta = CUBLAS_OP_N;
+		// tb should be trans, but is transposed to match cpu lowering
+		cublasOperation_t tb = CUBLAS_OP_N;
+
+		// cublas expects col major, so we change the parameters accordingly
 		status = cublasSgemm(handle, tb, ta, N, M, K, &alpha, 
 			pB, N, pA, K, &beta, pC, N); 
+
+		cudaDeviceSynchronize();
+		err = cudaGetLastError();
+		assert(err == cudaSuccess);
+
+		assert(status == CUBLAS_STATUS_SUCCESS);
+
+	}else if(TA == CblasTrans && TB == CblasTrans){
+
+		cublasOperation_t ta = CUBLAS_OP_T;
+		cublasOperation_t tb = CUBLAS_OP_T;
+
+		// cublas expects col major, so we change the parameters accordingly
+		status = cublasSgemm(handle, tb, ta, N, M, K, &alpha, 
+			pB, K, pA, M, &beta, pC, N); 
 
 		cudaDeviceSynchronize();
 		err = cudaGetLastError();
@@ -381,6 +460,9 @@ void * GPUDriver::choose_ptr(void * host, void * device){
  * This is necessary for template to be instantiated.
  */
 template void GPUDriver::pmap2d_read_coalesce<_fpmap_id,_fmap_lower>(DeviceMemoryPointer * dst, 
+	DeviceMemoryPointer * src, const struct PMapHelper args);
+
+template void GPUDriver::lower_cube<_fpmap_id,_fmap_lower>(DeviceMemoryPointer * dst, 
 	DeviceMemoryPointer * src, const struct PMapHelper args);
 
 template void GPUDriver::pmap2d_read_coalesce<_fpmap_id,_fmap_remap>(DeviceMemoryPointer * dst, 

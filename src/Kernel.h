@@ -9,9 +9,6 @@
 #ifndef moka_Kernel_h
 #define moka_Kernel_h
 
-#ifdef _GPU_TARGET
-#include "sched/DeviceDriver_GPU.h"
-#endif
 #include "sched/DeviceDriver_CPU.h"
 
 #include "LogicalCube.h"
@@ -65,7 +62,7 @@ enum KernelConfig {
     //
     // R_hat is o*mmb, K_hat is o*kkd and D_hat is kkd*mmb
     // The new implementation of lowering following equation 4 of 
-    // "Formulation of Type 1 Lowering with Padding and Stride"
+    // "Formulation of Type 1 Lowering with Padding and Stride" (see CCT_ROOT/docs)
     // transposes how D_hat is stored in memory. However none of the
     // matrix dimensions changed. So previously it was necessary to
     // just multiply K_hat * D_hat, but now it is necessary to 
@@ -78,6 +75,8 @@ enum KernelConfig {
     // not transpose. 
     // This might not be the best way to do it (e.g. use remap instead) but 
     // if BLAS can handle transposes for "free" this might be faster.
+    // SHADJIS TODO: Measure overhead of current remap and decide if matrix multiply
+    // should be K_hat*D_hat as it is now or switch to D_hat*K_hat.
     KernelConfig_GEMM_NOTRANS_TRANS_NO_DIM_FLIP = 5,
     KernelConfig_GEMM_TRANS_NO_DIM_FLIP_NOTRANS = 6,
     KernelConfig_GEMM_NOTRANS_NOTRANS_DIM_FLIP = 7,
