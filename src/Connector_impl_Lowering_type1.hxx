@@ -10,6 +10,7 @@
 #define moka_Connector_imple_Lowering_type1_hxx
 
 #include <iostream>
+#include "sched/DeviceDriver_CPU.h"
 
 template<typename DataType, LayoutType InputLayout, typename DriverClass>
 Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1, DriverClass>::
@@ -100,7 +101,11 @@ remap_output(LogicalCube<DataType, InputLayout>& cube, const size_t depth, const
   // This is mostly for the GPU. sBR and sBC are the block sizes for rows/columns.
   // if we don't set a max of 16, 32, etc. then the kernel may not launch due to
   // too many threads
-  args.sBR = min((size_t)16, args.sR); args.sBC = min((size_t)16, args.sC);
+  if (std::is_same<DriverClass, CPUDriver>::value) {
+    args.sBR = args.sR; args.sBC = args.sC;
+  } else {
+    args.sBR = min((size_t)16, args.sR); args.sBC = min((size_t)16, args.sC);
+  }
   args.stride = stride;
   args.padding = padding;
 

@@ -120,7 +120,7 @@ ParallelizedBridge<DataType, BridgeType, DriverClass>::ParallelizedBridge(Layer<
     // central copy in parallelized bridge.
     // SHADJIS TODO: Every call to get_device_pointer leaks memory?
     p_driver->memcpy(p_model_cube->get_device_pointer(scheduler_local_cpudriver), example_cube->get_device_pointer(p_driver));
-    
+
     // Similarly, the parallelized bridge (scheduler) has its own local gradient cube
     // SHADJIS TODO: Should make it clear what is local and not by the variable name
     p_model_grad = new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B);
@@ -263,12 +263,18 @@ void ParallelizedBridge<DataType, BridgeType, DriverClass>::backward() {
       const size_t n_element = p_model_grad->n_elements;
       for (size_t i = 0; i < n_partition; ++i) {
         // Store the gradient from each partition in p_model_subgrad
-        // SHADJIS TODO: if that partition's bridge was on the CPU already, no need for this copy
-        // if (std::is_same<DriverClass, CPUDriver>::value) { ...
-        p_driver->memcpy(p_model_subgrad->get_device_pointer(scheduler_local_cpudriver), _bridges[i]->get_model_grad_cube()->get_device_pointer(p_driver));
-        DataType * const p_subgrad_data = p_model_subgrad->get_p_data();
-        for (size_t j=0;j<n_element;j++) {
-          p_grad_data[j] += p_subgrad_data[j];
+        // If that partition's bridge was on the CPU already, no need for this copy
+        if (std::is_same<DriverClass, CPUDriver>::value) {
+          DataType * const p_subgrad_data = _bridges[i]->get_model_grad_cube()->get_p_data();
+          for (size_t j=0;j<n_element;j++) {
+            p_grad_data[j] += p_subgrad_data[j];
+          }
+        } else {
+          p_driver->memcpy(p_model_subgrad->get_device_pointer(scheduler_local_cpudriver), _bridges[i]->get_model_grad_cube()->get_device_pointer(p_driver));
+          DataType * const p_subgrad_data = p_model_subgrad->get_p_data();
+          for (size_t j=0;j<n_element;j++) {
+            p_grad_data[j] += p_subgrad_data[j];
+          }
         }
       }
       
@@ -284,14 +290,19 @@ void ParallelizedBridge<DataType, BridgeType, DriverClass>::backward() {
       // Just 1 partition (sub-bridge)
       // In this special-case, we are not summing results from multiple subgradients
       // (multiple partitions) so there is no need to allocate a temporary buffer.
-      p_driver->memcpy(p_model_subgrad->get_device_pointer(scheduler_local_cpudriver), _bridges[0]->get_model_grad_cube()->get_device_pointer(p_driver));
+      if (std::is_same<DriverClass, CPUDriver>::value) {
+        p_grad_updater->update(_bridges[0]->get_model_grad_cube()->get_p_data());
+      } else {
+        p_driver->memcpy(p_model_subgrad->get_device_pointer(scheduler_local_cpudriver), _bridges[0]->get_model_grad_cube()->get_device_pointer(p_driver));
       
-      // SHADJIS TODO:
-      // If this is to be done on the device, we need to copy back
-      // For now, I will keep gradient updates on the CPU. To go
-      // to the GPU instead, remove the copy above and do the
-      // gradient too on the device.
-      p_grad_updater->update(p_model_subgrad->get_p_data());
+        // SHADJIS TODO:
+        // If this is to be done on the device, we need to copy back
+        // For now, I will keep gradient updates on the CPU. To go
+        // to the GPU instead, remove the copy above and do the
+        // gradient too on the device.
+        p_grad_updater->update(p_model_subgrad->get_p_data());
+      }
+
     }
 
   }
@@ -307,12 +318,18 @@ void ParallelizedBridge<DataType, BridgeType, DriverClass>::backward() {
       const size_t bias_n_element = p_bias_grad->n_elements;
       const size_t n_partition = _data_cubes_lower.size();
       for (size_t i = 0; i < n_partition; ++i) {
-        // SHADJIS TODO: if that partition's bridge was on the CPU already, no need for this copy
-        // if (std::is_same<DriverClass, CPUDriver>::value) { ...
-        p_driver->memcpy(p_bias_subgrad->get_device_pointer(scheduler_local_cpudriver), _bridges[i]->get_bias_grad_cube()->get_device_pointer(p_driver));
-        DataType * const p_subbias_data = p_bias_subgrad->get_p_data();
-        for (size_t j=0;j<bias_n_element;j++) {
-          p_grad_data[j] += p_subbias_data[j];
+        // If that partition's bridge was on the CPU already, no need for this copy
+        if (std::is_same<DriverClass, CPUDriver>::value) {
+          DataType * const p_subbias_data = _bridges[i]->get_bias_grad_cube()->get_p_data();
+          for (size_t j=0;j<bias_n_element;j++) {
+            p_grad_data[j] += p_subbias_data[j];
+          }
+        } else {
+          p_driver->memcpy(p_bias_subgrad->get_device_pointer(scheduler_local_cpudriver), _bridges[i]->get_bias_grad_cube()->get_device_pointer(p_driver));
+          DataType * const p_subbias_data = p_bias_subgrad->get_p_data();
+          for (size_t j=0;j<bias_n_element;j++) {
+            p_grad_data[j] += p_subbias_data[j];
+          }
         }
       }
       
@@ -322,14 +339,17 @@ void ParallelizedBridge<DataType, BridgeType, DriverClass>::backward() {
       // to the GPU instead, add a copy here.
       p_grad_updater_bias->update(p_grad_data);
     } else {
-      p_driver->memcpy(p_bias_subgrad->get_device_pointer(scheduler_local_cpudriver), _bridges[0]->get_bias_grad_cube()->get_device_pointer(p_driver));
-      
-      // SHADJIS TODO:
-      // If this is to be done on the device, we need to copy back
-      // For now, I will keep gradient updates on the CPU. To go
-      // to the GPU instead, remove the copy above and do the
-      // gradient too on the device.
-      p_grad_updater_bias->update(p_bias_subgrad->get_p_data());
+      if (std::is_same<DriverClass, CPUDriver>::value) {
+        p_grad_updater_bias->update(_bridges[0]->get_bias_grad_cube()->get_p_data());
+      } else {
+        p_driver->memcpy(p_bias_subgrad->get_device_pointer(scheduler_local_cpudriver), _bridges[0]->get_bias_grad_cube()->get_device_pointer(p_driver));      
+        // SHADJIS TODO:
+        // If this is to be done on the device, we need to copy back
+        // For now, I will keep gradient updates on the CPU. To go
+        // to the GPU instead, remove the copy above and do the
+        // gradient too on the device.
+        p_grad_updater_bias->update(p_bias_subgrad->get_p_data());
+      }
     }
   }
 
