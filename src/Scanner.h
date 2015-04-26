@@ -6,6 +6,9 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
+
+// SHADJIS TODO: Is Scanner needed anymore? We only ever call with NOFUNC
+
 #ifndef moka_Scanner_h
 #define moka_Scanner_h
 

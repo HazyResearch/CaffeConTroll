@@ -82,7 +82,11 @@ void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::f
 
   // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy output to host memory here
   if (!std::is_same<DriverClass, CPUDriver>::value) {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(
+    // SHADJIS TODO:
+	// ERROR: For now do not support this layer on device. Easy to fix though, just need to
+	// make sure arg parameters which are pointers get copied to device
+    assert(false);
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_local(
         p_output_layer->p_data_cube, output_d_cube
         );
   }
@@ -129,7 +133,11 @@ void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::b
 
   // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy input grad to host memory here
   if (!std::is_same<DriverClass, CPUDriver>::value) {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(
+    // SHADJIS TODO:
+	// ERROR: For now do not support this layer on device. Easy to fix though, just need to
+	// make sure arg parameters which are pointers get copied to device
+    assert(false);
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_local(
         p_input_layer->p_gradient_cube, input_g_cube
         );
   }

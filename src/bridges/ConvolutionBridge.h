@@ -15,8 +15,8 @@
 
 enum ConvolutionBridgeType {
   CPU_CONV_LOWERINGTYPE1 = 0,
-  CPU_CONV_LOWERINGTYPE2 = 1, // TODO: support the
-  CPU_CONV_LOWERINGTYPE3 = 2  // other lowering types
+  CPU_CONV_LOWERINGTYPE2 = 1, // SHADJIS TODO: support the other lowering
+  CPU_CONV_LOWERINGTYPE3 = 2  // types by passing as an argument (vs template)
 };
 
 /**
@@ -24,17 +24,18 @@ enum ConvolutionBridgeType {
  * A ConvolutionBridge contains two functions:
  *   - forward()
  *   - backward()
- * In the template,
+ * In the template we used to have:
  *   - LAYERTYPE defines {GPU, CPU} x {Types of lowering}
  *   - FUNC defines the non-linear function that will be applied to the output
- *     - {No func, TANH}
- *     - TODO: We need ReLU, etc.
+ * Now it is the same as all other layers. FUNC is deprecated and instead
+ * is done as a new layer (e.g. ReLU layer). LAYERTYPE now only supports lowering type 1
+ * and will use an argument to support other types in the future.
+ * Summary: Assuming now in this class that FUNC is always FUNC_NOFUNC and lowerting type is 1
  **/
 template
-<ConvolutionBridgeType LAYERTYPE, NonLinearFunction FUNC,
-  typename InputLayerDataType, LayoutType InputLayerLayout,
-  typename OutputLayerDataType, LayoutType OutputLayerLayout,
-  typename DriverClass>
+<typename InputLayerDataType, LayoutType InputLayerLayout,
+ typename OutputLayerDataType, LayoutType OutputLayerLayout,
+ typename DriverClass>
 class ConvolutionBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType, OutputLayerLayout, DriverClass> {
   public:
 
@@ -71,8 +72,8 @@ class ConvolutionBridge : public AbstractBridge<InputLayerDataType, InputLayerLa
 /******
  * Specializations
  */
-template <typename DataType, NonLinearFunction FUNC, typename DriverClass>
-class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>
+template <typename DataType, typename DriverClass>
+class ConvolutionBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>
 : public AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass> {
   protected:
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::curr_B;
@@ -195,7 +196,7 @@ class ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, Dat
 
     size_t mR, mC, mD, mB; /*< Size of the model LogicalCube */
 
-    Scanner<DataType, Layout_CRDB, FUNC> * p_forward_applyfunc_scanner;
+    // Scanner<DataType, Layout_CRDB, FUNC_NOFUNC> * p_forward_applyfunc_scanner;
 
     Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, LOWERING_TYPE1, DriverClass>
       * p_forward_lower_connector;

@@ -18,10 +18,10 @@
 #include <cstring>
 
 template <typename TypeParam>
-class MaxPoolingBridgeTest : public ::testing::Test {
+class GPUMaxPoolingBridgeTest : public ::testing::Test {
   public:
     typedef typename TypeParam::T T;
-    MaxPoolingBridgeTest() {
+    GPUMaxPoolingBridgeTest() {
       data1 = new LogicalCube<T, Layout_CRDB>(iR, iC, iD, mB);
       grad1 = new LogicalCube<T, Layout_CRDB>(iR, iC, iD, mB);
 
@@ -32,7 +32,7 @@ class MaxPoolingBridgeTest : public ::testing::Test {
       layer2 = new Layer<T, Layout_CRDB>(data2, grad2);
 
       cnn::LayerParameter layer_param;
-      layer_param.set_gpu_batch_proportion(0);
+      layer_param.set_gpu_batch_proportion(1);
       cnn::PoolingParameter * const pool_param = layer_param.mutable_pooling_param();
       pool_param->set_kernel_size(k);
       pool_param->set_stride(s);
@@ -41,7 +41,11 @@ class MaxPoolingBridgeTest : public ::testing::Test {
                             &pdriver, 4, 1);
     }
 
-    virtual ~MaxPoolingBridgeTest() { delete layer1; delete layer2; delete MaxPoolingBridge_; }
+    virtual ~GPUMaxPoolingBridgeTest() {
+		delete layer1;
+		delete layer2;
+		delete MaxPoolingBridge_;
+	}
     ParallelizedBridge<DataType_SFFloat, MaxPoolingBridge>* MaxPoolingBridge_;
 
     cnn::SolverParameter solver_param;
@@ -70,16 +74,16 @@ class MaxPoolingBridgeTest : public ::testing::Test {
 
 typedef ::testing::Types<FloatCRDB> DataTypes;
 
-TYPED_TEST_CASE(MaxPoolingBridgeTest, DataTypes);
+TYPED_TEST_CASE(GPUMaxPoolingBridgeTest, DataTypes);
 
 //openblas_set_num_threads -- undefined reference -- currently disabled
-TYPED_TEST(MaxPoolingBridgeTest, TestInitialization) {
+TYPED_TEST(GPUMaxPoolingBridgeTest, TestInitialization) {
   EXPECT_TRUE(this->MaxPoolingBridge_);
   EXPECT_TRUE(this->layer1);
   EXPECT_TRUE(this->layer2);
 }
 
-TYPED_TEST(MaxPoolingBridgeTest, TestForward) {
+TYPED_TEST(GPUMaxPoolingBridgeTest, TestForward) {
   typedef typename TypeParam::T T;
 
   std::fstream input("tests/input/pooling_forward_in.txt", std::ios_base::in);
@@ -111,7 +115,7 @@ TYPED_TEST(MaxPoolingBridgeTest, TestForward) {
   expected_output.close();
 }
 
-TYPED_TEST(MaxPoolingBridgeTest, TestBackward) {
+TYPED_TEST(GPUMaxPoolingBridgeTest, TestBackward) {
   typedef typename TypeParam::T T;
 
   std::fstream input("tests/input/pooling_forward_in.txt", std::ios_base::in);

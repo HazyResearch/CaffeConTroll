@@ -96,6 +96,7 @@ class LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass> : pub
 
   protected:
     LogicalCube<DataType, Layout_CRDB> * denoms;
+    LogicalCube<DataType, Layout_CRDB> * denoms_device;
 };
 
 #include "LRNBridge_impl.hxx"

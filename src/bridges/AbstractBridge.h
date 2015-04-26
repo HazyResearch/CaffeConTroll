@@ -20,6 +20,7 @@
 #include "../algorithms/GradientUpdater.h"
 
 #include "../sched/DeviceDriver_CPU.h"
+#include "../sched/DeviceDriver_GPU.h"
 
 template
 <typename InputLayerDataType, LayoutType InputLayerLayout,

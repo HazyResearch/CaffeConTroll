@@ -53,6 +53,9 @@ template<typename DUMMY>
 void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output(LogicalCube<T, LAYOUT>& cube, const size_t R, const size_t C,
     const size_t kernel_size, DeviceDriver * p_driver) {
 
+  // SHADJIS TODO: If this ever fails just remove the assert, but I think this is never needed
+  assert(false);
+  
   // TODO: This buffer does not make much sense, but lets get
   // the logical refactoring done first in a way as before
   // before over optimize.
@@ -72,7 +75,7 @@ void LogicalCube<T, LAYOUT>::LoweringHelper<LOWERING_TYPE1, DUMMY>::remap_output
   args.sR = cube.R; args.sC = cube.C; args.sD = cube.D; args.sB = cube.B;
   args.dBR = args.dR; args.dBC = args.dC;
   args.sBR = min((size_t)32, args.sR); args.sBC = min((size_t)32, args.sC);
-
+  
   p_driver->pmap2d_read_coalesce<_fpmap_id,_fmap_remap>(output, copy, args);
 
   p_driver->free(copy);
@@ -104,27 +107,38 @@ LogicalCube<T, LAYOUT>::LogicalCube(void * _p_data, size_t _R, size_t _C, size_t
   n_elements(_R*_C*_D*_B),
   R(_R), C(_C), D(_D), B(_B),
   own_data(false),
+  p_data_device_ptr(NULL),
   p_data(reinterpret_cast<T*>(_p_data)) {}
 
+// SHADJIS TODO: Why does this malloc and not new? Why not call devicemalloc?
+// Why does this constructor even exist? What is the driver?
+// Need to change this to only have a single constructor in which cube owns data,
+// with the driver required
 template<typename T, LayoutType LAYOUT>
 LogicalCube<T, LAYOUT>::LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B) :
   n_elements(_R*_C*_D*_B),
   R(_R), C(_C), D(_D), B(_B),
   own_data(true),
+  p_data_device_ptr(NULL),
+  p_data_driver(NULL),
   p_data((T*) malloc(sizeof(T)*_R*_C*_D*_B)) {} // TODO: change to 32byte align
 
 template<typename T, LayoutType LAYOUT>
 LogicalCube<T, LAYOUT>::LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B, DeviceDriver * p_driver) :
   n_elements(_R*_C*_D*_B),
   R(_R), C(_C), D(_D), B(_B),
+  p_data_device_ptr(NULL),
   own_data(true) {
 
 #ifdef _DETAILED_PROFILING
   std::cout << "Allocating " << 1.0*sizeof(T)*_R*_C*_D*_B/1024/1024 << " MB..." << std::endl;
 #endif
-  DeviceMemoryPointer * ptr = p_driver->get_device_pointer(NULL, sizeof(T)*_R*_C*_D*_B);
-  p_driver->malloc(ptr);
-  p_data = (T*) ptr->ptr;
+  // Allocate a device memory pointer (SHADJIS TODO: small memory leak)
+  p_data_device_ptr = p_driver->get_device_pointer(NULL, sizeof(T)*_R*_C*_D*_B);
+  // Now use the new device memory pointer to call a malloc on the device
+  p_driver->malloc(p_data_device_ptr);
+  p_data = (T*) p_data_device_ptr->ptr;
+  p_data_driver = p_driver; // SHADJIS TODO: What if this is deleted? Should make copy for this class?
 }
 template<typename T, LayoutType LAYOUT>
 LogicalCube<T, LAYOUT>::LogicalCube(void * _p_data, size_t _R, size_t _C, size_t _D, size_t _B,
@@ -132,6 +146,7 @@ LogicalCube<T, LAYOUT>::LogicalCube(void * _p_data, size_t _R, size_t _C, size_t
   n_elements(_R*_C*_D*_B),
   R(_R), C(_C), D(_D), B(_B),
   own_data(false),
+  p_data_device_ptr(NULL),
   p_data(reinterpret_cast<T*>(_p_data)) {}
 
 template<typename T, LayoutType LAYOUT>
@@ -144,10 +159,18 @@ void LogicalCube<T, LAYOUT>::reset_cube(const T val) {
   Util::constant_initialize<T>(p_data, val, n_elements);
 }
 
+// SHADJIS TODO: This should only call p_data_driver->free, not free,
+// but we have a special-case constructor which takes no driver and
+// calls malloc. Should make that one use a default CPU driver (so
+// there is always some driver) and never just call free.
 template<typename T, LayoutType LAYOUT>
 LogicalCube<T, LAYOUT>::~LogicalCube() {
   if(own_data) {
-    free(p_data);
+    if (p_data_device_ptr) { // Is non-NULL if we called the p_driver constructor
+	  p_data_driver->free(p_data_device_ptr);
+	} else {
+      free(p_data);
+	}
   }
 }
 

@@ -55,40 +55,53 @@ endif
 # SOURCE FILE FOR TEST
 TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest
 TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.cpp \
-	       src/sched/DeviceDriver_CPU.cpp \
-	       tests/test_parallelized_convolution.cpp \
-	       tests/test_parallelized_convolution_large_CPU.cpp \
-	       tests/test_parallelized_convolution_large_GPU.cpp \
-	       tests/test_parallelized_convolution_large_CPU_batch.cpp \
-	       tests/test_parallelized_convolution_large_GPU_batch.cpp \
-	       tests/test_fc_bridge.cpp \
-	       tests/test_kernel.cpp \
-	       tests/test_connector.cpp \
-	       tests/test_convolution.cpp \
-	       tests/test_ReLU_bridge.cpp \
-	       tests/test_dropout_bridge.cpp \
-	       tests/test_lrn_bridge.cpp \
-	       tests/test_softmax_bridge.cpp \
-	       tests/test_device_driver_cpu.cpp \
-	       tests/test_cube.cpp \
-	       tests/test_report.cpp \
-	       tests/test_grouping.cpp \
-	       tests/test_model_write.cpp \
-	       tests/test_scanner.cpp \
-	       tests/test_MaxPooling_bridge.cpp \
-	       tests/test_lenet_network.cpp \
-	       #tests/test_paper3a_conv_layer.cpp \
-	       #tests/test_paper3b_caffenet.cpp \
-	       #tests/test_perf_convolution_1.cpp \
-	       #tests/test_perf_convolution_2.cpp \
-	       #tests/test_perf_convolution_3.cpp \
-	       #tests/test_perf_convolution_4.cpp \
-	       #tests/test_perf_convolution_5.cpp \
-	       #tests/test_perf_convolution_6.cpp \
-	       #tests/test_perf_convolution_7.cpp \
-	       #tests/test_alexnet_network.cpp
-
-	       # tests/test_device_driver_gpu.cpp \
+			src/sched/DeviceDriver_CPU.cpp \
+			tests/test_MaxPooling_bridge.cpp \
+			tests/test_MaxPooling_bridge_GPU.cpp \
+			tests/test_parallelized_convolution.cpp \
+			tests/test_parallelized_convolution_GPU.cpp \
+			tests/test_lrn_bridge.cpp \
+			tests/test_lrn_bridge_GPU.cpp \
+			tests/test_ReLU_bridge.cpp \
+			tests/test_ReLU_bridge_GPU.cpp \
+			tests/test_parallelized_convolution_large_GPU_batch.cpp \
+			tests/test_parallelized_convolution_large_GPU.cpp \
+			tests/test_parallelized_convolution_large_CPU.cpp \
+			tests/test_parallelized_convolution_large_CPU_batch.cpp \
+			tests/test_convolution.cpp \
+			tests/test_fc_bridge.cpp \
+			tests/test_kernel.cpp \
+			tests/test_connector.cpp \
+			tests/test_dropout_bridge.cpp \
+			tests/test_softmax_bridge.cpp \
+			tests/test_device_driver_cpu.cpp \
+			tests/test_cube.cpp \
+			tests/test_report.cpp \
+			tests/test_grouping.cpp \
+			tests/test_model_write.cpp \
+			tests/test_scanner.cpp \
+			tests/test_lenet_network.cpp \
+			tests/test_lenet_network_GPU.cpp \
+			#tests/test_paper3a_conv_layer_GPU.cpp \
+			#tests/test_paper3a_conv_layer.cpp \
+			#tests/test_paper3b_caffenet.cpp \
+			#tests/test_perf_convolution_1.cpp \
+			#tests/test_perf_convolution_2.cpp \
+			#tests/test_perf_convolution_3.cpp \
+			#tests/test_perf_convolution_4.cpp \
+			#tests/test_perf_convolution_5.cpp \
+			#tests/test_perf_convolution_6.cpp \
+			#tests/test_perf_convolution_7.cpp \
+			#tests/test_perf_convolution_1_GPU.cpp \
+			#tests/test_perf_convolution_2_GPU.cpp \
+			#tests/test_perf_convolution_3_GPU.cpp \
+			#tests/test_perf_convolution_4_GPU.cpp \
+			#tests/test_perf_convolution_5_GPU.cpp \
+			#tests/test_perf_convolution_6_GPU.cpp \
+			#tests/test_perf_convolution_7_GPU.cpp \
+			#tests/test_alexnet_network.cpp
+			
+			# tests/test_device_driver_gpu.cpp \
 
 TEST_OBJ_FILES = $(patsubst %.cpp,%.o,$(TEST_SOURCES))
 TEST_EXECUTABLE=test

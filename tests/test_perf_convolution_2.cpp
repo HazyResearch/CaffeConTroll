@@ -28,6 +28,7 @@ class PerfConvolutionBridgeTest_2 : public ::testing::Test {
       layer2 = new Layer<T, Layout_CRDB>(data2, grad2);
 
       cnn::LayerParameter layer_param;
+      layer_param.set_gpu_batch_proportion(1);
       cnn::ConvolutionParameter * const conv_param = layer_param.mutable_convolution_param();
       conv_param->set_num_output(oD);
       conv_param->set_kernel_size(k);
@@ -42,17 +43,15 @@ class PerfConvolutionBridgeTest_2 : public ::testing::Test {
 
       // TODO: set #partition to 8 does not halt
       ParallelizedConvolutionBridge_ = new ParallelizedBridge<DataType_SFFloat,
-              ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
-              Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver>(layer1,
+              ConvolutionBridge>(layer1,
                   layer2, &layer_param, &solver_param, &pdriver, 1, 1);
 
       ParallelizedConvolutionBridge_->needs_to_calc_backward_grad = true;
     }
 
-    virtual ~PerfConvolutionBridgeTest_2() { delete layer1; delete layer2; }
+    virtual ~PerfConvolutionBridgeTest_2() { delete layer1; delete layer2; delete ParallelizedConvolutionBridge_; }
     ParallelizedBridge<DataType_SFFloat,
-              ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
-              Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver>* ParallelizedConvolutionBridge_;
+              ConvolutionBridge>* ParallelizedConvolutionBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
     LogicalCube<T, Layout_CRDB>* grad1;

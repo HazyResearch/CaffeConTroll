@@ -14,10 +14,10 @@
 #include <cstring>
 
 template <typename TypeParam>
-class PerfConvolutionBridgeTest_3 : public ::testing::Test {
+class GPUPerfConvolutionBridgeTest_4 : public ::testing::Test {
   public:
     typedef typename TypeParam::T T;
-    PerfConvolutionBridgeTest_3(){
+    GPUPerfConvolutionBridgeTest_4(){
       data1 = new LogicalCube<T, Layout_CRDB>(iR, iC, iD, mB);
       grad1 = new LogicalCube<T, Layout_CRDB>(iR, iC, iD, mB);
 
@@ -49,7 +49,7 @@ class PerfConvolutionBridgeTest_3 : public ::testing::Test {
       ParallelizedConvolutionBridge_->needs_to_calc_backward_grad = true;
     }
 
-    virtual ~PerfConvolutionBridgeTest_3() { delete layer1; delete layer2; delete ParallelizedConvolutionBridge_; }
+    virtual ~GPUPerfConvolutionBridgeTest_4() { delete layer1; delete layer2; delete ParallelizedConvolutionBridge_; }
     ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge>* ParallelizedConvolutionBridge_;
 
@@ -66,14 +66,14 @@ class PerfConvolutionBridgeTest_3 : public ::testing::Test {
 
     CPUDriver pdriver;
 
-    // AlexNet L1
+    // AlexNet L2
     static const int mB = 128;
-    static const int iD = 3;
-    static const int oD = 96;
-    static const int iR = 227;
-    static const int iC = 227;
-    static const int k = 11;
-    static const int s = 4;
+    static const int iD = 96;
+    static const int oD = 256;
+    static const int iR = 27;
+    static const int iC = 27;
+    static const int k = 5;
+    static const int s = 2;
     static const int p = 0;
 
     static const int oR = static_cast<int>((static_cast<float>(iR + 2*p - k) / s)) + 1;
@@ -82,10 +82,10 @@ class PerfConvolutionBridgeTest_3 : public ::testing::Test {
 
 typedef ::testing::Types<FloatNOFUNC> DataTypes;
 
-TYPED_TEST_CASE(PerfConvolutionBridgeTest_3, DataTypes);
+TYPED_TEST_CASE(GPUPerfConvolutionBridgeTest_4, DataTypes);
 
 /*
-TYPED_TEST(PerfConvolutionBridgeTest_3, TestForward){
+TYPED_TEST(GPUPerfConvolutionBridgeTest_4, TestForward){
 
   // Create random data and model parameters
   for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
@@ -115,7 +115,7 @@ TYPED_TEST(PerfConvolutionBridgeTest_3, TestForward){
 */
 
 
-TYPED_TEST(PerfConvolutionBridgeTest_3, TestForwardBackward){
+TYPED_TEST(GPUPerfConvolutionBridgeTest_4, TestForwardBackward){
 
   // Create random data and model parameters
   for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){

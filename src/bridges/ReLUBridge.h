@@ -41,8 +41,8 @@ class ReLUBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, O
  * Specializations
  */
 template <typename DataType, typename DriverClass>
-class ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass> : public AbstractBridge<DataType,
-      Layout_CRDB, DataType, Layout_CRDB, DriverClass> {
+class ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>
+: public AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass> {
   protected:
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::curr_B;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::input_d_cube;

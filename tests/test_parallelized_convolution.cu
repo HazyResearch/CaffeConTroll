@@ -72,12 +72,11 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
 
       /***
       ParallelizedConvolutionBridge_ = new ParallelizedBridge<DataType_SFFloat,
-              ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
+              ConvolutionBridge<DataType_SFFloat,
               Layout_CRDB, DataType_SFFloat, Layout_CRDB> >
               (layer1, layer2, &layer_param, &solver_param, 1, 1);
       ****/
-      ParallelizedConvolutionBridge_ = new ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, 
-              FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>
+      ParallelizedConvolutionBridge_ = new ConvolutionBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>
               (layer1, layer2, &layer_param, &solver_param);
 
       //ParallelizedConvolutionBridge_->p_driver = new GPUDriver();
@@ -88,10 +87,10 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
     virtual ~ParallelizedConvolutionBridgeTest() { delete layer1; delete layer2; }
     
     //ParallelizedBridge<DataType_SFFloat,
-    //          ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
+    //          ConvolutionBridge<DataType_SFFloat,
     //          Layout_CRDB, DataType_SFFloat, Layout_CRDB> >* ParallelizedConvolutionBridge_;
 
-    ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
+    ConvolutionBridge<DataType_SFFloat,
       Layout_CRDB, DataType_SFFloat, Layout_CRDB> * ParallelizedConvolutionBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;

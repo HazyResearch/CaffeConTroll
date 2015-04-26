@@ -12,8 +12,8 @@
 #define moka_ConvolutionBridge_impl_hxx
 
 // Constructor for convolution layer
-template <typename DataType, NonLinearFunction FUNC, typename DriverClass>
-ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
+template <typename DataType, typename DriverClass>
+ConvolutionBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
 ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
   const cnn::LayerParameter * const _layer_param, const cnn::SolverParameter * const _solver_param,
   DriverClass * const _p_driver) : AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>(_p_input_layer,
@@ -90,8 +90,8 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
                         Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_TRANS_NO_DIM_FLIP, DriverClass>(&lowered_forward_model,
                             p_forward_lowered_data, &lowered_forward_output, p_driver);
 
-  p_forward_applyfunc_scanner = new Scanner<DataType, Layout_CRDB, FUNC>(p_output_layer->p_data_cube,
-                                  p_driver);
+  // p_forward_applyfunc_scanner = new Scanner<DataType, Layout_CRDB, FUNC_NOFUNC>(p_output_layer->p_data_cube,
+                                  // p_driver);
 
   p_backward_inputgrad = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*iB, 1, 1, p_driver);
   // this should be allocated on device
@@ -111,8 +111,8 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
 
 // Intiailize a Logical Cube using a FillerParameter. This is only called if layer_param is
 // non-NULL.
-template <typename DataType, NonLinearFunction FUNC, typename DriverClass>
-void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
+template <typename DataType, typename DriverClass>
+void ConvolutionBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
 initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter filler_param) {
   const string type = filler_param.type();
   DeviceMemoryPointer * data = cube->get_device_pointer(p_driver);
@@ -145,8 +145,8 @@ initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter
  * (3) oData -----non-linear func (if any)-----> oData
  *
  **/
-template <typename DataType, NonLinearFunction FUNC, typename DriverClass>
-void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
+template <typename DataType, typename DriverClass>
+void ConvolutionBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
 forward() {
   p_driver->set_num_threads(run_with_n_threads);
 
@@ -178,6 +178,7 @@ forward() {
       num_output_features, oR*oC*iB, 1, 1);
 
   // (1) do the lowering
+  // SHADJIS TODO: Pass in an argument for the lowering type (currently only type 1)
   p_forward_lower_connector->lower_cube(input_d_cube, p_forward_lowered_data);
   // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Forward Lowering: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
 
@@ -186,9 +187,10 @@ forward() {
   // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Forward Kernel: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
   
   // (3) apply non-linear functions
-  if (FUNC != FUNC_NOFUNC) {
-     p_forward_applyfunc_scanner->apply(&lowered_output);
-  }
+  // This is no longer needed, and may be removed
+  // if (FUNC != FUNC_NOFUNC) {
+     // p_forward_applyfunc_scanner->apply(&lowered_output);
+  // }
 
   // Right now the output we get is of the form:
   // [(b_0, d_0), (b_1, d_0), ... , (b_n, d_0)
@@ -243,9 +245,10 @@ forward() {
   report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_lowering);
   report_forward_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);
 
-  if (FUNC != FUNC_NOFUNC) {
-    report_forward_last_transfer.aggregate_onlystat(p_forward_applyfunc_scanner->report_last_apply);
-  }
+  // This is no longer needed, and may be removed
+  // if (FUNC != FUNC_NOFUNC) {
+    // report_forward_last_transfer.aggregate_onlystat(p_forward_applyfunc_scanner->report_last_apply);
+  // }
 
   report_forward_history.aggregate(report_forward_last_transfer);
   report_forward_kernel.aggregate(p_forward_gemm_kernel->report_last_lowering);
@@ -271,8 +274,8 @@ forward() {
   * (3) BackPropogatedGradient x Lowered_iData * stepsize + iModel ---------> New iModel
   *
  **/
-template <typename DataType, NonLinearFunction FUNC, typename DriverClass>
-void ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
+template <typename DataType, typename DriverClass>
+void ConvolutionBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
 backward() {
   p_driver->set_num_threads(run_with_n_threads);
 
@@ -360,8 +363,8 @@ backward() {
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
 }
 
-template <typename DataType, NonLinearFunction FUNC, typename DriverClass>
-ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC, DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
+template <typename DataType, typename DriverClass>
+ConvolutionBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
 ~ConvolutionBridge() {
   if (bias_term) {
     delete p_bias_cube;

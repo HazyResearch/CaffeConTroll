@@ -101,6 +101,10 @@ void GPUDriver::lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     pmap2d_read_coalesce<f_id, f_data>(dst, src, args);
 }
 
+
+// SHADJIS TODO: Why is the interface for this is different from parallel_map?
+// Here we pass in the args directly whereas parallel_map gets pointers to
+// the args already allocated on the device
 template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
 void GPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
     const struct PMapHelper args){
@@ -180,6 +184,7 @@ size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry, DeviceMemoryPointe
 	cudaMemcpy(d_idx_func_curry, f_dst_pos_curry->ptr, f_dst_pos_curry->size_in_byte, cudaMemcpyHostToDevice);
 
 	// Run.
+	cudaGetLastError(); // Reset the error status to success
 	const int n_elements =  src->size_in_byte / src_skip;
 	/*
 	// SHADJIS TODO: Should this be (n_elements + threadsPerBlock - 1) / threadsPerBlock ?

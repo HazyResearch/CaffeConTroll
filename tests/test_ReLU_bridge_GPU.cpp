@@ -14,10 +14,10 @@
 #include <cstring>
 
 template <typename TypeParam>
-class ReLUBridgeTest : public ::testing::Test {
+class GPUReLUBridgeTest : public ::testing::Test {
   public:
     typedef typename TypeParam::T T;
-    ReLUBridgeTest() {
+    GPUReLUBridgeTest() {
       data1 = new LogicalCube<T, Layout_CRDB>(iR, iC, iD, mB);
       grad1 = new LogicalCube<T, Layout_CRDB>(iR, iC, iD, mB);
 
@@ -28,14 +28,14 @@ class ReLUBridgeTest : public ::testing::Test {
       layer2 = new Layer<T, Layout_CRDB>(data2, grad2);
 
       cnn::LayerParameter layer_param;
-      layer_param.set_gpu_batch_proportion(0);
+      layer_param.set_gpu_batch_proportion(1);
       ReLUBridge_ = new ParallelizedBridge<T, ReLUBridge>(layer1, layer2, &layer_param, &solver_param, &pdriver, 4, 1);
     }
 
     cnn::SolverParameter solver_param;
     CPUDriver pdriver;
 
-    virtual ~ReLUBridgeTest() { delete layer1; delete layer2; delete ReLUBridge_; }
+    virtual ~GPUReLUBridgeTest() { delete layer1; delete layer2; delete ReLUBridge_; }
     ParallelizedBridge<T, ReLUBridge>* ReLUBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
@@ -55,16 +55,16 @@ class ReLUBridgeTest : public ::testing::Test {
 
 typedef ::testing::Types<FloatCRDB> DataTypes;
 
-TYPED_TEST_CASE(ReLUBridgeTest, DataTypes);
+TYPED_TEST_CASE(GPUReLUBridgeTest, DataTypes);
 
 //openblas_set_num_threads -- undefined reference -- currently disabled
-TYPED_TEST(ReLUBridgeTest, TestInitialization) {
+TYPED_TEST(GPUReLUBridgeTest, TestInitialization) {
   EXPECT_TRUE(this->ReLUBridge_);
   EXPECT_TRUE(this->layer1);
   EXPECT_TRUE(this->layer2);
 }
 
-TYPED_TEST(ReLUBridgeTest, TestForward) {
+TYPED_TEST(GPUReLUBridgeTest, TestForward) {
   typedef typename TypeParam::T T;
 
   std::fstream input("tests/input/relu_forward_in.txt", std::ios_base::in);
@@ -94,7 +94,7 @@ TYPED_TEST(ReLUBridgeTest, TestForward) {
 }
 
 
-TYPED_TEST(ReLUBridgeTest, TestBackward) {
+TYPED_TEST(GPUReLUBridgeTest, TestBackward) {
   typedef typename TypeParam::T T;
 
   std::fstream input("tests/input/relu_forward_in.txt", std::ios_base::in);

@@ -153,6 +153,8 @@ class LogicalCube {
 
   private:
     T * p_data; // p_data is not const, because we may have to update it per batch
+	DeviceMemoryPointer *p_data_device_ptr;
+	DeviceDriver *p_data_driver;
 
     /**
      * Functions used for logical_get for different Layout.

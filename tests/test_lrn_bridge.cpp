@@ -31,19 +31,19 @@ class LRNBridgeTest : public ::testing::Test {
       layer2 = new Layer<T, Layout_CRDB>(data2, grad2);
 
       cnn::LayerParameter layer_param;
+      layer_param.set_gpu_batch_proportion(0);
       cnn::LRNParameter * const lrn_param = layer_param.mutable_lrn_param();
       lrn_param->set_alpha(alpha);
       lrn_param->set_beta(beta);
       lrn_param->set_local_size(local_size);
 
-      LRNBridge_ = new ParallelizedBridge<DataType_SFFloat, LRNBridge<T, Layout_CRDB, T, Layout_CRDB,
-                 CPUDriver>, CPUDriver>(layer1, layer2, &layer_param, &solver_param, &pdriver, 4, 1);
+      LRNBridge_ = new ParallelizedBridge<DataType_SFFloat, LRNBridge>(layer1, layer2, &layer_param, &solver_param, &pdriver, 4, 1);
     }
 
     cnn::SolverParameter solver_param;
 
-    virtual ~LRNBridgeTest() { delete layer1; delete layer2; }
-    ParallelizedBridge<DataType_SFFloat, LRNBridge<T, Layout_CRDB, T, Layout_CRDB, CPUDriver>, CPUDriver>* LRNBridge_;
+    virtual ~LRNBridgeTest() { delete layer1; delete layer2; delete LRNBridge_; }
+    ParallelizedBridge<DataType_SFFloat, LRNBridge>* LRNBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
     LogicalCube<T, Layout_CRDB>* grad1;

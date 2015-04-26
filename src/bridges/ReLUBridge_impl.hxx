@@ -59,7 +59,7 @@ void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forw
 
   // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy output to host memory here
   if (!std::is_same<DriverClass, CPUDriver>::value) {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_local(
         p_output_layer->p_data_cube, output_d_cube
         );
   }
@@ -92,7 +92,14 @@ void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::back
   DeviceMemoryPointer * output = output_g_cube->get_device_pointer(p_driver);
 
   _relu_backward_arg_helper _arg;
-  _arg.input_data = (char *) p_input_layer->p_data_cube->get_p_data();
+  if (!std::is_same<DriverClass, CPUDriver>::value) {
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(input_d_cube,
+        p_input_layer->p_data_cube);
+    _arg.input_data = (char *) input_d_cube->get_p_data();
+  } else {
+    _arg.input_data = (char *) p_input_layer->p_data_cube->get_p_data();
+  }
+
 
   DeviceMemoryPointer * arg1 = p_driver->get_device_pointer(NULL, 0);
   DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg,
@@ -104,7 +111,7 @@ void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::back
 
   // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy input grad to host memory here
   if (!std::is_same<DriverClass, CPUDriver>::value) {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_local(
         p_input_layer->p_gradient_cube, input_g_cube
         );
   }

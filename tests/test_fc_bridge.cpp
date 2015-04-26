@@ -52,7 +52,7 @@ class FCBridgeTest : public ::testing::Test {
       cnn::InnerProductParameter * const inn_param = layer_param.mutable_inner_product_param();
       inn_param->set_num_output(oD);
 
-      ConvolutionBridge_ = new ConvolutionBridge< CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB,
+      ConvolutionBridge_ = new ConvolutionBridge< T, Layout_CRDB, T, Layout_CRDB,
                          CPUDriver>(layer1, layer2, &layer_param, &solver_param, &pdriver);
 
       ConvolutionBridge_->needs_to_calc_backward_grad = true;
@@ -63,7 +63,7 @@ class FCBridgeTest : public ::testing::Test {
 
     virtual ~FCBridgeTest() { delete layer1; delete layer2; delete layer1c; delete layer2c; }
 
-    ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB, CPUDriver>* ConvolutionBridge_;
+    ConvolutionBridge< T, Layout_CRDB, T, Layout_CRDB, CPUDriver>* ConvolutionBridge_;
     FullyConnectedBridge< T, Layout_CRDB, T, Layout_CRDB, CPUDriver>* FullyConnectedBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;

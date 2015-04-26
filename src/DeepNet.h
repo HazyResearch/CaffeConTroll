@@ -244,8 +244,7 @@ class DeepNet {
                     next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
                     next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
-                    bridge = new ParallelizedBridge<DataType_SFFloat, ConvolutionBridge<CPU_CONV_LOWERINGTYPE1,
-                           FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver>
+                    bridge = new ParallelizedBridge<DataType_SFFloat, ConvolutionBridge>
                              (prev_layers[i], next_layer, &layer_param, &solver_param, driver, min<size_t>(16, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
                     bridge->name = layer_param.name();
                     bridge->needs_to_calc_backward_grad = !is_first_conv; // for the first CONV layer, do not need to calc grad for backward step
@@ -262,8 +261,7 @@ class DeepNet {
                       next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
                       next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
-                      bridge = new ParallelizedBridge<DataType_SFFloat, ConvolutionBridge<CPU_CONV_LOWERINGTYPE1,
-                             FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver>
+                      bridge = new ParallelizedBridge<DataType_SFFloat, ConvolutionBridge>
                                (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(16, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
                       bridge->name = layer_param.name();
                       bridge->needs_to_calc_backward_grad = !is_first_conv; // for the first CONV layer, do not need to calc grad for backward step
@@ -313,8 +311,7 @@ class DeepNet {
                 next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
                 next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
-                bridge = new ParallelizedBridge<DataType_SFFloat, FullyConnectedBridge<DataType_SFFloat,
-                       Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver>
+                bridge = new ParallelizedBridge<DataType_SFFloat, FullyConnectedBridge>
                          (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), 16);
 
                 //bridge = new FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layers[0],
@@ -342,8 +339,7 @@ class DeepNet {
                   next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, input_D, B);
                   next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
-                  bridge = new ParallelizedBridge<DataType_SFFloat, MaxPoolingBridge<DataType_SFFloat, Layout_CRDB,
-                         DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver >(prev_layers[i], next_layer, &layer_param,
+                  bridge = new ParallelizedBridge<DataType_SFFloat, MaxPoolingBridge>(prev_layers[i], next_layer, &layer_param,
                              &solver_param, driver, min<size_t>(16, corpus.mini_batch_size), 1);
                   bridge->name = layer_param.name();
                   bridges.push_back(bridge);
@@ -363,8 +359,7 @@ class DeepNet {
                   next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
                   next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
-                  bridge = new ParallelizedBridge<DataType_SFFloat, ReLUBridge<DataType_SFFloat, Layout_CRDB,
-                         DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver>(prev_layers[i], next_layer, &layer_param,
+                  bridge = new ParallelizedBridge<DataType_SFFloat, ReLUBridge>(prev_layers[i], next_layer, &layer_param,
                              &solver_param, driver, min<size_t>(16, corpus.mini_batch_size), 1);
                   bridge->name = layer_param.name();
 
@@ -385,8 +380,7 @@ class DeepNet {
                   next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
                   next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
-                  bridge = new ParallelizedBridge<DataType_SFFloat, LRNBridge<DataType_SFFloat, Layout_CRDB,
-                         DataType_SFFloat, Layout_CRDB, CPUDriver>, CPUDriver>(prev_layers[i], next_layer, &layer_param,
+                  bridge = new ParallelizedBridge<DataType_SFFloat, LRNBridge>(prev_layers[i], next_layer, &layer_param,
                              &solver_param, driver, min<size_t>(16, corpus.mini_batch_size), 1);
                   bridge->name = layer_param.name();
 

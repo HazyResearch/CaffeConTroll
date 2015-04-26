@@ -14,10 +14,10 @@
 #include <cstring>
 
 template <typename TypeParam>
-class PerfConvolutionBridgeTest_3 : public ::testing::Test {
+class GPUPerfConvolutionBridgeTest_paper3a : public ::testing::Test {
   public:
     typedef typename TypeParam::T T;
-    PerfConvolutionBridgeTest_3(){
+    GPUPerfConvolutionBridgeTest_paper3a(){
       data1 = new LogicalCube<T, Layout_CRDB>(iR, iC, iD, mB);
       grad1 = new LogicalCube<T, Layout_CRDB>(iR, iC, iD, mB);
 
@@ -44,12 +44,17 @@ class PerfConvolutionBridgeTest_3 : public ::testing::Test {
       // TODO: set #partition to 8 does not halt
       ParallelizedConvolutionBridge_ = new ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge>(layer1,
-                  layer2, &layer_param, &solver_param, &pdriver, 1, 1);
+                  layer2, &layer_param, &solver_param, &pdriver, 8, 1);
 
       ParallelizedConvolutionBridge_->needs_to_calc_backward_grad = true;
     }
 
-    virtual ~PerfConvolutionBridgeTest_3() { delete layer1; delete layer2; delete ParallelizedConvolutionBridge_; }
+    virtual ~GPUPerfConvolutionBridgeTest_paper3a() {
+		delete layer1;
+		delete layer2;
+		delete ParallelizedConvolutionBridge_;
+	}
+	
     ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge>* ParallelizedConvolutionBridge_;
 
@@ -66,10 +71,9 @@ class PerfConvolutionBridgeTest_3 : public ::testing::Test {
 
     CPUDriver pdriver;
 
-    // AlexNet L1
-    static const int mB = 128;
+    static const int mB = 8;
     static const int iD = 3;
-    static const int oD = 96;
+    static const int oD = 48;
     static const int iR = 227;
     static const int iC = 227;
     static const int k = 11;
@@ -82,40 +86,9 @@ class PerfConvolutionBridgeTest_3 : public ::testing::Test {
 
 typedef ::testing::Types<FloatNOFUNC> DataTypes;
 
-TYPED_TEST_CASE(PerfConvolutionBridgeTest_3, DataTypes);
+TYPED_TEST_CASE(GPUPerfConvolutionBridgeTest_paper3a, DataTypes);
 
-/*
-TYPED_TEST(PerfConvolutionBridgeTest_3, TestForward){
-
-  // Create random data and model parameters
-  for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
-    this->data1->get_p_data()[i] = float(rand()%100) / 100.0;
-    this->grad1->get_p_data()[i] = 0;
-  }
-  for(int i=0;i<this->k*this->k*this->iD*this->oD;i++){
-    this->ParallelizedConvolutionBridge_->p_model_cube->get_p_data()[i] = float(rand()%100) / 100.0;
-  }
-  for(int i=0;i<this->oD;i++){
-    this->ParallelizedConvolutionBridge_->p_bias_cube->get_p_data()[i] = float(rand()%100) / 100.0;
-  }
-
-  // Run FW pass many times
-  for (int i = 0; i < 10; ++i) {
-    this->ParallelizedConvolutionBridge_->forward();
-  }
-  
-  // Print results
-  //std::cout<<"\nreport_forward_history\n";
-  //this->ParallelizedConvolutionBridge_->_bridges[0]->report_forward_history.print();
-  std::cout<<"\nreport_forward_lowering\n";
-  this->ParallelizedConvolutionBridge_->_bridges[0]->report_forward_lowering.print();
-  //std::cout<<"\nreport_forward_kernel\n";
-  //this->ParallelizedConvolutionBridge_->_bridges[0]->report_forward_kernel.print();
-}
-*/
-
-
-TYPED_TEST(PerfConvolutionBridgeTest_3, TestForwardBackward){
+TYPED_TEST(GPUPerfConvolutionBridgeTest_paper3a, TestForwardBackward){
 
   // Create random data and model parameters
   for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
@@ -132,26 +105,38 @@ TYPED_TEST(PerfConvolutionBridgeTest_3, TestForwardBackward){
     this->data2->get_p_data()[i] = 0;
     this->grad2->get_p_data()[i] = i*0.1;
   }
+  
+  // Run first without timing
+  this->ParallelizedConvolutionBridge_->forward();
+  this->ParallelizedConvolutionBridge_->backward();
 
-  // Run FW and BW pass many times
-  for (int i = 0; i < 10; ++i) {
+  for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
+    this->data1->get_p_data()[i] = float(rand()%100) / 100.0;
+    this->grad1->get_p_data()[i] = 0;
+  }
+  for(int i=0;i<this->k*this->k*this->iD*this->oD;i++){
+    this->ParallelizedConvolutionBridge_->p_model_cube->get_p_data()[i] = float(rand()%100) / 100.0;
+  }
+  for(int i=0;i<this->oD;i++){
+    this->ParallelizedConvolutionBridge_->p_bias_cube->get_p_data()[i] = float(rand()%100) / 100.0;
+  }
+  for (int i=0;i<this->oR*this->oC*this->oD*this->mB;i++) {
+    this->data2->get_p_data()[i] = 0;
+    this->grad2->get_p_data()[i] = i*0.1;
+  }
+
+  Timer t;
+  
+  // Run FW and BW pass 10 times
+  for (int i = 0; i < 100; ++i) {
+    for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
+        this->data1->get_p_data()[i] =  drand48();
+    }
     this->ParallelizedConvolutionBridge_->forward();
-    //this->ParallelizedConvolutionBridge_->report_forward();
     this->ParallelizedConvolutionBridge_->backward();
-    //this->ParallelizedConvolutionBridge_->report_backward();
   }
   
-  // Print results
-  //std::cout<<"\nreport_forward_history\n";
-  //this->ParallelizedConvolutionBridge_->_bridges[0]->report_forward_history.print();
-  std::cout<<"\nreport_forward_lowering\n";
-  this->ParallelizedConvolutionBridge_->_bridges[0]->report_forward_lowering.print();
-  std::cout<<"\nreport_backward_lowering\n";
-  this->ParallelizedConvolutionBridge_->_bridges[0]->report_backward_inverse_lowering.print();
-  std::cout<<"\nreport_forward_kernel\n";
-  this->ParallelizedConvolutionBridge_->_bridges[0]->report_forward_kernel.print();
-  std::cout<<"\nreport_backward_grad_kernel\n";
-  this->ParallelizedConvolutionBridge_->_bridges[0]->report_backward_grad_kernel.print();
-  std::cout<<"\nreport_backward_weight_kernel\n";
-  this->ParallelizedConvolutionBridge_->_bridges[0]->report_backward_weight_kernel.print();
+  float t_pass = t.elapsed();
+  std::cout << "Time for 100 FW, BW passes: " << t_pass;
 }
+

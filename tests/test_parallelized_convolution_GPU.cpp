@@ -13,13 +13,36 @@
 #include <cmath>
 #include <cstring>
 
-#define WRITE_MODE 0
+template <typename T>
+void simple_conv(LogicalCube<T, Layout_CRDB>* in, LogicalCube<T, Layout_CRDB>* kernel, LogicalCube<T, Layout_CRDB>* out){
+  int ofm = out->D;
+  int ifm = in->D;
+  for (int n = 0; n < out->B; n++) {
+    for (int o = 0; o < ofm; o++) {
+      for (int k = 0; k < ifm; k++) {
+        for (int y = 0; y < out->R; y++) {
+          for (int x = 0; x < out->C; x++) {
+            for (int p = 0; p < kernel->R; p++) {
+              for (int q = 0; q < kernel->C; q++) {
+                int in_y = y + p;
+                int in_x = x + q;
+                *out->logical_get(y, x, o, n) +=
+                  *in->logical_get(in_y, in_x, k, n)*
+                  *kernel->logical_get(p, q, k, o);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
 
 template <typename TypeParam>
-class ParallelizedConvolutionBridgeLargeCPU_batchTest : public ::testing::Test {
+class GPUParallelizedConvolutionBridgeTest : public ::testing::Test {
   public:
     typedef typename TypeParam::T T;
-    ParallelizedConvolutionBridgeLargeCPU_batchTest(){
+    GPUParallelizedConvolutionBridgeTest(){
       data1 = new LogicalCube<T, Layout_CRDB>(iR, iC, iD, mB);
       grad1 = new LogicalCube<T, Layout_CRDB>(iR, iC, iD, mB);
 
@@ -30,7 +53,7 @@ class ParallelizedConvolutionBridgeLargeCPU_batchTest : public ::testing::Test {
       layer2 = new Layer<T, Layout_CRDB>(data2, grad2);
 
       cnn::LayerParameter layer_param;
-      layer_param.set_gpu_batch_proportion(0);
+      layer_param.set_gpu_batch_proportion(1);
       cnn::ConvolutionParameter * const conv_param = layer_param.mutable_convolution_param();
       conv_param->set_num_output(oD);
       conv_param->set_kernel_size(k);
@@ -46,12 +69,16 @@ class ParallelizedConvolutionBridgeLargeCPU_batchTest : public ::testing::Test {
       // TODO: set #partition to 8 does not halt
       ParallelizedConvolutionBridge_ = new ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge>(layer1,
-                  layer2, &layer_param, &solver_param, &pdriver, 4, 1);
+                  layer2, &layer_param, &solver_param, &pdriver, 1, 1);
 
       ParallelizedConvolutionBridge_->needs_to_calc_backward_grad = true;
     }
 
-    virtual ~ParallelizedConvolutionBridgeLargeCPU_batchTest() { delete layer1; delete layer2; delete ParallelizedConvolutionBridge_; }
+    virtual ~GPUParallelizedConvolutionBridgeTest() {
+		delete layer1;
+		delete layer2;
+		delete ParallelizedConvolutionBridge_;
+	}
     ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge>* ParallelizedConvolutionBridge_;
 
@@ -70,10 +97,10 @@ class ParallelizedConvolutionBridgeLargeCPU_batchTest : public ::testing::Test {
 
     static const int mB = 4;
     static const int iD = 3;
-    static const int oD = 8;
-    static const int iR = 127;
-    static const int iC = 127;
-    static const int k = 11;
+    static const int oD = 10;
+    static const int iR = 20;
+    static const int iC = 20;
+    static const int k = 5;
     static const int s = 4;
     static const int p = 2;
     static const int oR = static_cast<int>((static_cast<float>(iR + 2*p - k) / s)) + 1;
@@ -82,19 +109,19 @@ class ParallelizedConvolutionBridgeLargeCPU_batchTest : public ::testing::Test {
 
 typedef ::testing::Types<FloatNOFUNC> DataTypes;
 
-TYPED_TEST_CASE(ParallelizedConvolutionBridgeLargeCPU_batchTest, DataTypes);
+TYPED_TEST_CASE(GPUParallelizedConvolutionBridgeTest, DataTypes);
 
-TYPED_TEST(ParallelizedConvolutionBridgeLargeCPU_batchTest, TestInitialization){
+TYPED_TEST(GPUParallelizedConvolutionBridgeTest, TestInitialization){
   EXPECT_TRUE(this->ParallelizedConvolutionBridge_);
   EXPECT_TRUE(this->layer1);
   EXPECT_TRUE(this->layer2);
 }
 
 
-TYPED_TEST(ParallelizedConvolutionBridgeLargeCPU_batchTest, TestForward){
+TYPED_TEST(GPUParallelizedConvolutionBridgeTest, TestForward){
   typedef typename TypeParam::T T;
 
-  std::fstream input("tests/input/conv_forward_in_large.txt", std::ios_base::in); // File size: iR*iC*iD*mB = 127*127*3*4
+  std::fstream input("tests/input/conv_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
       input >> this->data1->get_p_data()[i];
@@ -106,7 +133,7 @@ TYPED_TEST(ParallelizedConvolutionBridgeLargeCPU_batchTest, TestForward){
   }
   input.close();
 
-  std::fstream model("tests/input/conv_model_large.txt", std::ios_base::in); // File size: k*k*iD*oD = 11*11*3*8
+  std::fstream model("tests/input/conv_model.txt", std::ios_base::in);
   if (model.is_open()){
     for(int i=0;i<this->k*this->k*this->iD*this->oD;i++){
       model >> this->ParallelizedConvolutionBridge_->p_model_cube->get_p_data()[i];
@@ -117,7 +144,7 @@ TYPED_TEST(ParallelizedConvolutionBridgeLargeCPU_batchTest, TestForward){
   }
   model.close();
 
-  std::fstream bias_file("tests/input/conv_bias_in_large.txt", std::ios_base::in); // File size: oD = 8
+  std::fstream bias_file("tests/input/conv_bias_in.txt", std::ios_base::in);
   if (bias_file.is_open()){
     for(int i=0;i<this->oD;i++){
       bias_file >> this->ParallelizedConvolutionBridge_->p_bias_cube->get_p_data()[i];
@@ -130,37 +157,27 @@ TYPED_TEST(ParallelizedConvolutionBridgeLargeCPU_batchTest, TestForward){
 
   this->ParallelizedConvolutionBridge_->forward();
 
-#if WRITE_MODE
-  std::ofstream expected_output("tests/output/conv_forward_large.txt"); // File size: oD*m*m*mB
-  if (expected_output.is_open()) {
-    for (int i=0; i<this->oC*this->oR*this->mB*this->oD; ++i) {
-      expected_output << this->data2->get_p_data()[i] << " ";
-    }
-  }
-  expected_output.close();
-#else
-  std::fstream expected_output("tests/output/conv_forward_large.txt", std::ios_base::in); // File size: oD*m*m*b = 
+  std::fstream expected_output("tests/output/conv_forward.txt", std::ios_base::in);
   if(TypeParam::FUNC == FUNC_NOFUNC){
     T output;
     int idx = 0;
     if (expected_output.is_open()) {
 
       while (expected_output >> output)
-        EXPECT_NEAR(this->data2->get_p_data()[idx++], output, std::max(0.01,std::abs(output/100.0)));
+        EXPECT_NEAR(this->data2->get_p_data()[idx++], output, EPS);
 
     }else{
       FAIL();
     }
     expected_output.close();
   }
-#endif
 }
 
 
-TYPED_TEST(ParallelizedConvolutionBridgeLargeCPU_batchTest, TestBackward){
+TYPED_TEST(GPUParallelizedConvolutionBridgeTest, TestBackward){
   typedef typename TypeParam::T T;
 
-  std::fstream input("tests/input/conv_forward_in_large.txt", std::ios_base::in);
+  std::fstream input("tests/input/conv_forward_in.txt", std::ios_base::in);
   if (input.is_open()){
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
       input >> this->data1->get_p_data()[i];
@@ -171,7 +188,7 @@ TYPED_TEST(ParallelizedConvolutionBridgeLargeCPU_batchTest, TestBackward){
   }
   input.close();
 
-  std::fstream model("tests/input/conv_backward_model_large.txt", std::ios_base::in); // File size: k*k*iD*oD
+  std::fstream model("tests/input/conv_backward_model.txt", std::ios_base::in);
   if (model.is_open()){
     for(int i=0;i<this->k*this->k*this->iD*this->oD;i++){
       model >> this->ParallelizedConvolutionBridge_->p_model_cube->get_p_data()[i];
@@ -182,7 +199,7 @@ TYPED_TEST(ParallelizedConvolutionBridgeLargeCPU_batchTest, TestBackward){
   }
   model.close();
 
-  std::fstream bias_file("tests/input/conv_bias_in_large.txt", std::ios_base::in);
+  std::fstream bias_file("tests/input/conv_bias_in.txt", std::ios_base::in);
   if (bias_file.is_open()){
     for(int i=0;i<this->oD;i++){
       bias_file >> this->ParallelizedConvolutionBridge_->p_bias_cube->get_p_data()[i];
@@ -205,72 +222,47 @@ TYPED_TEST(ParallelizedConvolutionBridgeLargeCPU_batchTest, TestBackward){
   this->ParallelizedConvolutionBridge_->forward();
   this->ParallelizedConvolutionBridge_->backward();
 
-#if WRITE_MODE
-  std::ofstream expected_output("tests/output/conv_backward_large.txt"); // File size: oD*m*m*mB
-  if (expected_output.is_open()) {
-    for (int i=0; i<this->oC*this->oR*this->mB*this->oD; ++i) {
-      expected_output << this->grad1->get_p_data()[i] << " ";
-    }
-  }
-  expected_output.close();
-#else
-  std::fstream expected_output("tests/output/conv_backward_large.txt", std::ios_base::in); // File size: oD*m*m*mB
+  std::fstream expected_output("tests/output/conv_backward.txt", std::ios_base::in);
   T output;
   int idx = 0;
 
   if (expected_output.is_open()) {
     while (expected_output >> output)
-      EXPECT_NEAR(this->grad1->get_p_data()[idx++], output, std::max(0.01,std::abs(output/100.0)));
+      EXPECT_NEAR(this->grad1->get_p_data()[idx++], output, EPS);
   }else{
     FAIL();
   }
   expected_output.close();
-#endif
 
-#if WRITE_MODE
-  std::ofstream expected_bias("tests/output/conv_bias_large.txt");
-  if (expected_bias.is_open()) {
-    for (int i=0; i<this->oD; ++i) {
-      expected_bias << this->ParallelizedConvolutionBridge_->p_bias_cube->get_p_data()[i] << " ";
-    }
-  }
-  expected_bias.close();
-#else
-  std::fstream expected_bias("tests/output/conv_bias_large.txt", std::ios_base::in); // File size: oD = 8
+
+  std::fstream expected_bias("tests/output/conv_bias.txt", std::ios_base::in);
+
   idx = 0;
+
   if (expected_bias.is_open()) {
     while (expected_bias >> output) {
       float actual_bias = this->ParallelizedConvolutionBridge_->p_bias_cube->get_p_data()[idx];
-      EXPECT_NEAR(actual_bias, output, std::max(0.01,std::abs(output/100.0)));
+      EXPECT_NEAR(actual_bias, output, EPS);
       idx++;
     }
   }else{
     FAIL();
   }
   expected_bias.close();
-#endif
 
-#if WRITE_MODE
-  std::ofstream expected_weights("tests/output/conv_weights_large.txt");
-  if (expected_weights.is_open()) {
-    for (int i=0; i<this->k*this->k*this->oD*this->iD; ++i) {
-      expected_weights << this->ParallelizedConvolutionBridge_->p_model_cube->get_p_data()[i] << " ";
-    }
-  }
-  expected_weights.close();
-#else
-  std::fstream expected_weights("tests/output/conv_weights_large.txt", std::ios_base::in); // k*k*oD*iD = 750
+  std::fstream expected_weights("tests/output/conv_weights.txt", std::ios_base::in);
+
   idx = 0;
+
   if (expected_weights.is_open()) {
     while (expected_weights >> output) {
       float actual_weight = this->ParallelizedConvolutionBridge_->p_model_cube->get_p_data()[idx];
-      EXPECT_NEAR(actual_weight, output, std::max(0.01,std::abs(output/100.0)));
+      EXPECT_NEAR(actual_weight, output, EPS);
       idx++;
     }
   }else{
     FAIL();
   }
   expected_weights.close();
-#endif
 
 }

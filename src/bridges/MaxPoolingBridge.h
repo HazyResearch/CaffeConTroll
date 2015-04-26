@@ -92,6 +92,7 @@ class MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass
 
   protected:
     LogicalCube<size_t, Layout_CRDB> * max_index;
+    LogicalCube<size_t, Layout_CRDB> * max_index_device;
 
     size_t pooled_height;
     size_t pooled_width;

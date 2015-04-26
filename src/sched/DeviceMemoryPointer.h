@@ -17,6 +17,9 @@ enum DeviceMemoryType{
 	DEVICEMEMORY_REMOTE_RAM = 3 // TODO
 };
 
+// SHADJIS TODO: This interface should be better utilized in the current code
+// E.g. nothing ever calls deref_to currently
+
 /**
  * A DeviceMemoryPointer is a pointer to 
  * a certain device, where device could

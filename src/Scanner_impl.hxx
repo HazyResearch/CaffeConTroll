@@ -13,6 +13,10 @@ template
 <typename DataType, LayoutType Layout>
 Scanner<DataType, Layout, FUNC_TANH>::Scanner(const LogicalCubeType * const p_cube, DeviceDriver * _p_driver):
     p_driver(_p_driver){
+    
+    // Scanner with tanh is never used anymore, will be deprecated
+    assert(false);
+    
     report_constructor.reset();
     report_last_apply.reset();
     report_history.reset();

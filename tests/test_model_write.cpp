@@ -81,16 +81,16 @@ class ReadWriteTest : public ::testing::Test {
       solver_param.set_lr_policy("step");
       solver_param.set_stepsize(10000);
 
-      ConvolutionBridge_ = new ParallelizedBridge<T, ConvolutionBridge<CPU_CONV_LOWERINGTYPE1,
-                         TypeParam::FUNC, T, Layout_CRDB, T, Layout_CRDB, CPUDriver>, CPUDriver>(layer1,
+      ConvolutionBridge_ = new ParallelizedBridge<T, ConvolutionBridge>(layer1,
                              layer2, &layer_param, &solver_param, &pdriver, 1, 1);
       ConvolutionBridge_->needs_to_calc_backward_grad = true;
     }
+	
+	virtual ~ReadWriteTest() { delete layer1; delete layer2; delete ConvolutionBridge_; }
 
     cnn::SolverParameter solver_param;
 
-    ParallelizedBridge<T, ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, TypeParam::FUNC, T, Layout_CRDB, T,
-      Layout_CRDB, CPUDriver>, CPUDriver> * ConvolutionBridge_;
+    ParallelizedBridge<T, ConvolutionBridge> * ConvolutionBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
     LogicalCube<T, Layout_CRDB>* grad1;

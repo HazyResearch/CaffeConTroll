@@ -67,8 +67,7 @@ class ParallelizedConvolutionBridgeTest2 : public ::testing::Test {
       solver_param.set_lr_policy("step");
       solver_param.set_stepsize(10000);
 
-      ConvolutionBridge_ = new ConvolutionBridge<CPU_CONV_LOWERINGTYPE1,
-              FUNC_NOFUNC, DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>
+      ConvolutionBridge_ = new ConvolutionBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>
               (layer1, layer2, &layer_param, &solver_param, &pdriver);
 
       ConvolutionBridge_->run_with_n_threads = 1;
@@ -78,7 +77,7 @@ class ParallelizedConvolutionBridgeTest2 : public ::testing::Test {
 
     virtual ~ParallelizedConvolutionBridgeTest2() { delete layer1; delete layer2; }
 
-    ConvolutionBridge<CPU_CONV_LOWERINGTYPE1, FUNC_NOFUNC, DataType_SFFloat,
+    ConvolutionBridge<DataType_SFFloat,
       Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver> * ConvolutionBridge_;
 
     LogicalCube<T, Layout_CRDB>* data1;
