@@ -28,7 +28,7 @@ class PerfConvolutionBridgeTest_1 : public ::testing::Test {
       layer2 = new Layer<T, Layout_CRDB>(data2, grad2);
 
       cnn::LayerParameter layer_param;
-      layer_param.set_gpu_batch_proportion(1);
+      layer_param.set_gpu_batch_proportion(0);
       cnn::ConvolutionParameter * const conv_param = layer_param.mutable_convolution_param();
       conv_param->set_num_output(oD);
       conv_param->set_kernel_size(k);
@@ -143,15 +143,15 @@ TYPED_TEST(PerfConvolutionBridgeTest_1, TestForwardBackward){
   
   // Print results
   //std::cout<<"\nreport_forward_history\n";
-  //this->ParallelizedConvolutionBridge_->_bridges[0]->report_forward_history.print();
+  //this->ParallelizedConvolutionBridge_->_cpu_bridges[0]->report_forward_history.print();
   std::cout<<"\nreport_forward_lowering\n";
-  this->ParallelizedConvolutionBridge_->_bridges[0]->report_forward_lowering.print();
+  this->ParallelizedConvolutionBridge_->_cpu_bridges[0]->report_forward_lowering.print();
   std::cout<<"\nreport_backward_lowering\n";
-  this->ParallelizedConvolutionBridge_->_bridges[0]->report_backward_inverse_lowering.print();
+  this->ParallelizedConvolutionBridge_->_cpu_bridges[0]->report_backward_inverse_lowering.print();
   std::cout<<"\nreport_forward_kernel\n";
-  this->ParallelizedConvolutionBridge_->_bridges[0]->report_forward_kernel.print();
+  this->ParallelizedConvolutionBridge_->_cpu_bridges[0]->report_forward_kernel.print();
   std::cout<<"\nreport_backward_grad_kernel\n";
-  this->ParallelizedConvolutionBridge_->_bridges[0]->report_backward_grad_kernel.print();
+  this->ParallelizedConvolutionBridge_->_cpu_bridges[0]->report_backward_grad_kernel.print();
   std::cout<<"\nreport_backward_weight_kernel\n";
-  this->ParallelizedConvolutionBridge_->_bridges[0]->report_backward_weight_kernel.print();
+  this->ParallelizedConvolutionBridge_->_cpu_bridges[0]->report_backward_weight_kernel.print();
 }

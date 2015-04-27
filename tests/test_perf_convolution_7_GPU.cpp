@@ -5,6 +5,7 @@
 #include "../src/Connector.h"
 #include "../src/bridges/ConvolutionBridge.h"
 #include "../src/bridges/ParallelizedBridge.h"
+#include "../src/sched/DeviceDriver_GPU.h"
 #include "test_types.h"
 #include "gtest/gtest.h"
 #include <iostream>
@@ -142,15 +143,15 @@ TYPED_TEST(GPUPerfConvolutionBridgeTest_7, TestForwardBackward){
   
   // Print results
   //std::cout<<"\nreport_forward_history\n";
-  //this->ParallelizedConvolutionBridge_->_bridges[0]->report_forward_history.print();
+  //this->ParallelizedConvolutionBridge_->_gpu_bridges[0]->report_forward_history.print();
   std::cout<<"\nreport_forward_lowering\n";
-  this->ParallelizedConvolutionBridge_->_bridges[0]->report_forward_lowering.print();
+  this->ParallelizedConvolutionBridge_->_gpu_bridges[0]->report_forward_lowering.print();
   std::cout<<"\nreport_backward_lowering\n";
-  this->ParallelizedConvolutionBridge_->_bridges[0]->report_backward_inverse_lowering.print();
+  this->ParallelizedConvolutionBridge_->_gpu_bridges[0]->report_backward_inverse_lowering.print();
   std::cout<<"\nreport_forward_kernel\n";
-  this->ParallelizedConvolutionBridge_->_bridges[0]->report_forward_kernel.print();
+  this->ParallelizedConvolutionBridge_->_gpu_bridges[0]->report_forward_kernel.print();
   std::cout<<"\nreport_backward_grad_kernel\n";
-  this->ParallelizedConvolutionBridge_->_bridges[0]->report_backward_grad_kernel.print();
+  this->ParallelizedConvolutionBridge_->_gpu_bridges[0]->report_backward_grad_kernel.print();
   std::cout<<"\nreport_backward_weight_kernel\n";
-  this->ParallelizedConvolutionBridge_->_bridges[0]->report_backward_weight_kernel.print();
+  this->ParallelizedConvolutionBridge_->_gpu_bridges[0]->report_backward_weight_kernel.print();
 }

@@ -310,6 +310,8 @@ backward() {
     //         bias[d] += p
     // This can't be done with a single parallel map because of the outer batch loop
     // Instead, we can keep the outside batch loop and call parallel map inside
+    // But note that we can also just use the single parallel map (Hogwild!)
+    // and it still learns.
     
     // For CPU this doesn't matter so keep it as a single call to parallel map:
     if (std::is_same<DriverClass, CPUDriver>::value) {

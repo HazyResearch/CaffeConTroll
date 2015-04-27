@@ -43,13 +43,18 @@ class PerfConvolutionBridgeTest_paper3a : public ::testing::Test {
 
       // TODO: set #partition to 8 does not halt
       ParallelizedConvolutionBridge_ = new ParallelizedBridge<DataType_SFFloat,
-              ConvolutionBridge>, CPUDriver>(layer1,
+              ConvolutionBridge>(layer1,
                   layer2, &layer_param, &solver_param, &pdriver, 8, 1);
 
       ParallelizedConvolutionBridge_->needs_to_calc_backward_grad = true;
     }
 
-    virtual ~PerfConvolutionBridgeTest_paper3a() { delete layer1; delete layer2; delete ParallelizedConvolutionBridge_; }
+    virtual ~PerfConvolutionBridgeTest_paper3a() { 
+        delete layer1;
+        delete layer2;
+        delete ParallelizedConvolutionBridge_;
+    }
+    
     ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge>* ParallelizedConvolutionBridge_;
 
@@ -122,7 +127,7 @@ TYPED_TEST(PerfConvolutionBridgeTest_paper3a, TestForwardBackward){
 
   Timer t;
   
-  // Run FW and BW pass 10 times
+  // Run FW and BW pass 100 times
   for (int i = 0; i < 100; ++i) {
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
         this->data1->get_p_data()[i] =  drand48();
