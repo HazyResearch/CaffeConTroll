@@ -31,21 +31,12 @@ __global__ void _sreduce(float * dst, int numElements, float * src1, float * src
   }
 }
 
+// NOTE: Ensure there are no race conditions when calling this function
+// See backward bias calculation for conv and fullyconnected - need to call
+// parallel_map multiple times because otherwise output indices overlap
 template<FUNC_IDX_MAPPING idx_func, FUNC_MM_MAPPING func>
 __global__ void _spmap(float * dst, float * src, int numElements, int srcSkip,
   void * const idx_func_curry, void * const func_curry){
-
-  // SHADJIS TODO: Running serial version for now like on CPU
-  // Not much of a parallel map currently
-  char * p_dst = (char*) dst;
-  char * p_src = (char*) src;
-  const size_t src_size = numElements*srcSkip;
-  for (size_t i=0; i<src_size; i+=srcSkip) {
-    func(&p_dst[idx_func(i, idx_func_curry)], &p_src[i], func_curry, idx_func(i, idx_func_curry));
-  }
-
-  // Not sure why version below fails...
-/*
   char * p_dst = (char*) dst;
   char * p_src = (char*) src;
   const size_t src_size = numElements*srcSkip;
@@ -53,7 +44,6 @@ __global__ void _spmap(float * dst, float * src, int numElements, int srcSkip,
   if(i < src_size){
     func(&p_dst[idx_func(i, idx_func_curry)], &p_src[i], func_curry, idx_func(i, idx_func_curry));
   }
-*/
 }
 
 template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
@@ -186,14 +176,9 @@ size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry, DeviceMemoryPointe
 	// Run.
 	cudaGetLastError(); // Reset the error status to success
 	const int n_elements =  src->size_in_byte / src_skip;
-	/*
-	// SHADJIS TODO: Should this be (n_elements + threadsPerBlock - 1) / threadsPerBlock ?
-	int blocksPerGrid = (n_elements + 1 + threadsPerBlock - 1) / threadsPerBlock;
+	int blocksPerGrid = (n_elements + threadsPerBlock - 1) / threadsPerBlock;
 	// SHADJIS TODO: Why call _spmap and not _spmap_readc?
 	_spmap<f_dst_pos,func><<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr, (float *) src->ptr,
-	*/
-	// SHADJIS TODO: This fails unless run serially, for now run serial version
-	_spmap<f_dst_pos,func><<<1, 1>>>((float*) dst->ptr, (float *) src->ptr,
 	  n_elements, src_skip, d_idx_func_curry, d_func_curry);
 	err = cudaGetLastError();
 	if(err != cudaSuccess){

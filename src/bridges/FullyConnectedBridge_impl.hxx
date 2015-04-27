@@ -267,25 +267,57 @@ backward() {
 
   // (3) update the bias term, summing over the gradients for each O and B
   if (bias_term) {
-    DeviceMemoryPointer * input = input_g_cube->get_device_pointer(p_driver);
-    DeviceMemoryPointer * bias = p_bias_gradient_cube->get_device_pointer(p_driver);
-    p_driver->sconstant_initialize(bias, DataType(0.));
-
-    _bias_arg_helper _arg1;
-    _arg1.src_skip = oR*oC*sizeof(DataType);
-    _arg1.DataTypeSize = sizeof(DataType);
-    _arg1.oD = oD;
-
-    size_t ORxOC = oR*oC;
-
-    DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg1,
-      sizeof(_bias_arg_helper));
-
-    DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&ORxOC,
-        sizeof(size_t));
-
-    p_driver->template parallel_map<_f_src_to_dst_bias_backward,
-      _f_bias_backward>(bias, input, _arg1.src_skip, arg1, arg2);
+    // SHADJIS TODO: Here we call parallel map to do this:
+    //   For each batch b
+    //     For each depth d (in parallel)
+    //       For each pixel p of feature map in batch b and depth d
+    //         bias[d] += p
+    // This can't be done with a single parallel map because of the outer batch loop
+    // Instead, we can keep the outside batch loop and call parallel map inside
+    
+    // For CPU this doesn't matter so keep it as a single call to parallel map:
+    if (std::is_same<DriverClass, CPUDriver>::value) {
+      DeviceMemoryPointer * output = output_g_cube->get_device_pointer(p_driver);
+      DeviceMemoryPointer * bias = p_bias_gradient_cube->get_device_pointer(p_driver);
+      p_driver->sconstant_initialize(bias, DataType(0.));
+      
+      _bias_arg_helper _arg1;
+      _arg1.src_skip = oR*oC*sizeof(DataType);
+      _arg1.DataTypeSize = sizeof(DataType);
+      _arg1.oD = oD;
+      
+      size_t ORxOC = oR*oC;
+      
+      DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg1,
+        sizeof(_bias_arg_helper));
+      
+      DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&ORxOC,
+          sizeof(size_t));
+      
+      p_driver->template parallel_map<_f_src_to_dst_bias_backward,
+        _f_bias_backward>(bias, output, _arg1.src_skip, arg1, arg2);
+    }
+    // But for GPU or other devices we need to call parallel map multiple times
+    else {
+      DataType * output_g_cube_ptr = output_g_cube->get_p_data();
+      DeviceMemoryPointer * bias = p_bias_gradient_cube->get_device_pointer(p_driver);
+      p_driver->sconstant_initialize(bias, DataType(0.));
+      _bias_arg_helper _arg1;
+      _arg1.src_skip = oR*oC*sizeof(DataType);
+      _arg1.DataTypeSize = sizeof(DataType);
+      _arg1.oD = oD;
+      size_t ORxOC = oR*oC;
+      DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg1,
+        sizeof(_bias_arg_helper));
+      DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&ORxOC,
+          sizeof(size_t));
+      size_t single_batch_size_in_byte = oR*oC*oD*sizeof(DataType);      
+      for (int batch_it=0; batch_it<oB; ++batch_it) {
+        DeviceMemoryPointer * output = p_driver->get_device_pointer(output_g_cube_ptr + batch_it*oR*oC*oD, single_batch_size_in_byte);
+        p_driver->template parallel_map<_f_src_to_dst_bias_backward,
+          _f_bias_backward>(bias, output, _arg1.src_skip, arg1, arg2);
+      }
+    }
   }
 
   // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
