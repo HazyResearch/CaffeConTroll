@@ -26,54 +26,33 @@ inline __host__ __device__ // Inline to prevent multiple definitions
 void _f_inverse_lower_cube(void * input, void * output, void * const _arg, const size_t dst_index) {
 
   const _inverse_lower_cube_arg_helper * const arg = (_inverse_lower_cube_arg_helper *) _arg;
-  const size_t data_output_width = arg->data_output_width;
-  const size_t data_output_height = arg->data_output_height;
-  const size_t kernel_size = arg->kernel_size;
-  const size_t stride = arg->stride;
-  const size_t padding = arg->padding;
+  const size_t ow = arg->data_output_width;
+  const size_t oh = arg->data_output_height;
+  const size_t k = arg->kernel_size;
+  const size_t s = arg->stride;
+  const size_t p = arg->padding;
   const int iR = arg->iR;
   const int iC = arg->iC;
   const int iD = arg->iD;
-  const unsigned int iB = arg->iB; // unsigned because, otherwise, we get a warning on line 45
-
+  const unsigned int iB = arg->iB;
   float * const input_data = (float *) input;
   const float * const output_data = (float *) output;
-
-  size_t out_index = 0;
-  // First, we iterate over K * K, which is the number of rows in the output gradient
-  // cube for a given depth D. (Remember: the output gradient cube has dimensions
-  // K * K * iD x oR * oC * iB x 1 x 1, where oR and oC do NOT refer the variables above.)
-  for (size_t kr = 0; kr < kernel_size; ++kr) {
-    for (size_t kc = 0; kc < kernel_size; ++kc) {
-
-      // Then, we iterate over oR * oC * iB, the number of columns in the output gradient
-      // cr and cc represent the row index and column index of the convolutional "window"
-      // in the input gradient cube, which means that they must be incremented by stride
-      for (size_t ib = 0; ib < iB; ++ib) {
-        const int batch_offset = ib*iR*iC*iD;
-
-        // (cr + kr - padding, cc + kc - padding) represents the index into
-        // the input gradient cube. If we aren't within [0, iR) and [0, iC)
-        // then we shouldn't update, because we are in the padded area
-        for (size_t cr = 0; cr < stride * data_output_width; cr += stride) {
-          const int input_row_index = cr + kr - padding;
-
-          if (input_row_index >= 0 && input_row_index < iR) {
-            const int row_offset = input_row_index*iC;
-
-            for (size_t cc = 0; cc < stride * data_output_height; cc += stride) {
-              const int input_col_index = cc + kc - padding;
-
-              if (input_col_index >= 0 && input_col_index < iC) {
-                input_data[input_col_index + row_offset + batch_offset] += output_data[out_index];
-              }
-              // increment out_index regardless, a single cell from the output gradient cube
-              // can only make a single contribution to the input gradient cube (Remember: this
-              // is the *lowered* output gradient cube!)
-              ++out_index;
+  for (size_t ib = 0; ib < iB; ++ib) {
+    for (size_t kr = 0; kr < k; ++kr) {
+      for (size_t kc = 0; kc < k; ++kc) {
+        for (size_t cr = 0; cr < ow; ++cr) {
+          for (size_t cc = 0; cc < oh; ++cc) {
+            // Unsigned so no need to check < 0. SHADJIS TODO: Try int
+            // if ((cr*s + kr - p) >= 0 && (cr*s + kr - p) < iR && (cc*s + kc - p) >= 0 && (cc*s + kc - p) < iC) {
+            if ((cr*s + kr - p) < iR && (cc*s + kc - p) < iC) {
+              input_data[(cc*s + kc - p) + (cr*s + kr - p)*iC + ib*iR*iC*iD] += output_data[
+                kr*k*iB*oh*ow + 
+                kc*iB*oh*ow + 
+                ib*oh*ow + 
+                oh*cr + 
+                cc
+              ];
             }
-          } else {
-            out_index += data_output_height; // if we skip this row, we need still need to update out_index
           }
         }
       }
@@ -169,6 +148,10 @@ inline int next_largest_multiple(const int x, const int p, const int stride) {
 #ifdef _GPU_TARGET
 __host__ __device__
 #endif
+// SHADJIS TODO: This currently is used for the GPU but was found to be too slow on the CPU
+// It's possible that switching to the CPU code (which lowers entire rows at a time) would
+// also be faster for the GPU. I.e. this function may be changed to do the same computation
+// as the inner-loop of CPUDriver::lower_cube. Do this if lowering is slow on the GPU.
 inline void _fmap_lower(float * output, const Block2D * const output_block, const PointIn2DBlock * const input_point, const PMapHelper * const args) {
 
   // PROFILE_ONLY(Timer t; float seconds_elapsed = 0.;)
