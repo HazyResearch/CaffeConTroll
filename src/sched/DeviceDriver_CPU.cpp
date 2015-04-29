@@ -285,6 +285,47 @@ inline void CPUDriver::lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer
 #endif // FW_LOWER_OPTIMIZATIONS
 }
 
+// Note: lower_cube and also inverse_lower_cube are special-case functions, i.e.
+// they do not use parallel map + kernel callbacks. They could use that interface
+// but it may be easier for fusion to keep them separate.
+void CPUDriver::inverse_lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
+    const struct _inverse_lower_cube_arg_helper args) {
+
+  const size_t ow = args.data_output_width;
+  const size_t oh = args.data_output_height;
+  const size_t k = args.kernel_size;
+  const size_t s = args.stride;
+  const size_t p = args.padding;
+  const int iR = args.iR;
+  const int iC = args.iC;
+  const int iD = args.iD;
+  const unsigned int iB = args.iB;
+  float * const input_data = (float *) dst->ptr;
+  const float * const output_data = (float *) src->ptr;
+  for (size_t id = 0; id < iD; ++id) {
+    for (size_t ib = 0; ib < iB; ++ib) {
+      for (size_t kr = 0; kr < k; ++kr) {
+        for (size_t kc = 0; kc < k; ++kc) {
+          for (size_t cr = 0; cr < ow; ++cr) {
+            for (size_t cc = 0; cc < oh; ++cc) {
+              if ((cr*s + kr - p) >= 0 && (cr*s + kr - p) < iR && (cc*s + kc - p) >= 0 && (cc*s + kc - p) < iC) {
+                input_data[id*iR*iC + (cc*s + kc - p) + (cr*s + kr - p)*iC + ib*iR*iC*iD] += output_data[
+                  id*k*k*iB*oh*ow + 
+                  kr*k*iB*oh*ow + 
+                  kc*iB*oh*ow + 
+                  ib*oh*ow + 
+                  oh*cr + 
+                  cc
+                ];
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 template<FUNC_IDX_MAPPING f_dst_pos, FUNC_MM_MAPPING func>
 void CPUDriver::parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,

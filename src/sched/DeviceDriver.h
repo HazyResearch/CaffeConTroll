@@ -103,6 +103,11 @@ public:
     const struct PMapHelper args){
     assert(false);
   }
+  
+  void inverse_lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
+    const struct _inverse_lower_cube_arg_helper args){
+    assert(false);
+  }
 
 
   //virtual void pmap2d_write_coalesce();

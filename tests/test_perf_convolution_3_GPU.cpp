@@ -45,7 +45,7 @@ class GPUPerfConvolutionBridgeTest_3 : public ::testing::Test {
       // TODO: set #partition to 8 does not halt
       ParallelizedConvolutionBridge_ = new ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge>(layer1,
-                  layer2, &layer_param, &solver_param, &pdriver, 1, 1);
+                  layer2, &layer_param, &solver_param, &pdriver, 16, 1);
 
       ParallelizedConvolutionBridge_->needs_to_calc_backward_grad = true;
     }

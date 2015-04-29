@@ -35,6 +35,9 @@ public:
   template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
   void lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     const struct PMapHelper args);
+    
+  void inverse_lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
+    const struct _inverse_lower_cube_arg_helper args);
 
   template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
   void pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,

@@ -46,6 +46,59 @@ __global__ void _spmap(float * dst, float * src, int numElements, int srcSkip,
   }
 }
 
+__global__ void _parallel_lower_cube(float * dst, float * src, const struct _inverse_lower_cube_arg_helper args){
+
+  // Read arguments
+  const int ow = args.data_output_width;
+  const int oh = args.data_output_height;
+  const int k = args.kernel_size;
+  const int s = args.stride;
+  const int p = args.padding;
+  const int iR = args.iR;
+  const int iC = args.iC;
+  const int iD = args.iD;
+  const unsigned int iB = args.iB;
+  
+  // Get the right loop element
+  const int i = blockDim.x * blockIdx.x + threadIdx.x;
+  
+  // The loops are like this:
+  //
+  //    for (size_t id = 0; id < iD; ++id)
+  //      for (size_t ib = 0; ib < iB; ++ib)
+  //        // Done serially by each thread:
+  //        for (size_t kr = 0; kr < k; ++kr)
+  //          for (size_t kc = 0; kc < k; ++kc)
+  //            for (size_t cr = 0; cr < ow; ++cr)
+  //              for (size_t cc = 0; cc < oh; ++cc)
+  //                 [Computation]
+  //
+  // And the number of threads is iD*iB currently
+  
+  if(i < iD*iB) {
+    const int id = i/iB;
+    const int ib = i%iB;
+    for (int kr = 0; kr < k; ++kr) {
+      for (int kc = 0; kc < k; ++kc) {
+        for (int cr = 0; cr < ow; ++cr) {
+          for (int cc = 0; cc < oh; ++cc) {
+            if ((cr*s + kr - p) >= 0 && (cr*s + kr - p) < iR && (cc*s + kc - p) >= 0 && (cc*s + kc - p) < iC) {
+              dst[id*iR*iC + (cc*s + kc - p) + (cr*s + kr - p)*iC + ib*iR*iC*iD] += src[
+                id*k*k*iB*oh*ow + 
+                kr*k*iB*oh*ow + 
+                kc*iB*oh*ow + 
+                ib*oh*ow + 
+                oh*cr + 
+                cc
+              ];
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
 __global__ void _spmap_readc(float* dst, float * src, PMapHelper args){
 	const size_t block_x = blockIdx.x;
@@ -89,6 +142,47 @@ void GPUDriver::lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     const struct PMapHelper args){
     // Redirect to pmap2d_read_coalesce on GPU
     pmap2d_read_coalesce<f_id, f_data>(dst, src, args);
+}
+
+// Note: lower_cube and also inverse_lower_cube are special-case functions, i.e.
+// they do not use parallel map + kernel callbacks. They could use that interface
+// but it may be easier for fusion to keep them separate.
+void GPUDriver::inverse_lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _inverse_lower_cube_arg_helper args){
+
+    // The loops for this gradient calculation look like this:
+    //
+    //    for (size_t id = 0; id < iD; ++id)
+    //      for (size_t ib = 0; ib < iB; ++ib)
+    //        for (size_t kr = 0; kr < k; ++kr)
+    //          for (size_t kc = 0; kc < k; ++kc)
+    //            for (size_t cr = 0; cr < ow; ++cr)
+    //              for (size_t cc = 0; cc < oh; ++cc)
+    //                 [Computation]
+    //
+    // It is easy to parallelize the 2 outer loops
+    
+    // const size_t ow = args.data_output_width;
+    // const size_t oh = args.data_output_height;
+    const int iD = args.iD;
+    const unsigned int iB = args.iB;
+    const int num_parallel_elements = iD*iB;
+    int blocksPerGrid = (num_parallel_elements + threadsPerBlock - 1) / threadsPerBlock;
+    
+    // SHADJIS TODO: Call something like _spmap_readc instead
+    cudaGetLastError(); // Reset the error status to success
+    _parallel_lower_cube<<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr, (float *) src->ptr, args);
+    err = cudaGetLastError();
+    if(err != cudaSuccess){
+      std::cout << "Fail to launch _parallel_lower_cube"  << "  ERROR " << err << std::endl;
+      assert(false);
+    }
+    cudaDeviceSynchronize();
+    err = cudaGetLastError();
+    if(err != cudaSuccess){
+      std::cout << "Fail to sync _parallel_lower_cube"  << "  ERROR " << err << std::endl;
+      assert(false);
+    }
 }
 
 
