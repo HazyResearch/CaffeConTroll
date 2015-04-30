@@ -152,6 +152,10 @@ __host__ __device__
 // It's possible that switching to the CPU code (which lowers entire rows at a time) would
 // also be faster for the GPU. I.e. this function may be changed to do the same computation
 // as the inner-loop of CPUDriver::lower_cube. Do this if lowering is slow on the GPU.
+// SHADJIS TODO: This is currently parallelized by the number of input px (#threads = input size)
+// It may make sense to instead lower by the output size, since it is k^2 bigger
+// I.e. here each thread does a lot of computation which might not be necessary. Can this
+// code be simplified? Do we have to call next_multiple?
 inline void _fmap_lower(float * output, const Block2D * const output_block, const PointIn2DBlock * const input_point, const PMapHelper * const args) {
 
   // PROFILE_ONLY(Timer t; float seconds_elapsed = 0.;)
@@ -172,14 +176,13 @@ inline void _fmap_lower(float * output, const Block2D * const output_block, cons
   assert(stride > 0);
 #endif
 
+  // SHADJIS TODO: Pass these into kernel
   const int output_R = (iR - kR + 2*padding) / stride + 1;
   const int output_C = (iC - kC + 2*padding) / stride + 1;
-
-  const int o_base_col = ib * output_R * output_C;
-
-  const int o_base_row = id * kR * kC;
   const int oC = iB * output_R * output_C;
 
+  const int o_base_col = ib * output_R * output_C;
+  const int o_base_row = id * kR * kC;
   const float input = input_point->data;
 
   // First, calculate the bounds for the row iteration. r_begin and r_end are the
@@ -212,6 +215,9 @@ inline void _fmap_lower(float * output, const Block2D * const output_block, cons
   // r        = -2, 2, 6
   // i        =  0, 1, 2
   // r/stride =  0, 0, 1 <-- we would count incorrectly around 0, invariant above would not hold.
+  
+  // SHADJIS TODO: Some of these iterations do nothing I think
+  // Can rewrite with 1 thread per output element
   for (int r = r_begin, i = i_start; r < r_end; r += stride, ++i) {
     const int dr = ir - r;
     const int drKc = dr*kC;

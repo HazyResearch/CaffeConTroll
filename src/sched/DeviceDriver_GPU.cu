@@ -46,11 +46,44 @@ __global__ void _spmap(float * dst, float * src, int numElements, int srcSkip,
   }
 }
 
-__global__ void _parallel_lower_cube(float * dst, float * src, const struct _inverse_lower_cube_arg_helper args){
+__global__ void _parallel_lower_cube(float * dst, float * src, const struct PMapHelper args){
 
   // Read arguments
-  const int ow = args.data_output_width;
-  const int oh = args.data_output_height;
+  const int iD = args.sD;
+  const int iR = args.sR;
+  const int iC = args.sC;
+  const int kR = args.kR;
+  const int kC = args.kC;
+  const int iB = args.sB;
+  const int p  = args.padding;
+  const int s  = args.stride;
+  const int oR = (iR + 2*p - kR) / s + 1;
+  const int oC = (iC + 2*p - kC) / s + 1; 
+  
+  // Get the right loop element
+  const int iB_idx   = blockIdx.x;
+  const int iD_idx   = blockIdx.y;
+  const int oRoC_idx = blockIdx.z;
+  const int oR_idx   = oRoC_idx/oC;
+  const int oC_idx   = oRoC_idx%oC;
+  const int kR_idx   = threadIdx.x;
+  const int kC_idx   = threadIdx.y;
+  
+  const int out_r = iB_idx*oR*oC + oR_idx*oC + oC_idx;
+  const int out_c = iD_idx*kR*kC + kR_idx*kC + kC_idx;
+
+  if ( (oR_idx*s-p+kR_idx) >= 0 && (oR_idx*s-p+kR_idx) < iR && (oC_idx*s-p+kC_idx) >= 0 && (oC_idx*s-p+kC_idx) < iC ) {
+    dst[out_r*iD*kR*kC + out_c] = src[iB_idx*iC*iR*iD + iD_idx*iR*iC + (oR_idx*s-p+kR_idx)*iC + (oC_idx*s-p+kC_idx)];
+  } else {
+    dst[out_r*iD*kR*kC + out_c] = 0;
+  }
+}
+
+__global__ void _parallel_inverse_lower_cube(float * dst, float * src, const struct _inverse_lower_cube_arg_helper args){
+
+  // Read arguments
+  const int oC = args.data_output_width;
+  const int oR = args.data_output_height;
   const int k = args.kernel_size;
   const int s = args.stride;
   const int p = args.padding;
@@ -58,45 +91,39 @@ __global__ void _parallel_lower_cube(float * dst, float * src, const struct _inv
   const int iC = args.iC;
   const int iD = args.iD;
   const unsigned int iB = args.iB;
-  
+
   // Get the right loop element
   const int i = blockDim.x * blockIdx.x + threadIdx.x;
+
+  // SHADJIS TODO: These / and % not needed if using multi-dimensional blocks
+  const int b =   (i / (iC*iR*iD));
+  const int tmp = (i % (iC*iR*iD));
+  const int c =  tmp / (iC * iR);
+  const int h = (tmp / iC) % iR + p;
+  const int w =  tmp % iC + p;
   
-  // The loops are like this:
-  //
-  //    for (size_t id = 0; id < iD; ++id)
-  //      for (size_t ib = 0; ib < iB; ++ib)
-  //        // Done serially by each thread:
-  //        for (size_t kr = 0; kr < k; ++kr)
-  //          for (size_t kc = 0; kc < k; ++kc)
-  //            for (size_t cr = 0; cr < ow; ++cr)
-  //              for (size_t cc = 0; cc < oh; ++cc)
-  //                 [Computation]
-  //
-  // And the number of threads is iD*iB currently
+  const int w_col_start = (w < k) ? 0 : (w - k) / s + 1;
+  const int w_col_end = device_min(w / s + 1, oC);
+  const int h_col_start = (h < k) ? 0 : (h - k) / s + 1;
+  const int h_col_end = device_min(h / s + 1, oR);
   
-  if(i < iD*iB) {
-    const int id = i/iB;
-    const int ib = i%iB;
-    for (int kr = 0; kr < k; ++kr) {
-      for (int kc = 0; kc < k; ++kc) {
-        for (int cr = 0; cr < ow; ++cr) {
-          for (int cc = 0; cc < oh; ++cc) {
-            if ((cr*s + kr - p) >= 0 && (cr*s + kr - p) < iR && (cc*s + kc - p) >= 0 && (cc*s + kc - p) < iC) {
-              dst[id*iR*iC + (cc*s + kc - p) + (cr*s + kr - p)*iC + ib*iR*iC*iD] += src[
-                id*k*k*iB*oh*ow + 
-                kr*k*iB*oh*ow + 
-                kc*iB*oh*ow + 
-                ib*oh*ow + 
-                oh*cr + 
-                cc
-              ];
-            }
-          }
-        }
-      }
+  // SHADJIS TODO: Not sure why but the way we store batches is
+  // different from Caffe so this part had to be changed. Probably
+  // something to do with the old/unnecessary CcT decision to flip
+  // the gemm order everywhere. So instead of storing each batch
+  // of src one after the other we interleave them. I think this is
+  // pretty stupid but I don't feel like rewriting everything now.
+  // Probably leave that for when we do fusion.
+  const int offset = (c*k*k*iB + h*k*iB + w*iB + b)*oR*oC;
+  const int coeff_h_col = (1 - s*k*oR*iB)*oC;
+  const int coeff_w_col = (1 - s*oR*oC*iB);
+  float sum = 0;
+  for (int h_col = h_col_start; h_col < h_col_end; ++h_col) {
+    for (int w_col = w_col_start; w_col < w_col_end; ++w_col) {
+      sum += src[offset + h_col * coeff_h_col + w_col * coeff_w_col];
     }
   }
+  dst[i] = sum;
 }
 
 template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
@@ -140,38 +167,35 @@ __global__ void _spmap_readc(float* dst, float * src, PMapHelper args){
 template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
 void GPUDriver::lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
     const struct PMapHelper args){
-    // Redirect to pmap2d_read_coalesce on GPU
     pmap2d_read_coalesce<f_id, f_data>(dst, src, args);
+    // lower_cube_helper(dst, src, args);
 }
 
-// Note: lower_cube and also inverse_lower_cube are special-case functions, i.e.
-// they do not use parallel map + kernel callbacks. They could use that interface
-// but it may be easier for fusion to keep them separate.
-void GPUDriver::inverse_lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
-    const struct _inverse_lower_cube_arg_helper args){
-
-    // The loops for this gradient calculation look like this:
-    //
-    //    for (size_t id = 0; id < iD; ++id)
-    //      for (size_t ib = 0; ib < iB; ++ib)
-    //        for (size_t kr = 0; kr < k; ++kr)
-    //          for (size_t kc = 0; kc < k; ++kc)
-    //            for (size_t cr = 0; cr < ow; ++cr)
-    //              for (size_t cc = 0; cc < oh; ++cc)
-    //                 [Computation]
-    //
-    // It is easy to parallelize the 2 outer loops
+// SHADJIS TODO: This is a more parallel forward lowering which matches the implementation
+// on the CPU. But because it flips the lowering (transposes) also need to change cuBLAS
+// flags below.
+void GPUDriver::lower_cube_helper(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct PMapHelper args){
     
-    // const size_t ow = args.data_output_width;
-    // const size_t oh = args.data_output_height;
-    const int iD = args.iD;
-    const unsigned int iB = args.iB;
-    const int num_parallel_elements = iD*iB;
-    int blocksPerGrid = (num_parallel_elements + threadsPerBlock - 1) / threadsPerBlock;
+    const int iD = args.sD;
+    const int kr = args.kR;
+    const int kc = args.kC;
+    const int iB = args.sB;
+    const int p  = args.padding;
+    const int s  = args.stride;
+    const int iR = args.sR;
+    const int iC = args.sC;
+    const int oR = (iR + 2*p - kr) / s + 1;
+    const int oC = (iC + 2*p - kc) / s + 1; 
     
+    dim3 numBlocks(iB, iD, oR*oC);
+    // SHADJIS TODO: Should fix the number of threads (e.g. 256, 1024) since now
+    // warps are under-utilized for small k
+    dim3 threadsPerBlock(kr, kc);
     // SHADJIS TODO: Call something like _spmap_readc instead
+    // SHADJIS TODO: Add a check here for too many blocks like sapply, or make multi-dimensional like _spmap_readc
     cudaGetLastError(); // Reset the error status to success
-    _parallel_lower_cube<<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr, (float *) src->ptr, args);
+    _parallel_lower_cube<<<numBlocks, threadsPerBlock>>>((float*) dst->ptr, (float *) src->ptr, args);
     err = cudaGetLastError();
     if(err != cudaSuccess){
       std::cout << "Fail to launch _parallel_lower_cube"  << "  ERROR " << err << std::endl;
@@ -181,6 +205,37 @@ void GPUDriver::inverse_lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointe
     err = cudaGetLastError();
     if(err != cudaSuccess){
       std::cout << "Fail to sync _parallel_lower_cube"  << "  ERROR " << err << std::endl;
+      assert(false);
+    }
+}
+
+
+// Note: lower_cube and also inverse_lower_cube are special-case functions, i.e.
+// they do not use parallel map + kernel callbacks. They could use that interface
+// but it may be easier for fusion to keep them separate.
+void GPUDriver::inverse_lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _inverse_lower_cube_arg_helper args){
+
+    const int iD = args.iD;
+    const int iR = args.iR;
+    const int iC = args.iC;
+    const unsigned int iB = args.iB;
+    const int num_parallel_elements = iR*iC*iD*iB;
+    int blocksPerGrid = (num_parallel_elements + threadsPerBlock - 1) / threadsPerBlock;
+    
+    // SHADJIS TODO: Call something like _spmap_readc instead
+    // SHADJIS TODO: Add a check here for too many blocks like sapply, or make multi-dimensional like _spmap_readc
+    cudaGetLastError(); // Reset the error status to success
+    _parallel_inverse_lower_cube<<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr, (float *) src->ptr, args);
+    err = cudaGetLastError();
+    if(err != cudaSuccess){
+      std::cout << "Fail to launch _parallel_inverse_lower_cube"  << "  ERROR " << err << std::endl;
+      assert(false);
+    }
+    cudaDeviceSynchronize();
+    err = cudaGetLastError();
+    if(err != cudaSuccess){
+      std::cout << "Fail to sync _parallel_inverse_lower_cube"  << "  ERROR " << err << std::endl;
       assert(false);
     }
 }
@@ -197,7 +252,7 @@ void GPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPoin
 	size_t sBR = args.sBR, sBC = args.sBC;
     
 	dim3 threadsPerBlock(sBC, sBR);	// trivial impl -- each input pixel is a single thread
-	// The number of blocks and threads are chosen to to map to each pixel in input (1 thread/pixel)
+	// The number of blocks and threads are chosen to map to each pixel in input (1 thread/pixel)
 	dim3 numBlocks(((args.sR + sBR-1)/sBR)*((args.sC + sBC-1)/sBC), args.sD*args.sB);
 
 	cudaGetLastError(); // Reset the error status to success
@@ -320,15 +375,25 @@ void GPUDriver::sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const fu
 	cudaMalloc((void**)&d_func_curry, func_curry->size_in_byte);
 	cudaMemcpy(d_func_curry, func_curry->ptr, func_curry->size_in_byte, cudaMemcpyHostToDevice);
 
-	// Run.
 	cudaGetLastError(); // Reset the error status to success
-	const int n_elements =  dst->size_in_byte / sizeof(float);
+	int n_elements =  dst->size_in_byte / sizeof(float);
 	int blocksPerGrid = (n_elements + threadsPerBlock - 1) / threadsPerBlock;
-	_sapply<func><<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr, n_elements, d_func_curry);
-	err = cudaGetLastError();
-	if(err != cudaSuccess){
-	  std::cout << "Fail to launch _sapply" << "  ERROR " << err << std::endl;
-	  assert(false);
+
+	// Check if we are trying to initialize something huge. In that case call multiple times.
+	// SHADJIS TODO: Could make multi-dimensional like _spmap_readc instead
+	const int num_calls = (blocksPerGrid + max_cuda_blocks - 1) / max_cuda_blocks;
+	if (num_calls > 1) {
+		blocksPerGrid = max_cuda_blocks;
+	}
+	for (int call_counter=0; call_counter < num_calls; ++call_counter)
+	{
+		_sapply<func><<<blocksPerGrid, threadsPerBlock>>>((float*) (dst->ptr + call_counter*blocksPerGrid*threadsPerBlock), n_elements, d_func_curry);
+		err = cudaGetLastError();
+		if(err != cudaSuccess){
+			std::cout << "Fail to launch _sapply" << "  ERROR " << err << std::endl;
+			assert(false);
+		}
+		n_elements -= blocksPerGrid*threadsPerBlock; // Decrement #elements left to process
 	}
 	cudaDeviceSynchronize();
 	err = cudaGetLastError();
@@ -546,6 +611,7 @@ void * GPUDriver::choose_ptr(void * host, void * device){
 template void GPUDriver::pmap2d_read_coalesce<_fpmap_id,_fmap_lower>(DeviceMemoryPointer * dst, 
 	DeviceMemoryPointer * src, const struct PMapHelper args);
 
+// SHADJIS TODO: No need to template this if we switch to new lowering
 template void GPUDriver::lower_cube<_fpmap_id,_fmap_lower>(DeviceMemoryPointer * dst, 
 	DeviceMemoryPointer * src, const struct PMapHelper args);
 

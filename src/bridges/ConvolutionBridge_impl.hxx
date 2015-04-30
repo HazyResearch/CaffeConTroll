@@ -354,6 +354,9 @@ backward() {
           sizeof(size_t));
       // Now iterate over each batch and call parallel_map
       size_t single_batch_size_in_byte = oR*oC*oD*sizeof(DataType);      
+      // SHADJIS TODO: Wouldn't it make more sense to do this iteration inside each
+      // kernel call? I.e. rather than launch B kernels just have each thread do
+      // B times as much work. 
       for (int batch_it=0; batch_it<oB; ++batch_it) {
         // Get the DevMemPointer for this batch (i.e. offset the pointer)
         // Also change the size to be only 1 batch

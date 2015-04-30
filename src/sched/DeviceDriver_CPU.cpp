@@ -302,11 +302,13 @@ void CPUDriver::inverse_lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointe
   const unsigned int iB = args.iB;
   float * const input_data = (float *) dst->ptr;
   const float * const output_data = (float *) src->ptr;
+  // SHADJIS TODO: Do some experiments reordering these loops
+  // Can add blocking too like in FW lower
   for (size_t id = 0; id < iD; ++id) {
     for (size_t ib = 0; ib < iB; ++ib) {
       for (size_t kr = 0; kr < k; ++kr) {
-        for (size_t kc = 0; kc < k; ++kc) {
-          for (size_t cr = 0; cr < ow; ++cr) {
+        for (size_t cr = 0; cr < ow; ++cr) {
+          for (size_t kc = 0; kc < k; ++kc) {
             for (size_t cc = 0; cc < oh; ++cc) {
               if ((cr*s + kr - p) >= 0 && (cr*s + kr - p) < iR && (cc*s + kc - p) >= 0 && (cc*s + kc - p) < iC) {
                 input_data[id*iR*iC + (cc*s + kc - p) + (cr*s + kr - p)*iC + ib*iR*iC*iD] += output_data[

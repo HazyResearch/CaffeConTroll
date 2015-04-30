@@ -45,7 +45,7 @@ class GPUPerfConvolutionBridgeTest_7 : public ::testing::Test {
       // TODO: set #partition to 8 does not halt
       ParallelizedConvolutionBridge_ = new ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge>(layer1,
-                  layer2, &layer_param, &solver_param, &pdriver, 16, 1); // TODO: Breaks when smaller than 16, fix GPU batching to be e.g. 1 image at a time like Caffe. Also understand why it breaks?
+                  layer2, &layer_param, &solver_param, &pdriver, 16, 1);
 
       ParallelizedConvolutionBridge_->needs_to_calc_backward_grad = true;
     }

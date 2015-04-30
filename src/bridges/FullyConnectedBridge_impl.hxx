@@ -312,6 +312,8 @@ backward() {
       DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&ORxOC,
           sizeof(size_t));
       size_t single_batch_size_in_byte = oR*oC*oD*sizeof(DataType);      
+      // SHADJIS TODO: See TODO in ConvolutionBridge_impl.hxx. Also, all this code
+      // is duplicated, and should be refactored to kernels/conv.hxx
       for (int batch_it=0; batch_it<oB; ++batch_it) {
         DeviceMemoryPointer * output = p_driver->get_device_pointer(output_g_cube_ptr + batch_it*oR*oC*oD, single_batch_size_in_byte);
         p_driver->template parallel_map<_f_src_to_dst_bias_backward,
