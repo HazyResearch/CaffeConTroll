@@ -92,8 +92,14 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     // This is the same driver which templatizes the ParallelizedBridge,
     // and is used e.g. for collecting gradients
     CPUDriver * scheduler_local_cpudriver;
+#ifdef _INCLUDE_GPUDRIVER
     // The GPU Driver, can add more drivers here to put into a vector
     GPUDriver * scheduler_gpudriver;
+#else
+    // SHADJIS TODO: If _INCLUDE_GPUDRIVER is undefined just make this a cpu driver
+    // and assert it's never used. That way I don't have to ifdef it out everywhere.
+    CPUDriver * scheduler_gpudriver;
+#endif
     // Keep track of the number of partitions on the CPU and GPU
     size_t num_partitions_GPU;
     size_t num_partitions_CPU;
@@ -149,7 +155,13 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     // SHADJIS TODO: May be possible to have a single vector for all bridges
     // These can also be protected like they used to be
     vector<BridgeType <DataType, Layout_CRDB, DataType, Layout_CRDB, CPUDriver> *> _cpu_bridges;
+#ifdef _INCLUDE_GPUDRIVER
     vector<BridgeType <DataType, Layout_CRDB, DataType, Layout_CRDB, GPUDriver> *> _gpu_bridges;
+#else
+    // SHADJIS TODO: If _INCLUDE_GPUDRIVER is undefined just make this a cpu driver
+    // and assert it's never used. That way I don't have to ifdef it out everywhere.
+    vector<BridgeType <DataType, Layout_CRDB, DataType, Layout_CRDB, CPUDriver> *> _gpu_bridges;
+#endif
     
   protected:
     vector<LogicalCubeType *> _data_cubes_lower;

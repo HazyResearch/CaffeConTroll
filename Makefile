@@ -18,13 +18,13 @@ ifeq ($(UNAME), Darwin)
   DEBUG_FLAGS = -g -O0 -DDEBUG -ferror-limit=10
   LDFLAGS = $(LD_BASE) -lboost_program_options-mt -lboost_serialization -lpthread
   NVCC_DEBUG_FLAGS = -DDEBUG
-  NVCCFLAGS = -D_GPU_TARGET -std=c++11 $(LD_BASE) -lcublas -lcuda -lboost_program_options-mt -lboost_serialization -gencode arch=compute_20,code=sm_20 -gencode arch=compute_20,code=sm_21 -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35 -gencode arch=compute_50,code=sm_50 -gencode arch=compute_50,code=compute_50
+  NVCCFLAGS = -D_GPU_TARGET -D_INCLUDE_GPUDRIVER -std=c++11 $(LD_BASE) -lcublas -lcuda -lboost_program_options-mt -lboost_serialization -gencode arch=compute_20,code=sm_20 -gencode arch=compute_20,code=sm_21 -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35 -gencode arch=compute_50,code=sm_50 -gencode arch=compute_50,code=compute_50 -I $(CUDA_INCLUDE)
 # For Ubuntu 12.04 x86_64
 else ifeq ($(UNAME), Linux)
-  CFLAGS = -Wall -Wl,--no-as-needed -std=c++11 -I/usr/local/cuda-6.5/targets/x86_64-linux/include/
+  CFLAGS = -Wall -Wl,--no-as-needed -std=c++11
   DEBUG_FLAGS = -gdwarf-3 -O0 -DDEBUG # -gdwarf-3 necessary for debugging with gdb v7.4
   NVCC_DEBUG_FLAGS = -DDEBUG
-  NVCCFLAGS = -D_GPU_TARGET -std=c++11 $(LD_BASE) -lcublas -lcuda -lboost_program_options -lboost_serialization -I/usr/local/cuda-6.5/targets/x86_64-linux/include/ -gencode arch=compute_20,code=sm_20 -gencode arch=compute_20,code=sm_21 -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35 -gencode arch=compute_50,code=sm_50 -gencode arch=compute_50,code=compute_50
+  NVCCFLAGS = -D_GPU_TARGET -D_INCLUDE_GPUDRIVER -std=c++11 $(LD_BASE) -lcublas -lcuda -lboost_program_options -lboost_serialization -gencode arch=compute_20,code=sm_20 -gencode arch=compute_20,code=sm_21 -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35 -gencode arch=compute_50,code=sm_50 -gencode arch=compute_50,code=compute_50 -I $(CUDA_INCLUDE)
   LDFLAGS = $(LD_BASE) -lrt -lboost_program_options -lboost_serialization -lpthread 
 endif
 CFLAGS += $(BLAS_DEFS)
@@ -50,6 +50,7 @@ OBJ_FILES = $(patsubst %.cpp,%.o,$(SRC))
 ifdef NVCC
 MAIN_CUDA_SOURCES = src/sched/DeviceDriver_GPU.cu
 MAIN_CUDA_OBJ_FILES = $(patsubst %.cu,%.o,$(MAIN_CUDA_SOURCES))
+CFLAGS += -D_INCLUDE_GPUDRIVER
 endif
 
 # SOURCE FILE FOR TEST
@@ -57,15 +58,9 @@ TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest
 TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.cpp \
 			src/sched/DeviceDriver_CPU.cpp \
 			tests/test_MaxPooling_bridge.cpp \
-			tests/test_MaxPooling_bridge_GPU.cpp \
 			tests/test_parallelized_convolution.cpp \
-			tests/test_parallelized_convolution_GPU.cpp \
 			tests/test_lrn_bridge.cpp \
-			tests/test_lrn_bridge_GPU.cpp \
 			tests/test_ReLU_bridge.cpp \
-			tests/test_ReLU_bridge_GPU.cpp \
-			tests/test_parallelized_convolution_large_GPU_batch.cpp \
-			tests/test_parallelized_convolution_large_GPU.cpp \
 			tests/test_parallelized_convolution_large_CPU.cpp \
 			tests/test_parallelized_convolution_large_CPU_batch.cpp \
 			tests/test_convolution.cpp \
@@ -81,9 +76,15 @@ TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.
 			tests/test_model_write.cpp \
 			tests/test_scanner.cpp \
 			tests/test_lenet_network.cpp \
+			#tests/test_ReLU_bridge_GPU.cpp \
+			tests/test_lrn_bridge_GPU.cpp \
+			tests/test_MaxPooling_bridge_GPU.cpp \
+			tests/test_parallelized_convolution_GPU.cpp \
+			tests/test_parallelized_convolution_large_GPU_batch.cpp \
+			tests/test_parallelized_convolution_large_GPU.cpp \
 			tests/test_lenet_network_GPU.cpp \
-			#tests/test_paper3a_conv_layer_GPU.cpp \
 			#tests/test_paper3a_conv_layer.cpp \
+			#tests/test_paper3a_conv_layer_GPU.cpp \
 			#tests/test_paper3b_caffenet.cpp \
 			#tests/test_perf_convolution_1.cpp \
 			#tests/test_perf_convolution_2.cpp \
@@ -100,8 +101,7 @@ TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.
 			#tests/test_perf_convolution_6_GPU.cpp \
 			#tests/test_perf_convolution_7_GPU.cpp \
 			#tests/test_alexnet_network.cpp
-			
-			# tests/test_device_driver_gpu.cpp \
+			#tests/test_device_driver_gpu.cpp \
 
 TEST_OBJ_FILES = $(patsubst %.cpp,%.o,$(TEST_SOURCES))
 TEST_EXECUTABLE=test
@@ -123,7 +123,10 @@ LINKCC = $(CC)
 LINKFLAG = $(CFLAGS) $(LDFLAGS)
 
 ifdef NVCC
-LINKFLAG += -lcudart -lcublas
+LINKFLAG += -lcublas
+ifeq ($(UNAME), Linux)
+LINKFLAG += -lcudart
+endif
 NVCC_LINK = dlink.o
 endif
  

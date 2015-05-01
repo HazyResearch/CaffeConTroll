@@ -82,6 +82,12 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
   const float proportion_of_partitions_on_GPU = layer_param->gpu_batch_proportion();
   num_partitions_GPU = num_partitions * proportion_of_partitions_on_GPU;
   num_partitions_CPU = num_partitions - num_partitions_GPU;
+#ifndef _INCLUDE_GPUDRIVER
+  if (num_partitions_GPU > 0) {
+    std::cout << "\nError, GPU not enabled. To enable running on GPU add NVCC and CUDA_INCLUDE to .config\n\n";
+    assert(false);
+  }
+#endif
   // std::cout << "  GPU Proportion     = " << layer_param->gpu_batch_proportion() << "\n";
   // std::cout << "  #Partitions Total  = " << num_partitions << "\n";
   // std::cout << "  #Partitions on CPU = " << num_partitions_CPU << "\n";
@@ -89,7 +95,9 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
 
   scheduler_local_cpudriver = p_driver;//new CPUDriver();
   if (num_partitions_GPU > 0) {
+#ifdef _INCLUDE_GPUDRIVER
     scheduler_gpudriver = new GPUDriver();
+#endif
   }  
 
   for (size_t ib = 0; ib < _data_cubes_lower.size(); ib++) {
@@ -114,10 +122,12 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
               layer_param, solver_param, scheduler_local_cpudriver)
             );
     } else {
+#ifdef _INCLUDE_GPUDRIVER
         _gpu_bridges.push_back(
             new BridgeType<DataType, Layout_CRDB, DataType, Layout_CRDB, GPUDriver>(_partitioned_layers_lower[ib], _partitioned_layers_higher[ib],
               layer_param, solver_param, scheduler_gpudriver)
             );
+#endif
     }
   }
 #ifdef _DO_ASSERT
