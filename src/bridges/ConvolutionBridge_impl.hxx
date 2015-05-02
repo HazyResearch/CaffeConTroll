@@ -28,6 +28,7 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   weight_filler(layer_param->convolution_param().weight_filler()),
   bias_filler(layer_param->convolution_param().bias_filler()) {
 
+  // Start reporting
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();
   report_forward_kernel.reset();
@@ -106,6 +107,7 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
                                     DriverClass>(&lowered_forward_model, &lowered_forward_output, p_backward_inputgrad,
                                         p_driver);
 
+  // Finish reporting
   report_forward_constructor.end(0, 0, 0);
 }
 
@@ -148,9 +150,15 @@ initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter
 template <typename DataType, typename DriverClass>
 void ConvolutionBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
 forward() {
+
+  // Start Reporting
+  report_forward_last_transfer.reset();
+
+  // Begin forwards step
   p_driver->set_num_threads(run_with_n_threads);
 
-  // PROFILE_ONLY(Timer t; float seconds_elapsed = 0.;)
+  PROFILE_ONLY(std::cout << "Conv Forward\n"; float seconds = 0.; Timer t;)
+  
   // Copy input to device memory
   AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(input_d_cube,
       p_input_layer->p_data_cube);
@@ -161,11 +169,9 @@ forward() {
         output_d_cube, p_output_layer->p_data_cube
         );
   }
-  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Forward Device Copy: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
 
-  report_forward_last_transfer.reset();
+  PROFILE_ONLY(seconds = t.elapsed(); std::cout << "  Copy local to device: " << seconds << "\n";)
 
-  ////////////////////////////////////////////////////////////////////////////////
   if (p_model_cube->get_p_data() == NULL) {
     p_model_cube->set_p_data(p_model_cube_shadow->get_p_data());
   }
@@ -176,15 +182,13 @@ forward() {
       K*K*iD, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_output(output_d_cube->get_p_data(),
       num_output_features, oR*oC*iB, 1, 1);
-
+  
   // (1) do the lowering
   // SHADJIS TODO: Pass in an argument for the lowering type (currently only type 1)
   p_forward_lower_connector->lower_cube(input_d_cube, p_forward_lowered_data);
-  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Forward Lowering: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
 
   // (2) call GEMM kernel
   p_forward_gemm_kernel->compute(&lowered_model, p_forward_lowered_data, &lowered_output);
-  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Forward Kernel: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
   
   // (3) apply non-linear functions
   // This is no longer needed, and may be removed
@@ -204,35 +208,37 @@ forward() {
   //  TODO: figure out how to properly transpose the
   //  inputs so that we get the correct output without
   //  needing to call remap
+  
+  PROFILE_ONLY(t.restart();)
+  
   p_forward_lower_connector->remap_output(*output_d_cube, num_output_features, iB, oR*oC);
-  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Forward Remap: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
 
+  PROFILE_ONLY(seconds = t.elapsed(); std::cout << "  Unnecessary remap:    " << seconds << "\n"; t.restart();)
+  
   // TODO Refactor the following code into another module
-  // This code is here mainly to speed-up the refactoring
-  // to bring CONV logical
-  //
   if (bias_term) {
     DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
     DeviceMemoryPointer * bias = p_bias_cube->get_device_pointer(p_driver);
     
-    _bias_arg_helper _arg1;
-    _arg1.src_skip = oR*oC*sizeof(DataType); // skip m^2, i.e. iterate for every b and for every d
-    _arg1.DataTypeSize = sizeof(DataType);
-    _arg1.oD = oD;
-    
-    size_t ORxOC = oR*oC;
-    
-    DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg1,
-      sizeof(_bias_arg_helper));
-    
-    DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&ORxOC,
-        sizeof(size_t));
-    
-    p_driver->template parallel_map<_f_src_to_dst_bias_forward,
-      _f_bias_forward>(bias, output, _arg1.src_skip, arg1, arg2);
+    if (std::is_same<DriverClass, CPUDriver>::value) {
+       // SHADJIS TODO: Replace this with BLAS like the GPU
+      _bias_arg_helper _arg1;
+      _arg1.src_skip = oR*oC*sizeof(DataType); // skip m^2, i.e. iterate for every b and for every d
+      _arg1.DataTypeSize = sizeof(DataType);
+      _arg1.oD = oD;
+      size_t ORxOC = oR*oC;
+      DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg1,
+        sizeof(_bias_arg_helper));
+      DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&ORxOC,
+          sizeof(size_t));
+      p_driver->template parallel_map<_f_src_to_dst_bias_forward,
+        _f_bias_forward>(bias, output, _arg1.src_skip, arg1, arg2);
+    } else {
+      p_driver->forward_bias(bias, output, oR*oC, oD, oB);
+    }
   }
-  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Forward Bias: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
-  ////////////////////////////////////////////////////////////////////////////////
+
+  PROFILE_ONLY(seconds = t.elapsed(); std::cout << "  Forward bias calc:    " << seconds << "\n"; t.restart();)
 
   // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy output to host memory here
   if (!std::is_same<DriverClass, CPUDriver>::value) {
@@ -241,15 +247,25 @@ forward() {
         );
   }
 
+  PROFILE_ONLY(seconds = t.elapsed(); std::cout << "  Copy device to local: " << seconds << "\n";)
+  
+  // Finish reporting  
+  
   report_forward_last_transfer.end();
+  
+  PROFILE_ONLY(std::cout << "  Lowering:             " << p_forward_lower_connector->report_last_lowering.elapsed_time << "\n";)
+  PROFILE_ONLY(std::cout << "  GEMM Weights:         " << p_forward_gemm_kernel->report_last_lowering.elapsed_time << "\n";)
+  PROFILE_ONLY(std::cout << " TOTAL:                 " << report_forward_last_transfer.elapsed_time << "\n";)
+  
+  // SHADJIS TODO: Originally everything was either in kernel/connector, but now there is some overhead due to copying,
+  // remap, and also I need to refactor the bias into a kernel, so now half the things are in reports and half are
+  // instead in just the profile bins above. So need to put everything currently in a PROFILE_ONLY into a report, so
+  // it can be aggregated.
+  
+  // Aggregate existing reports
   report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_lowering);
   report_forward_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);
-
-  // This is no longer needed, and may be removed
-  // if (FUNC != FUNC_NOFUNC) {
-    // report_forward_last_transfer.aggregate_onlystat(p_forward_applyfunc_scanner->report_last_apply);
-  // }
-
+  
   report_forward_history.aggregate(report_forward_last_transfer);
   report_forward_kernel.aggregate(p_forward_gemm_kernel->report_last_lowering);
   report_forward_lowering.aggregate(p_forward_lower_connector->report_last_lowering);
@@ -277,9 +293,15 @@ forward() {
 template <typename DataType, typename DriverClass>
 void ConvolutionBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
 backward() {
-  p_driver->set_num_threads(run_with_n_threads);
 
-  // PROFILE_ONLY(Timer t; float seconds_elapsed = 0.;)
+  // Start Reporting
+  report_backward_updateweight_last_transfer.reset();
+
+  // Begin backwards step
+  p_driver->set_num_threads(run_with_n_threads);
+  
+  PROFILE_ONLY(std::cout << "Conv Backward\n"; float seconds = 0.; Timer t;)
+  
   // Copy output grad to device memory
   AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(output_g_cube,
       p_output_layer->p_gradient_cube);
@@ -290,112 +312,97 @@ backward() {
         input_g_cube, p_input_layer->p_gradient_cube
         );
   }
-  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Backward Device Copy: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
 
-  report_backward_updateweight_last_transfer.reset();
+  PROFILE_ONLY(seconds = t.elapsed(); std::cout << "  Copy local to device: " << seconds << "\n";)
 
   // (2) calculate the GEMM between the gradient of output and old kernel to calc the update on grad
   // Note: lowered_model is storing p_model_cube_history, not p_model_cube. We need this for the momentum
   // update.
+
   LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->get_p_data(), num_output_features, K*K*iD, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_model_grad(p_model_gradient_cube->get_p_data(), num_output_features, K*K*iD, 1, 1);
   LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(output_g_cube->get_p_data(), num_output_features, oR*oC*iB, 1, 1);
-
+  
+  PROFILE_ONLY(t.restart();)
+  
   // (3) update the bias term, summing over the gradients for each O and B
   if (bias_term) {
-    // SHADJIS TODO: Here we call parallel map to do this:
+    // SHADJIS TODO: Here we used to call parallel map to do this:
     //   For each batch b
     //     For each depth d (in parallel)
     //       For each pixel p of feature map in batch b and depth d
     //         bias[d] += p
-    // This can't be done with a single parallel map because of the outer batch loop
-    // Instead, we can keep the outside batch loop and call parallel map inside
-    // But note that we can also just use the single parallel map (Hogwild!)
-    // and it still learns.
+    // This can't be done with a single parallel map because of the outer batch loop.
+    // On the CPU parallel_map is still used however since it is done serially. If that
+    // changes, rewrite that too.
     
-    // For CPU this doesn't matter so keep it as a single call to parallel map:
+    DeviceMemoryPointer * output = output_g_cube->get_device_pointer(p_driver);
+    DeviceMemoryPointer * bias = p_bias_gradient_cube->get_device_pointer(p_driver);
+    p_driver->sconstant_initialize(bias, DataType(0.));
+
     if (std::is_same<DriverClass, CPUDriver>::value) {
-      DeviceMemoryPointer * output = output_g_cube->get_device_pointer(p_driver);
-      DeviceMemoryPointer * bias = p_bias_gradient_cube->get_device_pointer(p_driver);
-      p_driver->sconstant_initialize(bias, DataType(0.));
-      
+       // SHADJIS TODO: Replace this with BLAS like the GPU
       _bias_arg_helper _arg1;
       _arg1.src_skip = oR*oC*sizeof(DataType);
       _arg1.DataTypeSize = sizeof(DataType);
       _arg1.oD = oD;
-      
       size_t ORxOC = oR*oC;
-      
       DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg1,
         sizeof(_bias_arg_helper));
-      
       DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&ORxOC,
           sizeof(size_t));
-      
       p_driver->template parallel_map<_f_src_to_dst_bias_backward,
         _f_bias_backward>(bias, output, _arg1.src_skip, arg1, arg2);
-    }
-    // But for GPU or other devices we need to call parallel map multiple times
-    else {
-      // Get a pointer to the gradient data
-      DataType * output_g_cube_ptr = output_g_cube->get_p_data();
-      // This is the same as above, i.e. a single device pointer for the bias
-      DeviceMemoryPointer * bias = p_bias_gradient_cube->get_device_pointer(p_driver);
-      p_driver->sconstant_initialize(bias, DataType(0.));
-      // These parameters also do not change. We will just limit the batch update to 1 at a time.
-      _bias_arg_helper _arg1;
-      _arg1.src_skip = oR*oC*sizeof(DataType);
-      _arg1.DataTypeSize = sizeof(DataType);
-      _arg1.oD = oD;
-      size_t ORxOC = oR*oC;
-      DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg1,
-        sizeof(_bias_arg_helper));
-      DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&ORxOC,
-          sizeof(size_t));
-      // Now iterate over each batch and call parallel_map
-      size_t single_batch_size_in_byte = oR*oC*oD*sizeof(DataType);      
-      // SHADJIS TODO: Wouldn't it make more sense to do this iteration inside each
-      // kernel call? I.e. rather than launch B kernels just have each thread do
-      // B times as much work. 
-      for (int batch_it=0; batch_it<oB; ++batch_it) {
-        // Get the DevMemPointer for this batch (i.e. offset the pointer)
-        // Also change the size to be only 1 batch
-        DeviceMemoryPointer * output = p_driver->get_device_pointer(output_g_cube_ptr + batch_it*oR*oC*oD, single_batch_size_in_byte);
-        p_driver->template parallel_map<_f_src_to_dst_bias_backward,
-          _f_bias_backward>(bias, output, _arg1.src_skip, arg1, arg2);
-      }
+    } else {
+      p_driver->backward_bias(bias, output, oR*oC, oD, oB);
     }
   }
-  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Backward Bias: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
 
+  PROFILE_ONLY(seconds = t.elapsed(); std::cout << "  Backward bias calc:   " << seconds << "\n"; t.restart();)
+  
   // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
   p_forward_lower_connector->remap_output(*output_g_cube, oB, num_output_features, oR*oC);
-  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Backward Remap: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
+
+  PROFILE_ONLY(seconds = t.elapsed(); std::cout << "  Unnecessary remap:    " << seconds << "\n";)
 
   if (needs_to_calc_backward_grad) {
     //    - 2.1 GEMM between the gradient of output and old kernel
     p_backward_gemm_updategrad_kernel->compute(&lowered_model, &lowered_outputgrad, p_backward_inputgrad);
-    // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Backward Grad Kernel: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
     //    - 2.2 undo the lowering (i.e., sum together all grad corresponding to the same unlowered position)
     p_forward_lower_connector->inverse_lower_cube(p_backward_inputgrad, input_g_cube);
-    // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Backward Grad Inverse Lower: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
   }
 
   // (4) calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
   p_backward_gemm_updateweight_kernel->alpha = 1.0;
   p_backward_gemm_updateweight_kernel->beta = 0.0;
   p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model_grad);
-  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "CONV PROFILE Backward Weight Kernel: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
 
-  report_backward_updateweight_last_transfer.end();
-
+  PROFILE_ONLY(t.restart();)
+  
   // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy input grad to host memory here
   if (!std::is_same<DriverClass, CPUDriver>::value) {
     AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_local(
         p_input_layer->p_gradient_cube, input_g_cube
         );
   }
+
+  PROFILE_ONLY(seconds = t.elapsed(); std::cout << "  Copy device to local: " << seconds << "\n";)
+
+  // Finish reporting  
   
+  report_backward_updateweight_last_transfer.end();
+  
+  PROFILE_ONLY(std::cout << "  Lowering:             " << p_forward_lower_connector->report_last_inverse_lowering.elapsed_time << "\n";)
+  PROFILE_ONLY(std::cout << "  GEMM Weights:         " << p_backward_gemm_updateweight_kernel->report_last_lowering.elapsed_time << "\n";)
+  PROFILE_ONLY(std::cout << "  GEMM Data:            " << p_backward_gemm_updategrad_kernel->report_last_lowering.elapsed_time << "\n";)
+  PROFILE_ONLY(std::cout << " TOTAL:                 " << report_backward_updateweight_last_transfer.elapsed_time << "\n";)
+
+  // SHADJIS TODO: Originally everything was either in kernel/connector, but now there is some overhead due to copying,
+  // remap, and also I need to refactor the bias into a kernel, so now half the things are in reports and half are
+  // instead in just the profile bins above. So need to put everything currently in a PROFILE_ONLY into a report, so
+  // it can be aggregated.
+  
+  // Aggregate existing reports
   report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updategrad_kernel->report_last_lowering);
   report_backward_updateweight_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_inverse_lowering);
   report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updateweight_kernel->report_last_lowering);

@@ -130,9 +130,9 @@ LogicalCube<T, LAYOUT>::LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B, 
   p_data_device_ptr(NULL),
   own_data(true) {
 
-#ifdef _DETAILED_PROFILING
-  std::cout << "Allocating " << 1.0*sizeof(T)*_R*_C*_D*_B/1024/1024 << " MB..." << std::endl;
-#endif
+//#ifdef _DETAILED_PROFILING
+//  std::cout << "Allocating " << 1.0*sizeof(T)*_R*_C*_D*_B/1024/1024 << " MB..." << std::endl;
+//#endif
   // Allocate a device memory pointer (SHADJIS TODO: small memory leak)
   p_data_device_ptr = p_driver->get_device_pointer(NULL, sizeof(T)*_R*_C*_D*_B);
   // Now use the new device memory pointer to call a malloc on the device

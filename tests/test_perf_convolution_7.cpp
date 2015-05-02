@@ -141,16 +141,13 @@ TYPED_TEST(PerfConvolutionBridgeTest_7, TestForwardBackward){
   }
   
   // Print results
-  //std::cout<<"\nreport_forward_history\n";
-  //this->ParallelizedConvolutionBridge_->_cpu_bridges[0]->report_forward_history.print();
-  std::cout<<"\nreport_forward_lowering\n";
-  this->ParallelizedConvolutionBridge_->_cpu_bridges[0]->report_forward_lowering.print();
-  std::cout<<"\nreport_backward_lowering\n";
-  this->ParallelizedConvolutionBridge_->_cpu_bridges[0]->report_backward_inverse_lowering.print();
-  std::cout<<"\nreport_forward_kernel\n";
-  this->ParallelizedConvolutionBridge_->_cpu_bridges[0]->report_forward_kernel.print();
-  std::cout<<"\nreport_backward_grad_kernel\n";
-  this->ParallelizedConvolutionBridge_->_cpu_bridges[0]->report_backward_grad_kernel.print();
-  std::cout<<"\nreport_backward_weight_kernel\n";
-  this->ParallelizedConvolutionBridge_->_cpu_bridges[0]->report_backward_weight_kernel.print();
+  std::cout<<"\n\nreport_pbridge_fw\n";
+  this->ParallelizedConvolutionBridge_->report_forward_history.print();
+  std::cout<<"\nreport_pbridge_bw\n";
+  this->ParallelizedConvolutionBridge_->report_backward_updateweight_history.print();
+  std::cout << "\nFor bridge 0 of total " << this->ParallelizedConvolutionBridge_->_cpu_bridges.size() << " bridges:\n";
+  std::cout<<"\nreport_forward_history\n";           
+  this->ParallelizedConvolutionBridge_->_cpu_bridges[0]->report_forward_history.print();
+  std::cout<<"\nreport_backward_history\n";          
+  this->ParallelizedConvolutionBridge_->_cpu_bridges[0]->report_backward_updateweight_history.print();
 }

@@ -139,5 +139,13 @@ TYPED_TEST(GPUPerfConvolutionBridgeTest_paper3a, TestForwardBackward){
   
   float t_pass = t.elapsed();
   std::cout << "Time for 100 FW, BW passes: " << t_pass;
+  std::cout<<"\n\nreport_pbridge_fw\n";
+  this->ParallelizedConvolutionBridge_->report_forward_history.print();
+  std::cout<<"\nreport_pbridge_bw\n";
+  this->ParallelizedConvolutionBridge_->report_backward_updateweight_history.print();
+  std::cout << "\nFor bridge 0 of total " << this->ParallelizedConvolutionBridge_->_gpu_bridges.size() << " bridges:\n";
+  std::cout<<"\nreport_forward_history\n";
+  this->ParallelizedConvolutionBridge_->_gpu_bridges[0]->report_forward_history.print();
+  std::cout<<"\nreport_backward_history\n";
+  this->ParallelizedConvolutionBridge_->_gpu_bridges[0]->report_backward_updateweight_history.print();
 }
-

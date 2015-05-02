@@ -39,6 +39,10 @@ public:
     
   void inverse_lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     const struct _inverse_lower_cube_arg_helper args);
+  void forward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
+    const int fmap_size, const int depth, const int batch_size);
+  void backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
+    const int fmap_size, const int depth, const int batch_size);
   void lower_cube_helper(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     const struct PMapHelper args);
 

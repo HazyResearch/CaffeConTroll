@@ -41,15 +41,17 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
     num_partitions_CPU(0),
     num_partitions_GPU(0)
 {
-
-  assert(n_batch_per_partition > 0);
-
+  // Start reporting
   report_forward_constructor.reset();
   report_forward_last_transfer.reset();
   report_forward_history.reset();
   report_backward_updateweight_constructor.reset();
   report_backward_updateweight_last_transfer.reset();
   report_backward_updateweight_history.reset();
+
+  // Begin parallelized bridge constructor
+
+  assert(n_batch_per_partition > 0);
 
   const bool extra_partition = n_batch % n_partition > 0;
   const size_t num_partitions =  extra_partition ? n_partition + 1: n_partition;
@@ -238,6 +240,8 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
     p_bias_cube = NULL;
   }
 
+  // SHADJIS TODO: This constructor takes a couple of seconds when using GPU
+  // This is minor for now but may become an issue with many other types of devices
   report_backward_updateweight_constructor.end(0, 0, 0);
   report_forward_constructor.end(0, 0, 0);
 }

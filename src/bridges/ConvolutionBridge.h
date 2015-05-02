@@ -111,7 +111,6 @@ class ConvolutionBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClas
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::p_output_layer;
 
     Report report_forward_kernel;
-    Report report_backward_kernel;
     Report report_forward_lowering;
     Report report_backward_inverse_lowering;
     Report report_backward_grad_kernel;

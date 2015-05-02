@@ -87,6 +87,9 @@ void Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1, Dri
 remap_output(LogicalCube<DataType, InputLayout>& cube, const size_t depth, const size_t batch,
     const size_t kernel_size) {
 
+  // SHADJIS TODO: Add a report here (currently I time outside it)
+  // Or deprecate remap_output, should never be needed if we fix lowering transpose issue
+    
   DeviceMemoryPointer * copy = p_driver->get_device_pointer(NULL, sizeof(DataType)*cube.R*cube.C*cube.B*cube.D);
   p_driver->malloc(copy);
   DeviceMemoryPointer * output = cube.get_device_pointer(p_driver);

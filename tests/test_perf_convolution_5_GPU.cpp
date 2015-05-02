@@ -45,7 +45,7 @@ class GPUPerfConvolutionBridgeTest_5 : public ::testing::Test {
       // TODO: set #partition to 8 does not halt
       ParallelizedConvolutionBridge_ = new ParallelizedBridge<DataType_SFFloat,
               ConvolutionBridge>(layer1,
-                  layer2, &layer_param, &solver_param, &pdriver, 16, 1);
+                  layer2, &layer_param, &solver_param, &pdriver, 1, 1);
 
       ParallelizedConvolutionBridge_->needs_to_calc_backward_grad = true;
     }
@@ -143,16 +143,13 @@ TYPED_TEST(GPUPerfConvolutionBridgeTest_5, TestForwardBackward){
   }
   
   // Print results
-  //std::cout<<"\nreport_forward_history\n";
-  //this->ParallelizedConvolutionBridge_->_gpu_bridges[0]->report_forward_history.print();
-  std::cout<<"\nreport_forward_lowering\n";
-  this->ParallelizedConvolutionBridge_->_gpu_bridges[0]->report_forward_lowering.print();
-  std::cout<<"\nreport_backward_lowering\n";
-  this->ParallelizedConvolutionBridge_->_gpu_bridges[0]->report_backward_inverse_lowering.print();
-  std::cout<<"\nreport_forward_kernel\n";
-  this->ParallelizedConvolutionBridge_->_gpu_bridges[0]->report_forward_kernel.print();
-  std::cout<<"\nreport_backward_grad_kernel\n";
-  this->ParallelizedConvolutionBridge_->_gpu_bridges[0]->report_backward_grad_kernel.print();
-  std::cout<<"\nreport_backward_weight_kernel\n";
-  this->ParallelizedConvolutionBridge_->_gpu_bridges[0]->report_backward_weight_kernel.print();
+  std::cout<<"\n\nreport_pbridge_fw\n";
+  this->ParallelizedConvolutionBridge_->report_forward_history.print();
+  std::cout<<"\nreport_pbridge_bw\n";
+  this->ParallelizedConvolutionBridge_->report_backward_updateweight_history.print();
+  std::cout << "\nFor bridge 0 of total " << this->ParallelizedConvolutionBridge_->_gpu_bridges.size() << " bridges:\n";
+  std::cout<<"\nreport_forward_history\n";
+  this->ParallelizedConvolutionBridge_->_gpu_bridges[0]->report_forward_history.print();
+  std::cout<<"\nreport_backward_history\n";
+  this->ParallelizedConvolutionBridge_->_gpu_bridges[0]->report_backward_updateweight_history.print();
 }

@@ -445,11 +445,11 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
 
   Timer t_total;
 
-#ifdef _DETAILED_PROFILING
-  const int display_iter = 1;
-#else
+//#ifdef _DETAILED_PROFILING
+//  const int display_iter = 1;
+//#else
   const int display_iter = 50;
-#endif
+//#endif
 
   const size_t num_epochs = solver_param.max_iter();
   for (size_t epoch = 0; epoch < num_epochs; ++epoch) {
@@ -459,14 +459,14 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
     if (!pFile)
       throw runtime_error("Error opening the corpus file: " + corpus.filename);
 
-#ifdef _DETAILED_PROFILING
-    // for profiling run, it is confusing and does not make sense to run the last batch
-    for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches - 1; ++batch,
-        corpus_batch_index += corpus.mini_batch_size) {
-#else
+//#ifdef _DETAILED_PROFILING
+//    // for profiling run, it is confusing and does not make sense to run the last batch
+//    for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches - 1; ++batch,
+//        corpus_batch_index += corpus.mini_batch_size) {
+//#else
     for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches; ++batch,
         corpus_batch_index += corpus.mini_batch_size) {
-#endif
+//#endif
 
       Timer t;
       Timer t2;
@@ -501,9 +501,9 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
         (*bridge)->set_curr_batch_size(curr_batch_size);
         (*bridge)->forward();
-#ifdef _DETAILED_PROFILING
-        (*bridge)->report_forward();
-#endif
+//#ifdef _DETAILED_PROFILING
+//        (*bridge)->report_forward();
+//#endif
       }
 
       t_forward = t.elapsed();
@@ -516,9 +516,9 @@ void train_network(const BridgeVector & bridges, const Corpus & corpus, const cn
       for (auto bridge = bridges.rbegin(); bridge != bridges.rend(); ++bridge) {
         (*bridge)->set_curr_batch_size(curr_batch_size);
         (*bridge)->backward();
-#ifdef _DETAILED_PROFILING
-        (*bridge)->report_backward();
-#endif
+//#ifdef _DETAILED_PROFILING
+//        (*bridge)->report_backward();
+//#endif
       }
       t_backward = t.elapsed();
 

@@ -79,7 +79,7 @@ __global__ void _parallel_lower_cube(float * dst, float * src, const struct PMap
   }
 }
 
-__global__ void _parallel_inverse_lower_cube(float * dst, float * src, const struct _inverse_lower_cube_arg_helper args){
+__global__ void _parallel_inverse_lower_cube(float * dst, float * src, const struct _inverse_lower_cube_arg_helper args, const int start_i){
 
   // Read arguments
   const int oC = args.data_output_width;
@@ -93,37 +93,40 @@ __global__ void _parallel_inverse_lower_cube(float * dst, float * src, const str
   const unsigned int iB = args.iB;
 
   // Get the right loop element
-  const int i = blockDim.x * blockIdx.x + threadIdx.x;
+  const int i = blockDim.x * blockIdx.x + threadIdx.x + start_i;
 
-  // SHADJIS TODO: These / and % not needed if using multi-dimensional blocks
-  const int b =   (i / (iC*iR*iD));
-  const int tmp = (i % (iC*iR*iD));
-  const int c =  tmp / (iC * iR);
-  const int h = (tmp / iC) % iR + p;
-  const int w =  tmp % iC + p;
-  
-  const int w_col_start = (w < k) ? 0 : (w - k) / s + 1;
-  const int w_col_end = device_min(w / s + 1, oC);
-  const int h_col_start = (h < k) ? 0 : (h - k) / s + 1;
-  const int h_col_end = device_min(h / s + 1, oR);
-  
-  // SHADJIS TODO: Not sure why but the way we store batches is
-  // different from Caffe so this part had to be changed. Probably
-  // something to do with the old/unnecessary CcT decision to flip
-  // the gemm order everywhere. So instead of storing each batch
-  // of src one after the other we interleave them. I think this is
-  // pretty stupid but I don't feel like rewriting everything now.
-  // Probably leave that for when we do fusion.
-  const int offset = (c*k*k*iB + h*k*iB + w*iB + b)*oR*oC;
-  const int coeff_h_col = (1 - s*k*oR*iB)*oC;
-  const int coeff_w_col = (1 - s*oR*oC*iB);
-  float sum = 0;
-  for (int h_col = h_col_start; h_col < h_col_end; ++h_col) {
-    for (int w_col = w_col_start; w_col < w_col_end; ++w_col) {
-      sum += src[offset + h_col * coeff_h_col + w_col * coeff_w_col];
+  if (i < iB*iD*iR*iC)
+  {
+    // SHADJIS TODO: These / and % not needed if using multi-dimensional blocks
+    const int b =   (i / (iC*iR*iD));
+    const int tmp = (i % (iC*iR*iD));
+    const int c =  tmp / (iC * iR);
+    const int h = (tmp / iC) % iR + p;
+    const int w =  tmp % iC + p;
+    
+    const int w_col_start = (w < k) ? 0 : (w - k) / s + 1;
+    const int w_col_end = device_min(w / s + 1, oC);
+    const int h_col_start = (h < k) ? 0 : (h - k) / s + 1;
+    const int h_col_end = device_min(h / s + 1, oR);
+    
+    // SHADJIS TODO: Not sure why but the way we store batches is
+    // different from Caffe so this part had to be changed. Probably
+    // something to do with the old/unnecessary CcT decision to flip
+    // the gemm order everywhere. So instead of storing each batch
+    // of src one after the other we interleave them. I think this is
+    // pretty stupid but I don't feel like rewriting everything now.
+    // Probably leave that for when we do fusion.
+    const int offset = (c*k*k*iB + h*k*iB + w*iB + b)*oR*oC;
+    const int coeff_h_col = (1 - s*k*oR*iB)*oC;
+    const int coeff_w_col = (1 - s*oR*oC*iB);
+    float sum = 0;
+    for (int h_col = h_col_start; h_col < h_col_end; ++h_col) {
+      for (int w_col = w_col_start; w_col < w_col_end; ++w_col) {
+        sum += src[offset + h_col * coeff_h_col + w_col * coeff_w_col];
+      }
     }
+    dst[i] = sum;
   }
-  dst[i] = sum;
 }
 
 template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
@@ -223,23 +226,109 @@ void GPUDriver::inverse_lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointe
     const int num_parallel_elements = iR*iC*iD*iB;
     int blocksPerGrid = (num_parallel_elements + threadsPerBlock - 1) / threadsPerBlock;
     
-    // SHADJIS TODO: Call something like _spmap_readc instead
-    // SHADJIS TODO: Add a check here for too many blocks like sapply, or make multi-dimensional like _spmap_readc
     cudaGetLastError(); // Reset the error status to success
-    _parallel_inverse_lower_cube<<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr, (float *) src->ptr, args);
-    err = cudaGetLastError();
-    if(err != cudaSuccess){
-      std::cout << "Fail to launch _parallel_inverse_lower_cube"  << "  ERROR " << err << std::endl;
-      assert(false);
+    // SHADJIS TODO: Call something like _spmap_readc instead
+    // SHADJIS TODO: Added a check for too many blocks, but can also make multi-dimensional like _spmap_readc
+    const int num_calls = (blocksPerGrid + max_cuda_blocks - 1) / max_cuda_blocks;
+    if (num_calls > 1) {
+        blocksPerGrid = max_cuda_blocks;
+    }
+    for (int call_counter=0; call_counter < num_calls; ++call_counter)
+    {
+        _parallel_inverse_lower_cube<<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr, (float *) src->ptr, args, call_counter*max_cuda_blocks);
+        err = cudaGetLastError();
+        if(err != cudaSuccess){
+            std::cout << "Fail to launch _parallel_inverse_lower_cube"  << "  ERROR " << err << std::endl;
+            assert(false);
+        }
     }
     cudaDeviceSynchronize();
     err = cudaGetLastError();
     if(err != cudaSuccess){
-      std::cout << "Fail to sync _parallel_inverse_lower_cube"  << "  ERROR " << err << std::endl;
-      assert(false);
+        std::cout << "Fail to sync _parallel_inverse_lower_cube"  << "  ERROR " << err << std::endl;
+        assert(false);
     }
 }
 
+void GPUDriver::backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
+    const int fmap_size, const int depth, const int batch_size){
+
+    // Create the one constants
+    const float one = 1;
+    // Also allocate a vector of ones on the device
+    float *host_ones = new float [fmap_size];
+    // Memcpy ones to it
+    size_t n = fmap_size;
+    for (; 0<n; --n) host_ones[n-1] = 1;
+    // Copy to device
+    float *dev_ones;
+    cudaMalloc((void**)&dev_ones, sizeof(float) * fmap_size);
+    cudaMemcpy(dev_ones, host_ones, sizeof(float) * fmap_size, cudaMemcpyHostToDevice);
+
+    // cublas expects col major, so we change the parameters accordingly
+    cublasOperation_t ta = CUBLAS_OP_T;
+    
+    // Call for each batch
+    
+    for (int ib=0; ib < batch_size; ++ib)
+    {
+        status = cublasSgemv(handle, ta, fmap_size, depth, &one, (float *) (src->ptr) + ib*fmap_size*depth,
+            fmap_size, dev_ones, 1, &one, (float *) dst->ptr, 1);
+        cudaDeviceSynchronize(); // SHADJIS TODO: Try without this (only 1 stream now)
+    }
+    err = cudaGetLastError();
+    assert(err == cudaSuccess);
+    assert(status == CUBLAS_STATUS_SUCCESS); // SHADJIS TODO: On GPU use cblas_dsymv
+    
+    cudaFree(dev_ones);
+    delete host_ones;
+
+}
+
+__global__ void _fw_bias_helper(float * bias, float * output, const int fmap_size, const int depth, const int batch_size){
+
+  const int i = blockDim.x * blockIdx.x + threadIdx.x;
+  const int d = (i % (fmap_size*depth)) / fmap_size;
+  if ( i < fmap_size*depth*batch_size ) {
+    output[i] += bias[d];
+  }
+}
+
+void GPUDriver::forward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
+    const int fmap_size, const int depth, const int batch_size){
+
+    // One way to do this is to make a ones vector of size fmap_size, do a GEMM 
+    // with the bias vector to get depth x fmap_size, and then add this within
+    // the GEMM by passing beta=1
+    // But that handles each batch serially
+    // Another way is to just add the bias term to the correct index
+    // SHADJIS TODO: I'll try that first and switch to BLAS if slow
+    
+	cudaGetLastError(); // Reset the error status to success
+	int n_elements =  fmap_size * depth * batch_size;
+	int blocksPerGrid = (n_elements + threadsPerBlock - 1) / threadsPerBlock;
+
+	// Check if we are trying to initialize something huge. In that case call multiple times.
+	// SHADJIS TODO: Could make multi-dimensional like _spmap_readc instead
+	const int num_calls = (blocksPerGrid + max_cuda_blocks - 1) / max_cuda_blocks;
+	if (num_calls > 1) {
+		blocksPerGrid = max_cuda_blocks;
+	}
+	for (int call_counter=0; call_counter < num_calls; ++call_counter)
+	{
+		_fw_bias_helper<<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr /*bias*/, (float*) src->ptr /*output*/,
+            fmap_size, depth, batch_size);
+		err = cudaGetLastError();
+		if(err != cudaSuccess){
+			std::cout << "Fail to launch _sapply" << "  ERROR " << err << std::endl;
+			assert(false);
+		}
+	}
+	cudaDeviceSynchronize();
+	err = cudaGetLastError();
+	assert(err == cudaSuccess);
+
+}
 
 // SHADJIS TODO: Why is the interface for this is different from parallel_map?
 // Here we pass in the args directly whereas parallel_map gets pointers to

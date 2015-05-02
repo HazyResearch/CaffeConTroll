@@ -109,6 +109,16 @@ public:
     assert(false);
   }
 
+  void forward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
+    const int fmap_size, const int depth, const int batch_size){
+    assert(false);
+  }
+
+  void backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
+    const int fmap_size, const int depth, const int batch_size){
+    assert(false);
+  }
+
 
   //virtual void pmap2d_write_coalesce();
 

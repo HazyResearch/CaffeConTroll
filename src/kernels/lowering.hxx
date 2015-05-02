@@ -158,7 +158,6 @@ __host__ __device__
 // code be simplified? Do we have to call next_multiple?
 inline void _fmap_lower(float * output, const Block2D * const output_block, const PointIn2DBlock * const input_point, const PMapHelper * const args) {
 
-  // PROFILE_ONLY(Timer t; float seconds_elapsed = 0.;)
   const int ir = (int) input_point->r;
   const int ic = (int) input_point->c;
   const int ib = (int) input_point->block.b;
@@ -234,7 +233,6 @@ inline void _fmap_lower(float * output, const Block2D * const output_block, cons
       output[o_col + o_row*oC] = input;
     }
   }
-  // PROFILE_ONLY(seconds_elapsed = t.elapsed(); std::cout << "LOWERING PROFILE _fmap_lower: " << seconds_elapsed << " seconds." << std::endl; t.restart();)
 }
 
 #ifdef _GPU_TARGET
