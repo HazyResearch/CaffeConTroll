@@ -1,3 +1,4 @@
+import operator
 import sys
 if len(sys.argv) != 2:
     print 'Usage: >>> python process.py filename'
@@ -20,10 +21,18 @@ for line in f:
 
 print 'Detailed Profiling Report'
 print 'Average over ' + str(total_num_iters) + ' iterations'
+
+# Make a new dict which maps to the mean only
+layer_to_mean_time = {}
 for k in layer_to_time.keys():
     time_list = layer_to_time[k]
     total_sum = sum(time_list)
     mean = total_sum / total_num_iters
-    print k + "\t" + str(mean)
+    layer_to_mean_time[k] = mean
+
+# Now print the means sorted
+sorted_by_mean = sorted(layer_to_mean_time.items(), key=operator.itemgetter(1))
+for layer_mean in reversed(sorted_by_mean):
+    print layer_mean[0] + "\t" + str(layer_mean[1])
 
 f.close()

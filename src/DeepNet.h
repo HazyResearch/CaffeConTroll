@@ -473,11 +473,11 @@ class DeepNet {
 
       Timer t_total;
 
-//#ifdef _DETAILED_PROFILING
-//      const int display_iter = 1;
-//#else
+#ifdef _LAYER_PROFILING
+     const int display_iter = 1;
+#else
       const int display_iter = 50;
-//#endif
+#endif
 
       const size_t num_epochs = solver_param.max_iter();
       for (size_t epoch = 0; epoch < num_epochs; ++epoch) {
@@ -487,14 +487,15 @@ class DeepNet {
         if (!pFile)
           throw runtime_error("Error opening the corpus file: " + corpus.filename);
 
-//#ifdef _DETAILED_PROFILING
-//        // for profiling run, it is confusing and does not make sense to run the last batch
-//        for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches - 1; ++batch,
-//            corpus_batch_index += corpus.mini_batch_size) {
-//#else
+#ifdef _LAYER_PROFILING
+       // for profiling run, it is confusing and does not make sense to run the last batch
+       for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches - 1; ++batch,
+           corpus_batch_index += corpus.mini_batch_size) {
+#else
+          // SHADJIS TODO: Fix last batch, causes some errors now
           for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches; ++batch,
               corpus_batch_index += corpus.mini_batch_size) {
-//#endif
+#endif
 
             Timer t;
             Timer t2;
@@ -529,9 +530,9 @@ class DeepNet {
             for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
               (*bridge)->set_curr_batch_size(curr_batch_size);
               (*bridge)->forward();
-//#ifdef _DETAILED_PROFILING
-//              (*bridge)->report_forward();
-//#endif
+#ifdef _LAYER_PROFILING
+             (*bridge)->report_forward();
+#endif
             }
 
             t_forward = t.elapsed();
@@ -544,9 +545,9 @@ class DeepNet {
             for (auto bridge = bridges.rbegin(); bridge != bridges.rend(); ++bridge) {
               (*bridge)->set_curr_batch_size(curr_batch_size);
               (*bridge)->backward();
-//#ifdef _DETAILED_PROFILING
-//              (*bridge)->report_backward();
-//#endif
+#ifdef _LAYER_PROFILING
+             (*bridge)->report_backward();
+#endif
             }
             t_backward = t.elapsed();
 

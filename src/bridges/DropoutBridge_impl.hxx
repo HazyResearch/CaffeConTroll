@@ -70,11 +70,13 @@ void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::f
 
     DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg,
       sizeof(_dropout_forward_train_arg_helper));
+    // SHADJIS TODO: Optimize for GPU
     p_driver->template parallel_map<_f_src_to_dst_dropout_forward,
       _f_dropout_forward_train>(input, output, sizeof(DataType), arg1, arg2);
   // in the testing phase, we simply copy from input to output
   } else {
     DeviceMemoryPointer * arg2 = p_driver->get_device_pointer(NULL, 0);
+    // SHADJIS TODO: Optimize for GPU
     p_driver->template parallel_map<_f_src_to_dst_dropout_forward,
       _f_dropout_forward_test>(input, output, sizeof(DataType), arg1, arg2);
   }
@@ -127,6 +129,7 @@ void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::b
 
   // the backward phase is the same as the forward phase, except we treat
   // the input gradient as the output, and the output gradient as the input
+  // SHADJIS TODO: Optimize for GPU
   p_driver->template parallel_map<_f_src_to_dst_dropout_forward,
     _f_dropout_forward_train>(output, input, sizeof(DataType), arg1, arg2);
   ////////////////////////////////////////////////////////////////////////////////

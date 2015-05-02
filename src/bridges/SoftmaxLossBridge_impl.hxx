@@ -65,6 +65,7 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass
   DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg,
       sizeof(_softmax_forward_arg_helper));
 
+  // SHADJIS TODO: Optimize for GPU
   p_driver->template parallel_map<_f_src_to_dst_softmax_forward,
     _f_softmax_forward>(output, input, sizeof(DataType)*iR*iC*iD, arg1, arg2);
   ////////////////////////////////////////////////////////////////////////////////
@@ -123,6 +124,7 @@ void SoftmaxLossBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass
   DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg,
       sizeof(_softmax_backward_arg_helper));
 
+  // SHADJIS TODO: Optimize for GPU
   p_driver->template parallel_map<_f_src_to_dst_softmax_backward,
     _f_softmax_backward>(output, input, sizeof(DataType)*iR*iC*iD, arg1, arg2);
   ////////////////////////////////////////////////////////////////////////////////
