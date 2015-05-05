@@ -16,6 +16,7 @@ CC=clang++
 # CUDA compiler. 7.0 or later recommended (for C++11).
 NVCC=
 CUDA_INCLUDE = 
+CUDA_LIB=
 
 # absolute path to CcT
 CCT=
