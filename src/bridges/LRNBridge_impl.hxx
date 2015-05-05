@@ -47,12 +47,12 @@ LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::LRNBridge(
 template <typename DataType, typename DriverClass>
 void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forward() {
   // Copy input to device memory
-  AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(input_d_cube,
+  AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(input_d_cube,
       p_input_layer->p_data_cube);
   // If DriverClass == CPUDriver, we also need to update the p_data pointer of output_d_cube to point to
   // p_output_layer->p_data_cube->p_data
   if (std::is_same<DriverClass, CPUDriver>::value) {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(
         output_d_cube, p_output_layer->p_data_cube
         );
   }
@@ -71,7 +71,7 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forwa
   _arg2.iD = iD;
   _arg2.norm_window = (int) local_size / 2;
   if (!std::is_same<DriverClass, CPUDriver>::value) {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(denoms_device, denoms);
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(denoms_device, denoms);
     _arg2.denoms = (char *) denoms_device->get_p_data();
   }
   else {
@@ -106,12 +106,12 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forwa
 
   // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy output to host memory here
   if (!std::is_same<DriverClass, CPUDriver>::value) {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_local(
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_host(
         p_output_layer->p_data_cube, output_d_cube
         );
   }
   if (!std::is_same<DriverClass, CPUDriver>::value) {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_local(denoms, denoms_device);
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_host(denoms, denoms_device);
   }
 
   report_forward_last_transfer.end();
@@ -127,12 +127,12 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forwa
 template <typename DataType, typename DriverClass>
 void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::backward() {
   // Copy output grad to device memory
-  AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(output_g_cube,
+  AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(output_g_cube,
       p_output_layer->p_gradient_cube);
   // If DriverClass == CPUDriver, we also need to update the p_data pointer of input_g_cube to point to
   // p_input_layer->p_gradient_cube->p_data
   if (std::is_same<DriverClass, CPUDriver>::value) {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(
         input_g_cube, p_input_layer->p_gradient_cube
         );
   }
@@ -152,13 +152,13 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::backw
   _arg.beta = beta;
   _arg.norm_window = (int) local_size / 2;
   if (!std::is_same<DriverClass, CPUDriver>::value) {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(denoms_device, denoms);
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(denoms_device, denoms);
     _arg.denoms = (char *) denoms_device->get_p_data();
   } else {
     _arg.denoms = (char *) denoms->get_p_data();
   }
   if (!std::is_same<DriverClass, CPUDriver>::value) {
-	AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(input_d_cube,
+	AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(input_d_cube,
 		p_input_layer->p_data_cube);
     _arg.input_data = (char *) input_d_cube->get_p_data();
   } else {
@@ -175,15 +175,15 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::backw
 
   // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy input grad to host memory here
   if (!std::is_same<DriverClass, CPUDriver>::value) {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_local(
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_host(
         p_input_layer->p_gradient_cube, input_g_cube
         );
   }
   // if (!std::is_same<DriverClass, CPUDriver>::value) {
-    // AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_local(denoms, denoms_device);
+    // AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_host(denoms, denoms_device);
   // }
   // if (!std::is_same<DriverClass, CPUDriver>::value) {
-	// AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_local(p_input_layer->p_data_cube, input_d_cube);
+	// AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_host(p_input_layer->p_data_cube, input_d_cube);
   // }
   
   report_backward_updateweight_last_transfer.end();

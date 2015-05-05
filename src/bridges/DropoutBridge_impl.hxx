@@ -41,12 +41,12 @@ DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::Dropou
 template <typename DataType, typename DriverClass>
 void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forward() {
   // Copy input to device memory
-  AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(input_d_cube,
+  AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(input_d_cube,
       p_input_layer->p_data_cube);
   // If DriverClass == CPUDriver, we also need to update the p_data pointer of output_d_cube to point to
   // p_output_layer->p_data_cube->p_data
   if (std::is_same<DriverClass, CPUDriver>::value) {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(
         output_d_cube, p_output_layer->p_data_cube
         );
   }
@@ -88,7 +88,7 @@ void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::f
 	// ERROR: For now do not support this layer on device. Easy to fix though, just need to
 	// make sure arg parameters which are pointers get copied to device
     assert(false);
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_local(
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_host(
         p_output_layer->p_data_cube, output_d_cube
         );
   }
@@ -103,12 +103,12 @@ void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::f
 template <typename DataType, typename DriverClass>
 void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::backward() {
   // Copy output grad to device memory
-  AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(output_g_cube,
+  AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(output_g_cube,
       p_output_layer->p_gradient_cube);
   // If DriverClass == CPUDriver, we also need to update the p_data pointer of input_g_cube to point to
   // p_input_layer->p_gradient_cube->p_data
   if (std::is_same<DriverClass, CPUDriver>::value) {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_local_to_device(
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(
         input_g_cube, p_input_layer->p_gradient_cube
         );
   }
@@ -140,7 +140,7 @@ void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::b
 	// ERROR: For now do not support this layer on device. Easy to fix though, just need to
 	// make sure arg parameters which are pointers get copied to device
     assert(false);
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_local(
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_host(
         p_input_layer->p_gradient_cube, input_g_cube
         );
   }

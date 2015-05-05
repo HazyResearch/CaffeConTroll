@@ -74,7 +74,10 @@ class AbstractBridge : public PhysicalOperator {
         report_backward_updateweight_last_transfer.print();
     }
 
-    void copy_from_local_to_device(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
+    // SHADJIS TODO: I'm not convinced we ever need this. I think this should always just
+    // be handled with a direct driver->memcpy(), and if the src/dst are host or device
+    // is abstracted to the caller
+    void copy_from_host_to_device(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
 	LogicalCube<InputLayerDataType, InputLayerLayout> * const src) {
         // We know local is a CPU driver
         CPUDriver *local_cpu_driver = new CPUDriver();
@@ -82,7 +85,8 @@ class AbstractBridge : public PhysicalOperator {
         delete local_cpu_driver;
     }
 
-    void copy_from_device_to_local(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
+    // SHADJIS TODO: See comment above for copy_from_host_to_device, this seems unnecessary
+    void copy_from_device_to_host(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
 	LogicalCube<InputLayerDataType, InputLayerLayout> * const src) {
         // We know local is a CPU driver
         CPUDriver *local_cpu_driver = new CPUDriver();
@@ -230,12 +234,12 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
     }
 
     // If p_driver == CPUDriver, then we just need to reassign pointers
-    void copy_from_local_to_device(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
+    void copy_from_host_to_device(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
 	LogicalCube<InputLayerDataType, InputLayerLayout> * const src) {
       dst->set_p_data(src->get_p_data());
     }
 
-    void copy_from_device_to_local(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
+    void copy_from_device_to_host(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
 	LogicalCube<InputLayerDataType, InputLayerLayout> * const src) {
       dst->set_p_data(src->get_p_data());
     }
@@ -381,7 +385,7 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
         report_backward_updateweight_last_transfer.print();
     }
 
-    void copy_from_local_to_device(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
+    void copy_from_host_to_device(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
 	LogicalCube<InputLayerDataType, InputLayerLayout> * const src) {
         // We know local is a CPU driver
         CPUDriver *local_cpu_driver = new CPUDriver();
@@ -389,7 +393,7 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
         delete local_cpu_driver;
     }
 
-    void copy_from_device_to_local(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
+    void copy_from_device_to_host(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
 	LogicalCube<InputLayerDataType, InputLayerLayout> * const src) {
         // We know local is a CPU driver
         CPUDriver *local_cpu_driver = new CPUDriver();

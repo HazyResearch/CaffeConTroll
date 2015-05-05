@@ -329,7 +329,8 @@ void CPUDriver::inverse_lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointe
 }
 
 void CPUDriver::backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
-    const int fmap_size, const int depth, const int batch_size){
+    const int fmap_size, const int depth, const int batch_size,
+    const float *const device_ones){
     
     // SHADJIS TODO: For the GPU, I had to rewrite backward_bias because it did
     // not work with parallel_map (see comment in ConvolutionBridge_impl.hxx).

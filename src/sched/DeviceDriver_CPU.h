@@ -27,7 +27,8 @@ public:
   void inverse_lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     const struct _inverse_lower_cube_arg_helper args);
   void backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
-    const int fmap_size, const int depth, const int batch_size);
+    const int fmap_size, const int depth, const int batch_size, 
+    const float *const device_ones);
     
   template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
   void pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,

@@ -116,17 +116,17 @@ TYPED_TEST(GPUPerfConvolutionBridgeTest_paper3a, TestForwardBackward){
     this->ParallelizedConvolutionBridge_->backward();
   }
   
-  // NOTE: This also includes time to copy to device and back from device.
-  // In order to not time that, need to move the report to inside the
-  // copies, and do a device sync before/after the timer.
+  // NOTE: Be sure to run with inside-layer profiling (make test_profile2) to do
+  // device syncs in the appropriate place. Without that, the GPU 
+  // times are smaller than they should be.
   std::cout << "Time for 100 FW, BW passes: ";
-  std::cout<<"\n\nreport_pbridge_fw\n";
+  std::cout<<"\n\nreport_pbridge_fw (fw time including memory copies)\n";
   this->ParallelizedConvolutionBridge_->report_forward_history.print();
-  std::cout<<"\nreport_pbridge_bw\n";
+  std::cout<<"\nreport_pbridge_bw (bw time including memory copies)\n";
   this->ParallelizedConvolutionBridge_->report_backward_updateweight_history.print();
   std::cout << "\nFor bridge 0 of total " << this->ParallelizedConvolutionBridge_->_gpu_bridges.size() << " bridges:\n";
-  std::cout<<"\nreport_forward_history\n";
+  std::cout<<"\nreport_forward_history (fw time NOT including memory copies)\n";
   this->ParallelizedConvolutionBridge_->_gpu_bridges[0]->report_forward_history.print();
-  std::cout<<"\nreport_backward_history\n";
+  std::cout<<"\nreport_backward_history (bw time NOT including memory copies)\n";
   this->ParallelizedConvolutionBridge_->_gpu_bridges[0]->report_backward_updateweight_history.print();
 }

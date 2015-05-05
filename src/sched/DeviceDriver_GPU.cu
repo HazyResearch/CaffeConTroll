@@ -262,19 +262,13 @@ void GPUDriver::inverse_lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointe
 }
 
 void GPUDriver::backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
-    const int fmap_size, const int depth, const int batch_size){
+    const int fmap_size, const int depth, const int batch_size,
+    const float *const device_ones){
 
     // Create the one constants
     const float one = 1;
-    // Also allocate a vector of ones on the device
-    float *host_ones = new float [fmap_size];
-    // Memcpy ones to it
-    size_t n = fmap_size;
-    for (; 0<n; --n) host_ones[n-1] = 1;
-    // Copy to device
-    float *dev_ones;
-    cudaMalloc((void**)&dev_ones, sizeof(float) * fmap_size);
-    cudaMemcpy(dev_ones, host_ones, sizeof(float) * fmap_size, cudaMemcpyHostToDevice);
+    
+    // We also get device_ones as an argument, a vector of ones of size fmap_size
 
     // cublas expects col major, so we change the parameters accordingly
     cublasOperation_t ta = CUBLAS_OP_T;
@@ -284,16 +278,12 @@ void GPUDriver::backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * s
     for (int ib=0; ib < batch_size; ++ib)
     {
         status = cublasSgemv(handle, ta, fmap_size, depth, &one, (float *) (src->ptr) + ib*fmap_size*depth,
-            fmap_size, dev_ones, 1, &one, (float *) dst->ptr, 1);
+            fmap_size, device_ones, 1, &one, (float *) dst->ptr, 1);
         //cudaDeviceSynchronize();
     }
     err = cudaGetLastError();
     assert(err == cudaSuccess);
     assert(status == CUBLAS_STATUS_SUCCESS); // SHADJIS TODO: On GPU use cblas_dsymv
-    
-    cudaFree(dev_ones);
-    delete host_ones;
-
 }
 
 __global__ void _fw_bias_helper(float * bias, float * output, const int fmap_size, const int depth, const int batch_size){

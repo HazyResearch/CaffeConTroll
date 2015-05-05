@@ -11,6 +11,11 @@
 
 #include <csignal> // or signal.h if C code
 
+// SHADJIS TODO: Once we have many GPUs running we may need to do a synchronize 
+// at the end of pbridge before going to the next bridge. Currently this is done
+// automatically because we copy back from device to host at the end of bridges
+// executing on the GPU.
+
 // SHADJIS TODO: ParallelizedBridge should not be templated by a single DriverClass.
 // All other derived classes of AbstractBridge have a unique driver, so in this way
 // ParallelizedBridge is different and perhaps should inherit from some other class

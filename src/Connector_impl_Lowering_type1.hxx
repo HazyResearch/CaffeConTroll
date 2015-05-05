@@ -145,7 +145,10 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
   // ( since CPU does += whereas GPU does = ). The CPU code can be
   // rewritten to not require this initialization. Or, for now can
   // refactor this into the CPU only.
+  // (The time is minor, but can measure and optimize if necessary)
+  // if (!std::is_same<DriverClass, CPUDriver>::value) {
   p_driver->sconstant_initialize(input, DataType(0.));
+  // }
 
   _inverse_lower_cube_arg_helper _arg;
   _arg.data_output_width = (iR + 2 * padding - kernel_size) / stride + 1;  // the number of rows in the output gradient cube

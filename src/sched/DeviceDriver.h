@@ -115,7 +115,8 @@ public:
   }
 
   void backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
-    const int fmap_size, const int depth, const int batch_size){
+    const int fmap_size, const int depth, const int batch_size,
+    const float *const device_ones) {
     assert(false);
   }
 
@@ -187,6 +188,9 @@ public:
   void smath_apply_grad(DeviceMemoryPointer *X, DeviceMemoryPointer *Y) {
     math_saxpy(-1.0, Y, X);
   }
+  
+  // Only for GPU, and only used for profiling
+  virtual void device_sync() {}
 
 };
 

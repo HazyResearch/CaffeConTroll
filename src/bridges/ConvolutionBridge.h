@@ -192,6 +192,8 @@ class ConvolutionBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClas
 
     LogicalCubeType * p_forward_lowered_data;
     LogicalCubeType * p_backward_inputgrad;
+    
+    LogicalCubeType * ones_bias_vector;
 
     size_t mR, mC, mD, mB; /*< Size of the model LogicalCube */
 

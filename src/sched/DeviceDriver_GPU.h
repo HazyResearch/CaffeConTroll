@@ -12,9 +12,10 @@ public:
 
   int gpu_id = 0;
 
+  // SHADJIS TODO: Rather than hard-code these use cudaGetDeviceProperties
+  // E.g. for newer GPUs can use 1024 threads
   int max_cuda_blocks = 64000; // Actually 65535 is the max
-  // SHADJIS TODO: Decrease from 1024 for older compute capability (__CUDA_ARCH__)
-  const int threadsPerBlock = 1024;
+  const int threadsPerBlock = 256;
 
   cublasStatus_t status;
 
@@ -43,7 +44,8 @@ public:
   void forward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     const int fmap_size, const int depth, const int batch_size);
   void backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
-    const int fmap_size, const int depth, const int batch_size);
+    const int fmap_size, const int depth, const int batch_size,
+    const float *const device_ones);
   void lower_cube_helper(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     const struct PMapHelper args);
 
@@ -86,6 +88,8 @@ public:
   void * choose_ptr(void * host, void * device);
 
   using DeviceDriver::smath_apply_grad;
+  
+  void device_sync() { cudaDeviceSynchronize(); }
 
 private:
 
