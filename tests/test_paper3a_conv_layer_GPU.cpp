@@ -47,7 +47,7 @@ class GPUPerfConvolutionBridgeTest_paper3a : public ::testing::Test {
               ConvolutionBridge>(layer1,
                   layer2, &layer_param, &solver_param, &pdriver, 1, 1);
 
-      ParallelizedConvolutionBridge_->needs_to_calc_backward_grad = true;
+      ParallelizedConvolutionBridge_->needs_to_calc_backward_grad = false; // like Caffe
     }
 
     virtual ~GPUPerfConvolutionBridgeTest_paper3a() {
@@ -107,27 +107,6 @@ TYPED_TEST(GPUPerfConvolutionBridgeTest_paper3a, TestForwardBackward){
     this->grad2->get_p_data()[i] = i*0.1;
   }
   
-  // Run first without timing
-  this->ParallelizedConvolutionBridge_->forward();
-  this->ParallelizedConvolutionBridge_->backward();
-
-  for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
-    this->data1->get_p_data()[i] = float(rand()%100) / 100.0;
-    this->grad1->get_p_data()[i] = 0;
-  }
-  for(int i=0;i<this->k*this->k*this->iD*this->oD;i++){
-    this->ParallelizedConvolutionBridge_->p_model_cube->get_p_data()[i] = float(rand()%100) / 100.0;
-  }
-  for(int i=0;i<this->oD;i++){
-    this->ParallelizedConvolutionBridge_->p_bias_cube->get_p_data()[i] = float(rand()%100) / 100.0;
-  }
-  for (int i=0;i<this->oR*this->oC*this->oD*this->mB;i++) {
-    this->data2->get_p_data()[i] = 0;
-    this->grad2->get_p_data()[i] = i*0.1;
-  }
-
-  Timer t;
-  
   // Run FW and BW pass 100 times
   for (int i = 0; i < 100; ++i) {
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
@@ -137,8 +116,10 @@ TYPED_TEST(GPUPerfConvolutionBridgeTest_paper3a, TestForwardBackward){
     this->ParallelizedConvolutionBridge_->backward();
   }
   
-  float t_pass = t.elapsed();
-  std::cout << "Time for 100 FW, BW passes: " << t_pass;
+  // NOTE: This also includes time to copy to device and back from device.
+  // In order to not time that, need to move the report to inside the
+  // copies, and do a device sync before/after the timer.
+  std::cout << "Time for 100 FW, BW passes: ";
   std::cout<<"\n\nreport_pbridge_fw\n";
   this->ParallelizedConvolutionBridge_->report_forward_history.print();
   std::cout<<"\nreport_pbridge_bw\n";

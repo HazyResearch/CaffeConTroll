@@ -41,6 +41,7 @@ template<typename DataType, LayoutType InputLayout, typename DriverClass>
 void Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1, DriverClass>::
 lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeType * p_output_cube) {
 
+  // SHADJIS TODO: We're currently not really using these reports, can remove
   report_last_lowering.reset();
 
 #ifdef _DO_ASSERT
@@ -66,7 +67,7 @@ lower_cube(const InputLogicalCubeType * const p_input_cube, OutputLogicalCubeTyp
   // if we don't set a max of 16, 32, etc. then the kernel may not launch due to
   // too many threads
   // SHADJIS TODO: Determine this number somehow, don't hard-code 16x16 (256 threads/block)
-  args.sBR = min((size_t)16, args.sR); args.sBC = min((size_t)16, args.sC);
+  args.sBR = min((size_t)16, args.sR); args.sBC = min((size_t)16, args.sC); // SHADJIS TODO: Unused
   args.kR = kernel_size; args.kC = kernel_size; args.kD = p_input_cube->D; args.kB = 1;
   args.stride = stride;
   args.padding = padding;
@@ -124,6 +125,7 @@ template<typename DataType, LayoutType InputLayout, typename DriverClass>
 void Connector<DataType, InputLayout, DataType, Layout_CRDB, LOWERING_TYPE1, DriverClass>::
 inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType * p_input_cube) {
 
+  // SHADJIS TODO: This report isn't really used, can remove
   report_last_inverse_lowering.reset();
 
 #ifdef _DO_ASSERT
@@ -139,6 +141,10 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
   DeviceMemoryPointer * input = p_input_cube->get_device_pointer(p_driver);
   DeviceMemoryPointer * output = p_output_cube->get_device_pointer(p_driver);
 
+  // SHADJIS TODO: This isn't needed on the GPU, only the CPU
+  // ( since CPU does += whereas GPU does = ). The CPU code can be
+  // rewritten to not require this initialization. Or, for now can
+  // refactor this into the CPU only.
   p_driver->sconstant_initialize(input, DataType(0.));
 
   _inverse_lower_cube_arg_helper _arg;
@@ -152,13 +158,11 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
   _arg.iD = iD;
   _arg.iB = iB;
 
-  DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg,
-      sizeof(_inverse_lower_cube_arg_helper));
-
-  DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg,
-      sizeof(_inverse_lower_cube_arg_helper));
-
   // Old call:
+  //DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg,
+  //    sizeof(_inverse_lower_cube_arg_helper));
+  //DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg,
+  //    sizeof(_inverse_lower_cube_arg_helper));
   //p_driver->template parallel_map<_f_src_to_dst_inverse_lower_cube,
   //  _f_inverse_lower_cube>(input, output, kernel_size * kernel_size * _arg.data_output_width *  \
   //      _arg.data_output_height * iB * sizeof(DataType), arg1, arg2);

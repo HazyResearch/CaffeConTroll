@@ -13,7 +13,8 @@ public:
   int gpu_id = 0;
 
   int max_cuda_blocks = 64000; // Actually 65535 is the max
-  int threadsPerBlock = 256;
+  // SHADJIS TODO: Decrease from 1024 for older compute capability (__CUDA_ARCH__)
+  const int threadsPerBlock = 1024;
 
   cublasStatus_t status;
 

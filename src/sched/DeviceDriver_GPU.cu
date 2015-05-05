@@ -59,23 +59,40 @@ __global__ void _parallel_lower_cube(float * dst, float * src, const struct PMap
   const int s  = args.stride;
   const int oR = (iR + 2*p - kR) / s + 1;
   const int oC = (iC + 2*p - kC) / s + 1; 
-  
-  // Get the right loop element
-  const int iB_idx   = blockIdx.x;
-  const int iD_idx   = blockIdx.y;
-  const int oRoC_idx = blockIdx.z;
-  const int oR_idx   = oRoC_idx/oC;
-  const int oC_idx   = oRoC_idx%oC;
-  const int kR_idx   = threadIdx.x;
-  const int kC_idx   = threadIdx.y;
-  
-  const int out_r = iB_idx*oR*oC + oR_idx*oC + oC_idx;
-  const int out_c = iD_idx*kR*kC + kR_idx*kC + kC_idx;
 
-  if ( (oR_idx*s-p+kR_idx) >= 0 && (oR_idx*s-p+kR_idx) < iR && (oC_idx*s-p+kC_idx) >= 0 && (oC_idx*s-p+kC_idx) < iC ) {
-    dst[out_r*iD*kR*kC + out_c] = src[iB_idx*iC*iR*iD + iD_idx*iR*iC + (oR_idx*s-p+kR_idx)*iC + (oC_idx*s-p+kC_idx)];
-  } else {
-    dst[out_r*iD*kR*kC + out_c] = 0;
+  const float *data_im = src;
+  const int height = iR;
+  const int width = iC;
+  const int kernel_h = kR;
+  const int kernel_w = kC;
+  const int pad_h = p;
+  const int pad_w = p;
+  const int stride_h = s;
+  const int stride_w = s;
+  const int height_col = oR;
+  const int width_col = oC;
+  float *data_col = dst;
+  const int index = blockIdx.x * blockDim.x + threadIdx.x;
+  
+  int w_out = index % width_col;
+  int h_index = index / width_col;
+  int h_out = h_index % height_col;
+  int channel_in = h_index / height_col;
+  int channel_out = channel_in * kernel_h * kernel_w;
+  int h_in = h_out * stride_h - pad_h;
+  int w_in = w_out * stride_w - pad_w;
+  float *data_col_ptr = data_col;
+  data_col_ptr += (channel_out * height_col + h_out) * width_col + w_out;
+  const float *data_im_ptr = data_im;
+  data_im_ptr += (channel_in * height + h_in) * width + w_in;
+  for (int i = 0; i < kernel_h; ++i) {
+    for (int j = 0; j < kernel_w; ++j) {
+      int h = h_in + i;
+      int w = w_in + j;
+      *data_col_ptr = (h >= 0 && w >= 0 && h < height && w < width) ?
+          data_im_ptr[i * width + j] : 0;
+      data_col_ptr += height_col * width_col;
+    }
   }
 }
 
@@ -90,19 +107,16 @@ __global__ void _parallel_inverse_lower_cube(float * dst, float * src, const str
   const int iR = args.iR;
   const int iC = args.iC;
   const int iD = args.iD;
-  const unsigned int iB = args.iB;
 
   // Get the right loop element
   const int i = blockDim.x * blockIdx.x + threadIdx.x + start_i;
 
-  if (i < iB*iD*iR*iC)
+  if (i < iD*iR*iC)
   {
     // SHADJIS TODO: These / and % not needed if using multi-dimensional blocks
-    const int b =   (i / (iC*iR*iD));
-    const int tmp = (i % (iC*iR*iD));
-    const int c =  tmp / (iC * iR);
-    const int h = (tmp / iC) % iR + p;
-    const int w =  tmp % iC + p;
+    const int c =  i / (iC * iR);
+    const int h = (i / iC) % iR + p;
+    const int w =  i % iC + p;
     
     const int w_col_start = (w < k) ? 0 : (w - k) / s + 1;
     const int w_col_end = device_min(w / s + 1, oC);
@@ -116,9 +130,9 @@ __global__ void _parallel_inverse_lower_cube(float * dst, float * src, const str
     // of src one after the other we interleave them. I think this is
     // pretty stupid but I don't feel like rewriting everything now.
     // Probably leave that for when we do fusion.
-    const int offset = (c*k*k*iB + h*k*iB + w*iB + b)*oR*oC;
-    const int coeff_h_col = (1 - s*k*oR*iB)*oC;
-    const int coeff_w_col = (1 - s*oR*oC*iB);
+    const int offset = (c*k*k + h*k + w)*oR*oC;
+    const int coeff_h_col = (1 - s*k*oR)*oC;
+    const int coeff_w_col = (1 - s*oR*oC);
     float sum = 0;
     for (int h_col = h_col_start; h_col < h_col_end; ++h_col) {
       for (int w_col = w_col_start; w_col < w_col_end; ++w_col) {
@@ -170,8 +184,8 @@ __global__ void _spmap_readc(float* dst, float * src, PMapHelper args){
 template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
 void GPUDriver::lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
     const struct PMapHelper args){
-    pmap2d_read_coalesce<f_id, f_data>(dst, src, args);
-    // lower_cube_helper(dst, src, args);
+    // pmap2d_read_coalesce<f_id, f_data>(dst, src, args);
+    lower_cube_helper(dst, src, args);
 }
 
 // SHADJIS TODO: This is a more parallel forward lowering which matches the implementation
@@ -184,19 +198,15 @@ void GPUDriver::lower_cube_helper(DeviceMemoryPointer * dst, DeviceMemoryPointer
     const int kr = args.kR;
     const int kc = args.kC;
     const int iB = args.sB;
+    assert(iB==1);
     const int p  = args.padding;
     const int s  = args.stride;
     const int iR = args.sR;
     const int iC = args.sC;
     const int oR = (iR + 2*p - kr) / s + 1;
     const int oC = (iC + 2*p - kc) / s + 1; 
-    
-    dim3 numBlocks(iB, iD, oR*oC);
-    // SHADJIS TODO: Should fix the number of threads (e.g. 256, 1024) since now
-    // warps are under-utilized for small k
-    dim3 threadsPerBlock(kr, kc);
-    // SHADJIS TODO: Call something like _spmap_readc instead
-    // SHADJIS TODO: Add a check here for too many blocks like sapply, or make multi-dimensional like _spmap_readc
+    const int num_parallel_threads = iD*oR*oC;
+    const int numBlocks = (num_parallel_threads + threadsPerBlock - 1) / threadsPerBlock;
     cudaGetLastError(); // Reset the error status to success
     _parallel_lower_cube<<<numBlocks, threadsPerBlock>>>((float*) dst->ptr, (float *) src->ptr, args);
     err = cudaGetLastError();
@@ -204,7 +214,7 @@ void GPUDriver::lower_cube_helper(DeviceMemoryPointer * dst, DeviceMemoryPointer
       std::cout << "Fail to launch _parallel_lower_cube"  << "  ERROR " << err << std::endl;
       assert(false);
     }
-    cudaDeviceSynchronize();
+    //cudaDeviceSynchronize();
     err = cudaGetLastError();
     if(err != cudaSuccess){
       std::cout << "Fail to sync _parallel_lower_cube"  << "  ERROR " << err << std::endl;
@@ -223,7 +233,8 @@ void GPUDriver::inverse_lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointe
     const int iR = args.iR;
     const int iC = args.iC;
     const unsigned int iB = args.iB;
-    const int num_parallel_elements = iR*iC*iD*iB;
+    assert(iB == 1);
+    const int num_parallel_elements = iR*iC*iD;
     int blocksPerGrid = (num_parallel_elements + threadsPerBlock - 1) / threadsPerBlock;
     
     cudaGetLastError(); // Reset the error status to success
@@ -242,7 +253,7 @@ void GPUDriver::inverse_lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointe
             assert(false);
         }
     }
-    cudaDeviceSynchronize();
+    //cudaDeviceSynchronize();
     err = cudaGetLastError();
     if(err != cudaSuccess){
         std::cout << "Fail to sync _parallel_inverse_lower_cube"  << "  ERROR " << err << std::endl;
@@ -274,7 +285,7 @@ void GPUDriver::backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * s
     {
         status = cublasSgemv(handle, ta, fmap_size, depth, &one, (float *) (src->ptr) + ib*fmap_size*depth,
             fmap_size, dev_ones, 1, &one, (float *) dst->ptr, 1);
-        cudaDeviceSynchronize(); // SHADJIS TODO: Try without this (only 1 stream now)
+        //cudaDeviceSynchronize();
     }
     err = cudaGetLastError();
     assert(err == cudaSuccess);
@@ -324,7 +335,7 @@ void GPUDriver::forward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * sr
 			assert(false);
 		}
 	}
-	cudaDeviceSynchronize();
+	//cudaDeviceSynchronize();
 	err = cudaGetLastError();
 	assert(err == cudaSuccess);
 
@@ -351,7 +362,7 @@ void GPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPoin
 	  std::cout << "Fail to launch _spmap_readc"  << "  ERROR " << err << std::endl;
 	  assert(false);
 	}
-	cudaDeviceSynchronize();
+	//cudaDeviceSynchronize();
 	err = cudaGetLastError();
 	if(err != cudaSuccess){
 	  std::cout << "Fail to cudaDeviceSynchronize _spmap_readc"  << "  ERROR " << err << std::endl;
@@ -423,7 +434,7 @@ size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry, DeviceMemoryPointe
 	  std::cout << "Fail to launch _spmap"  << "  ERROR " << err << std::endl;
 	  assert(false);
 	}
-	cudaDeviceSynchronize();
+	//cudaDeviceSynchronize();
 	err = cudaGetLastError();
 	if(err != cudaSuccess){
 	  std::cout << "Fail to sync _spmap"  << "  ERROR " << err << std::endl;
@@ -484,7 +495,7 @@ void GPUDriver::sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const fu
 		}
 		n_elements -= blocksPerGrid*threadsPerBlock; // Decrement #elements left to process
 	}
-	cudaDeviceSynchronize();
+	//cudaDeviceSynchronize();
 	err = cudaGetLastError();
 	assert(err == cudaSuccess);
 
@@ -541,7 +552,7 @@ void GPUDriver::sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TR
 		status = cublasSgemm(handle, tb, ta, N, M, K, &alpha, 
 			pB, K, pA, K, &beta, pC, N); 
 
-		cudaDeviceSynchronize();
+		//cudaDeviceSynchronize();
 		err = cudaGetLastError();
 		assert(err == cudaSuccess);
 
@@ -556,7 +567,7 @@ void GPUDriver::sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TR
 		status = cublasSgemm(handle, tb, ta, N, M, K, &alpha, 
 			pB, N, pA, M, &beta, pC, N); 
 
-		cudaDeviceSynchronize();
+		//cudaDeviceSynchronize();
 		err = cudaGetLastError();
 		assert(err == cudaSuccess);
 
@@ -572,7 +583,7 @@ void GPUDriver::sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TR
 		status = cublasSgemm(handle, tb, ta, N, M, K, &alpha, 
 			pB, N, pA, K, &beta, pC, N); 
 
-		cudaDeviceSynchronize();
+		//cudaDeviceSynchronize();
 		err = cudaGetLastError();
 		assert(err == cudaSuccess);
 
@@ -587,7 +598,7 @@ void GPUDriver::sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TR
 		status = cublasSgemm(handle, tb, ta, N, M, K, &alpha, 
 			pB, K, pA, M, &beta, pC, N); 
 
-		cudaDeviceSynchronize();
+		//cudaDeviceSynchronize();
 		err = cudaGetLastError();
 		assert(err == cudaSuccess);
 
@@ -624,7 +635,7 @@ DeviceMemoryPointer * src2, DeviceMemoryPointer * const func_curry){
 	  std::cout << "Fail to launch _sreduce" << std::endl;
 	  assert(false);
 	}
-	cudaDeviceSynchronize();
+	//cudaDeviceSynchronize();
 	err = cudaGetLastError();
 	assert(err == cudaSuccess);
 

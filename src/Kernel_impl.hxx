@@ -87,6 +87,7 @@ void Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
      KERNELCONFIG, DriverClass>::compute(const Input1LogicalCubeType * const p_input1_cube,
          const Input2LogicalCubeType * const p_input2_cube, OutputLogicalCubeType * const p_output_cube) {
 
+  // SHADJIS TODO: This is unused
   report_last_lowering.reset();
 
   int M, N, K;
