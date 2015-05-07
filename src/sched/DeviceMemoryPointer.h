@@ -170,7 +170,6 @@ public:
 
 	DeviceMemoryPointer_Local_GPURAM(int _GPUID, void * _ptr, size_t _size_in_byte):
 		DeviceMemoryPointer(_ptr, _size_in_byte), GPUID(_GPUID){
-		assert(GPUID==0); // TODO: multiple GPUs
 		this->type = DEVICEMEMORY_LOCAL_GPURAM;
 	}
 

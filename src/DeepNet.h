@@ -244,6 +244,9 @@ class DeepNet {
                     next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
                     next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
+                    // SHADJIS TODO: Rather than hard-code 16 partitions, use std::thread::hardware_concurrency()
+                    // Or if we want the user to be able specify, then still do not pass this as an argument, 
+                    // instead let it be part of the same config file as GPU
                     bridge = new ParallelizedBridge<DataType_SFFloat, ConvolutionBridge>
                              (prev_layers[i], next_layer, &layer_param, &solver_param, driver, min<size_t>(16, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
                     bridge->name = layer_param.name();

@@ -27,9 +27,10 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
     Layer<DataType, Layout_CRDB> * const _output_layer, const cnn::LayerParameter * const _layer_param,
     const cnn::SolverParameter * const _solver_param, CPUDriver * const _p_driver, size_t _n_partition,
     size_t _n_cpu_thread_per_partition) : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, CPUDriver>(_input_layer,
-      _output_layer, _layer_param, _solver_param, _p_driver), n_partition(_n_partition), n_batch(_input_layer->dB),
+      _output_layer, _layer_param, _solver_param, _p_driver),
+    n_partition(_n_partition), // SHADJIS TODO: Maybe should not have this as an argument, but just detect # cores, or in a config file
+    n_batch(_input_layer->dB),
     n_cpu_thread_per_partition(_n_cpu_thread_per_partition), n_batch_per_partition_cpu(0),
-    n_batch_per_partition_gpu(0),
     model_base_learning_rate(1.0),
     bias_base_learning_rate(1.0),
     model_base_regularization(1.0),
@@ -41,7 +42,6 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
     p_bias_subgrad(NULL),
     p_bias_cube(NULL),
     scheduler_local_cpudriver(NULL),
-    scheduler_gpudriver(NULL),
     p_grad_updater(NULL),
     p_grad_updater_bias(NULL),
     extra_partition(false),
@@ -63,7 +63,6 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
   assert(n_batch == curr_B);
   update_scheduler_partitions_for_curr_B();
   assert(num_partitions > 0);
-  assert(n_batch_per_partition_cpu + n_batch_per_partition_gpu > 0);
   
   // Right now, we only partition by data, not model
   // First, partition data on the CPU
@@ -112,10 +111,11 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
         );
   }
   // Next, partition data on the GPU
-  // SHADJIS TODO: For multiple GPUs, this would be a loop
-  if (num_partitions_GPU > 0) {
+  for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
+  {
     assert(i < num_partitions); // Must be at least 1 partition left
-    size_t n_batch_this_partition = n_batch - b; // Remaining batch goes to GPU
+    size_t n_batch_this_partition = GPU_batch_sizes[gpu_i];
+    assert(n_batch_this_partition > 0);
     
     // See comment for CPU to understand what these 4 are
     
@@ -123,41 +123,50 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
         new LogicalCubeType(NULL, p_input_layer->dR, p_input_layer->dC,
           p_input_layer->dD, n_batch_this_partition)
         );
-
+ 
     _grad_cubes_lower.push_back(
         new LogicalCubeType(p_input_layer->p_gradient_cube->physical_get_RCDslice(b),
           p_input_layer->gR, p_input_layer->gC, p_input_layer->gD, n_batch_this_partition)
         );
-
+ 
     _data_cubes_higher.push_back(
         new LogicalCubeType(p_output_layer->p_data_cube->physical_get_RCDslice(b),
           p_output_layer->dR, p_output_layer->dC, p_output_layer->dD, n_batch_this_partition)
         );
-
+ 
     _grad_cubes_higher.push_back(
         new LogicalCubeType(p_output_layer->p_gradient_cube->physical_get_RCDslice(b),
           p_output_layer->gR, p_output_layer->gC, p_output_layer->gD, n_batch_this_partition)
         );
+        
+    b += n_batch_this_partition;
+    ++i;
   }
-  
-  // Create drivers
-  
-  scheduler_local_cpudriver = p_driver;//new CPUDriver();
   if (num_partitions_GPU > 0) {
+    assert(b == n_batch); // Must have completed every image now
+  }
+  assert(_data_cubes_lower.size() == num_partitions); // 4 cubes per partition (since 4 cubes per bridge)
+  
+  // Create drivers  
+  scheduler_local_cpudriver = p_driver;//new CPUDriver();
+  // GPU drivers
+  for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
+  {
 #ifdef _INCLUDE_GPUDRIVER
-    // SHADJIS TODO: For multi-gpu, pass a stream # into the constructor and make multiple drivers here
-    scheduler_gpudriver = new GPUDriver();
+    GPUDriver *new_driver = new GPUDriver();
+    new_driver->set_device_id(used_gpu_to_device_id_map[gpu_i]);
+    scheduler_gpudrivers.push_back(new_driver);
 #endif
-  }  
+  }
 
   for (size_t ib = 0; ib < num_partitions; ib++) {
     _partitioned_layers_lower.push_back(
         new LayerType(_data_cubes_lower[ib], _grad_cubes_lower[ib])
-        );
+      );
 
     _partitioned_layers_higher.push_back(
         new LayerType(_data_cubes_higher[ib], _grad_cubes_higher[ib])
-        );
+      );
   }
   
   // Create bridges
@@ -174,15 +183,15 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
 #ifdef _INCLUDE_GPUDRIVER
         _gpu_bridges.push_back(
             new BridgeType<DataType, Layout_CRDB, DataType, Layout_CRDB, GPUDriver>(_partitioned_layers_lower[ib], _partitioned_layers_higher[ib],
-              layer_param, solver_param, scheduler_gpudriver)
+              layer_param, solver_param, scheduler_gpudrivers[ib-_cpu_bridges.size()])
             );
 #endif
     }
   }
-#ifdef _DO_ASSERT
-    assert(_cpu_bridges.size() == num_partitions_CPU);
-    assert(_gpu_bridges.size() == num_partitions_GPU);
-#endif
+
+  assert(_cpu_bridges.size() == num_partitions_CPU);
+  assert(_gpu_bridges.size() == num_partitions_GPU);
+  assert(_gpu_bridges.size() == scheduler_gpudrivers.size());
 
   for (size_t ib = 0; ib < _cpu_bridges.size(); ib++) {
     _cpu_bridges[ib]->run_with_n_threads = n_cpu_thread_per_partition;
@@ -232,7 +241,9 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
     if (num_partitions_CPU > 0) {
         scheduler_local_cpudriver->memcpy(p_model_cube->get_device_pointer(scheduler_local_cpudriver), example_cube->get_device_pointer(scheduler_local_cpudriver));
     } else {
-        scheduler_gpudriver->memcpy(p_model_cube->get_device_pointer(scheduler_local_cpudriver), example_cube->get_device_pointer(scheduler_gpudriver));
+        // We can pick any GPU to copy from, so let's pick 0 since
+        // it is always the fastest one
+        scheduler_gpudrivers[0]->memcpy(p_model_cube->get_device_pointer(scheduler_local_cpudriver), example_cube->get_device_pointer(scheduler_gpudrivers[0]));
     }
 
     // Similarly, the parallelized bridge (scheduler) has its own local gradient cube
@@ -265,7 +276,7 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
       if (num_partitions_CPU > 0) {
           scheduler_local_cpudriver->memcpy(p_bias_cube->get_device_pointer(scheduler_local_cpudriver), example_bias->get_device_pointer(scheduler_local_cpudriver));
       } else {
-          scheduler_gpudriver->memcpy(p_bias_cube->get_device_pointer(scheduler_local_cpudriver), example_bias->get_device_pointer(scheduler_gpudriver));
+          scheduler_gpudrivers[0]->memcpy(p_bias_cube->get_device_pointer(scheduler_local_cpudriver), example_bias->get_device_pointer(scheduler_gpudrivers[0]));
       }
       p_bias_grad = new LogicalCubeType(example_bias->R, example_bias->C, example_bias->D, example_bias->B);
       p_bias_subgrad = new LogicalCubeType(example_bias->R, example_bias->C, example_bias->D, example_bias->B);
@@ -298,6 +309,7 @@ template<typename DataType,
                    typename DriverClass> class BridgeType>
 void ParallelizedBridge<DataType, BridgeType>::forward() {
   report_forward_last_transfer.reset();
+  // Assert less than or equal since we might have a smaller final batch
   assert(num_partitions <= _cpu_bridges.size() + _gpu_bridges.size());
 
   // CPU batches
@@ -315,25 +327,24 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
     }
     _cpu_bridges[i]->set_curr_batch_size(n_batch_this_partition);
   }
-  // Final GPU batch
-  // SHADJIS TODO: For multiple GPUs, this would be a loop
-  if (num_partitions_GPU > 0) {
+  // GPU batches
+  for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
+  {
     assert(i < num_partitions); // Must be at least 1 partition left
-    size_t n_batch_this_partition = curr_B - b; // Remaining batch goes to GPU
-    _data_cubes_lower[i]->set_p_data(p_input_layer->p_data_cube->physical_get_RCDslice(b));
+    size_t n_batch_this_partition = GPU_batch_sizes[gpu_i];
+    assert(n_batch_this_partition > 0);
+   _data_cubes_lower[i]->set_p_data(p_input_layer->p_data_cube->physical_get_RCDslice(b));
     // Check if this bridge has a model (e.g. not for max pool)
     if (p_model_cube)
     {
         // General-case: copy from host to device
-        // SHADJIS TODO: Can share a single pointer for all GPU bridges on the same device (no need to copy to all bridges)
-        assert(_gpu_bridges.size() == 1);
-        // SHADJIS TODO: Now gpu bridges is size 1, this will increase for multi-GPU
-        // (each gpu driver has a device ID and a stream number)
-        assert(num_partitions_GPU == 1);
-        scheduler_gpudriver->memcpy(_gpu_bridges[0]->get_model_cube()->get_device_pointer(scheduler_gpudriver), p_model_cube->get_device_pointer(scheduler_local_cpudriver));
-        scheduler_gpudriver->memcpy(_gpu_bridges[0]->get_bias_cube() ->get_device_pointer(scheduler_gpudriver), p_bias_cube ->get_device_pointer(scheduler_local_cpudriver));
+        scheduler_gpudrivers[gpu_i]->memcpy(_gpu_bridges[gpu_i]->get_model_cube()->get_device_pointer(scheduler_gpudrivers[gpu_i]), p_model_cube->get_device_pointer(scheduler_local_cpudriver));
+        scheduler_gpudrivers[gpu_i]->memcpy(_gpu_bridges[gpu_i]->get_bias_cube() ->get_device_pointer(scheduler_gpudrivers[gpu_i]), p_bias_cube ->get_device_pointer(scheduler_local_cpudriver));
     }
-    _gpu_bridges[0]->set_curr_batch_size(n_batch_this_partition);
+    _gpu_bridges[gpu_i]->set_curr_batch_size(n_batch_this_partition);
+    
+    b += n_batch_this_partition;
+    ++i;
   }
 
   // PhysicalStratum also bounded by the current batch size
@@ -396,7 +407,7 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
             p_grad_data[j] += p_subgrad_data[j];
           }
         } else {
-          scheduler_gpudriver->memcpy(p_model_subgrad->get_device_pointer(scheduler_local_cpudriver), _gpu_bridges[i-_cpu_bridges.size()]->get_model_grad_cube()->get_device_pointer(scheduler_gpudriver));
+          scheduler_gpudrivers[i-num_partitions_CPU]->memcpy(p_model_subgrad->get_device_pointer(scheduler_local_cpudriver), _gpu_bridges[i-num_partitions_CPU]->get_model_grad_cube()->get_device_pointer(scheduler_gpudrivers[i-num_partitions_CPU]));
           DataType * const p_subgrad_data = p_model_subgrad->get_p_data();
           for (size_t j=0;j<n_element;j++) {
             p_grad_data[j] += p_subgrad_data[j];
@@ -419,7 +430,7 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
       if (num_partitions_CPU > 0) {
         p_grad_updater->update(_cpu_bridges[0]->get_model_grad_cube()->get_p_data());
       } else {
-        scheduler_gpudriver->memcpy(p_model_subgrad->get_device_pointer(scheduler_local_cpudriver), _gpu_bridges[0]->get_model_grad_cube()->get_device_pointer(scheduler_gpudriver));
+        scheduler_gpudrivers[0]->memcpy(p_model_subgrad->get_device_pointer(scheduler_local_cpudriver), _gpu_bridges[0]->get_model_grad_cube()->get_device_pointer(scheduler_gpudrivers[0]));
       
         // SHADJIS TODO:
         // If this is to be done on the device, we need to copy back
@@ -450,7 +461,7 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
             p_grad_data[j] += p_subbias_data[j];
           }
         } else {
-          scheduler_gpudriver->memcpy(p_bias_subgrad->get_device_pointer(scheduler_local_cpudriver), _gpu_bridges[i-_cpu_bridges.size()]->get_bias_grad_cube()->get_device_pointer(scheduler_gpudriver));
+          scheduler_gpudrivers[i-num_partitions_CPU]->memcpy(p_bias_subgrad->get_device_pointer(scheduler_local_cpudriver), _gpu_bridges[i-num_partitions_CPU]->get_bias_grad_cube()->get_device_pointer(scheduler_gpudrivers[i-num_partitions_CPU]));
           DataType * const p_subbias_data = p_bias_subgrad->get_p_data();
           for (size_t j=0;j<bias_n_element;j++) {
             p_grad_data[j] += p_subbias_data[j];
@@ -467,7 +478,7 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
       if (num_partitions_CPU > 0) {
         p_grad_updater_bias->update(_cpu_bridges[0]->get_bias_grad_cube()->get_p_data());
       } else {
-        scheduler_gpudriver->memcpy(p_bias_subgrad->get_device_pointer(scheduler_local_cpudriver), _gpu_bridges[0]->get_bias_grad_cube()->get_device_pointer(scheduler_gpudriver));      
+        scheduler_gpudrivers[0]->memcpy(p_bias_subgrad->get_device_pointer(scheduler_local_cpudriver), _gpu_bridges[0]->get_bias_grad_cube()->get_device_pointer(scheduler_gpudrivers[0]));      
         // SHADJIS TODO:
         // If this is to be done on the device, we need to copy back
         // For now, I will keep gradient updates on the CPU. To go

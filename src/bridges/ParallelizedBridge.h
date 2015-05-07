@@ -101,33 +101,49 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     const size_t n_batch; // batch size of regular batches (excludes last one)
     const size_t n_cpu_thread_per_partition; // Number of CPU threads for OpenBLAS
     
-    // Calculated based on inputs
+    // The rest are calculated based on inputs above:
     
+    // Scheduling for multiple devices
+    
+    // For CPU-only, CcT takes a batch size (curr_B), a number of partitions (n_partition),
+    // and equally divides to obtain n_batch_per_partition_cpu. Then, 1 thread is launched per
+    // partition with a batch size of n_batch_per_partition_cpu (plus maybe 1 extra for 
+    // leftover images). For GPU however, we want to have a single partition (i.e.
+    // 1 CPU thread), but with a larger batch size. 
+    //
     // Example
     //
     // To make this clear let's use an example
-    // Say n_partition = 16 above and n_batch = 260. 
+    // Say n_partition = 16 above (e.g. we have 16 cores or threads) and n_batch = 260. 
     // (n_cpu_thread_per_partition isn't important).
     // Then, extra_partition is true (since one partition must have 260-16*16=4)
     //
     // Example 1: Everything on CPU
     // We need 17 CPU partitions, if everything is on the CPU.
     // Then,
+    //   extra_partition = true
     //   num_partitions_CPU = 17
     //   num_partitions_GPU = 0
     //   num_partitions = 17
     //   n_batch_per_partition_cpu = 16 (16*16 = 256, ignoring last partition)
-    //   n_batch_per_partition_gpu = 0 (irrelevant)
     //
     // Example 2: 50% on GPU
-    // Now, of the 17 CPU partitions, only 8 will be on the CPU, the
-    // rest will be on the GPU. But the GPU just gets 1 big partition,
+    // Now, of the 260 images, 50% will be on the GPU, 1 big partition. However,
+    // rather than split 130 / 130, we want the remaining CPU images to equally,
+    // so instead we will split 128 vs. 132: the CPU takes 128 ( = 16 * 8), and
+    // the GPU takes the remaining 132:
     // So:
-    //   num_partitions_CPU = 8
+    //   extra_partition = false (leftovers go on the GPU)
+    //   num_partitions_CPU = 16 (i.e. still use all 16 cores as always)
     //   num_partitions_GPU = 1
-    //   num_partitions = 9
-    //   n_batch_per_partition_cpu = 16 (16*16 = 256, ignoring last partition)
-    //   n_batch_per_partition_gpu = 0 (irrelevant)
+    //   num_partitions = 17 (=16+1)
+    //   n_batch_per_partition_cpu = 8 (16*8 = 128)
+    // and GPU_batch_sizes would be a vector of size 1, containing the number 260 - 128 = 132.
+    //
+    // In general, you can check the number of devices in cuda using 
+    // cudaGetDeviceCount, or in the terminal, nvidia-smi.
+    // SHADJIS TODO: #ifdef _INCLUDE_GPUDRIVER, include cuda runtime .h and check
+    // cudaGetDeviceCount when initializing GPU_batch_sizes.
     //
     // Any leftover in the last partition will be handled by whichever device
     // is executing the last normal partition.
@@ -137,7 +153,12 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     size_t num_partitions_GPU; // Number of partitions across ALL GPUs
     size_t num_partitions; // #CPU partitions + #GPU partitions (including extra)
     size_t n_batch_per_partition_cpu; // Batch size for cpu partitions (excluding extra)
-    size_t n_batch_per_partition_gpu; // Batch size for gpu partitions
+    std::vector <size_t> GPU_batch_sizes; // Batch sizes for gpu partitions (may differ per GPU)
+    // SHADJIS TODO: Remove this. I am handling a corner-case where there are n GPUs
+    // in the system, but not all are in use for some reason, AND the used GPUs are
+    // not consecutive from the beginning. E.g. you have GPU 0-3 in your system but
+    // only want to sue GPU2 for some reason.
+    std::vector <int> used_gpu_to_device_id_map;
     
     // A local CPU driver used by the scheduler
     // This is the same driver which templatizes the ParallelizedBridge,
@@ -147,11 +168,11 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     // The GPU Driver, can add more drivers here to put into a vector
     // SHADJIS TODO: This should be a vector of GPUDrivers, and each will be given
     // a stream # and device # as an argument (for now, keep it to a single driver)
-    GPUDriver * scheduler_gpudriver;
+    std::vector<GPUDriver *> scheduler_gpudrivers;
 #else
     // SHADJIS TODO: If _INCLUDE_GPUDRIVER is undefined just make this a cpu driver
     // and assert it's never used. That way I don't have to ifdef it out everywhere.
-    CPUDriver * scheduler_gpudriver;
+    std::vector<CPUDriver *> scheduler_gpudrivers;
 #endif
     // -------------------------------------------------------------------------
     // End of Scheduler class members
@@ -220,50 +241,102 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
       update_scheduler_partitions_for_curr_B();
     }
     
+    // When the batch size changes (only for the last batch which may be smaller),
+    // update how we distribute
     void update_scheduler_partitions_for_curr_B() {
 
       assert(curr_B <= n_batch);
-
-      // Check if n_partition is greater than the actual batch size
-      const size_t n_partition_this_batch = (curr_B < n_partition) ? curr_B : n_partition;
-      n_batch_per_partition_cpu = curr_B / n_partition_this_batch; // Excluding last batch
       
-      // Adjust the number of partitions if we need an extra one
-      extra_partition = curr_B % n_partition_this_batch > 0;
-      const size_t total_num_partitions_if_all_cpu =  extra_partition ? n_partition_this_batch + 1: n_partition_this_batch;
-
-      // Scheduling for multiple devices
-      // Traditionally CcT takes a batch size (curr_B), a number of partitions (n_partition_this_batch),
-      // and equally divides to obtain n_batch_per_partition_cpu. Then, 1 thread is launched per
-      // partition with a batch size of n_batch_per_partition_cpu.
-      // For CPU this works well. For GPU however, we want to have a single partition (i.e.
-      // 1 thread, and 1 cuda stream for that thread), but with a larger batch size. However,
-      // due to limited GPU memory, each physical operator should handle 1 image at a time.
-
-      // If we want to schedule on the GPU, then we need to split the partitions differently
-      const float proportion_of_images_on_GPU = layer_param->gpu_batch_proportion();
-      // Determine how many of the CPU partitions to run on each device
-      // We will split at granularity of cpu partitions
-      // (e.g. a GPU will "take over" a number of those partitions from the CPU, into its own
-      // single partition)
-      const int num_CPU_partitions_in_GPU_partition = total_num_partitions_if_all_cpu * proportion_of_images_on_GPU;
-      num_partitions_CPU = total_num_partitions_if_all_cpu - num_CPU_partitions_in_GPU_partition;
-      n_batch_per_partition_gpu =  curr_B - n_batch_per_partition_cpu*num_partitions_CPU;
-      if (num_CPU_partitions_in_GPU_partition > 0) {
-        num_partitions_GPU = 1;
+      // Sum up the amount each GPU is going to take from this batch
+      std::vector <float> GPU_batch_proportions;
+      // SHADJIS TODO: I am hard-coding 4 now. Eventually we want to 
+      // specify the number somewhere, e.g. have a separate section in
+      // the prototxt. We can also abstract this all from the user and
+      // just call cudaGetDeviceCount (the scheduler can do this eventually)
+      GPU_batch_proportions.push_back(layer_param->gpu_0_batch_proportion());
+      GPU_batch_proportions.push_back(layer_param->gpu_1_batch_proportion());
+      GPU_batch_proportions.push_back(layer_param->gpu_2_batch_proportion());
+      GPU_batch_proportions.push_back(layer_param->gpu_3_batch_proportion());
+      
+      // Determine GPU batch sizes
+      num_partitions_GPU = 0;
+      std::vector <size_t> GPU_batch_sizes_tmp;
+      std::vector <int> used_gpu_to_device_id_map_tmp;
+      size_t total_GPU_batch_size = 0;
+      // Also track the first GPU, if any
+      for (int i=0; i<GPU_batch_proportions.size(); ++i) {
+        size_t num_on_this_gpu = GPU_batch_proportions[i] * curr_B;
+        if (num_on_this_gpu > 0) {
+          GPU_batch_sizes_tmp.push_back(num_on_this_gpu);
+          used_gpu_to_device_id_map_tmp.push_back(i);
+          total_GPU_batch_size += num_on_this_gpu;
+          ++num_partitions_GPU;
+        }
       }
-      num_partitions = num_partitions_CPU + num_partitions_GPU;
+      assert(total_GPU_batch_size <= curr_B);
+      GPU_batch_sizes = GPU_batch_sizes_tmp;
+      used_gpu_to_device_id_map = used_gpu_to_device_id_map_tmp;
     #ifndef _INCLUDE_GPUDRIVER
-      if (num_CPU_partitions_in_GPU_partition > 0) {
+      if (num_partitions_GPU > 0) {
         std::cout << "\nError, GPU not enabled. To enable running on GPU add NVCC and CUDA_INCLUDE to .config\n\n";
         assert(false);
       }
     #endif
+      
+      // Remainder goes on the CPU
+      size_t remainder = curr_B - total_GPU_batch_size;
+      // There are 2 cases: Either what is left is less than the number of cpu
+      // partitons, or not. 
+      
+      // In this case, just assign all remaining images to 1 partition each
+      if (remainder < n_partition) {
+        num_partitions_CPU = remainder;
+        if (num_partitions_CPU > 0) {
+          n_batch_per_partition_cpu = remainder / num_partitions_CPU;
+        } else {
+          n_batch_per_partition_cpu = 0;
+        }
+        extra_partition = false;
+      }
+      // In this case, we have more images than partitions.
+      // It could be that they divide perfectly, but if not we need to handle an extra partition.
+      // We do this differently depending on whether a GPU is being used:
+      // - If using at least 1 GPU, give it the extra partition data
+      //   (SHADJIS TODO: Can fix this if it's a problem, currently decided arbitrarily)
+      // - If not, assign 1 extra CPU partition
+      else {
+        // Check if there is an extra partition
+        if (total_GPU_batch_size > 0) {
+          assert(num_partitions_GPU > 0);
+          // Assign the extra partition to the GPU
+          extra_partition = false;
+          num_partitions_CPU = n_partition;
+          n_batch_per_partition_cpu = remainder / num_partitions_CPU;
+          const size_t extra_partition_size = remainder % num_partitions_CPU;
+          assert(GPU_batch_sizes[0] >= 0);
+          GPU_batch_sizes[0] += extra_partition_size;
+          total_GPU_batch_size += extra_partition_size;
+          assert(total_GPU_batch_size <= curr_B);
+        }
+        // The batch is entirely on the CPU, so any extra images 
+        // require an extra partition
+        else {
+          extra_partition = curr_B % n_partition > 0;
+          n_batch_per_partition_cpu = remainder / n_partition; // Excluding last batch
+          num_partitions_CPU = extra_partition ? n_partition + 1: n_partition;
+        }
+      }
+      num_partitions = num_partitions_CPU + num_partitions_GPU;
+      assert(num_partitions > 0);
+      assert(used_gpu_to_device_id_map.size() == num_partitions_GPU);
+      assert(n_batch_per_partition_cpu + total_GPU_batch_size > 0);
 
-      // std::cout << "  GPU Proportion     = " << layer_param->gpu_batch_proportion() << "\n";
-      // std::cout << "  #Partitions Total  = " << num_partitions << "\n";
-      // std::cout << "  #Partitions on CPU = " << num_partitions_CPU << "\n";
-      // std::cout << "  #Partitions on GPU = " << num_partitions_GPU << "\n";
+      // std::cout << "  #Partitions Total    = " << num_partitions << "\n";
+      // std::cout << "  #Partitions on CPU   = " << num_partitions_CPU << "\n";
+      // std::cout << "  #Partitions on GPU   = " << num_partitions_GPU << "\n";
+      // std::cout << "  Total batch size GPU = " << total_GPU_batch_size << "\n";
+      // std::cout << "  Partition size CPU   = " << n_batch_per_partition_cpu << "\n";
+      // std::cout << "  Extra CPU partition  = " << extra_partition << "\n";
     }
   
     vector<LogicalCubeType *> _data_cubes_lower;

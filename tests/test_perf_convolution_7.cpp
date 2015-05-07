@@ -28,7 +28,7 @@ class PerfConvolutionBridgeTest_7 : public ::testing::Test {
       layer2 = new Layer<T, Layout_CRDB>(data2, grad2);
 
       cnn::LayerParameter layer_param;
-      layer_param.set_gpu_batch_proportion(0);
+      layer_param.set_gpu_0_batch_proportion(0);
       cnn::ConvolutionParameter * const conv_param = layer_param.mutable_convolution_param();
       conv_param->set_num_output(oD);
       conv_param->set_kernel_size(k);

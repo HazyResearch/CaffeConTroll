@@ -39,10 +39,10 @@ void simple_conv(LogicalCube<T, Layout_CRDB>* in, LogicalCube<T, Layout_CRDB>* k
 }
 
 template <typename TypeParam>
-class ParallelizedConvolutionBridgeTest : public ::testing::Test {
+class GPUParallelizedConvolutionBridgeTest_2GPU : public ::testing::Test {
   public:
     typedef typename TypeParam::T T;
-    ParallelizedConvolutionBridgeTest(){
+    GPUParallelizedConvolutionBridgeTest_2GPU(){
       data1 = new LogicalCube<T, Layout_CRDB>(iR, iC, iD, mB);
       grad1 = new LogicalCube<T, Layout_CRDB>(iR, iC, iD, mB);
 
@@ -53,7 +53,8 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
       layer2 = new Layer<T, Layout_CRDB>(data2, grad2);
 
       cnn::LayerParameter layer_param;
-      layer_param.set_gpu_0_batch_proportion(0);
+      layer_param.set_gpu_0_batch_proportion(0.5);
+      layer_param.set_gpu_1_batch_proportion(0.5);
       cnn::ConvolutionParameter * const conv_param = layer_param.mutable_convolution_param();
       conv_param->set_num_output(oD);
       conv_param->set_kernel_size(k);
@@ -74,11 +75,9 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
       ParallelizedConvolutionBridge_->needs_to_calc_backward_grad = true;
     }
 
-    virtual ~ParallelizedConvolutionBridgeTest() {
-		delete layer1; 
+    virtual ~GPUParallelizedConvolutionBridgeTest_2GPU() {
+		delete layer1;
 		delete layer2;
-		// grad and data for each later are deleted by the layer destructor
-		// Also delete teh parallelized bridge
 		delete ParallelizedConvolutionBridge_;
 	}
     ParallelizedBridge<DataType_SFFloat,
@@ -111,16 +110,16 @@ class ParallelizedConvolutionBridgeTest : public ::testing::Test {
 
 typedef ::testing::Types<FloatNOFUNC> DataTypes;
 
-TYPED_TEST_CASE(ParallelizedConvolutionBridgeTest, DataTypes);
+TYPED_TEST_CASE(GPUParallelizedConvolutionBridgeTest_2GPU, DataTypes);
 
-TYPED_TEST(ParallelizedConvolutionBridgeTest, TestInitialization){
+TYPED_TEST(GPUParallelizedConvolutionBridgeTest_2GPU, TestInitialization){
   EXPECT_TRUE(this->ParallelizedConvolutionBridge_);
   EXPECT_TRUE(this->layer1);
   EXPECT_TRUE(this->layer2);
 }
 
 
-TYPED_TEST(ParallelizedConvolutionBridgeTest, TestForward){
+TYPED_TEST(GPUParallelizedConvolutionBridgeTest_2GPU, TestForward){
   typedef typename TypeParam::T T;
 
   std::fstream input("tests/input/conv_forward_in.txt", std::ios_base::in);
@@ -176,7 +175,7 @@ TYPED_TEST(ParallelizedConvolutionBridgeTest, TestForward){
 }
 
 
-TYPED_TEST(ParallelizedConvolutionBridgeTest, TestBackward){
+TYPED_TEST(GPUParallelizedConvolutionBridgeTest_2GPU, TestBackward){
   typedef typename TypeParam::T T;
 
   std::fstream input("tests/input/conv_forward_in.txt", std::ios_base::in);

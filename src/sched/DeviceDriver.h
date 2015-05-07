@@ -191,6 +191,8 @@ public:
   
   // Only for GPU, and only used for profiling
   virtual void device_sync() {}
+  // Only for GPU, used to set device ID
+  virtual void set_device_id(int id) const {}
 
 };
 

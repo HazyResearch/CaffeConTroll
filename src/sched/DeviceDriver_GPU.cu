@@ -184,6 +184,7 @@ __global__ void _spmap_readc(float* dst, float * src, PMapHelper args){
 template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
 void GPUDriver::lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
     const struct PMapHelper args){
+    set_device();
     // pmap2d_read_coalesce<f_id, f_data>(dst, src, args);
     lower_cube_helper(dst, src, args);
 }
@@ -229,6 +230,7 @@ void GPUDriver::lower_cube_helper(DeviceMemoryPointer * dst, DeviceMemoryPointer
 void GPUDriver::inverse_lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
     const struct _inverse_lower_cube_arg_helper args){
 
+    set_device();
     const int iD = args.iD;
     const int iR = args.iR;
     const int iC = args.iC;
@@ -265,6 +267,7 @@ void GPUDriver::backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * s
     const int fmap_size, const int depth, const int batch_size,
     const float *const device_ones){
 
+    set_device();
     // Create the one constants
     const float one = 1;
     
@@ -298,6 +301,7 @@ __global__ void _fw_bias_helper(float * bias, float * output, const int fmap_siz
 void GPUDriver::forward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     const int fmap_size, const int depth, const int batch_size){
 
+    set_device();
     // One way to do this is to make a ones vector of size fmap_size, do a GEMM 
     // with the bias vector to get depth x fmap_size, and then add this within
     // the GEMM by passing beta=1
@@ -338,6 +342,7 @@ template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
 void GPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
     const struct PMapHelper args){
 
+    set_device();
 	// input block sizes
 	size_t sBR = args.sBR, sBC = args.sBC;
     
@@ -363,6 +368,7 @@ void GPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPoin
 
 
 GPUDriver::GPUDriver(){
+    set_device();
     cublasCreate(&handle);
 }
 
@@ -372,14 +378,17 @@ DeviceMemoryPointer * GPUDriver::get_device_pointer(void * ptr, size_t size_in_b
 }
 
 void GPUDriver::malloc(DeviceMemoryPointer * dst){
+    set_device();
 	cudaMalloc((void**)&dst->ptr, dst->size_in_byte);
 }
 
 void GPUDriver::free(DeviceMemoryPointer * dst){
+    set_device();
 	cudaFree(dst->ptr);
 }
 
 void GPUDriver::memcpy(DeviceMemoryPointer * dst, DeviceMemoryPointer * src){
+    set_device();
 	#ifdef _DO_ASSERT
 	assert(dst->size_in_byte == src->size_in_byte);
 	#endif
@@ -393,6 +402,7 @@ void GPUDriver::memcpy(DeviceMemoryPointer * dst, DeviceMemoryPointer * src){
 }
 
 void GPUDriver::memset(DeviceMemoryPointer * dst, const char value){
+    set_device();
 	#ifdef _DO_ASSERT
 	assert(dst->type==DEVICEMEMORY_LOCAL_RAM);
 	#endif
@@ -403,6 +413,7 @@ template<FUNC_IDX_MAPPING f_dst_pos, FUNC_MM_MAPPING func>
 void GPUDriver::parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
 size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry, DeviceMemoryPointer * const func_curry){
 
+    set_device();
 	// create a device version of func_curry
 	void * d_func_curry;
 	cudaMalloc((void**)&d_func_curry, func_curry->size_in_byte);
@@ -437,6 +448,7 @@ size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry, DeviceMemoryPointe
 }
 
 void GPUDriver::math_saxpy(const float alpha, DeviceMemoryPointer * X, DeviceMemoryPointer * Y) const { 
+    set_device();
 #ifdef _DO_ASSERT
 	assert(X->type==DEVICEMEMORY_LOCAL_RAM);
 	assert(Y->type==DEVICEMEMORY_LOCAL_RAM);
@@ -448,12 +460,14 @@ void GPUDriver::math_saxpy(const float alpha, DeviceMemoryPointer * X, DeviceMem
 }
 
 void GPUDriver::math_saxpy(const int nElements, const float alpha, float * X, float * Y) const { 
+    set_device();
   cublasStatus_t status = cublasSaxpy(handle, nElements, &alpha, X, 1, Y, 1);
   assert(status == CUBLAS_STATUS_SUCCESS);
 }
 
 template<FUNC_STRANSFORM func>
 void GPUDriver::sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const func_curry){
+    set_device();
 	#ifdef _DO_ASSERT
 	assert(dst->type==DEVICEMEMORY_LOCAL_GPURAM);
 	assert(dst->size_in_byte % sizeof(float) == 0);
@@ -493,6 +507,7 @@ void GPUDriver::sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const fu
 }
 
 void GPUDriver::math_saxpby(const float alpha, DeviceMemoryPointer * X, const float beta, DeviceMemoryPointer * Y) const { 
+    set_device();
 #ifdef _DO_ASSERT
   assert(X->size_in_byte == Y->size_in_byte);
   assert(X->size_in_byte % sizeof(float) == 0);
@@ -508,6 +523,7 @@ void GPUDriver::math_saxpby(const float alpha, DeviceMemoryPointer * X, const fl
 }
 
 void GPUDriver::math_saxpby(const int nElements, const float alpha, float * X, const float beta, float * Y) const { 
+  set_device();
   cublasStatus_t status = cublasSscal(handle, nElements, &beta, Y, 1);
   assert(status == CUBLAS_STATUS_SUCCESS);
 
@@ -517,6 +533,7 @@ void GPUDriver::math_saxpby(const int nElements, const float alpha, float * X, c
 }
 
 void GPUDriver::set_num_threads(const int nThreads) { 
+  // SHADJIS TODO: Can implement this on GPU but not really needed, mostly just for CPU
 }
 
 
@@ -524,6 +541,8 @@ void GPUDriver::sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TR
     int M, int N, int K, float alpha, float * pA, int LDA, float * pB, int LDB,
     float beta, float * pC, int LDC){
   
+    set_device();
+    
 	// SHADJIS TODO: See comment in Kernel.h regarding transpose. For the CPU it is fastest 
 	// to lower like equation 4 of "Formulation of Type 1 Lowering with Padding and Stride"
 	// but the GPU currently lowers as the transpose of what the CPU does. For now I change
@@ -603,6 +622,7 @@ void GPUDriver::sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TR
 template<FUNC_SREDUCE func>
 void GPUDriver::selementwise_reduce2(DeviceMemoryPointer * dst, DeviceMemoryPointer * src1, 
 DeviceMemoryPointer * src2, DeviceMemoryPointer * const func_curry){ 
+    set_device();
 
 	#ifdef _DO_ASSERT
 	assert(dst->size_in_byte == src1->size_in_byte);
@@ -637,6 +657,7 @@ DeviceMemoryPointer * src2, DeviceMemoryPointer * const func_curry){
 * TODO: Wrap this up with CURAND.
 **/
 void GPUDriver::sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch) {
+    set_device();
 	const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
 	const size_t fan_in = n_arr_elements / n_batch;
 	const float scale = sqrt(3.0 / fan_in);
@@ -656,7 +677,8 @@ void GPUDriver::sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batc
 * TODO: Wrap this up with CURAND.
 **/
 void GPUDriver::sbernoulli_initialize(DeviceMemoryPointer *arr, const float p) {
-const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
+    set_device();
+    const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
 
 	mt19937 gen(rd());
 	bernoulli_distribution bern(p);
@@ -674,7 +696,8 @@ const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
 * TODO: Wrap this up with CURAND.
 **/
 void GPUDriver::sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev) {
-const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
+    set_device();
+    const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
 	mt19937 gen(rd());
 	normal_distribution<float> gaussian(mean, std_dev);
 	float * temp = new float[n_arr_elements];
@@ -687,12 +710,27 @@ const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
 }
 
 void GPUDriver::sconstant_initialize(DeviceMemoryPointer *arr, const float value){
+    set_device();
     DeviceMemoryPointer_Local_RAM pvalue((void*)&value, sizeof(float));
     sapply<__sconstant_initialize_helper>(arr, &pvalue);
 }
 
 void * GPUDriver::choose_ptr(void * host, void * device){
 	return device;
+}
+
+void GPUDriver::device_sync() {
+  set_device();
+  cudaDeviceSynchronize();
+}
+
+void GPUDriver::set_device() const {
+  cudaSetDevice(gpu_id);
+  cudaError_t d_err = cudaGetLastError();
+  if(d_err != cudaSuccess){
+    std::cout << "Fail to set device " << gpu_id << "  ERROR " << err << std::endl;
+    assert(false);
+  }
 }
 
 /**

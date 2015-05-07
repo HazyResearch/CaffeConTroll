@@ -28,7 +28,7 @@ class GPUReLUBridgeTest : public ::testing::Test {
       layer2 = new Layer<T, Layout_CRDB>(data2, grad2);
 
       cnn::LayerParameter layer_param;
-      layer_param.set_gpu_batch_proportion(1);
+      layer_param.set_gpu_0_batch_proportion(1);
       ReLUBridge_ = new ParallelizedBridge<T, ReLUBridge>(layer1, layer2, &layer_param, &solver_param, &pdriver, 4, 1);
     }
 

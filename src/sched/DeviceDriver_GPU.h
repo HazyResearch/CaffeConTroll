@@ -16,11 +16,14 @@ public:
   // E.g. for newer GPUs can use 1024 threads
   int max_cuda_blocks = 64000; // Actually 65535 is the max
   const int threadsPerBlock = 256;
-
+  
   cublasStatus_t status;
 
   cublasHandle_t handle;
 
+  // SHADJIS TODO: I don't think we need error (or status?) to be global
+  // class members, they can probably be declared when they are needed.
+  // This prevents any function modifying these from being declared const.
   cudaError_t err;
 
   GPUDriver();
@@ -89,7 +92,12 @@ public:
 
   using DeviceDriver::smath_apply_grad;
   
-  void device_sync() { cudaDeviceSynchronize(); }
+  void device_sync();
+  void set_device_id(int id) { gpu_id = id; }
+  // SHADJIS TODO: Some of these should be private
+  void set_device() const; // Internal, sets device to current id and checks for error
+  // SHADJIS TODO: currently I call set_device everywhere. Really we only need to call
+  // it when the thread starts though.
 
 private:
 

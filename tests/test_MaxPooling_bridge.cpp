@@ -32,7 +32,7 @@ class MaxPoolingBridgeTest : public ::testing::Test {
       layer2 = new Layer<T, Layout_CRDB>(data2, grad2);
 
       cnn::LayerParameter layer_param;
-      layer_param.set_gpu_batch_proportion(0);
+      layer_param.set_gpu_0_batch_proportion(0);
       cnn::PoolingParameter * const pool_param = layer_param.mutable_pooling_param();
       pool_param->set_kernel_size(k);
       pool_param->set_stride(s);
