@@ -73,25 +73,28 @@ __global__ void _parallel_lower_cube(float * dst, float * src, const struct PMap
   const int width_col = oC;
   float *data_col = dst;
   const int index = blockIdx.x * blockDim.x + threadIdx.x;
-  
-  int w_out = index % width_col;
-  int h_index = index / width_col;
-  int h_out = h_index % height_col;
-  int channel_in = h_index / height_col;
-  int channel_out = channel_in * kernel_h * kernel_w;
-  int h_in = h_out * stride_h - pad_h;
-  int w_in = w_out * stride_w - pad_w;
-  float *data_col_ptr = data_col;
-  data_col_ptr += (channel_out * height_col + h_out) * width_col + w_out;
-  const float *data_im_ptr = data_im;
-  data_im_ptr += (channel_in * height + h_in) * width + w_in;
-  for (int i = 0; i < kernel_h; ++i) {
-    for (int j = 0; j < kernel_w; ++j) {
-      int h = h_in + i;
-      int w = w_in + j;
-      *data_col_ptr = (h >= 0 && w >= 0 && h < height && w < width) ?
-          data_im_ptr[i * width + j] : 0;
-      data_col_ptr += height_col * width_col;
+
+  if (index < iD*oR*oC)
+  {
+    int w_out = index % width_col;
+    int h_index = index / width_col;
+    int h_out = h_index % height_col;
+    int channel_in = h_index / height_col;
+    int channel_out = channel_in * kernel_h * kernel_w;
+    int h_in = h_out * stride_h - pad_h;
+    int w_in = w_out * stride_w - pad_w;
+    float *data_col_ptr = data_col;
+    data_col_ptr += (channel_out * height_col + h_out) * width_col + w_out;
+    const float *data_im_ptr = data_im;
+    data_im_ptr += (channel_in * height + h_in) * width + w_in;
+    for (int i = 0; i < kernel_h; ++i) {
+      for (int j = 0; j < kernel_w; ++j) {
+        int h = h_in + i;
+        int w = w_in + j;
+        *data_col_ptr = (h >= 0 && w >= 0 && h < height && w < width) ?
+            data_im_ptr[i * width + j] : 0;
+        data_col_ptr += height_col * width_col;
+      }
     }
   }
 }
@@ -268,6 +271,8 @@ void GPUDriver::backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * s
     const float *const device_ones){
 
     set_device();
+    cublasCreate(&handle);
+    
     // Create the one constants
     const float one = 1;
     
@@ -449,6 +454,7 @@ size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry, DeviceMemoryPointe
 
 void GPUDriver::math_saxpy(const float alpha, DeviceMemoryPointer * X, DeviceMemoryPointer * Y) const { 
     set_device();
+    //cublasCreate(&handle); // SHADJIS TODO: Can't do this since const. Is it needed?
 #ifdef _DO_ASSERT
 	assert(X->type==DEVICEMEMORY_LOCAL_RAM);
 	assert(Y->type==DEVICEMEMORY_LOCAL_RAM);
@@ -460,7 +466,8 @@ void GPUDriver::math_saxpy(const float alpha, DeviceMemoryPointer * X, DeviceMem
 }
 
 void GPUDriver::math_saxpy(const int nElements, const float alpha, float * X, float * Y) const { 
-    set_device();
+  set_device();
+  //cublasCreate(&handle); // SHADJIS TODO: Can't do this since const. Is it needed?
   cublasStatus_t status = cublasSaxpy(handle, nElements, &alpha, X, 1, Y, 1);
   assert(status == CUBLAS_STATUS_SUCCESS);
 }
@@ -507,7 +514,8 @@ void GPUDriver::sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const fu
 }
 
 void GPUDriver::math_saxpby(const float alpha, DeviceMemoryPointer * X, const float beta, DeviceMemoryPointer * Y) const { 
-    set_device();
+  set_device();
+  //cublasCreate(&handle); // SHADJIS TODO: Can't do this since const. Is it needed?
 #ifdef _DO_ASSERT
   assert(X->size_in_byte == Y->size_in_byte);
   assert(X->size_in_byte % sizeof(float) == 0);
@@ -524,6 +532,7 @@ void GPUDriver::math_saxpby(const float alpha, DeviceMemoryPointer * X, const fl
 
 void GPUDriver::math_saxpby(const int nElements, const float alpha, float * X, const float beta, float * Y) const { 
   set_device();
+  //cublasCreate(&handle); // SHADJIS TODO: Can't do this since const. Is it needed?
   cublasStatus_t status = cublasSscal(handle, nElements, &beta, Y, 1);
   assert(status == CUBLAS_STATUS_SUCCESS);
 
@@ -542,6 +551,7 @@ void GPUDriver::sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TR
     float beta, float * pC, int LDC){
   
     set_device();
+    cublasCreate(&handle);
     
 	// SHADJIS TODO: See comment in Kernel.h regarding transpose. For the CPU it is fastest 
 	// to lower like equation 4 of "Formulation of Type 1 Lowering with Padding and Stride"

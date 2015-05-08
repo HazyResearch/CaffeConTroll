@@ -84,13 +84,15 @@ TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.
 			tests/test_parallelized_convolution_large_GPU.cpp \
 			tests/test_lenet_network_GPU.cpp \
 			tests/test_parallelized_convolution_2GPU.cpp \
+			tests/test_parallelized_convolution_4GPU.cpp \
 			tests/test_parallelized_convolution_large_2GPU_batch.cpp \
 			tests/test_parallelized_convolution_large_2GPU.cpp \
-			tests/test_parallelized_convolution_large_CPU_GPU_batch.cpp
+			tests/test_parallelized_convolution_large_CPU_GPU_batch.cpp \
 			#tests/test_paper3a_conv_layer.cpp \
 			#tests/test_paper3a_conv_layer_GPU.cpp \
 			#tests/test_paper3a_conv_layer_CPU_GPU.cpp \
 			#tests/test_paper3a_conv_layer_2GPU.cpp \
+			#tests/test_paper3a_conv_layer_4GPU.cpp \
 			#tests/test_paper3b_caffenet.cpp \
 			#tests/test_paper3b_caffenet_1GPU.cpp \
 			#tests/test_perf_convolution_1.cpp \
