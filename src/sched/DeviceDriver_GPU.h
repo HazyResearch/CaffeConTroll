@@ -93,6 +93,8 @@ public:
   using DeviceDriver::smath_apply_grad;
   
   void device_sync();
+  void init_thread();
+  void destroy_thread();
   void set_device_id(int id) { gpu_id = id; }
   // SHADJIS TODO: Some of these should be private
   void set_device() const; // Internal, sets device to current id and checks for error

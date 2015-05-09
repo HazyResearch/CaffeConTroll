@@ -133,7 +133,10 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*batch_size_device,
       1, 1, p_driver);
   DeviceMemoryPointer * p_lowered_result = p_forward_lowered_data->get_device_pointer(p_driver);
-  p_driver->sconstant_initialize(p_lowered_result, (DataType) 0.0); // SHADJIS TODO: Why is this needed?
+  // SHADJIS TODO: Is this still needed? Perhaps originally since we (a) stored the entire lowering
+  // on the device and (b) used some += when doing the lowering (?), we needed to initalize
+  p_driver->sconstant_initialize(p_lowered_result, (DataType) 0.0);
+
 
   // ---------------------------------------------------------------------------
   // Backward data gradient before lowering
@@ -144,6 +147,7 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   // Batch Note: Currently on GPU we only calculate 1 backward grad at a time so
   // we only need to allocate space for a single image on the device.
   p_backward_inputgrad = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*batch_size_device, 1, 1, p_driver);
+  
   
   // ---------------------------------------------------------------------------
   // Extra cubes
@@ -258,6 +262,7 @@ forward() {
   // Begin forwards step
   // SHADJIS TODO: Now I copy-paste the code for CPU / GPU, should refactor
   // SHADJIS TODO: Also can refactor since fully connected uses same code
+  // (although 2 bridges should be separate, can call same kernels/code)
   
   // CPU: Run in batches
   if (std::is_same<DriverClass, CPUDriver>::value) {
@@ -322,6 +327,10 @@ forward() {
   }
   // GPU: Run 1 image at a time
   else {
+  
+      // SHADJIS TODO: Need to refactor the copies below out of the bridge
+      // Similarly, refactor this call to initialize cuBLAS out of the bridge
+      p_driver->init_thread();
       
       // Get model cube (do this outside loop since single model used for all images)
       if (p_model_cube->get_p_data() == NULL) {
@@ -436,6 +445,10 @@ forward() {
         );
 
       PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  Copy device to local: " << seconds << "\n";)
+  
+      // SHADJIS TODO: Need to refactor the copies below out of the bridge
+      // Similarly, refactor this call to destroy cuBLAS out of the bridge
+      p_driver->destroy_thread();
   }
   
   // SHADJIS TODO: Currently these aren't used and may be incorrect due to async
@@ -484,6 +497,7 @@ backward() {
   // Begin backwards step
   // SHADJIS TODO: Now I copy-paste the code for CPU / GPU, should refactor
   // SHADJIS TODO: Also can refactor since fully connected uses same code
+  // (although 2 bridges should be separate, can call same kernels/code)
   
   // CPU: Run in batches
   if (std::is_same<DriverClass, CPUDriver>::value) {
@@ -560,6 +574,10 @@ backward() {
   // GPU: Run 1 image at a time
   else {
   
+      // SHADJIS TODO: Need to refactor the copies below out of the bridge
+      // Similarly, refactor this call to initialize cuBLAS out of the bridge
+      p_driver->init_thread();
+      
       // Get model cube (do this outside loop since single model used for all images)
       LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->get_p_data(), num_output_features, K*K*iD, 1, 1);
       LogicalCube<DataType, Layout_CRDB> lowered_model_grad(p_model_gradient_cube->get_p_data(), num_output_features, K*K*iD, 1, 1);
@@ -688,6 +706,10 @@ backward() {
         );
 
       PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  Copy device to local: " << seconds << "\n";)
+      
+      // SHADJIS TODO: Need to refactor the copies below out of the bridge
+      // Similarly, refactor this call to destroy cuBLAS out of the bridge
+      p_driver->destroy_thread();
   }
   
   // SHADJIS TODO: These might not be correct due to async

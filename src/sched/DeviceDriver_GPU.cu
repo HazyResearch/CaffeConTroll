@@ -271,7 +271,6 @@ void GPUDriver::backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * s
     const float *const device_ones){
 
     set_device();
-    cublasCreate(&handle);
     
     // Create the one constants
     const float one = 1;
@@ -374,7 +373,6 @@ void GPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPoin
 
 GPUDriver::GPUDriver(){
     set_device();
-    cublasCreate(&handle);
 }
 
 DeviceMemoryPointer * GPUDriver::get_device_pointer(void * ptr, size_t size_in_byte){
@@ -384,12 +382,20 @@ DeviceMemoryPointer * GPUDriver::get_device_pointer(void * ptr, size_t size_in_b
 
 void GPUDriver::malloc(DeviceMemoryPointer * dst){
     set_device();
-	cudaMalloc((void**)&dst->ptr, dst->size_in_byte);
+	err = cudaMalloc((void**)&dst->ptr, dst->size_in_byte);
+	if(err != cudaSuccess){
+	  std::cout << "Failed cudaMalloc"  << "  ERROR " << err << std::endl;
+	  assert(false);
+	}
 }
 
 void GPUDriver::free(DeviceMemoryPointer * dst){
     set_device();
-	cudaFree(dst->ptr);
+	err = cudaFree(dst->ptr);
+	if(err != cudaSuccess){
+	  std::cout << "Failed cudaFree"  << "  ERROR " << err << std::endl;
+	  assert(false);
+	}
 }
 
 void GPUDriver::memcpy(DeviceMemoryPointer * dst, DeviceMemoryPointer * src){
@@ -398,11 +404,15 @@ void GPUDriver::memcpy(DeviceMemoryPointer * dst, DeviceMemoryPointer * src){
 	assert(dst->size_in_byte == src->size_in_byte);
 	#endif
 	if(src->type == DEVICEMEMORY_LOCAL_RAM){
-  		cudaMemcpy(dst->ptr, src->ptr, dst->size_in_byte, cudaMemcpyHostToDevice);
+  		err = cudaMemcpy(dst->ptr, src->ptr, dst->size_in_byte, cudaMemcpyHostToDevice);
 	}else if(dst->type == DEVICEMEMORY_LOCAL_RAM){
-  		cudaMemcpy(dst->ptr, src->ptr, dst->size_in_byte, cudaMemcpyDeviceToHost);
+  		err = cudaMemcpy(dst->ptr, src->ptr, dst->size_in_byte, cudaMemcpyDeviceToHost);
 	}else{
-		cudaMemcpy(dst->ptr, src->ptr, dst->size_in_byte, cudaMemcpyDeviceToDevice);
+		err = cudaMemcpy(dst->ptr, src->ptr, dst->size_in_byte, cudaMemcpyDeviceToDevice);
+	}
+	if(err != cudaSuccess){
+	  std::cout << "Failed cudaMemcpy"  << "  ERROR " << err << std::endl;
+	  assert(false);
 	}
 }
 
@@ -411,7 +421,11 @@ void GPUDriver::memset(DeviceMemoryPointer * dst, const char value){
 	#ifdef _DO_ASSERT
 	assert(dst->type==DEVICEMEMORY_LOCAL_RAM);
 	#endif
-	cudaMemset(dst->ptr, value, dst->size_in_byte);
+	err = cudaMemset(dst->ptr, value, dst->size_in_byte);
+	if(err != cudaSuccess){
+	  std::cout << "Failed cudaMemset"  << "  ERROR " << err << std::endl;
+	  assert(false);
+	}
 }
 
 template<FUNC_IDX_MAPPING f_dst_pos, FUNC_MM_MAPPING func>
@@ -454,7 +468,6 @@ size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry, DeviceMemoryPointe
 
 void GPUDriver::math_saxpy(const float alpha, DeviceMemoryPointer * X, DeviceMemoryPointer * Y) const { 
     set_device();
-    //cublasCreate(&handle); // SHADJIS TODO: Can't do this since const. Is it needed?
 #ifdef _DO_ASSERT
 	assert(X->type==DEVICEMEMORY_LOCAL_RAM);
 	assert(Y->type==DEVICEMEMORY_LOCAL_RAM);
@@ -467,7 +480,6 @@ void GPUDriver::math_saxpy(const float alpha, DeviceMemoryPointer * X, DeviceMem
 
 void GPUDriver::math_saxpy(const int nElements, const float alpha, float * X, float * Y) const { 
   set_device();
-  //cublasCreate(&handle); // SHADJIS TODO: Can't do this since const. Is it needed?
   cublasStatus_t status = cublasSaxpy(handle, nElements, &alpha, X, 1, Y, 1);
   assert(status == CUBLAS_STATUS_SUCCESS);
 }
@@ -515,7 +527,6 @@ void GPUDriver::sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const fu
 
 void GPUDriver::math_saxpby(const float alpha, DeviceMemoryPointer * X, const float beta, DeviceMemoryPointer * Y) const { 
   set_device();
-  //cublasCreate(&handle); // SHADJIS TODO: Can't do this since const. Is it needed?
 #ifdef _DO_ASSERT
   assert(X->size_in_byte == Y->size_in_byte);
   assert(X->size_in_byte % sizeof(float) == 0);
@@ -532,7 +543,6 @@ void GPUDriver::math_saxpby(const float alpha, DeviceMemoryPointer * X, const fl
 
 void GPUDriver::math_saxpby(const int nElements, const float alpha, float * X, const float beta, float * Y) const { 
   set_device();
-  //cublasCreate(&handle); // SHADJIS TODO: Can't do this since const. Is it needed?
   cublasStatus_t status = cublasSscal(handle, nElements, &beta, Y, 1);
   assert(status == CUBLAS_STATUS_SUCCESS);
 
@@ -551,7 +561,6 @@ void GPUDriver::sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TR
     float beta, float * pC, int LDC){
   
     set_device();
-    cublasCreate(&handle);
     
 	// SHADJIS TODO: See comment in Kernel.h regarding transpose. For the CPU it is fastest 
 	// to lower like equation 4 of "Formulation of Type 1 Lowering with Padding and Stride"
@@ -659,7 +668,7 @@ DeviceMemoryPointer * src2, DeviceMemoryPointer * const func_curry){
 	err = cudaGetLastError();
 	assert(err == cudaSuccess);
 
-
+    cudaFree(d_func_curry);
 }
 
 /**
@@ -732,6 +741,16 @@ void * GPUDriver::choose_ptr(void * host, void * device){
 void GPUDriver::device_sync() {
   set_device();
   cudaDeviceSynchronize();
+}
+
+void GPUDriver::init_thread() {
+  set_device();
+  cublasCreate(&handle);
+}
+
+void GPUDriver::destroy_thread() {
+  set_device();
+  cublasDestroy(handle);
 }
 
 void GPUDriver::set_device() const {

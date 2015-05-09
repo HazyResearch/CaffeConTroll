@@ -191,6 +191,9 @@ public:
   
   // Only for GPU, and only used for profiling
   virtual void device_sync() {}
+  // Used e.g. to clean up thread-scope structured (e.g. cuBLAS handles)
+  virtual void init_thread() {}
+  virtual void destroy_thread() {}
   // Only for GPU, used to set device ID
   virtual void set_device_id(int id) const {}
 

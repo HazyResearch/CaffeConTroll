@@ -184,6 +184,8 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverC
 
     LogicalCube<DataType, Layout_CRDB> * p_backward_inputgrad;
 
+    LogicalCubeType * ones_bias_vector;
+
     Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
       Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS_DIM_FLIP, DriverClass> * p_backward_gemm_updateweight_kernel;
 

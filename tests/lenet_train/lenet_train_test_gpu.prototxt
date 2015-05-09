@@ -37,7 +37,7 @@ layers {
   top: "conv1"
   blobs_lr: 1
   blobs_lr: 2
-  gpu_batch_proportion: 1.0
+  gpu_0_batch_proportion: 1.0
   convolution_param {
     num_output: 20
     kernel_size: 5
@@ -55,7 +55,7 @@ layers {
   type: POOLING
   bottom: "conv1"
   top: "pool1"
-  gpu_batch_proportion: 0.5
+  gpu_0_batch_proportion: 0.5
   pooling_param {
     pool: MAX
     kernel_size: 2
@@ -69,7 +69,7 @@ layers {
   top: "conv2"
   blobs_lr: 1
   blobs_lr: 2
-  gpu_batch_proportion: 0.5
+  gpu_0_batch_proportion: 0.5
   convolution_param {
     num_output: 50
     kernel_size: 5
@@ -87,7 +87,7 @@ layers {
   type: POOLING
   bottom: "conv2"
   top: "pool2"
-  gpu_batch_proportion: 1.0
+  gpu_0_batch_proportion: 1.0
   pooling_param {
     pool: MAX
     kernel_size: 2
@@ -101,7 +101,7 @@ layers {
   top: "ip1"
   blobs_lr: 1
   blobs_lr: 2
-  gpu_batch_proportion: 1.0
+  gpu_0_batch_proportion: 1.0
   inner_product_param {
     num_output: 500
     weight_filler {
@@ -115,7 +115,7 @@ layers {
 layers {
   name: "relu1"
   type: RELU
-  gpu_batch_proportion: 0.5
+  gpu_0_batch_proportion: 0.5
   bottom: "ip1"
   top: "ip1"
 }
@@ -126,7 +126,7 @@ layers {
   top: "ip2"
   blobs_lr: 1
   blobs_lr: 2
-  gpu_batch_proportion: 1.0
+  gpu_0_batch_proportion: 1.0
   inner_product_param {
     num_output: 10
     weight_filler {
