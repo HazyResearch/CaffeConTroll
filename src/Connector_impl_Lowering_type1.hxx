@@ -167,7 +167,7 @@ inverse_lower_cube(OutputLogicalCubeType * p_output_cube, InputLogicalCubeType *
   //DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg,
   //    sizeof(_inverse_lower_cube_arg_helper));
   //p_driver->template parallel_map<_f_src_to_dst_inverse_lower_cube,
-  //  _f_inverse_lower_cube>(input, output, kernel_size * kernel_size * _arg.data_output_width *  \
+  //  _f_inverse_lower_cube>(input, output, kernel_size * kernel_size * _arg.data_output_width *
   //      _arg.data_output_height * iB * sizeof(DataType), arg1, arg2);
   // Rewrote inverse lowering for GPU to parallelize more (CPU is currently same)
   p_driver->inverse_lower_cube(input, output, _arg);

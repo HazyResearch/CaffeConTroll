@@ -26,8 +26,8 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   padding(layer_param->convolution_param().pad()),
   bias_term(layer_param->convolution_param().bias_term()),
   weight_filler(layer_param->convolution_param().weight_filler()),
-  ones_bias_vector(NULL),
-  bias_filler(layer_param->convolution_param().bias_filler()) {
+  bias_filler(layer_param->convolution_param().bias_filler()),
+  ones_bias_vector(NULL) {
 
   // Start reporting
   report_forward_constructor.reset();

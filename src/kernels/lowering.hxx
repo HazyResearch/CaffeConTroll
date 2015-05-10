@@ -31,9 +31,9 @@ void _f_inverse_lower_cube(void * input, void * output, void * const _arg, const
   const size_t k = arg->kernel_size;
   const size_t s = arg->stride;
   const size_t p = arg->padding;
-  const int iR = arg->iR;
-  const int iC = arg->iC;
-  const int iD = arg->iD;
+  const size_t iR = arg->iR;
+  const size_t iC = arg->iC;
+  const size_t iD = arg->iD;
   const unsigned int iB = arg->iB;
   float * const input_data = (float *) input;
   const float * const output_data = (float *) output;

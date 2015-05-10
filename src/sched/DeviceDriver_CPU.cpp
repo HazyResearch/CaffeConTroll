@@ -6,6 +6,10 @@ CPUDriver::CPUDriver() {
 
 }
 
+CPUDriver::~CPUDriver() {
+
+}
+
 DeviceMemoryPointer * CPUDriver::get_device_pointer(void * ptr, size_t size_in_byte) {
   return new DeviceMemoryPointer_Local_RAM(ptr, size_in_byte);
 }
@@ -296,9 +300,9 @@ void CPUDriver::inverse_lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointe
   const size_t k = args.kernel_size;
   const size_t s = args.stride;
   const size_t p = args.padding;
-  const int iR = args.iR;
-  const int iC = args.iC;
-  const int iD = args.iD;
+  const size_t iR = args.iR;
+  const size_t iC = args.iC;
+  const size_t iD = args.iD;
   const unsigned int iB = args.iB;
   float * const input_data = (float *) dst->ptr;
   const float * const output_data = (float *) src->ptr;
@@ -310,7 +314,9 @@ void CPUDriver::inverse_lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointe
         for (size_t cr = 0; cr < ow; ++cr) {
           for (size_t kc = 0; kc < k; ++kc) {
             for (size_t cc = 0; cc < oh; ++cc) {
-              if ((cr*s + kr - p) >= 0 && (cr*s + kr - p) < iR && (cc*s + kc - p) >= 0 && (cc*s + kc - p) < iC) {
+              // Unsigned so no need to check < 0. SHADJIS TODO: Try int
+              // if ((cr*s + kr - p) >= 0 && (cr*s + kr - p) < iR && (cc*s + kc - p) >= 0 && (cc*s + kc - p) < iC) {
+              if ((cr*s + kr - p) < iR && (cc*s + kc - p) < iC) {
                 input_data[id*iR*iC + (cc*s + kc - p) + (cr*s + kr - p)*iC + ib*iR*iC*iD] += output_data[
                   id*k*k*iB*oh*ow + 
                   kr*k*iB*oh*ow + 

@@ -66,6 +66,13 @@ public:
    * the code, instead, by a very thin wrapper, e.g., for CUDA,
    *     __device__ T func_on_device = func_on_host;
    **/
+   
+   // SHADJIS TODO: Adding virtual destructor even though I never really need to
+   // overload for cpu/gpu drivers. Currently this is just so I can new/delete
+   // drivers without warnings but even that's not needed since in all cases
+   // drivers can go on stack
+  virtual ~DeviceDriver() {}
+   
   virtual void * choose_ptr(void * host, void * device) = 0;
 
   virtual DeviceMemoryPointer * get_device_pointer(void * ptr, size_t size_in_byte) = 0;
@@ -195,7 +202,7 @@ public:
   virtual void init_thread() {}
   virtual void destroy_thread() {}
   // Only for GPU, used to set device ID
-  virtual void set_device_id(int id) const {}
+  virtual void set_device_id(int id) {}
 
 };
 

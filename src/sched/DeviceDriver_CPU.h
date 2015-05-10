@@ -9,6 +9,7 @@ class CPUDriver : public DeviceDriver {
 public:
 
   CPUDriver();
+  ~CPUDriver();
 
   DeviceMemoryPointer * get_device_pointer(void * ptr, size_t size_in_byte);
 

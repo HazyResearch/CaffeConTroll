@@ -28,26 +28,27 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
     const cnn::SolverParameter * const _solver_param, CPUDriver * const _p_driver, size_t _n_partition,
     size_t _n_cpu_thread_per_partition) : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, CPUDriver>(_input_layer,
       _output_layer, _layer_param, _solver_param, _p_driver),
-    n_partition(_n_partition), // SHADJIS TODO: Maybe should not have this as an argument, but just detect # cores, or in a config file
-    n_batch(_input_layer->dB),
-    n_cpu_thread_per_partition(_n_cpu_thread_per_partition), n_batch_per_partition_cpu(0),
-    model_base_learning_rate(1.0),
-    bias_base_learning_rate(1.0),
-    model_base_regularization(1.0),
-    bias_base_regularization(1.0),
     p_model_cube(NULL),
     p_model_grad(NULL),
     p_model_subgrad(NULL),
     p_bias_grad(NULL),
     p_bias_subgrad(NULL),
     p_bias_cube(NULL),
-    scheduler_local_cpudriver(NULL),
-    p_grad_updater(NULL),
-    p_grad_updater_bias(NULL),
+    n_partition(_n_partition), // SHADJIS TODO: Maybe should not have this as an argument, but just detect # cores, or in a config file
+    n_batch(_input_layer->dB),
+    n_cpu_thread_per_partition(_n_cpu_thread_per_partition),
     extra_partition(false),
-    num_partitions(0),
     num_partitions_CPU(0),
-    num_partitions_GPU(0)
+    num_partitions_GPU(0),
+    num_partitions(0),
+    n_batch_per_partition_cpu(0),
+    scheduler_local_cpudriver(NULL),
+    model_base_learning_rate(1.0),
+    bias_base_learning_rate(1.0),
+    model_base_regularization(1.0),
+    bias_base_regularization(1.0),
+    p_grad_updater(NULL),
+    p_grad_updater_bias(NULL)
 {
   // Start reporting
   report_forward_constructor.reset();
@@ -155,7 +156,7 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
 #ifdef _INCLUDE_GPUDRIVER
     GPUDriver *new_driver = new GPUDriver();
     new_driver->set_device_id(used_gpu_to_device_id_map[gpu_i]);
-    scheduler_gpudrivers.push_back(new_driver);
+    scheduler_gpudrivers.push_back(new_driver); // SHADJIS TODO: Delete these in destructor
 #endif
   }
 

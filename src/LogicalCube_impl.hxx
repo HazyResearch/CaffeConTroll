@@ -107,8 +107,8 @@ LogicalCube<T, LAYOUT>::LogicalCube(void * _p_data, size_t _R, size_t _C, size_t
   n_elements(_R*_C*_D*_B),
   R(_R), C(_C), D(_D), B(_B),
   own_data(false),
-  p_data_device_ptr(NULL),
-  p_data(reinterpret_cast<T*>(_p_data)) {}
+  p_data(reinterpret_cast<T*>(_p_data)),
+  p_data_device_ptr(NULL) {}
 
 // SHADJIS TODO: Why does this malloc and not new? Why not call devicemalloc?
 // Why does this constructor even exist? What is the driver?
@@ -119,16 +119,16 @@ LogicalCube<T, LAYOUT>::LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B) 
   n_elements(_R*_C*_D*_B),
   R(_R), C(_C), D(_D), B(_B),
   own_data(true),
+  p_data((T*) malloc(sizeof(T)*_R*_C*_D*_B)),
   p_data_device_ptr(NULL),
-  p_data_driver(NULL),
-  p_data((T*) malloc(sizeof(T)*_R*_C*_D*_B)) {} // TODO: change to 32byte align
+  p_data_driver(NULL) {} // TODO: change to 32byte align
 
 template<typename T, LayoutType LAYOUT>
 LogicalCube<T, LAYOUT>::LogicalCube(size_t _R, size_t _C, size_t _D, size_t _B, DeviceDriver * p_driver) :
   n_elements(_R*_C*_D*_B),
   R(_R), C(_C), D(_D), B(_B),
-  p_data_device_ptr(NULL),
-  own_data(true) {
+  own_data(true),
+  p_data_device_ptr(NULL) {
 
 //#ifdef _DETAILED_PROFILING
 //  std::cout << "Allocating " << 1.0*sizeof(T)*_R*_C*_D*_B/1024/1024 << " MB..." << std::endl;
@@ -146,8 +146,8 @@ LogicalCube<T, LAYOUT>::LogicalCube(void * _p_data, size_t _R, size_t _C, size_t
   n_elements(_R*_C*_D*_B),
   R(_R), C(_C), D(_D), B(_B),
   own_data(false),
-  p_data_device_ptr(NULL),
-  p_data(reinterpret_cast<T*>(_p_data)) {}
+  p_data(reinterpret_cast<T*>(_p_data)),
+  p_data_device_ptr(NULL) {}
 
 template<typename T, LayoutType LAYOUT>
 void LogicalCube<T, LAYOUT>::reset_cube() {

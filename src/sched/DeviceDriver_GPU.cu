@@ -54,7 +54,6 @@ __global__ void _parallel_lower_cube(float * dst, float * src, const struct PMap
   const int iC = args.sC;
   const int kR = args.kR;
   const int kC = args.kC;
-  const int iB = args.sB;
   const int p  = args.padding;
   const int s  = args.stride;
   const int oR = (iR + 2*p - kR) / s + 1;
@@ -375,6 +374,10 @@ GPUDriver::GPUDriver(){
     set_device();
 }
 
+GPUDriver::~GPUDriver(){
+
+}
+
 DeviceMemoryPointer * GPUDriver::get_device_pointer(void * ptr, size_t size_in_byte){
 	// TODO: This has memory leak! Refactor it!
 	return new DeviceMemoryPointer_Local_GPURAM(gpu_id, ptr, size_in_byte);
@@ -510,7 +513,7 @@ void GPUDriver::sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const fu
 	}
 	for (int call_counter=0; call_counter < num_calls; ++call_counter)
 	{
-		_sapply<func><<<blocksPerGrid, threadsPerBlock>>>((float*) (dst->ptr + call_counter*blocksPerGrid*threadsPerBlock), n_elements, d_func_curry);
+		_sapply<func><<<blocksPerGrid, threadsPerBlock>>>((float*) (dst->ptr) + call_counter*blocksPerGrid*threadsPerBlock, n_elements, d_func_curry);
 		err = cudaGetLastError();
 		if(err != cudaSuccess){
 			std::cout << "Fail to launch _sapply" << "  ERROR " << err << std::endl;

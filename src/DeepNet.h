@@ -161,7 +161,7 @@ class DeepNet {
     // pass. Only the bridges variable is modified.
     static void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetParameter & net_param,
         const cnn::SolverParameter & solver_param) {
-      CPUDriver * const driver = new CPUDriver();
+      CPUDriver * const driver = new CPUDriver(); // SHADJIS TODO: delete this later or put on stack
       size_t input_R = corpus.n_rows, input_C = corpus.n_cols, input_D = corpus.dim, B = corpus.mini_batch_size;
 
       // Create the Logical Cubes for the initial data layer

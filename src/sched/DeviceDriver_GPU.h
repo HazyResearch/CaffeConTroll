@@ -27,6 +27,7 @@ public:
   cudaError_t err;
 
   GPUDriver();
+  ~GPUDriver();
 
   DeviceMemoryPointer * get_device_pointer(void * ptr, size_t size_in_byte);
 
