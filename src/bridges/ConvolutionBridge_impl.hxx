@@ -270,21 +270,19 @@ forward() {
       p_driver->set_num_threads(run_with_n_threads);
       
       // Copy input to device memory
-      // SHADJIS TODO: Why is this needed for cpu??
-      AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(input_d_cube,
-          p_input_layer->p_data_cube);
+      input_d_cube->set_p_data( p_input_layer->p_data_cube->get_p_data());
           
       // If DriverClass == CPUDriver, we also need to update the p_data pointer of output_d_cube to point to
       // p_output_layer->p_data_cube->p_data
-      // SHADJIS TODO: Why is this needed for cpu??
-      AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(
-          output_d_cube, p_output_layer->p_data_cube);
+      output_d_cube->set_p_data(p_output_layer->p_data_cube->get_p_data());
+      
       if (p_model_cube->get_p_data() == NULL) {
         p_model_cube->set_p_data(p_model_cube_shadow->get_p_data());
       }
       
       // Start Reporting
       // This is done after the copy since that will be refactored out of the bridge.
+      PROFILE_ONLY(Timer t; Timer t_inner; float seconds;)
       report_forward_last_transfer.reset();
   
       // Cast input model and output to matrix
@@ -298,9 +296,28 @@ forward() {
       // SHADJIS TODO: Pass in an argument for the lowering type (currently only type 1)
       p_forward_lower_connector->lower_cube(input_d_cube, p_forward_lowered_data);
       
+      PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    Lower Cube:  " << seconds << "\n"; t_inner.restart(); )
+      
       // call GEMM kernel
       p_forward_gemm_kernel->compute(&lowered_model, p_forward_lowered_data, &lowered_output);
+      
+      PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    Remap:       " << seconds << "\n"; t_inner.restart(); )
+      
+      // Right now the output we get is of the form:
+      // [(b_0, d_0), (b_1, d_0), ... , (b_n, d_0)
+      //
+      //  (b_0, d_m), (b_1, d_m), ... , (b_n, d_m)]
+      //  we need to transpose this, so that the outputs
+      //  of a single batch are contiguous in memory.
+      //  For now, we will call remap_output to fix this
+      //  issue.
+      //
+      //  TODO: figure out how to properly transpose the
+      //  inputs so that we get the correct output without
+      //  needing to call remap
       p_forward_lower_connector->remap_output(*output_d_cube, num_output_features, iB, oR*oC);
+      
+      PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    GEMM:        " << seconds << "\n"; t_inner.restart(); )
       
       // TODO Refactor the following code into another module
       if (bias_term) {
@@ -320,10 +337,13 @@ forward() {
           _f_bias_forward>(bias, output, _arg1.src_skip, arg1, arg2);
       }
   
+      PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    Bias:        " << seconds << "\n";)
+      
       // Finish reporting. 
       // SHADJIS TODO: This is done before copy back to device, since copies need 
       // to be refactored out of the bridge
       report_forward_last_transfer.end();
+      PROFILE_ONLY(seconds = t.elapsed(); std::cout << "  Fw Conv        " << seconds << "\n";)
   }
   // GPU: Run 1 image at a time
   else {
@@ -505,19 +525,15 @@ backward() {
       p_driver->set_num_threads(run_with_n_threads);
       
       // Copy output grad to device memory
-      // SHADJIS TODO: Why is this needed for cpu??
-      AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(output_g_cube,
-          p_output_layer->p_gradient_cube);
+      output_g_cube->set_p_data(p_output_layer->p_gradient_cube->get_p_data());
           
       // If DriverClass == CPUDriver, we also need to update the p_data pointer of input_g_cube to point to
       // p_input_layer->p_gradient_cube->p_data
-      // SHADJIS TODO: Why is this needed for cpu??
-      AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(
-          input_g_cube, p_input_layer->p_gradient_cube
-        );
-        
+      input_g_cube->set_p_data(p_input_layer->p_gradient_cube->get_p_data());
+      
       // Start Reporting
       // This is done after the copy since that will be refactored out of the bridge.
+      PROFILE_ONLY(Timer t; Timer t_inner; float seconds;)
       report_backward_updateweight_last_transfer.reset();
 
       // Calculate the GEMM between the gradient of output and old kernel to calc the update on grad
@@ -553,13 +569,20 @@ backward() {
           _f_bias_backward>(bias, output, _arg1.src_skip, arg1, arg2);
       }
       
+      PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    Bias:        " << seconds << "\n"; t_inner.restart(); )
+      
       // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
       p_forward_lower_connector->remap_output(*output_g_cube, oB, num_output_features, oR*oC);
+      
+      PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    Remap:       " << seconds << "\n"; t_inner.restart(); )
+      
       if (needs_to_calc_backward_grad) {
         //    - 2.1 GEMM between the gradient of output and old kernel
         p_backward_gemm_updategrad_kernel->compute(&lowered_model, &lowered_outputgrad, p_backward_inputgrad);
+        PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    GEMM Data:   " << seconds << "\n"; t_inner.restart(); )
         //    - 2.2 undo the lowering (i.e., sum together all grad corresponding to the same unlowered position)
         p_forward_lower_connector->inverse_lower_cube(p_backward_inputgrad, input_g_cube);
+        PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    Inverse Lwr: " << seconds << "\n"; t_inner.restart(); )
       }
       
       // Redo the lowering
@@ -567,9 +590,12 @@ backward() {
       p_backward_gemm_updateweight_kernel->alpha = 1.0;
       p_backward_gemm_updateweight_kernel->beta = 0.0;
       p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model_grad);
-
+      
+      PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    GEMM Wghts:  " << seconds << "\n"; t_inner.restart(); )
+      
       // Finish reporting. 
       report_backward_updateweight_last_transfer.end();
+      PROFILE_ONLY(seconds = t.elapsed(); std::cout << "  Bw Conv        " << seconds << "\n";)
   }
   // GPU: Run 1 image at a time
   else {

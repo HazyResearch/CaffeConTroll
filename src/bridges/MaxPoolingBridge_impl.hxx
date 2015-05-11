@@ -53,19 +53,21 @@ MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const 
 template <typename DataType, typename DriverClass>
 void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forward() {
   // Copy input to device memory
-  AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(input_d_cube,
-      p_input_layer->p_data_cube);
-  // If DriverClass == CPUDriver, we also need to update the p_data pointer of output_d_cube to point to
-  // p_output_layer->p_data_cube->p_data
   if (std::is_same<DriverClass, CPUDriver>::value) {
+    input_d_cube ->set_p_data(p_input_layer ->p_data_cube->get_p_data());
+    output_d_cube->set_p_data(p_output_layer->p_data_cube->get_p_data());
+  } else {
     AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(
-        output_d_cube, p_output_layer->p_data_cube
-        );
+        input_d_cube, p_input_layer->p_data_cube);
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(
+        output_d_cube, p_output_layer->p_data_cube);
   }
 
   report_forward_last_transfer.reset();
 
   ////////////////////////////////////////////////////////////////////////////////
+  PROFILE_ONLY(p_driver->device_sync(); Timer t;)
+  
   DeviceMemoryPointer * input = input_d_cube->get_device_pointer(p_driver);
   DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
   p_driver->sconstant_initialize(output, -FLT_MAX);
@@ -95,13 +97,14 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>
 
   p_driver->template parallel_map<_f_src_to_dst_pool_forward,
     _f_pool_forward>(output, input, sizeof(DataType)*iR*iC, arg1, arg2);
+
+  PROFILE_ONLY(p_driver->device_sync(); float seconds = t.elapsed(); std::cout << "  Fw MaxPool     " << seconds << "\n";)
   ////////////////////////////////////////////////////////////////////////////////
 
   // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy output to host memory here
   if (!std::is_same<DriverClass, CPUDriver>::value) {
     AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_host(
-        p_output_layer->p_data_cube, output_d_cube
-        );
+        p_output_layer->p_data_cube, output_d_cube);
   }
   if (!std::is_same<DriverClass, CPUDriver>::value) {
 	CPUDriver *local_cpu_driver = new CPUDriver();
@@ -120,19 +123,21 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>
 template <typename DataType, typename DriverClass>
 void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::backward() {
   // Copy output grad to device memory
-  AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(output_g_cube,
-      p_output_layer->p_gradient_cube);
-  // If DriverClass == CPUDriver, we also need to update the p_data pointer of input_g_cube to point to
-  // p_input_layer->p_gradient_cube->p_data
   if (std::is_same<DriverClass, CPUDriver>::value) {
+    output_g_cube->set_p_data(p_output_layer->p_gradient_cube->get_p_data());
+    input_g_cube ->set_p_data(p_input_layer->p_gradient_cube ->get_p_data());
+  } else {
     AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(
-        input_g_cube, p_input_layer->p_gradient_cube
-        );
+        output_g_cube, p_output_layer->p_gradient_cube);
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(
+        input_g_cube, p_input_layer->p_gradient_cube);
   }
 
   report_backward_updateweight_last_transfer.reset();
 
   ////////////////////////////////////////////////////////////////////////////////
+  PROFILE_ONLY(p_driver->device_sync(); Timer t;)
+  
   DeviceMemoryPointer * input = input_g_cube->get_device_pointer(p_driver);
   DeviceMemoryPointer * output = output_g_cube->get_device_pointer(p_driver);
   p_driver->sconstant_initialize(input, DataType(0.));
@@ -160,13 +165,14 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>
 
   p_driver->template parallel_map<_f_src_to_dst_pool_backward,
     _f_pool_backward>(output, input, sizeof(DataType)*iR*iC, arg1, arg2);
+    
+  PROFILE_ONLY(p_driver->device_sync(); float seconds = t.elapsed(); std::cout << "  Bw MaxPool     " << seconds << "\n";)
   ////////////////////////////////////////////////////////////////////////////////
 
   // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy input grad to host memory here
   if (!std::is_same<DriverClass, CPUDriver>::value) {
     AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_host(
-        p_input_layer->p_gradient_cube, input_g_cube
-        );
+        p_input_layer->p_gradient_cube, input_g_cube);
   }
   if (!std::is_same<DriverClass, CPUDriver>::value) {
 	CPUDriver *local_cpu_driver = new CPUDriver();

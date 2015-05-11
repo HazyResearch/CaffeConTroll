@@ -47,19 +47,21 @@ LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::LRNBridge(
 template <typename DataType, typename DriverClass>
 void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forward() {
   // Copy input to device memory
-  AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(input_d_cube,
-      p_input_layer->p_data_cube);
-  // If DriverClass == CPUDriver, we also need to update the p_data pointer of output_d_cube to point to
-  // p_output_layer->p_data_cube->p_data
   if (std::is_same<DriverClass, CPUDriver>::value) {
+    output_d_cube->set_p_data(p_output_layer->p_data_cube->get_p_data());
+    input_d_cube ->set_p_data(p_input_layer ->p_data_cube->get_p_data());
+  } else {
     AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(
-        output_d_cube, p_output_layer->p_data_cube
-        );
+        output_d_cube, p_output_layer->p_data_cube);
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(
+        input_d_cube,  p_input_layer->p_data_cube);
   }
 
   report_forward_last_transfer.reset();
 
   ////////////////////////////////////////////////////////////////////////////////
+  PROFILE_ONLY(p_driver->device_sync(); Timer t;)
+  
   DeviceMemoryPointer * input = input_d_cube->get_device_pointer(p_driver);
   DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
 
@@ -102,6 +104,8 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forwa
   // then do normalization
   p_driver->template parallel_map<_f_src_to_dst_lrn_forward,
     _f_lrn_forward_normalize>(input, output, sizeof(DataType), arg1, arg3);
+    
+  PROFILE_ONLY(p_driver->device_sync(); float seconds = t.elapsed(); std::cout << "  Fw LRN         " << seconds << "\n";)
   ////////////////////////////////////////////////////////////////////////////////
 
   // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy output to host memory here
@@ -127,19 +131,23 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forwa
 template <typename DataType, typename DriverClass>
 void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::backward() {
   // Copy output grad to device memory
-  AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(output_g_cube,
-      p_output_layer->p_gradient_cube);
   // If DriverClass == CPUDriver, we also need to update the p_data pointer of input_g_cube to point to
   // p_input_layer->p_gradient_cube->p_data
   if (std::is_same<DriverClass, CPUDriver>::value) {
+    input_g_cube ->set_p_data(p_input_layer ->p_gradient_cube->get_p_data());
+    output_g_cube->set_p_data(p_output_layer->p_gradient_cube->get_p_data());
+  } else {
     AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(
-        input_g_cube, p_input_layer->p_gradient_cube
-        );
+        input_g_cube, p_input_layer->p_gradient_cube);
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(
+        output_g_cube, p_output_layer->p_gradient_cube);
   }
 
   report_backward_updateweight_last_transfer.reset();
 
   ////////////////////////////////////////////////////////////////////////////////
+  PROFILE_ONLY(p_driver->device_sync(); Timer t;)
+  
   DeviceMemoryPointer * input = input_g_cube->get_device_pointer(p_driver);
   DeviceMemoryPointer * output = output_g_cube->get_device_pointer(p_driver);
   p_driver->sconstant_initialize(input, DataType(0.));
@@ -171,6 +179,8 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::backw
 
   p_driver->template parallel_map<_f_src_to_dst_lrn_backward,
     _f_lrn_backward>(input, output, sizeof(DataType)*oR*oC*oD, arg1, arg2);
+    
+  PROFILE_ONLY(p_driver->device_sync(); float seconds = t.elapsed(); std::cout << "  Bw LRN         " << seconds << "\n";)
   ////////////////////////////////////////////////////////////////////////////////
 
   // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy input grad to host memory here

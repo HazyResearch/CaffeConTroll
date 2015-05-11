@@ -141,8 +141,8 @@ endif
  
 .PHONY: all assembly clean product test warning
 
-all: CFLAGS += $(DEBUG_FLAGS) 
-all: LINKFLAG += $(DEBUG_FLAGS) 
+all: CFLAGS += $(PRODUCT_FLAGS) 
+all: LINKFLAG += $(PRODUCT_FLAGS) 
 all: $(OBJ_FILES) cnn.pb.o $(MAIN_CUDA_OBJ_FILES)
 ifdef NVCC
 	$(NVCC) -dlink $^ -o $(NVCC_LINK)

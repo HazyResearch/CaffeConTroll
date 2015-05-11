@@ -89,7 +89,6 @@ remap_output(LogicalCube<DataType, InputLayout>& cube, const size_t depth, const
     const size_t kernel_size) {
 
   // SHADJIS TODO: Add a report here (currently I time outside it)
-  // Or deprecate remap_output, should never be needed if we fix lowering transpose issue
     
   DeviceMemoryPointer * copy = p_driver->get_device_pointer(NULL, sizeof(DataType)*cube.R*cube.C*cube.B*cube.D);
   p_driver->malloc(copy);
@@ -115,7 +114,8 @@ remap_output(LogicalCube<DataType, InputLayout>& cube, const size_t depth, const
   args.stride = stride;
   args.padding = padding;
 
-  // SHADJIS TODO: Is remap ever needed? Can we get rid of it?
+  // SHADJIS TODO: Optimize this, rather than call a general function, write
+  // remap for CPU (currently never called on GPU anymore)
   p_driver->template pmap2d_read_coalesce<_fpmap_id,_fmap_remap>(output, copy, args);
   p_driver->free(copy);
   free(copy);
