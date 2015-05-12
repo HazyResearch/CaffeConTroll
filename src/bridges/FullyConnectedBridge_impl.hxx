@@ -269,7 +269,7 @@ forward() {
       // (2) call GEMM kernel
       p_forward_gemm_kernel->compute(&lowered_model, p_forward_lowered_data, &lowered_output);
       
-      PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    Remap:       " << seconds << "\n"; t_inner.restart(); )
+      PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    GEMM:        " << seconds << "\n"; t_inner.restart(); )
       
       // Right now the output we get is of the form:
       // [(b_0, d_0), (b_1, d_0), ... , (b_n, d_0)
@@ -285,7 +285,7 @@ forward() {
       //  needing to call remap
       p_forward_lower_connector->remap_output(*output_d_cube, num_output_features, iB, oR*oC);
       
-      PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    GEMM:        " << seconds << "\n"; t_inner.restart(); )
+      PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    Remap:       " << seconds << "\n"; t_inner.restart(); )
       
       // add bias
       if (bias_term) {
@@ -633,8 +633,8 @@ backward() {
       // Also, see comment above: only need to copy the data because we aren't copying the lowered data.
       //
       // SHADJIS TODO: Actually the data was never freed from fw so this currently is not needed
-      AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(input_d_cube,
-          p_input_layer->p_data_cube);
+      //AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(input_d_cube,
+      //    p_input_layer->p_data_cube);
 
       PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  Copy local to device: " << seconds << "\n"; t.restart();)
 

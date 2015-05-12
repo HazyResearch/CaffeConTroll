@@ -40,8 +40,6 @@ void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forw
   } else {
     AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(
         input_d_cube, p_input_layer->p_data_cube);
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(
-        output_d_cube, p_output_layer->p_data_cube);
   }
 
   report_forward_last_transfer.reset();
@@ -64,8 +62,7 @@ void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forw
   // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy output to host memory here
   if (!std::is_same<DriverClass, CPUDriver>::value) {
     AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_host(
-        p_output_layer->p_data_cube, output_d_cube
-        );
+        p_output_layer->p_data_cube, output_d_cube);
   }
 
   report_forward_last_transfer.end();
@@ -85,8 +82,6 @@ void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::back
   } else {
     AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(
         output_g_cube, p_output_layer->p_gradient_cube);
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(
-        input_g_cube, p_input_layer->p_gradient_cube);
   }
 
   report_backward_updateweight_last_transfer.reset();
@@ -99,8 +94,7 @@ void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::back
 
   _relu_backward_arg_helper _arg;
   if (!std::is_same<DriverClass, CPUDriver>::value) {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(input_d_cube,
-        p_input_layer->p_data_cube);
+    // This was already copied to device in the fw pass
     _arg.input_data = (char *) input_d_cube->get_p_data();
   } else {
     _arg.input_data = (char *) p_input_layer->p_data_cube->get_p_data();
@@ -120,8 +114,7 @@ void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::back
   // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy input grad to host memory here
   if (!std::is_same<DriverClass, CPUDriver>::value) {
     AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_host(
-        p_input_layer->p_gradient_cube, input_g_cube
-        );
+        p_input_layer->p_gradient_cube, input_g_cube);
   }
 
   report_backward_updateweight_last_transfer.end();

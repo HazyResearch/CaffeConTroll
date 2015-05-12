@@ -26,7 +26,7 @@ inline void _f_relu_forward(void * input, void * output, void * const _arg,
   float * const input_data = (float *) input;
   float * const output_data = (float *) output;
 
-  output_data[0] = device_max(input_data[0], 0.);
+  output_data[0] = device_max(input_data[0], 0.); // SHADJIS TODO: cuda has a max function
 }
 
 #ifdef _GPU_TARGET

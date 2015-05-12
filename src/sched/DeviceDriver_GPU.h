@@ -50,6 +50,14 @@ public:
   void backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     const int fmap_size, const int depth, const int batch_size,
     const float *const device_ones);
+  void maxpool_forward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _pool_forward_arg_helper args);
+  void maxpool_backward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _pool_backward_arg_helper args);
+  void lrn_forward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _lrn_forward_arg_helper args, const struct _lrn_forward_normalize_arg_helper args2);
+  void lrn_backward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _lrn_backward_arg_helper args);
   void lower_cube_helper(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     const struct PMapHelper args);
 

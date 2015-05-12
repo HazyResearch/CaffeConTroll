@@ -121,9 +121,9 @@ __global__ void _parallel_inverse_lower_cube(float * dst, float * src, const str
     const int w =  i % iC + p;
     
     const int w_col_start = (w < k) ? 0 : (w - k) / s + 1;
-    const int w_col_end = device_min(w / s + 1, oC);
+    const int w_col_end = device_min(w / s + 1, oC); // SHADJIS TODO: cuda has a min function
     const int h_col_start = (h < k) ? 0 : (h - k) / s + 1;
-    const int h_col_end = device_min(h / s + 1, oR);
+    const int h_col_end = device_min(h / s + 1, oR); // SHADJIS TODO: cuda has a min function
     
     // SHADJIS TODO: Not sure why but the way we store batches is
     // different from Caffe so this part had to be changed. Probably
@@ -217,10 +217,317 @@ void GPUDriver::lower_cube_helper(DeviceMemoryPointer * dst, DeviceMemoryPointer
       std::cout << "Fail to launch _parallel_lower_cube"  << "  ERROR " << err << std::endl;
       assert(false);
     }
-    //cudaDeviceSynchronize();
+}
+
+__global__ void _maxpool_forward_helper(float* output, const float* input,
+    const struct _pool_forward_arg_helper args){
+    
+    const int iR = args.iR;
+    const int iC = args.iC;
+    const int oR = args.oR;
+    const int oC = args.oC;
+    const int D  = args.D;
+    const int B  = args.B;
+    const int k  = args.kernel_size;
+    const int s  = args.stride;
+    int * const max_index  = args.max_index;
+
+    const int index = blockIdx.x * blockDim.x + threadIdx.x;
+  
+    if (index < D*B*oR*oC) {
+      int pw = index % oC;
+      const int tmp1 = index / oC;
+      const int tmp2 = tmp1  / oR;
+      int ph = tmp1 % oR;
+      int c =  tmp2 % D;
+      int n =  tmp2 / D;
+      int hstart = ph * s;// - p;
+      int wstart = pw * s;// - p;
+      int hend = min(hstart + k, iR);
+      int wend = min(wstart + k, iC);
+      hstart = max(hstart, 0);
+      wstart = max(wstart, 0);
+      float maxval = -FLT_MAX;
+      int maxidx = -1;
+      input += (n * D + c) * iR * iC;
+      for (int h = hstart; h < hend; ++h) {
+        for (int w = wstart; w < wend; ++w) {
+          if (input[h * iC + w] > maxval) {
+            maxidx = h * iC + w;
+            maxval = input[maxidx];
+          }
+        }
+      }
+      output[index] = maxval;
+      max_index[index] = maxidx;
+    }
+}
+
+void GPUDriver::maxpool_forward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _pool_forward_arg_helper args){
+    
+    set_device();
+    const int oR = args.oR;
+    const int oC = args.oC;
+    const int D  = args.D;
+    const int B  = args.B;
+    const int num_parallel_threads = D*B*oR*oC;
+    const int numBlocks = (num_parallel_threads + threadsPerBlock - 1) / threadsPerBlock;
+    cudaGetLastError(); // Reset the error status to success
+    // SHADJIS TODO: Add loop to call multiple times if necessary
+    _maxpool_forward_helper<<<numBlocks, threadsPerBlock>>>((float*) dst->ptr, (float *) src->ptr, args);
     err = cudaGetLastError();
     if(err != cudaSuccess){
-      std::cout << "Fail to sync _parallel_lower_cube"  << "  ERROR " << err << std::endl;
+      std::cout << "Fail to launch _maxpool_forward_helper"  << "  ERROR " << err << std::endl;
+      assert(false);
+    }
+}
+
+__global__ void _maxpool_backward_helper(float* output, const float* input,
+    const struct _pool_backward_arg_helper args){
+    
+    const int iR = args.iR;
+    const int iC = args.iC;
+    const int oR = args.oR;
+    const int oC = args.oC;
+    const int D  = args.D;
+    const int B  = args.B;
+    const int k  = args.kernel_size;
+    const int s  = args.stride;
+    const int *max_index  = args.max_index;
+
+    const int index = blockIdx.x * blockDim.x + threadIdx.x;
+  
+    if (index < D*B*iR*iC) {
+      // find out the local index
+      // find out the local offset
+      const int tmp1 = index / iC;
+      const int tmp2 = tmp1  / iR;
+      int w = index % iC;
+      int h = tmp1 % iR;
+      int c = tmp2 % D;
+      int n = tmp2 / D;
+      int phstart = (h < k) ? 0 : (h - k) / s + 1;
+      int phend = min(h / s + 1, oR);
+      int pwstart = (w < k) ? 0 : (w - k) / s + 1;
+      int pwend = min(w / s + 1, oC);
+      float gradient = 0;
+      int offset = (n * D + c) * oR * oC;
+      input += offset;
+      max_index += offset;
+      for (int ph = phstart; ph < phend; ++ph) {
+        for (int pw = pwstart; pw < pwend; ++pw) {
+          if (max_index[ph * oC + pw] == h * iC + w) {
+            gradient += input[ph * oC + pw];
+          }
+        }
+      }
+      output[index] = gradient;
+    }
+}
+
+void GPUDriver::maxpool_backward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _pool_backward_arg_helper args){
+    
+    set_device();
+    const int iR = args.iR;
+    const int iC = args.iC;
+    const int D  = args.D;
+    const int B  = args.B;
+    const int num_parallel_threads = D*B*iR*iC;
+    const int numBlocks = (num_parallel_threads + threadsPerBlock - 1) / threadsPerBlock;
+    cudaGetLastError(); // Reset the error status to success
+    // SHADJIS TODO: Add loop to call multiple times if necessary
+    _maxpool_backward_helper<<<numBlocks, threadsPerBlock>>>((float *) src->ptr, (float*) dst->ptr, args);
+    err = cudaGetLastError();
+    if(err != cudaSuccess){
+      std::cout << "Fail to launch _maxpool_backward_helper"  << "  ERROR " << err << std::endl;
+      assert(false);
+    }
+}
+
+__global__ void _lrn_forward_helper_fill_scale(const float* in,
+    const struct _lrn_forward_arg_helper args, const struct _lrn_forward_normalize_arg_helper args2){
+
+    const int iR = args.iR;
+    const int iC = args.iC;
+    const int D  = args.iD;
+    const int B  = args.iB;
+    const int size  = args.local_size;
+    const float alpha_over_size  = args2.alpha_over_size;
+    float *scale  = (float*) args2.denoms;
+    const int index = blockIdx.x * blockDim.x + threadIdx.x;
+    
+    if (index < B*iR*iC) {
+      // find out the local offset
+      int w = index % iC;
+      int h = (index / iC) % iR;
+      int n = index / iC / iR;
+      int offset = (n * D * iR + h) * iC + w;
+      int step = iR * iC;
+      in += offset;
+      scale += offset;
+      int head = 0;
+      int pre_pad = (size - 1) / 2;
+      int post_pad = size - pre_pad - 1;
+      float accum_scale = 0;
+      // fill the scale at [n, :, h, w]
+      // accumulate values
+      while (head < post_pad) {
+        accum_scale += in[head * step] * in[head * step];
+        ++head;
+      }
+      // until we reach size, nothing needs to be subtracted
+      while (head < size) {
+        accum_scale += in[head * step] * in[head * step];
+        scale[(head - post_pad) * step] = 1. + accum_scale * alpha_over_size;
+        ++head;
+      }
+      // both add and subtract
+      while (head < D) {
+        accum_scale += in[head * step] * in[head * step];
+        accum_scale -= in[(head - size) * step] * in[(head - size) * step];
+        scale[(head - post_pad) * step] = 1. + accum_scale * alpha_over_size;
+        ++head;
+      }
+      // subtract only
+      while (head < D + post_pad) {
+        accum_scale -= in[(head - size) * step] * in[(head - size) * step];
+        scale[(head - post_pad) * step] = 1. + accum_scale * alpha_over_size;
+        ++head;
+      }
+    }
+}
+
+__global__ void _lrn_forward_helper_compute_output(float* out, const float* in,
+    const struct _lrn_forward_arg_helper args, const struct _lrn_forward_normalize_arg_helper args2){
+    
+    const int iR = args.iR;
+    const int iC = args.iC;
+    const int D  = args.iD;
+    const int B  = args.iB;
+    const float beta  = args2.beta;
+    float *scale  = (float*) args2.denoms;
+
+    const int index = blockIdx.x * blockDim.x + threadIdx.x;
+  
+    if (index < D*B*iR*iC) {
+        out[index] = in[index] * pow(scale[index], float(-1*beta));
+    }
+}
+
+void GPUDriver::lrn_forward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _lrn_forward_arg_helper args, const struct _lrn_forward_normalize_arg_helper args2){
+    
+    set_device();
+    const int iR = args.iR;
+    const int iC = args.iC;
+    const int D  = args.iD;
+    const int B  = args.iB;
+    const int num_parallel_threads = B*iR*iC;
+    const int numBlocks = (num_parallel_threads + threadsPerBlock - 1) / threadsPerBlock;
+    cudaGetLastError(); // Reset the error status to success
+    _lrn_forward_helper_fill_scale<<<numBlocks, threadsPerBlock>>>((float *) dst->ptr, args, args2);
+    err = cudaGetLastError();
+    if(err != cudaSuccess){
+      std::cout << "Fail to launch _maxpool_forward_helper"  << "  ERROR " << err << std::endl;
+      assert(false);
+    }
+    const int num_parallel_threads2 = D*B*iR*iC;
+    const int numBlocks2 = (num_parallel_threads2 + threadsPerBlock - 1) / threadsPerBlock;
+    _lrn_forward_helper_compute_output<<<numBlocks2, threadsPerBlock>>>((float*) src->ptr, (float *) dst->ptr, args, args2);
+    err = cudaGetLastError();
+    if(err != cudaSuccess){
+      std::cout << "Fail to launch _maxpool_forward_helper"  << "  ERROR " << err << std::endl;
+      assert(false);
+    }
+}
+
+__global__ void _lrn_backward_helper(float* bottom_diff, const float* top_diff,
+    const struct _lrn_backward_arg_helper args){
+
+    const int height = args.oR;
+    const int width = args.oC;
+    const int channels  = args.oD;
+    const int B  = args.oB;
+    const int size  = args.local_size;
+    const float alpha_over_size = args.alpha_over_size;
+    const float negative_beta = -1. * args.beta;
+    const float cache_ratio = (2. * alpha_over_size * args.beta);
+    float *scale = (float*) args.denoms;
+    float *bottom_data = (float*) args.input_data;
+    float *top_data = (float*) args.output_data;
+
+    const int index = blockIdx.x * blockDim.x + threadIdx.x;
+  
+    if (index < B*width*height) {
+        // find out the local offset
+        int w = index % width;
+        int h = (index / width) % height;
+        int n = index / width / height;
+        int offset = (n * channels * height + h) * width + w;
+        int step = height * width;
+        bottom_data += offset;
+        top_data += offset;
+        scale += offset;
+        top_diff += offset;
+        bottom_diff += offset;
+        int head = 0;
+        int pre_pad = size - (size + 1) / 2;
+        int post_pad = size - pre_pad - 1;
+        float accum_ratio = 0;
+        // accumulate values
+        while (head < post_pad) {
+          accum_ratio += top_diff[head * step] * top_data[head * step] /
+              scale[head * step];
+          ++head;
+        }
+        // until we reach size, nothing needs to be subtracted
+        while (head < size) {
+          accum_ratio += top_diff[head * step] * top_data[head * step] /
+              scale[head * step];
+          bottom_diff[(head - post_pad) * step] = top_diff[(head - post_pad) * step]
+              * pow(scale[(head - post_pad) * step], negative_beta) - cache_ratio *
+              bottom_data[(head - post_pad) * step] * accum_ratio;
+          ++head;
+        }
+        // both add and subtract
+        while (head < channels) {
+          accum_ratio += top_diff[head * step] * top_data[head * step] /
+              scale[head * step];
+          accum_ratio -= top_diff[(head - size) * step] *
+              top_data[(head - size) * step] / scale[(head - size) * step];
+          bottom_diff[(head - post_pad) * step] = top_diff[(head - post_pad) * step]
+              * pow(scale[(head - post_pad) * step], negative_beta) - cache_ratio *
+              bottom_data[(head - post_pad) * step] * accum_ratio;
+          ++head;
+        }
+        // subtract only
+        while (head < channels + post_pad) {
+          accum_ratio -= top_diff[(head - size) * step] *
+              top_data[(head - size) * step] / scale[(head - size) * step];
+          bottom_diff[(head - post_pad) * step] = top_diff[(head - post_pad) * step]
+              * pow(scale[(head - post_pad) * step], negative_beta) - cache_ratio *
+              bottom_data[(head - post_pad) * step] * accum_ratio;
+          ++head;
+        }
+    }
+}
+
+void GPUDriver::lrn_backward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _lrn_backward_arg_helper args){
+
+    set_device();
+    const int oR = args.oR;
+    const int oC = args.oC;
+    const int B  = args.oB;
+    const int num_parallel_threads = B*oR*oC;
+    const int numBlocks = (num_parallel_threads + threadsPerBlock - 1) / threadsPerBlock;
+    cudaGetLastError(); // Reset the error status to success
+    _lrn_backward_helper<<<numBlocks, threadsPerBlock>>>((float*) dst->ptr, (float *) src->ptr, args);
+    err = cudaGetLastError();
+    if(err != cudaSuccess){
+      std::cout << "Fail to launch _lrn_backward_helper"  << "  ERROR " << err << std::endl;
       assert(false);
     }
 }
@@ -257,12 +564,6 @@ void GPUDriver::inverse_lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointe
             assert(false);
         }
     }
-    //cudaDeviceSynchronize();
-    err = cudaGetLastError();
-    if(err != cudaSuccess){
-        std::cout << "Fail to sync _parallel_inverse_lower_cube"  << "  ERROR " << err << std::endl;
-        assert(false);
-    }
 }
 
 void GPUDriver::backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
@@ -285,7 +586,6 @@ void GPUDriver::backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * s
     {
         status = cublasSgemv(handle, ta, fmap_size, depth, &one, (float *) (src->ptr) + ib*fmap_size*depth,
             fmap_size, device_ones, 1, &one, (float *) dst->ptr, 1);
-        //cudaDeviceSynchronize();
     }
     err = cudaGetLastError();
     assert(err == cudaSuccess);
@@ -332,7 +632,6 @@ void GPUDriver::forward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * sr
 			assert(false);
 		}
 	}
-	//cudaDeviceSynchronize();
 	err = cudaGetLastError();
 	assert(err == cudaSuccess);
 
@@ -360,13 +659,6 @@ void GPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPoin
 	  std::cout << "Fail to launch _spmap_readc"  << "  ERROR " << err << std::endl;
 	  assert(false);
 	}
-	//cudaDeviceSynchronize();
-	err = cudaGetLastError();
-	if(err != cudaSuccess){
-	  std::cout << "Fail to cudaDeviceSynchronize _spmap_readc"  << "  ERROR " << err << std::endl;
-	  assert(false);
-	}
-
 }
 
 
@@ -457,13 +749,6 @@ size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry, DeviceMemoryPointe
 	  std::cout << "Fail to launch _spmap"  << "  ERROR " << err << std::endl;
 	  assert(false);
 	}
-	//cudaDeviceSynchronize();
-	err = cudaGetLastError();
-	if(err != cudaSuccess){
-	  std::cout << "Fail to sync _spmap"  << "  ERROR " << err << std::endl;
-	  assert(false);
-	}
-
 	cudaFree(d_func_curry);
 	cudaFree(d_idx_func_curry);
 
@@ -521,7 +806,6 @@ void GPUDriver::sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const fu
 		}
 		n_elements -= blocksPerGrid*threadsPerBlock; // Decrement #elements left to process
 	}
-	//cudaDeviceSynchronize();
 	err = cudaGetLastError();
 	assert(err == cudaSuccess);
 

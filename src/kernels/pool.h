@@ -5,25 +5,27 @@
 #include "../sched/DeviceHeader.h"
 
 struct _pool_forward_arg_helper {
-  int pooled_height;
-  int pooled_width;
   int stride;
   int kernel_size;
   int iR;
   int iC;
   int oR;
   int oC;
-  char * max_index;
+  int D;
+  int B;
+  int *max_index; // SHADJIS TODO: unsigned char?
 };
 
 struct _pool_backward_arg_helper {
-  int pooled_height;
-  int pooled_width;
+  int stride;       // Just for GPU
+  int kernel_size;  // Just for GPU
   int iR;
   int iC;
   int oR;
   int oC;
-  char * max_index;
+  int D;
+  int B;
+  int * max_index; // SHADJIS TODO: unsigned char?
 };
 
 #ifdef _GPU_TARGET

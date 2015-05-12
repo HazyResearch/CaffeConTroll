@@ -8,7 +8,9 @@ struct _lrn_forward_arg_helper {
   int iR;
   int iC;
   int iD;
+  int iB;
   int norm_window;
+  int local_size;
   char * denoms;
 };
 
@@ -22,11 +24,14 @@ struct _lrn_backward_arg_helper {
   int oR;
   int oC;
   int oD;
+  int oB;
   float alpha_over_size;
   float beta;
   int norm_window;
+  int local_size;
   char * denoms;
   char * input_data;
+  char * output_data;
 };
 
 #ifdef _GPU_TARGET

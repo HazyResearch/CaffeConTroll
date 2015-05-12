@@ -127,6 +127,24 @@ public:
     assert(false);
   }
 
+  void lrn_forward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _lrn_forward_arg_helper args, const struct _lrn_forward_normalize_arg_helper args2) {
+    assert(false);
+  }
+  void lrn_backward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _lrn_backward_arg_helper args) {
+    assert(false);
+  }
+
+  void maxpool_forward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _pool_forward_arg_helper args) {
+    assert(false);
+  }
+  void maxpool_backward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _pool_backward_arg_helper args) {
+    assert(false);
+  }
+
 
   //virtual void pmap2d_write_coalesce();
 

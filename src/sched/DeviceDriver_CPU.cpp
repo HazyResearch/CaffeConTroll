@@ -346,6 +346,72 @@ void CPUDriver::backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * s
 
 }
 
+void CPUDriver::maxpool_forward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _pool_forward_arg_helper args) {
+
+  const int iR = args.iR;
+  const int iC = args.iC;
+  const int oR = args.oR;
+  const int oC = args.oC;
+  const int D  = args.D;
+  const int B  = args.B;
+  const int k  = args.kernel_size;
+  const int s  = args.stride;
+
+  for (int i=0; i<D*B; ++i) {
+    int * const max_index  = args.max_index + i*oR*oC;
+    float * const output_data = ((float*) dst->ptr) + i*oR*oC;
+    const float * const input_data  = ((float*) src->ptr) + i*iR*iC;
+    for (int ph = 0; ph < oR; ++ph) {
+      const int h_end = min(ph*s + k, iR);
+      for (int pw = 0; pw < oC; ++pw) {
+        const int w_end = min(pw*s + k, iC);
+        for (int h = ph*s; h < h_end; ++h) {
+          for (int w = pw*s; w < w_end; ++w) {
+            max_index[ph*oC + pw] = input_data[h*iC + w] > output_data[ph*oC + pw] ?
+              h*iC + w : max_index[ph*oC + pw];
+            output_data[ph*oC + pw] = input_data[h*iC + w] > output_data[ph*oC + pw] ?
+              input_data[h*iC + w] : output_data[ph*oC + pw];
+          }
+        }
+      }
+    }
+  }
+}
+
+void CPUDriver::maxpool_backward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _pool_backward_arg_helper args) {
+
+  const int iR = args.iR;
+  const int iC = args.iC;
+  const int oR = args.oR;
+  const int oC = args.oC;
+  const int D  = args.D;
+  const int B  = args.B;
+  const int * const max_index  = args.max_index;
+  const float * const output_grad = (float*) dst->ptr;
+  float * const input_grad  = (float*) src->ptr;
+  for (int i=0; i<D*B; ++i) {
+    for (int ph = 0; ph < oR; ++ph) {
+      for (int pw = 0; pw < oC; ++pw) {
+        input_grad[i*iR*iC + max_index[i*oR*oC + ph*oC + pw]] += output_grad[i*oR*oC + ph*oC + pw];
+      }
+    }
+  }
+}
+
+void CPUDriver::lrn_forward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _lrn_forward_arg_helper args, const struct _lrn_forward_normalize_arg_helper args2) {
+
+    assert(false);
+}
+
+void CPUDriver::lrn_backward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _lrn_backward_arg_helper args) {
+
+    assert(false);
+}
+
 template<FUNC_IDX_MAPPING f_dst_pos, FUNC_MM_MAPPING func>
 void CPUDriver::parallel_map(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     size_t src_skip, DeviceMemoryPointer * const f_dst_pos_curry,
