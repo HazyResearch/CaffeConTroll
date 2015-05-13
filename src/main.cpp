@@ -6,9 +6,10 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
+#include <mpi.h>
 #include "DeepNet.h"
 
-int main(int argc, const char * argv[]) {
+int main(int argc,  char ** argv) {
 
   //srand(0); // TODO: for determinsitic
 
@@ -34,11 +35,41 @@ int main(int argc, const char * argv[]) {
   boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
   boost::program_options::notify(vm);
 
-  if (string(argv[1]) == "train") {
+  char hostname[1024];
+  gethostname(hostname, 1024);
+  int rank, size;
+  int root = 0;
+  MPI_Init (&argc, &argv);      /* starts MPI */
+  MPI_Comm_rank (MPI_COMM_WORLD, &rank);        /* get current process id */
+  MPI_Comm_size (MPI_COMM_WORLD, &size);        /* get number of processes */
+  std::string myname = "<" + std::string(hostname) + ":" + std::to_string(rank) + ">";
+
+  if(rank == root){
+    std::cout << "I am the master node! Hostname=" << hostname << " rank=" << rank << " out of " << size << std::endl;
+    std::cout << myname << ": " << "I will start coordinate" << std::endl;
     DeepNet::load_and_train_network(argv[2], data_binary, model_file);
-  } else if (string(argv[1]) == "test") {
-    DeepNet::load_and_test_network(argv[2], data_binary, model_file);
+  }else{
+    std::cout << "I am the slave node! Hostname=" << hostname << " rank=" << rank << " out of " << size << std::endl;
+    std::cout << myname << ": " << "I will start training" << std::endl;
+    DeepNet::load_and_train_network(argv[2], data_binary, model_file);
+    /*
+    if (string(argv[1]) == "train") {
+      DeepNet::load_and_train_network(argv[2], data_binary, model_file);
+    } else if (string(argv[1]) == "test") {
+      DeepNet::load_and_test_network(argv[2], data_binary, model_file);
+    }
+    */
   }
 
   return 0;
 }
+
+
+
+
+
+
+
+
+
+
