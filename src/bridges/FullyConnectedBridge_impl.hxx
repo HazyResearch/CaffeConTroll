@@ -34,18 +34,12 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
   report_backward_weight_kernel.reset();
 
 #ifdef _DO_ASSERT
-  assert(oR == (iR + 2 * padding - K) / stride + 1);
-  assert(oC == (iC + 2 * padding - K) / stride + 1);
-  assert(iB == oB); assert(num_output_features == oD);
+  assert(oR == 1);
+  assert(oC == 1);
+  assert(iB == oB);
+  assert(oD == num_output_features);
 #endif
 
-  // If on the GPU, cubes will be smaller (batch size 1) since we only process
-  // a single batch at a time.
-  size_t batch_size_device = iB;
-  if (!std::is_same<DriverClass, CPUDriver>::value) {
-    batch_size_device = 1;
-  }
-  
   // ===========================================================================
   // Cubes which are used outside this bridge
   //
@@ -62,18 +56,18 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
   // and one which points to the shadow (which can be removed).
   
   // Allocated on device (important, should remove "shadow" from name)
-  p_model_cube_shadow = new LogicalCubeType(K, K, iD, num_output_features, p_driver); 
+  p_model_cube_shadow = new LogicalCubeType(K, K, iD, oD, p_driver); 
   initialize_logical_cube(p_model_cube_shadow, weight_filler);
 
   // Allocated nowhere, points to shadow (useless, delete this)
-  p_model_cube = new LogicalCubeType(NULL, K, K, iD, num_output_features);
+  p_model_cube = new LogicalCubeType(NULL, K, K, iD, oD);
 
   // ---------------------------------------------------------------------------
   // Model gradient cube -- this is important because pbridge reads this at the end
   // ---------------------------------------------------------------------------
   
   // Allocated on the device
-  p_model_gradient_cube = new LogicalCubeType(K, K, iD, num_output_features, p_driver);
+  p_model_gradient_cube = new LogicalCubeType(K, K, iD, oD, p_driver);
   // SHADJIS TODO: This initialization is no longer needed since I re-initialize each backward
   // pass (necessary since we sum the gradients from each image consecutively, i.e. not part of GEMM)
   p_driver->sconstant_initialize(p_model_gradient_cube->get_device_pointer(p_driver), DataType(0.));
@@ -81,10 +75,10 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
   // Repeat the above 2 things for the bias too
   if (bias_term) {
     // This is allocated on the device
-    p_bias_cube = new LogicalCubeType(1, 1, num_output_features, 1, p_driver);
+    p_bias_cube = new LogicalCubeType(1, 1, oD, 1, p_driver);
     initialize_logical_cube(p_bias_cube, bias_filler);
     // This is allocated on the device
-    p_bias_gradient_cube = new LogicalCubeType(1, 1, num_output_features, 1, p_driver);
+    p_bias_gradient_cube = new LogicalCubeType(1, 1, oD, 1, p_driver);
   }
 
 
@@ -97,34 +91,13 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
   // ===========================================================================
   
   // ---------------------------------------------------------------------------
-  // Forward lowered data
-  // ---------------------------------------------------------------------------
-  // Allocated on the device
-  // This is used both in the fw and bw pass
-  // Batch Note: Currently on GPU we are redoing the fw lowering during the bw step so 
-  // we only need to allocate space for a single lowered image on the device.
-  p_forward_lowered_data = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*batch_size_device,
-      1, 1, p_driver);
-
-  // ---------------------------------------------------------------------------
-  // Backward data gradient before lowering
-  // ---------------------------------------------------------------------------
-  // Allocated on the device
-  // This is used only in the bw pass but is allocated on device, so we make this
-  // cube here to only allocate it once
-  // Batch Note: Currently on GPU we only calculate 1 backward grad at a time so
-  // we only need to allocate space for a single image on the device.
-  p_backward_inputgrad = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*batch_size_device, 1, 1, p_driver);
-
-
-  // ---------------------------------------------------------------------------
   // Extra cubes
   // ---------------------------------------------------------------------------
-  // On the GPU, we also need to make a vector of ones, of size oR*oC
+  // On the GPU, we also need to make a vector of ones, of size oR*oC*iB = iB
   // We don't need to use a cube for this but it's easier
   // Allocated on the device
   if (!std::is_same<DriverClass, CPUDriver>::value) {
-    ones_bias_vector = new LogicalCube<DataType, Layout_CRDB>(oR*oC, 1, 1, 1, p_driver);
+    ones_bias_vector = new LogicalCube<DataType, Layout_CRDB>(iB, 1, 1, 1, p_driver);
     p_driver->sconstant_initialize(ones_bias_vector->get_device_pointer(p_driver), (DataType) 1.);
   }
   
@@ -141,49 +114,26 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
   //  - output_g_cube
   
   
-  // ===========================================================================
-  // Cubes which are used within this constructor only
-  //
-  // The above 2 cases handle all cubes which need to be allocated on the device.
-  // The remaining cubes below are useless and only exist so we can pass some cube
-  // with their size into kernel and connector constructors.
-  // Put them on the stack since we never need them again.
-  // Also note that these don't own their data.
-  // ===========================================================================
-
-  // A cube with the shape of the lowered foward model
-  LogicalCube<DataType, Layout_CRDB> lowered_forward_model(p_model_cube_shadow->get_p_data(), num_output_features,
-      K*K*iD, 1, 1);
-
-  // A cube with the shape of the lowered forward output
-  LogicalCube<DataType, Layout_CRDB> lowered_forward_output(p_output_layer->p_data_cube->get_p_data(),
-      num_output_features, oR*oC*batch_size_device, 1, 1);
-
-  // A cube with the shape of p_input_layer->p_data_cube, or input_d_cube,
-  // except with batch size adjusted
-  LogicalCube<DataType, Layout_CRDB> dummy_data_cube(NULL, iR, iC, iD, batch_size_device);
-
-
-  // ===========================================================================
-  // Connectors / Kernels
-  // ===========================================================================
-
-  p_forward_lower_connector = new Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, LOWERING_TYPE1, DriverClass>
-    (&dummy_data_cube, p_forward_lowered_data, K, padding, stride, p_driver);
-
-  p_forward_gemm_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType, Layout_CRDB,
-        Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_TRANS_NO_DIM_FLIP, DriverClass>
-    (&lowered_forward_model, p_forward_lowered_data, &lowered_forward_output, p_driver);
-
-  p_backward_gemm_updateweight_kernel = new Kernel<DataType, Layout_CRDB, DataType, Layout_CRDB, DataType,
-        Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_NOTRANS_NOTRANS_DIM_FLIP, DriverClass>
-    (&lowered_forward_output, p_forward_lowered_data, &lowered_forward_model, p_driver);
-
-  p_backward_gemm_updateweight_kernel->alpha = 1.0;
-  p_backward_gemm_updateweight_kernel->beta = 0.0;
-  p_backward_gemm_updategrad_kernel = new Kernel<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB,
-        DataType_SFFloat, Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_TRANS_NOTRANS, DriverClass>
-    (&lowered_forward_model, &lowered_forward_output, p_backward_inputgrad, p_driver);
+  // ---------------------------------------------------------------------------
+  // Kernels
+  // ---------------------------------------------------------------------------
+  // SHADJIS TODO:
+  // Originally here we made 3 kernels, one per GEMM. These are useful as they
+  // take a cube, store its size, and then provide an easy GEMM interface for
+  // that size. Need to abstract current GEMM calls in a similar way, since now
+  // they require explicitly providing the input sizes, even though the cubes 
+  // we are doing GEMM on already contain those sizes so it is redundant.
+  // I.e. just given cube inputs (containing data + size) and transpose flags
+  // determine each dimension, or even simpler, abstract away transposes too by
+  // create 3 functions, one for each GEMM in the fw/bw pass.
+  // Also, currently we sometimes abstract the call to BLAS through another 
+  // driver call, e.g. p_driver->backward_bias() and backward_bias_fc which call 
+  // GEMV internally, but other times we abstract the GEMM directly.
+  // Should make interface more clear.
+  model_R = oD;
+  model_C = K*K*iD;
+  data_R  = oD;
+  data_C  = iB;
 
   // Finish reporting
   report_forward_constructor.end(0, 0, 0);
@@ -216,11 +166,7 @@ initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter
  * First Layer {iData, iModel, iGrad}
  * Next Layer {oData, oModel, oGrad}
  *
- * Procedure:
- *
- * (1) iData -----lowering-----> LoweredData
- *
- * (2) LoweredData x iModel -----------> oData
+ * Procedure: Copy to device, GEMM, +bias, copy to host
  *
  **/
 template <typename DataType, typename DriverClass>
@@ -229,238 +175,89 @@ forward() {
 
   // Begin forwards step
   
-  // Start Reporting
-  report_forward_last_transfer.reset();
+  PROFILE_ONLY(p_driver->device_sync(); std::cout << "FC Forward\n"; float seconds = 0.; Timer t;)
+  
+  // Initialize the thread 
+  p_driver->init_thread(); // Only for GPU
+  p_driver->set_num_threads(run_with_n_threads); // Only for CPU
+  
+  // Get model cube
+  if (p_model_cube->get_p_data() == NULL) {
+    p_model_cube->set_p_data(p_model_cube_shadow->get_p_data());
+  }
 
-  // CPU: Run in batches
+  // Copy input to device memory
+  // SHADJIS TODO: Refactor this copy out of the bridge
   if (std::is_same<DriverClass, CPUDriver>::value) {
-  
-      p_driver->set_num_threads(run_with_n_threads);
-      
-      // Copy input to device memory
-      input_d_cube->set_p_data( p_input_layer->p_data_cube->get_p_data());
-          
-      // If DriverClass == CPUDriver, we also need to update the p_data pointer of output_d_cube to point to
-      // p_output_layer->p_data_cube->p_data
-      output_d_cube->set_p_data(p_output_layer->p_data_cube->get_p_data());
-      
-      if (p_model_cube->get_p_data() == NULL) {
-        p_model_cube->set_p_data(p_model_cube_shadow->get_p_data());
-      }
-      
-      // Start Reporting
-      // This is done after the copy since that will be refactored out of the bridge.
-      PROFILE_ONLY(Timer t; Timer t_inner; float seconds;)
-      report_forward_last_transfer.reset();
-  
-      // (0) cast input model and output to matrix
-      // This one should be refactored with the matrix interface
-      LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->get_p_data(), num_output_features,
-          K*K*iD, 1, 1);
-      LogicalCube<DataType, Layout_CRDB> lowered_output(output_d_cube->get_p_data(),
-          num_output_features, oR*oC*iB, 1, 1);
-      
-      // (1) do the lowering
-      // SHADJIS TODO: Pass in an argument for the lowering type (currently only type 1)
-      p_forward_lower_connector->lower_cube(input_d_cube, p_forward_lowered_data);
-      
-      PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    Lower Cube:  " << seconds << "\n"; t_inner.restart(); )
-      
-      // (2) call GEMM kernel
-      p_forward_gemm_kernel->compute(&lowered_model, p_forward_lowered_data, &lowered_output);
-      
-      PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    GEMM:        " << seconds << "\n"; t_inner.restart(); )
-      
-      // Right now the output we get is of the form:
-      // [(b_0, d_0), (b_1, d_0), ... , (b_n, d_0)
-      //
-      //  (b_0, d_m), (b_1, d_m), ... , (b_n, d_m)]
-      //  we need to transpose this, so that the outputs
-      //  of a single batch are contiguous in memory.
-      //  For now, we will call remap_output to fix this
-      //  issue.
-      //
-      //  TODO: figure out how to properly transpose the
-      //  inputs so that we get the correct output without
-      //  needing to call remap
-      p_forward_lower_connector->remap_output(*output_d_cube, num_output_features, iB, oR*oC);
-      
-      PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    Remap:       " << seconds << "\n"; t_inner.restart(); )
-      
-      // add bias
-      if (bias_term) {
-        DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
-        DeviceMemoryPointer * bias = p_bias_cube->get_device_pointer(p_driver);
-         // SHADJIS TODO: Replace this with BLAS like the GPU
-        _bias_arg_helper _arg1;
-        _arg1.src_skip = oR*oC*sizeof(DataType); // skip m^2, i.e. iterate for every b and for every d
-        _arg1.DataTypeSize = sizeof(DataType);
-        _arg1.oD = oD;
-        size_t ORxOC = oR*oC;
-        DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg1,
-          sizeof(_bias_arg_helper));
-        DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&ORxOC,
-            sizeof(size_t));
-        p_driver->template parallel_map<_f_src_to_dst_bias_forward,
-          _f_bias_forward>(bias, output, _arg1.src_skip, arg1, arg2);
-      }
-  
-      PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    Bias:        " << seconds << "\n";)
-      
-      // Finish reporting. 
-      // SHADJIS TODO: This is done before copy back to device, since copies need 
-      // to be refactored out of the bridge
-      report_forward_last_transfer.end();
-      PROFILE_ONLY(seconds = t.elapsed(); std::cout << "  Fw FC:         " << seconds << "\n";)
+    input_d_cube->set_p_data( p_input_layer->p_data_cube->get_p_data());
+    output_d_cube->set_p_data(p_output_layer->p_data_cube->get_p_data());
+  } else {
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(input_d_cube,
+      p_input_layer->p_data_cube);
   }
-  // GPU: Run 1 image at a time
-  else {
 
-      // SHADJIS TODO: Need to refactor the copies below out of the bridge
-      // Similarly, refactor this call to initialize cuBLAS out of the bridge
-      p_driver->init_thread();
-      
-      // Get model cube (do this outside loop since single model used for all images)
-      if (p_model_cube->get_p_data() == NULL) {
-        p_model_cube->set_p_data(p_model_cube_shadow->get_p_data());
-      }
-      LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->get_p_data(), num_output_features,
-          K*K*iD, 1, 1);
-      DeviceMemoryPointer * bias = p_bias_cube->get_device_pointer(p_driver);
+  // Start Reporting
+  // This is done after the copy since that will be refactored out of the bridge.
+  report_forward_last_transfer.reset();
+  PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  Copy local to device: " << seconds << "\n"; t.restart();)
 
-      // Next, since we are going to lower/gemm 1 image at a time, make cubes for a single image.
-      
-      // Create a single-image version of input_d_cube.
-      // SHADJIS TODO: This is only needed because we are still copying the entire 
-      // batch to device at once. When we switch to copying 1 image at a time, this is not needed.
-      LogicalCubeType input_d_cube_SINGLE_IMAGE  (NULL, // Points to 1 image of input_d_cube
-        iR, iC, iD, 1, p_driver);
-        
-      // Create a single-image version of the lowered output
-      LogicalCubeType lowered_output_SINGLE_IMAGE(NULL, // Points to 1 image of lowered output
-        num_output_features, oR*oC*1, 1, 1, p_driver);
+  // Do the GEMM. No lowering is needed for FC.
+  // SHADJIS TODO: Note here we're not using kernel, just doing the GEMM.
+  // In the future can abstract this with a function call or kernel object
+  // which takes only cubes (including sizes) and transpose information,
+  // like the one used in conv now.
+  p_driver->sgemm_new(CblasNoTrans, CblasTrans, data_C, model_R, model_C, (float)1.,
+      input_d_cube->get_p_data(), p_model_cube->get_p_data(), (float)0., output_d_cube->get_p_data());
 
-      PROFILE_ONLY(p_driver->device_sync(); std::cout << "FC Forward\n"; float seconds = 0.; Timer t;)
-      
-      // SHADJIS TODO: Eventually we should only copy one image at a time to the device
-      // This is very easy, just
-      //  1) put this copy inside the loop, and
-      //  2) change the GPU specialized constructor (non-softmax one) in AbstractBridge to use batch
-      //     size 1 for all 4 internal cubes
-      //  3) Make a single-image (host) cube that points to 1 image at a time from p_input_layer->p_data_cube
-      //  4) input_d_cube_SINGLE_IMAGE can be deleted once input_d_cube is only size 1 image
-      // For now, input_d_cube is the full size so copy the entire cube.
-      AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(input_d_cube,
-          p_input_layer->p_data_cube);
-
-      PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  Copy local to device: " << seconds << "\n"; t.restart();)
-
-      // Start Reporting
-      // This is done after the copy since that will be refactored out of the bridge.
-      report_forward_last_transfer.reset();
+  PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "    GEMM:        " << seconds << "\n"; t.restart(); )
   
-      PROFILE_ONLY(float t1 = 0.; float t2 = 0.; float t3 = 0.; Timer inner_T;)
-
-      // Do lowering/GEMM one image at a time
-      for (size_t ib = 0; ib < iB; ++ib) {
-          
-          // Get pointers to the right data for the lowering
-          
-          // SHADJIS TODO: Eventually, we will copy 1 image at a time, and then lower / gemm that
-          // one image. So then, input_d_cube will have the size of a single image. For now, we are 
-          // copying all images at once, so input_d_cube has the full batch size. So we needed to 
-          // make a device cube of size 1 image and have it point to the right image of input_d_cube.
-          // Get the right image of input_d_cube here:
-          input_d_cube_SINGLE_IMAGE.set_p_data( input_d_cube->get_p_data() + ib*iR*iC*iD );
-          
-          // We also have to get a device cube of size 1 image to store the lowered data.
-          // Recall that the forward lowering is re-used in one of the backward GEMM
-          // calculations. There are 2 possibilities:
-          //   1. Calculate the forward lowered data in the forward pass and also re-calculate 
-          //      it in the backwards pass
-          //        - No need to cuda malloc entire batch on device
-          //        - But requires redoing lowering
-          //        - Also, since we are redoing lowering, need to copy over data to device during
-          //          backwards again (so we can re-lower it). So 
-          //   2. Calculate the forward lowered data in the forward pass for each image, store
-          //      all lowered images (e.g. on the device or on the host), and re-use the lowering
-          //      in the backwards step.
-          //        - Extra copy back in forward (copy forward lowered data to device), or no copy
-          //          needed but then need to keep stored on device (which may have limited memory)
-          //        - Also if transferring the data back to host at the end of fw, need to then copy
-          //          lowered data back to device at beginning of bw (and lowered data is k*k times
-          //          bigger than unlowered data, and on-chip bandwidth much higher)
-          // Currently I am doing 1, which means that p_forward_lowered_data only ever needs to
-          // store a single lowered image on the device. So, there is no need to make a SINGLE_IMAGE
-          // cube like we did for input data, since p_forward_lowered_data already is size 1 image.
-          
-          PROFILE_ONLY(p_driver->device_sync(); inner_T.restart();)
-          
-          // Do the lowering
-          // SHADJIS TODO: Pass in an argument for the lowering type (currently only type 1)
-          p_forward_lower_connector->lower_cube(&input_d_cube_SINGLE_IMAGE, p_forward_lowered_data);
-          
-          PROFILE_ONLY(p_driver->device_sync(); t1 += inner_T.elapsed(); inner_T.restart();)
-          
-          // p_forward_lowered_data now contains a single image.
-          // Next, do the GEMM and store the result in lowered_output_SINGLE_IMAGE, which stores
-          // a single image of output_d_cube.
-          lowered_output_SINGLE_IMAGE.set_p_data( output_d_cube->get_p_data() + ib*oR*oC*oD );
-
-          // Call GEMM kernel
-          p_forward_gemm_kernel->compute(&lowered_model, p_forward_lowered_data, &lowered_output_SINGLE_IMAGE);
-          
-          PROFILE_ONLY(p_driver->device_sync(); t2 += inner_T.elapsed(); inner_T.restart();)
-          
-          // Note: Unlike CPU, remap is not necessary here since we lower 1 image at a time only
-          
-          // SHADJIS TODO: Can also move this bias outside the loop, i.e. add bias to each
-          // output image all at once
-          if (bias_term) {
-            // SHADJIS TODO: Use this line instead if moved outside
-            // DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
-            // And replace the input to forward_bias with iB
-            
-            DeviceMemoryPointer * output = lowered_output_SINGLE_IMAGE.get_device_pointer(p_driver);
-            p_driver->forward_bias(bias, output, oR*oC, oD, 1);
-          }
-          
-          PROFILE_ONLY(p_driver->device_sync(); t3 += inner_T.elapsed(); inner_T.restart();)
-      }
-      
-      PROFILE_ONLY(std::cout << "      FW t1 = " << t1 << "\n";)
-      PROFILE_ONLY(std::cout << "      FW t2 = " << t2 << "\n";)
-      PROFILE_ONLY(std::cout << "      FW t3 = " << t3 << "\n";)
-      
-      PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  iB iterations:        " << seconds << "\n"; t.restart();)
-  
-      // Finish reporting. 
-      // SHADJIS TODO: This is done before copy back to device, since copies need 
-      // to be refactored out of the bridge
-      report_forward_last_transfer.end();
-      
-      // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy output to host memory here
-      // SHADJIS TODO: In the future, if 2 consecutive bridges are on GPU, no need to
-      // copy back to the host.
-      AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_host(
-          p_output_layer->p_data_cube, output_d_cube
-        );
-
-      PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  Copy device to local: " << seconds << "\n";)
-  
-      // SHADJIS TODO: Need to refactor the copies below out of the bridge
-      // Similarly, refactor this call to destroy cuBLAS out of the bridge
-      p_driver->destroy_thread();
+  // Add bias
+  if (bias_term) {
+    DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
+    DeviceMemoryPointer * bias = p_bias_cube->get_device_pointer(p_driver);
+    if (std::is_same<DriverClass, CPUDriver>::value) {
+       // SHADJIS TODO: Replace this with BLAS like the GPU, or instead implement
+       // with same # threads as GEMM will use (we only use 1 partition for FC, but
+       // with multiple threads).
+      _bias_arg_helper _arg1;
+      _arg1.src_skip = sizeof(DataType); // skip m^2, i.e. iterate for every b and for every d
+      _arg1.DataTypeSize = sizeof(DataType);
+      _arg1.oD = oD;
+      size_t ORxOC = 1;
+      DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg1,
+        sizeof(_bias_arg_helper));
+      DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&ORxOC,
+          sizeof(size_t));
+      p_driver->template parallel_map<_f_src_to_dst_bias_forward,
+        _f_bias_forward>(bias, output, _arg1.src_skip, arg1, arg2);
+    } else {
+      p_driver->forward_bias(bias, output, /* oR*oC = */ 1, oD, iB);
+    }
   }
+
+  PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "    Bias:        " << seconds << "\n"; t.restart(); )
+
+  // Finish reporting. 
+  report_forward_last_transfer.end();
+  
+  // SHADJIS TODO: Need to refactor the copies below out of the bridge
+  
+  // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy output to host memory here
+  // SHADJIS TODO: In the future, if 2 consecutive bridges are on GPU, no need to
+  // copy back to the host.
+  if (!std::is_same<DriverClass, CPUDriver>::value) {
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_host(
+        p_output_layer->p_data_cube, output_d_cube
+      );
+  }
+
+  PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  Copy device to local: " << seconds << "\n";)
+
+  // SHADJIS TODO: Similarly, refactor this call to destroy cuBLAS out of the bridge
+  p_driver->destroy_thread();
    
-  // Aggregate existing reports
-  
-  // report_forward_last_transfer.aggregate_onlystat(p_forward_gemm_kernel->report_last_lowering);
-  // report_forward_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_lowering);
-
-  // report_forward_history.aggregate(report_forward_last_transfer);
-  // report_forward_kernel.aggregate(p_forward_gemm_kernel->report_last_lowering);
-  report_forward_lowering.aggregate(p_forward_lower_connector->report_last_lowering);
+  // Aggregate reports
+  report_forward_history.aggregate(report_forward_last_transfer);
 }
 
 /**
@@ -469,7 +266,7 @@ forward() {
   * First Layer {iData, iModel, iGrad}
   * Next Layer {oData, oModel, oGrad}
   *
-  * Procedure:
+  * Procedure: (SHADJIS TODO: Update comment, no lowering anymore)
   *
   * (1) oData element-wise-mul oGrad -------> BackPropogatedGradient
   *
@@ -488,254 +285,112 @@ backward() {
 
   // Begin backwards step
   
-  // CPU: Run in batches
+  PROFILE_ONLY(p_driver->device_sync(); std::cout << "FC backward\n"; float seconds = 0.; Timer t;)
+  
+  // Initialize the thread 
+  p_driver->init_thread(); // Only for GPU
+  p_driver->set_num_threads(run_with_n_threads); // Only for CPU
+  
+  // Get model cube
+  DeviceMemoryPointer * model_gradient_pointer = p_model_gradient_cube->get_device_pointer(p_driver);
+  p_driver->sconstant_initialize(model_gradient_pointer, DataType(0.));
+
+  // Copy output grad to device memory
+  // SHADJIS TODO: Move this copy out of fc bridge.
   if (std::is_same<DriverClass, CPUDriver>::value) {
-      
-      p_driver->set_num_threads(run_with_n_threads);
-      
-      // Copy output grad to device memory
-      output_g_cube->set_p_data(p_output_layer->p_gradient_cube->get_p_data());
-          
-      // If DriverClass == CPUDriver, we also need to update the p_data pointer of input_g_cube to point to
-      // p_input_layer->p_gradient_cube->p_data
-      input_g_cube->set_p_data(p_input_layer->p_gradient_cube->get_p_data());
-        
-      // Start Reporting
-      // This is done after the copy since that will be refactored out of the bridge.
-      PROFILE_ONLY(Timer t; Timer t_inner; float seconds;)
-      report_backward_updateweight_last_transfer.reset();
-
-      // Calculate the GEMM between the gradient of output and old kernel to calc the update on grad
-      // Note: lowered_model is storing p_model_cube_history, not p_model_cube. We need this for the momentum update.
-      LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->get_p_data(), num_output_features, K*K*iD, 1, 1);
-      LogicalCube<DataType, Layout_CRDB> lowered_model_grad(p_model_gradient_cube->get_p_data(), num_output_features, K*K*iD, 1, 1);
-      LogicalCube<DataType, Layout_CRDB> lowered_outputgrad(output_g_cube->get_p_data(), num_output_features, oR*oC*iB, 1, 1);
-      
-      // Update the bias term, summing over the gradients for each O and B
-      if (bias_term) {
-        // SHADJIS TODO: Here we used to call parallel map to do this:
-        //   For each batch b
-        //     For each depth d (in parallel)
-        //       For each pixel p of feature map in batch b and depth d
-        //         bias[d] += p
-        // This can't be done with a single parallel map because of the outer batch loop.
-        // On the CPU parallel_map is still used however since it is done serially. If that
-        // changes, rewrite that too.
-        DeviceMemoryPointer * output = output_g_cube->get_device_pointer(p_driver);
-        DeviceMemoryPointer * bias = p_bias_gradient_cube->get_device_pointer(p_driver);
-        p_driver->sconstant_initialize(bias, DataType(0.));
-         // SHADJIS TODO: Replace this with BLAS like the GPU
-        _bias_arg_helper _arg1;
-        _arg1.src_skip = oR*oC*sizeof(DataType);
-        _arg1.DataTypeSize = sizeof(DataType);
-        _arg1.oD = oD;
-        size_t ORxOC = oR*oC;
-        DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg1,
-          sizeof(_bias_arg_helper));
-        DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&ORxOC,
-            sizeof(size_t));
-        p_driver->template parallel_map<_f_src_to_dst_bias_backward,
-          _f_bias_backward>(bias, output, _arg1.src_skip, arg1, arg2);
-      }
-      
-      PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    Bias:        " << seconds << "\n"; t_inner.restart(); )
-      
-      // Here, we again call remap_output, but we do so BEFORE calling compute and inverse_lower_cube
-      p_forward_lower_connector->remap_output(*output_g_cube, oB, num_output_features, oR*oC);
-      
-      PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    Remap:       " << seconds << "\n"; t_inner.restart(); )
-      
-      // SHADJIS TODO: Can check needs_to_calc_backward_grad here as well, e.g. maybe someone wants
-      // to use CcT with just fc layers
-      //    - 2.1 GEMM between the gradient of output and old kernel
-      p_backward_gemm_updategrad_kernel->compute(&lowered_model, &lowered_outputgrad, p_backward_inputgrad);
-      PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    GEMM Data:   " << seconds << "\n"; t_inner.restart(); )
-      //    - 2.2 undo the lowering (i.e., sum together all grad corresponding to the same unlowered position)
-      p_forward_lower_connector->inverse_lower_cube(p_backward_inputgrad, input_g_cube);
-      PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    Inverse Lwr: " << seconds << "\n"; t_inner.restart(); )
-      
-      // Redo the lowering
-      // Calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
-      p_backward_gemm_updateweight_kernel->alpha = 1.0;
-      p_backward_gemm_updateweight_kernel->beta = 0.0;
-      p_backward_gemm_updateweight_kernel->compute(&lowered_outputgrad, p_forward_lowered_data, &lowered_model_grad);
-      
-      PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    GEMM Wghts:  " << seconds << "\n"; t_inner.restart(); )
-      
-      // Finish reporting. 
-      report_backward_updateweight_last_transfer.end();
-      PROFILE_ONLY(seconds = t.elapsed(); std::cout << "  Bw FC          " << seconds << "\n";)
-  }
-  // GPU: Run 1 image at a time
-  else {
-  
-      // SHADJIS TODO: Need to refactor the copies below out of the bridge
-      // Similarly, refactor this call to initialize cuBLAS out of the bridge
-      p_driver->init_thread();
-      
-      // Get model cube (do this outside loop since single model used for all images)
-      LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->get_p_data(), num_output_features, K*K*iD, 1, 1);
-      LogicalCube<DataType, Layout_CRDB> lowered_model_grad(p_model_gradient_cube->get_p_data(), num_output_features, K*K*iD, 1, 1);
-      DeviceMemoryPointer * model_gradient = lowered_model_grad.get_device_pointer(p_driver);
-      p_driver->sconstant_initialize(model_gradient, DataType(0.));
-      DeviceMemoryPointer * bias = p_bias_gradient_cube->get_device_pointer(p_driver);
-      p_driver->sconstant_initialize(bias, DataType(0.));
-
-      // Next, since we are going to lower/gemm 1 image at a time, make cubes for a single image.
-
-      // Create a single-image version of output_g_cube.
-      // SHADJIS TODO: This is only needed because we are still copying the entire 
-      // batch to device at once. When we switch to copying 1 image at a time, this is not needed,
-      // as output_g_cube will already be of size 1 image.
-      // For single images, the lowered output_g_cube is the same as before lowering, so use a single
-      // cube for both.
-      LogicalCubeType output_g_cube_SINGLE_IMAGE  (NULL, // Points to 1 image of (lowered) output_g_cube
-        oD, oR*oC*1, 1, 1, p_driver);
-      
-      // Create a single-image version of input_g_cube.
-      // We need this because we are doing lowering/GEMM on a single image at once, but at the end
-      // we have to write back the entire input_g_cube to the host.
-      // SHADJIS TODO: This is only needed because we are still copying the entire 
-      // batch back to device at once. When we switch to copying 1 image at a time, this is not needed,
-      // as input_g_cube will already be of size 1 image (and be written back each iteration).
-      LogicalCubeType input_g_cube_SINGLE_IMAGE  (NULL, // Points to 1 image of (lowered) output_g_cube
-        iR, iC, iD, 1, p_driver);
-      
-      // Create a single-image version of input_d_cube.
-      // SHADJIS TODO: This is only needed because we are still copying the entire 
-      // batch to device at once. When we switch to copying 1 image at a time, this is not needed.
-      // SHADJIS TODO: Moreover, using input_d_cube cube is only needed in the backwards pass because 
-      // one of the GEMMs requires the forward lowered data. This was previously calculated in the
-      // forwards pass, but it was calculated and stored on the device only 1 image at a time, so now
-      // we have to calculate it again.
-      LogicalCubeType input_d_cube_SINGLE_IMAGE  (NULL, // Points to 1 image of input_d_cube
-        iR, iC, iD, 1, p_driver);
-      
-      PROFILE_ONLY(std::cout << "FC Backward\n"; float seconds = 0.; Timer t;)
-      
-      // Copy output grad to device memory
-      // SHADJIS TODO: Move this copy out of fc bridge. A bridge should just be passed a device memory poitner
-      // or a cube and use the driver to get the next image from the cube. If the cube is already on the device,
-      // i.e. all the images were copied before, then it just returns the pointer, and if it is not, it does the 
-      // copy of that one image. Then the decision to copy all at once or 1 image at a time is handled be a
-      // scheduler which knows the memory size of each device.
-      AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(output_g_cube,
-          p_output_layer->p_gradient_cube);
-
-      // SHADJIS TODO: Eventually we should only copy one image at a time to the device
-      // This is very easy, just
-      //  1) put this copy inside the loop, and
-      //  2) change the GPU specialized constructor (non-softmax one) in AbstractBridge to use batch
-      //     size 1 for all 4 internal cubes
-      //  3) Make a single-image (host) cube that points to 1 image at a time from p_input_layer->p_data_cube
-      //  4) input_d_cube_SINGLE_IMAGE can be deleted once input_d_cube is only size 1 image
-      // For now, input_d_cube is the full size so copy the entire cube.
-      // Also, see comment above: only need to copy the data because we aren't copying the lowered data.
-      //
-      // SHADJIS TODO: Actually the data was never freed from fw so this currently is not needed
-      //AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(input_d_cube,
-      //    p_input_layer->p_data_cube);
-
-      PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  Copy local to device: " << seconds << "\n"; t.restart();)
-
-      // Start Reporting
-      // SHADJIS TODO: This is done after the copy since that will be refactored out of the bridge.
-      report_backward_updateweight_last_transfer.reset();
-
-      // Calculate the GEMM between the gradient of output and old kernel to calc the update on grad
-      // Note: lowered_model is storing p_model_cube_history, not p_model_cube. We need this for the momentum
-      // update.
-      
-      PROFILE_ONLY(float t1 = 0.; float t2 = 0.; float t3 = 0.; float t4 = 0.; float t5 = 0.; Timer inner_T;)
-
-      // Do lowering/GEMM one image at a time
-      for (size_t ib = 0; ib < iB; ++ib) {
-      
-          // Get a single image of output_g_cube
-          output_g_cube_SINGLE_IMAGE.set_p_data( output_g_cube->get_p_data() + ib*oR*oC*oD );
-          
-          // Also get a single image of input_g_cube
-          input_g_cube_SINGLE_IMAGE.set_p_data( input_g_cube->get_p_data() + ib*iR*iC*iD );
-
-          PROFILE_ONLY(p_driver->device_sync(); inner_T.restart();)
-          
-          // Update the bias term, summing over the gradients for each O and B
-          // SHADJIS TODO: This is done sequentially for each image anyway, so can lift this outside loop
-          if (bias_term) {
-            DeviceMemoryPointer * output = output_g_cube_SINGLE_IMAGE.get_device_pointer(p_driver);
-            p_driver->backward_bias(bias, output, oR*oC, oD, 1, ones_bias_vector->get_p_data());
-          }
-          
-          PROFILE_ONLY(p_driver->device_sync(); t1 += inner_T.elapsed(); inner_T.restart();)
-          
-          // No need to remap since output_g_cube_SINGLE_IMAGE is only a single image
-          
-          // GEMM between the gradient of output and old kernel
-          p_backward_gemm_updategrad_kernel->compute(&lowered_model, &output_g_cube_SINGLE_IMAGE, p_backward_inputgrad);
-
-          PROFILE_ONLY(p_driver->device_sync(); t2 += inner_T.elapsed(); inner_T.restart();)
-          
-          // Undo the lowering (i.e., sum together all grad corresponding to the same unlowered position)
-          p_forward_lower_connector->inverse_lower_cube(p_backward_inputgrad, &input_g_cube_SINGLE_IMAGE);
-          
-          PROFILE_ONLY(p_driver->device_sync(); t3 += inner_T.elapsed(); inner_T.restart();)
-          
-          // SHADJIS TODO: Eventually, we will copy 1 image at a time, and then lower / gemm that
-          // one image. So then, input_d_cube will have the size of a single image. For now, we are 
-          // copying all images at once, so input_d_cube has the full batch size. So we needed to 
-          // make a device cube of size 1 image and have it point to the right image of input_d_cube.
-          // Get the right image of input_d_cube here:
-          input_d_cube_SINGLE_IMAGE.set_p_data( input_d_cube->get_p_data() + ib*iR*iC*iD );
-          
-          // Do the lowering
-          // SHADJIS TODO: Pass in an argument for the lowering type (currently only type 1)
-          p_forward_lower_connector->lower_cube(&input_d_cube_SINGLE_IMAGE, p_forward_lowered_data);
-
-          PROFILE_ONLY(p_driver->device_sync(); t4 += inner_T.elapsed(); inner_T.restart();)
-          
-          // Calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
-          p_backward_gemm_updateweight_kernel->alpha = 1.0;
-          p_backward_gemm_updateweight_kernel->beta = 1.0;  // 1.0 so we can accumulate gradients
-          p_backward_gemm_updateweight_kernel->compute(&output_g_cube_SINGLE_IMAGE, p_forward_lowered_data, &lowered_model_grad);
-          
-          PROFILE_ONLY(p_driver->device_sync(); t5 += inner_T.elapsed();)
-          
-      }
-      
-      PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  iB iterations:        " << seconds << "\n"; t.restart();)
-
-      PROFILE_ONLY(std::cout << "      BW t1 = " << t1 << "\n";)
-      PROFILE_ONLY(std::cout << "      BW t2 = " << t2 << "\n";)
-      PROFILE_ONLY(std::cout << "      BW t3 = " << t3 << "\n";)
-      PROFILE_ONLY(std::cout << "      BW t4 = " << t4 << "\n";)
-      PROFILE_ONLY(std::cout << "      BW t5 = " << t5 << "\n";)
-      
-      // Finish reporting. 
-      // SHADJIS TODO: This is done before copy back to device, since copies need 
-      // to be refactored out of the bridge
-      report_backward_updateweight_last_transfer.end();
-      
-      // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy input grad to host memory here
-      AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_host(
-          p_input_layer->p_gradient_cube, input_g_cube
-        );
-
-      PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  Copy device to local: " << seconds << "\n";)
-  
-      // SHADJIS TODO: Need to refactor the copies below out of the bridge
-      // Similarly, refactor this call to destroy cuBLAS out of the bridge
-      p_driver->destroy_thread();
+    output_g_cube->set_p_data(p_output_layer->p_gradient_cube->get_p_data());
+    input_g_cube->set_p_data(p_input_layer->p_gradient_cube->get_p_data());
+  } else {
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(output_g_cube,
+      p_output_layer->p_gradient_cube);
   }
   
-  // Aggregate existing reports
+  // Copy input data to device.
+  // SHADJIS TODO: Since this was done in FW pass and never freed from fw this currently is not needed.
+  //AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(input_d_cube,
+  //    p_input_layer->p_data_cube);
 
-  // report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updategrad_kernel->report_last_lowering);
-  // report_backward_updateweight_last_transfer.aggregate_onlystat(p_forward_lower_connector->report_last_inverse_lowering);
-  // report_backward_updateweight_last_transfer.aggregate_onlystat(p_backward_gemm_updateweight_kernel->report_last_lowering);
+  PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  Copy local to device: " << seconds << "\n"; t.restart();)
 
-  // report_backward_inverse_lowering.aggregate(p_forward_lower_connector->report_last_inverse_lowering);
-  // report_backward_weight_kernel.aggregate(p_backward_gemm_updateweight_kernel->report_last_lowering);
-  // report_backward_grad_kernel.aggregate(p_backward_gemm_updategrad_kernel->report_last_lowering);
+  // Start Reporting
+  // SHADJIS TODO: This is done after the copy since that will be refactored out of the bridge.
+  report_backward_updateweight_last_transfer.reset();
+
+  // Update the bias term, summing over the gradients for each O and B
+  if (bias_term) {
+    DeviceMemoryPointer * output = output_g_cube->get_device_pointer(p_driver);
+    DeviceMemoryPointer * bias = p_bias_gradient_cube->get_device_pointer(p_driver);
+    p_driver->sconstant_initialize(bias, DataType(0.)); // SHADJIS TODO: Not needed for GPU
+    if (std::is_same<DriverClass, CPUDriver>::value) {
+      // SHADJIS TODO: Here we used to call parallel map to do this:
+      //   For each batch b
+      //     For each depth d (in parallel)
+      //       For each pixel p of feature map in batch b and depth d
+      //         bias[d] += p
+      // This can't be done with a single parallel map because of the outer batch loop.
+      // On the CPU parallel_map is still used however since it is done serially. If that
+      // changes, rewrite that too.
+       // SHADJIS TODO: Replace this with BLAS like the GPU
+      _bias_arg_helper _arg1;
+      _arg1.src_skip = sizeof(DataType);
+      _arg1.DataTypeSize = sizeof(DataType);
+      _arg1.oD = oD;
+      size_t ORxOC = 1;
+      DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg1,
+        sizeof(_bias_arg_helper));
+      DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&ORxOC,
+          sizeof(size_t));
+      p_driver->template parallel_map<_f_src_to_dst_bias_backward,
+        _f_bias_backward>(bias, output, _arg1.src_skip, arg1, arg2);
+    } else {
+      // Note: Because the FC bridge has oR*oC = 1x1, we don't need to call the
+      // normal p_driver->backward_bias() which does 1 GEMV for each batch, and
+      // sums all the GEMV results (i.e. beta=1). Instead, we can calculate as
+      // a single GEMV, by transposing to place the batches next to each other
+      // in memory.
+      // SHADJIS TODO: Profile to see if this is faster
+      // Old call: (ones_bias_vector can also be a factor of B smaller)
+      //p_driver->backward_bias(bias, output, /* oR*oC = */ 1, oD, iB, ones_bias_vector->get_p_data());
+      // SHADJIS TODO: No need to initialize bias anymore (since all done in 1 GEMV)
+      p_driver->backward_bias_fc(bias, output, oD, iB, ones_bias_vector->get_p_data());
+    }
+  }
+  
+  PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "    Bias:        " << seconds << "\n"; t.restart(); )
+
+  // Calculate the GEMM between the gradient of output and old kernel to calc the update on grad
+  // SHADJIS TODO: Add a check to see if fc is 1st layer and does not need backwards data
+  p_driver->sgemm_new(CblasNoTrans, CblasNoTrans, data_C, model_C, model_R, (float)1.,
+      output_g_cube->get_p_data(), p_model_cube->get_p_data(), (float)0., input_g_cube->get_p_data());
+  
+  PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "    GEMM Data:   " << seconds << "\n"; t.restart(); )
+  
+  // Calculate the GEMM between the gradient of output and lowered data to calc the update on kernel
+  p_driver->sgemm_new(CblasTrans, CblasNoTrans, data_R, model_C, data_C, (float)1.,
+      output_g_cube->get_p_data(), input_d_cube->get_p_data(), (float)0., p_model_gradient_cube->get_p_data());
+  
+  PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "    GEMM Wghts:  " << seconds << "\n"; t.restart(); )
+  
+  // Finish reporting. 
+  // SHADJIS TODO: This is done before copy back to device, since copies need 
+  // to be refactored out of the bridge
+  report_backward_updateweight_last_transfer.end();
+  
+  // SHADJIS TODO: Need to refactor the copies below out of the bridge
+  
+  // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy input grad to host memory here
+  if (!std::is_same<DriverClass, CPUDriver>::value) {
+    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_host(
+        p_input_layer->p_gradient_cube, input_g_cube
+      );
+  }
+
+  PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  Copy device to local: " << seconds << "\n";)
+
+  // SHADJIS TODO: Similarly, refactor this call to destroy cuBLAS out of the bridge
+  p_driver->destroy_thread();
+
+  // Aggregate reports
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
 }
 
@@ -746,10 +401,8 @@ FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>:
     delete p_bias_cube;
     delete p_bias_gradient_cube;
   }
-  delete p_model_cube_shadow; delete p_model_gradient_cube; delete p_forward_lowered_data;
-  delete p_backward_gemm_updategrad_kernel; delete p_backward_gemm_updateweight_kernel;
-  delete p_backward_inputgrad; delete p_forward_gemm_kernel;
-  delete p_forward_lower_connector;
+  delete p_model_cube_shadow;
+  delete p_model_gradient_cube;
 }
 
 #endif

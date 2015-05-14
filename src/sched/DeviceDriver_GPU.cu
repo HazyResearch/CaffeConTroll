@@ -581,15 +581,35 @@ void GPUDriver::backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * s
     cublasOperation_t ta = CUBLAS_OP_T;
     
     // Call for each batch
-    
+    // SHADJIS TODO: Note this is different from the inverse bias call in fully connected.
+    // There we can do all batches in a single GEMV because the output fmap size is 1x1,
+    // i.e. we only have D and B dimensions so we can put all the batches together in memory
+    // by transposing. But when output fmap size oR*oC != 1x1, we use multiple GEMVs.
     for (int ib=0; ib < batch_size; ++ib)
     {
+        // SHADJIS TODO: Call DeviceDriver_GPU::sgemv
         status = cublasSgemv(handle, ta, fmap_size, depth, &one, (float *) (src->ptr) + ib*fmap_size*depth,
             fmap_size, device_ones, 1, &one, (float *) dst->ptr, 1);
     }
     err = cudaGetLastError();
     assert(err == cudaSuccess);
-    assert(status == CUBLAS_STATUS_SUCCESS); // SHADJIS TODO: On GPU use cblas_dsymv
+    assert(status == CUBLAS_STATUS_SUCCESS);
+}
+
+// SHADJIS TODO: This is just a gemv call, could call p_driver->sgemv() directly from
+// fc bridge rather than call this (that does not exist yet)
+void GPUDriver::backward_bias_fc(DeviceMemoryPointer * bias, DeviceMemoryPointer * output,
+    const int D, const int B, const float *const device_ones){
+
+    set_device();
+    const float one = 1;
+    const float zero = 1;
+    cublasOperation_t ta = CUBLAS_OP_N;
+    status = cublasSgemv(handle, ta, D, B, &one, (float *) (output->ptr),
+        D, device_ones, 1, &zero, (float *) (bias->ptr), 1);
+    err = cudaGetLastError();
+    assert(err == cudaSuccess);
+    assert(status == CUBLAS_STATUS_SUCCESS);
 }
 
 __global__ void _fw_bias_helper(float * bias, float * output, const int fmap_size, const int depth, const int batch_size){
@@ -923,6 +943,27 @@ void GPUDriver::sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TR
 		assert(false);
 	}
 
+}
+
+// Easier / consistent interface than other 
+void GPUDriver::sgemm_new(const CBLAS_TRANSPOSE TA, const CBLAS_TRANSPOSE TB, 
+    const int M, const int N, const int K, const float alpha,
+    const float * pA, const float * pB, const float beta, float * pC) {
+  
+    set_device();
+
+    int lda = (TA == CblasNoTrans) ? K : M;
+    int ldb = (TB == CblasNoTrans) ? N : K;
+    cublasOperation_t cuTransA =
+        (TA == CblasNoTrans) ? CUBLAS_OP_N : CUBLAS_OP_T;
+    cublasOperation_t cuTransB =
+        (TB == CblasNoTrans) ? CUBLAS_OP_N : CUBLAS_OP_T;
+    cublasSgemm(handle, cuTransB, cuTransA,
+        N, M, K, &alpha, pB, ldb, pA, lda, &beta, pC, N);
+
+    err = cudaGetLastError();
+    assert(err == cudaSuccess);
+    assert(status == CUBLAS_STATUS_SUCCESS);
 }
 
 template<FUNC_SREDUCE func>

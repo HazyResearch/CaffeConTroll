@@ -127,6 +127,11 @@ public:
     assert(false);
   }
 
+  void backward_bias_fc(DeviceMemoryPointer * bias, DeviceMemoryPointer * output,
+    const int D, const int B, const float *const device_ones) {
+    assert(false);
+  }
+
   void lrn_forward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
     const struct _lrn_forward_arg_helper args, const struct _lrn_forward_normalize_arg_helper args2) {
     assert(false);
@@ -187,6 +192,11 @@ public:
   virtual void sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB,
         int M, int N, int K, float alpha, float * pA, int LDA, float * pB, int LDB,
         float beta, float * pC, int LDC) = 0;
+
+  // SHADJIS TODO: Will slowly be used instead of sgemm, until sgemm is obsolete
+  void sgemm_new(const CBLAS_TRANSPOSE TA, const CBLAS_TRANSPOSE TB,
+        const int M, const int N, const int K, const float alpha,
+        const float * pA, const float * pB, const float beta, float * pC);
 
   template<FUNC_SREDUCE func>
   void selementwise_reduce2(DeviceMemoryPointer *dst, DeviceMemoryPointer *src1,

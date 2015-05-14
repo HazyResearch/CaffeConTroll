@@ -6,6 +6,14 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
+// SHADJIS TODO: Currently we use kernels to do things like 
+// GEMM, e.g. instantiate a kernel object and call kernel.compute() 
+// which calls driver->sgemm(), rather than just directly call 
+// driver->sgemm(). Need to evaluate if this abstraction still makes 
+// sense, since e.g. now every different gemm size requires a different
+// kernel object. This is because each kernel takes as input 
+// cubes which define its size.
+
 #ifndef moka_Kernel_h
 #define moka_Kernel_h
 

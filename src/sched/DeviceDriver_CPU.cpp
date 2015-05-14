@@ -208,7 +208,7 @@ inline void CPUDriver::lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer
                         // Handle edge cases
                         if (d-Dd_block < D_BLOCK_SIZE)
                         {
-                            for (int Dd=Dd_block; Dd<(d-Dd_block); ++Dd) {
+                            for (int Dd=Dd_block; Dd<d; ++Dd) {
                                 for (int Dr=0; Dr<k; ++Dr) {
                                     for (int Dc=0; Dc<k; ++Dc) {
                                         if ( (r*s-p+Dr) >= 0 && (r*s-p+Dr) < n && (c*s-p+Dc) >= 0 && (c*s-p+Dc) < n ) {
@@ -471,6 +471,17 @@ void CPUDriver::sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TR
       pA, LDA,
       pB, LDB,
       beta, pC, LDC);
+}
+
+void CPUDriver::sgemm_new(const CBLAS_TRANSPOSE TA, const CBLAS_TRANSPOSE TB,
+    const int M, const int N, const int K, const float alpha,
+    const float * pA, const float * pB, const float beta, float * pC) {
+      
+  int lda = (TA == CblasNoTrans) ? K : M;
+  int ldb = (TB == CblasNoTrans) ? N : K;
+  cblas_sgemm(CblasRowMajor, TA, TB, M, N, K, alpha, pA, lda, pB,
+      ldb, beta, pC, N);
+
 }
 
 template<FUNC_STRANSFORM func>

@@ -59,6 +59,10 @@ public:
         int M, int N, int K, float alpha, float * pA, int LDA, float * pB, int LDB,
         float beta, float * pC, int LDC);
 
+  void sgemm_new(const CBLAS_TRANSPOSE TA, const CBLAS_TRANSPOSE TB,
+        const int M, const int N, const int K, const float alpha,
+        const float * pA, const float * pB, const float beta, float * pC);
+
   template<FUNC_STRANSFORM func>
   void sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const func_curry);
 

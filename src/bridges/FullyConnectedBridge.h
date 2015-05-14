@@ -193,6 +193,13 @@ class FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverC
       Layout_CRDB, Kernel_GEMM_OpenBlas, KernelConfig_GEMM_TRANS_NOTRANS, DriverClass> * p_backward_gemm_updategrad_kernel;
 
     void initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter filler_param);
+
+    // SHADJIS TODO: These should not be needed, since they are redundant given the cube sizes
+    // See abstraction comment in impl
+    int model_R;
+    int model_C;
+    int data_R;
+    int data_C;
 };
 
 #include "FullyConnectedBridge_impl.hxx"

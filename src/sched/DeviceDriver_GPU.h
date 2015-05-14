@@ -50,6 +50,8 @@ public:
   void backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     const int fmap_size, const int depth, const int batch_size,
     const float *const device_ones);
+  void backward_bias_fc(DeviceMemoryPointer * bias, DeviceMemoryPointer * output,
+    const int D, const int B, const float *const device_ones);
   void maxpool_forward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
     const struct _pool_forward_arg_helper args);
   void maxpool_backward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
@@ -79,6 +81,10 @@ public:
   void sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB,
         int M, int N, int K, float alpha, float * pA, int LDA, float * pB, int LDB,
         float beta, float * pC, int LDC);
+
+  void sgemm_new(const CBLAS_TRANSPOSE TA, const CBLAS_TRANSPOSE TB,
+        const int M, const int N, const int K, const float alpha,
+        const float * pA, const float * pB, const float beta, float * pC);
 
   template<FUNC_STRANSFORM func>
   void sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const func_curry);

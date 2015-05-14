@@ -199,6 +199,12 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   // ===========================================================================
   // Connectors / Kernels
   // ===========================================================================
+  // SHADJIS TODO: We currently have this strategy of defining connectors and 
+  // kernels by cubes, and then calling e.g. lower_cube(), compute() etc. on
+  // those connectors/kernels with pre-defined sizes. There's nothing wrong with
+  // this but it seems like an unnecessary object (i.e. can instead call a 
+  // lower_cube() function as opposed to instantiate a connector and then call
+  // connector.lower_cube()).
 
   p_forward_lower_connector = new Connector<DataType, Layout_CRDB, DataType, Layout_CRDB, LOWERING_TYPE1, DriverClass>
     (&dummy_data_cube, p_forward_lowered_data, K, padding, stride, p_driver);
