@@ -44,14 +44,17 @@ int main(int argc,  char ** argv) {
   MPI_Comm_size (MPI_COMM_WORLD, &size);        /* get number of processes */
   std::string myname = "<" + std::string(hostname) + ":" + std::to_string(rank) + ">";
 
+  data_binary = data_binary + "_machine_" + std::string(hostname) + "_rank_" + std::to_string(rank);
+
+
   if(rank == root){
     std::cout << "I am the master node! Hostname=" << hostname << " rank=" << rank << " out of " << size << std::endl;
     std::cout << myname << ": " << "I will start coordinate" << std::endl;
-    DeepNet::load_and_train_network(argv[2], data_binary, model_file);
+    DeepNet::load_and_train_network_mpi(argv[2], data_binary, model_file, rank);
   }else{
     std::cout << "I am the slave node! Hostname=" << hostname << " rank=" << rank << " out of " << size << std::endl;
     std::cout << myname << ": " << "I will start training" << std::endl;
-    DeepNet::load_and_train_network(argv[2], data_binary, model_file);
+    DeepNet::load_and_train_network_mpi(argv[2], data_binary, model_file, rank);
     /*
     if (string(argv[1]) == "train") {
       DeepNet::load_and_train_network(argv[2], data_binary, model_file);

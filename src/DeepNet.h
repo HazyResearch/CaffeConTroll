@@ -1,6 +1,8 @@
 #ifndef _moka_DeepNet_h
 #define _moka_DeepNet_h
 
+#include <mpi.h>
+
 #include <iostream>
 #include <algorithm>
 #include <boost/program_options.hpp>
@@ -457,6 +459,10 @@ class DeepNet {
       }
     }
 
+
+
+
+
     // Here, we train our CNN: we iterate over the vector of bridges, forwards and backward for each batch size.
     // Right now, we do this in a single-thread fashion. TODO: Create a Scheduler class, that schedules workers
     // for each batch size, so that we can perform these forward and backward passes in parallel.
@@ -475,6 +481,7 @@ class DeepNet {
       float t_pass;
 
       Timer t_total;
+
 
 #ifdef _LAYER_PROFILING
      const int display_iter = 1;
@@ -664,7 +671,7 @@ class DeepNet {
             std::cout << "Loading Time (seconds)     : " << t_load << std::endl;
             std::cout << "Forward Pass Time (seconds) : " << t_forward << std::endl;
             std::cout << "\033[1;31m";
-            std::cout << "Total Time & Loss & Accuracy: " << t_pass << "    " << loss
+            std::cout << "Total Time & Loss & Accuracy: " << t_pass << " seconds" << "    " << loss
               << "    " << 1.0*batch_accuracy/corpus.mini_batch_size;
             std::cout << "\033[0m" << std::endl;
           }
@@ -721,6 +728,277 @@ class DeepNet {
         // Step 4: Clean up!
         clean_up(bridges, corpus);
       }
+
+
+    static void train_one_iteration(const BridgeVector & bridges, const Corpus & corpus, const cnn::NetParameter & net_param,
+        const cnn::SolverParameter & solver_param, FILE * pFile, size_t corpus_batch_index){
+
+      SoftmaxBridge * const softmax = (SoftmaxBridge *) bridges.back();
+      Bridge * const first = (Bridge *) bridges.front();
+
+      LogicalCubeFloat * const labels = softmax->p_data_labels;
+      LogicalCubeFloat * const input_data = first->p_input_layer->p_data_cube;
+
+      float t_load;
+      float t_forward;
+      float t_backward;
+      float t_pass;
+
+      Timer t_total;
+
+      Timer t;
+      Timer t2;
+
+      const size_t curr_batch_size = corpus.last_batch_size; // TODO: Consider last batch
+
+      // The last batch may be smaller, but all other batches should be the appropriate size.
+      // rs will then contain the real number of entires
+      size_t rs = fread(corpus.images->get_p_data(), sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
+      if (rs != corpus.images->n_elements) {
+        std::cout << "Error in reading data from " << corpus.filename << corpus.num_mini_batches << std::endl;
+        std::cout << "read:  " << rs << " expected " << corpus.images->n_elements << std::endl;
+        exit(1);
+      }
+
+      t_load = t.elapsed();
+
+      t.restart();
+      
+      float * const mini_batch = corpus.images->physical_get_RCDslice(0);
+      input_data->set_p_data(mini_batch);
+
+      softmax->reset_loss();
+
+      labels->set_p_data(corpus.labels->physical_get_RCDslice(corpus_batch_index));
+
+      MPI_Request * reqs = new MPI_Request[4*bridges.size()];
+      MPI_Status * stats = new MPI_Status[4*bridges.size()];
+
+      // forward pass
+
+      // Before we run forward, claim for each layer that I want its model.
+      // This fetch is asynchronized, so should return immidately. The wait
+      // should happen only before the layer starts running to overlap
+      // computation with data transformation.
+      int mpi_tag = 0;
+      for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
+        if((*bridge)->get_model_cube() != NULL){
+          std::cout << "Claim the willingness for receiving model for " << (*bridge)->name << std::endl;
+          
+          MPI_Irecv((*bridge)->get_model_cube()->get_p_data(), 
+                    (*bridge)->get_model_cube()->n_elements,
+                    MPI_FLOAT, 0, mpi_tag, MPI_COMM_WORLD, &reqs[mpi_tag]);
+
+          MPI_Irecv((*bridge)->get_bias_cube()->get_p_data(), 
+                    (*bridge)->get_bias_cube()->n_elements,
+                    MPI_FLOAT, 0, mpi_tag+1, MPI_COMM_WORLD, &reqs[mpi_tag+1]);
+
+          mpi_tag += 2;
+        }
+      }
+
+      mpi_tag = 0;
+      for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
+
+        // Before the layer start running, it should make sure all data it needs
+        // are in place.
+        if((*bridge)->get_model_cube() != NULL){
+          std::cout << "Waiting to get model for " << (*bridge)->name << std::endl;
+          Timer t_wait;
+          MPI_Wait(&reqs[mpi_tag], &stats[mpi_tag]);
+          MPI_Wait(&reqs[mpi_tag+1], &stats[mpi_tag+1]);
+          std::cout << "This waiting took " << t_wait.elapsed() << " seconds" << std::endl;
+          mpi_tag += 2;
+        }
+        (*bridge)->set_curr_batch_size(curr_batch_size);
+        (*bridge)->forward();
+      }
+
+      t_forward = t.elapsed();
+
+      float loss = (softmax->get_loss() / corpus.mini_batch_size);
+      int accuracy = DeepNet::find_accuracy(labels, (*--bridges.end())->p_output_layer->p_data_cube);
+
+      // backward pass
+      mpi_tag = 0;
+      t.restart();
+      for (auto bridge = bridges.rbegin(); bridge != bridges.rend(); ++bridge) {
+        (*bridge)->set_curr_batch_size(curr_batch_size);
+        (*bridge)->backward();
+
+        // After the layer is backward'ed, we need to send its model back to master
+        if((*bridge)->get_model_cube() != NULL){
+          std::cout << "Sending model back to master for " << (*bridge)->name << std::endl;
+          MPI_Isend((*bridge)->get_model_cube()->get_p_data(), 
+                    (*bridge)->get_model_cube()->n_elements, 
+                    MPI_FLOAT, 0, mpi_tag, MPI_COMM_WORLD, &reqs[mpi_tag]);
+          MPI_Isend((*bridge)->get_bias_cube()->get_p_data(), 
+                    (*bridge)->get_bias_cube()->n_elements, 
+                    MPI_FLOAT, 0, mpi_tag+1, MPI_COMM_WORLD, &reqs[mpi_tag+1]);
+          mpi_tag += 2;
+        }
+      }
+      t_backward = t.elapsed();
+
+      // Before we return we need to make sure all models are copied back to master
+      // 
+      Timer t_backcopy;
+      //for(int i=0;i<mpi_tag;i++){
+      //  MPI_Wait(&reqs[i], &stats[i]);
+      //}
+      MPI_Waitall(mpi_tag, reqs, stats);
+      std::cout << "BACK COPY TOOK " << t_backcopy.elapsed() << std::endl;
+
+      t_pass = t2.elapsed();
+
+      //std::cout << "\033[1;31m";
+      //std::cout << "Loading Time (seconds)     : " << t_load << std::endl;
+      //std::cout << "Forward Pass Time (seconds) : " << t_forward << std::endl;
+      //std::cout << "Backward Pass Time (seconds): " << t_backward << std::endl;
+      std::cout << "Total Time & Loss & Accuracy: " << t_pass << " seconds    " << loss
+        << "    " << 1.0*accuracy/corpus.mini_batch_size << std::endl;
+      //std::cout << "\033[0m" << std::endl;
+
+    }
+
+
+    static void load_and_train_network_mpi(const char * file, const string data_binary, const string model_file, int rank){
+
+      int root = 0;
+
+      BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
+      Corpus * const corpus = DeepNet::load_network(file, data_binary, solver_param, net_param, bridges, true);
+
+      FILE * pFile = fopen (corpus->filename.c_str(), "rb");
+      if (!pFile)
+        throw runtime_error("Error opening the corpus file: " + corpus->filename);
+      
+      /***
+        First, collect all models 
+       ***/
+      int mpi_tag = 0;
+      float ** model_ptrs = new float*[bridges.size()];
+      float ** bias_ptrs = new float*[bridges.size()];
+      size_t * model_elems = new size_t[bridges.size()];
+      size_t * bias_elems = new size_t[bridges.size()];
+
+      int ct = 0;
+      for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
+
+        float * model_ptr, * bias_ptr;
+        size_t n_elem_model, n_elem_bias;
+        std::string bridge_name = (*bridge)->name;
+        if((*bridge)->get_model_cube() == NULL){
+          model_ptrs[ct] = NULL;
+          model_elems[ct] = 0;
+        }else{
+          model_ptrs[ct] = (*bridge)->get_model_cube()->get_p_data();
+          model_elems[ct] = (*bridge)->get_model_cube()->n_elements;
+        }
+
+        if((*bridge)->get_bias_cube() == NULL){
+          bias_ptrs[ct] = NULL;
+          bias_elems[ct] = 0;
+        }else{
+          bias_ptrs[ct] = (*bridge)->get_bias_cube()->get_p_data();
+          bias_elems[ct] = (*bridge)->get_bias_cube()->n_elements;
+        }
+
+        assert((model_ptr==NULL) == (bias_ptr == NULL));
+        ct ++;
+      }
+
+      // TODO: MAKE THIS MORE GENERAL
+      size_t corpus_batch_index = 0;
+      for(int i=0; i<100; i++){
+
+        Timer t;
+        MPI_Barrier(MPI_COMM_WORLD);  // We need barrier to make sure all networks are synchronized
+
+        if(rank == root){
+          // Master DOES ONE THING -- For each layer, broadcast the model to all layers.
+          // Not all models are broadcast'ed at the same time -- they are broadcast'ed by
+          // layers, to make sure after layer i's model is broadcasted, layer i can start
+          // computation, while layer (i+1) continue broadcast.
+
+          int mpi_tag = 0;
+          MPI_Request * reqs = new MPI_Request[4*bridges.size()];
+          MPI_Status * stats = new MPI_Status[4*bridges.size()];
+          int ct2 = 0;
+          // TODO: This look need refactoirng -- it is now reused multiple times!!!!
+          for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
+            float * model_ptr = model_ptrs[ct2];
+            float * bias_ptr = bias_ptrs[ct2];
+            size_t n_elem_model = model_elems[ct2];
+            size_t n_elem_bias = bias_elems[ct2];
+            std::string bridge_name = (*bridge)->name;
+
+            // Broadcast
+            if(model_ptr != NULL){
+              float size_mb = 1.0*sizeof(float)*(n_elem_model + n_elem_bias)/1024/1024;
+              std::cout << "<master>: BROADCAST BRIDGE " << bridge_name << " = " << size_mb << " MB" << std::endl;
+
+              MPI_Isend((*bridge)->get_model_cube()->get_p_data(), n_elem_model, MPI_FLOAT, 1, mpi_tag, MPI_COMM_WORLD, &reqs[mpi_tag]);
+              MPI_Isend((*bridge)->get_bias_cube()->get_p_data(), n_elem_bias, MPI_FLOAT, 1, mpi_tag+1, MPI_COMM_WORLD, &reqs[mpi_tag+1]);
+
+              mpi_tag += 2;
+            }
+            ct2 ++;
+          }
+
+          MPI_Waitall(mpi_tag, reqs, stats); // join all sent models
+          std::cout << "<master> BROADCAST DONE." << std::endl;
+
+          // After all models are sent, the master should start harvest the model back.
+          mpi_tag = 0;
+          for (auto bridge = bridges.rbegin(); bridge != bridges.rend(); ++bridge) {
+            std::string bridge_name = (*bridge)->name;
+
+            if((*bridge)->get_model_cube() != NULL){
+              MPI_Irecv((*bridge)->get_model_cube()->get_p_data(), 
+                        (*bridge)->get_model_cube()->n_elements, MPI_FLOAT, 1, mpi_tag, MPI_COMM_WORLD, &reqs[mpi_tag]);
+              MPI_Irecv((*bridge)->get_bias_cube()->get_p_data(), 
+                        (*bridge)->get_bias_cube()->n_elements, MPI_FLOAT, 1, mpi_tag + 1, MPI_COMM_WORLD, &reqs[mpi_tag+1]);
+              mpi_tag += 2;
+            }
+
+          }
+
+          MPI_Waitall(mpi_tag, reqs, stats);
+          std::cout << "<master>: RECEIVED COPYBACK MODELS " << std::endl;
+
+          /*
+          mpi_tag = 0;
+          for (auto bridge = bridges.rbegin(); bridge != bridges.rend(); ++bridge) {
+            if((*bridge)->get_model_cube() != NULL){
+              MPI_Wait(&reqs[mpi_tag], &stats[mpi_tag]);
+              MPI_Wait(&reqs[mpi_tag+1], &stats[mpi_tag+1]);
+              std::cout << "<master>: RECEIVED COPYBACK MODEL FOR " << (*bridge)->name << std::endl;
+              mpi_tag += 2;
+            }
+          }
+          */
+
+        }else{
+          std::cout << "BATCH " << i << std::endl;
+          train_one_iteration(bridges, *corpus, net_param, solver_param, pFile, corpus_batch_index);
+          corpus_batch_index += corpus->mini_batch_size;
+        }
+          
+        MPI_Barrier(MPI_COMM_WORLD);
+
+        std::cout << "    => TOTAL TIME = " << t.elapsed() << std::endl << std::endl;
+      }
+
+      if (model_file == "NA") {
+        write_model_to_file(bridges, "deepnetmodel.bin");
+      } else {
+        write_model_to_file(bridges, model_file);
+      }
+      clean_up(bridges, corpus);
+
+    }
+
 
       static float load_and_test_network(const char * file, const string data_binary, const string model_file) {
         DeepNetConfig::train_ = false;
