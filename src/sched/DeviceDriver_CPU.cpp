@@ -346,6 +346,15 @@ void CPUDriver::backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * s
 
 }
 
+// SHADJIS TODO: This is just a gemv call, could call p_driver->sgemv() directly from
+// fc bridge rather than call this
+void CPUDriver::backward_bias_fc(DeviceMemoryPointer * bias, DeviceMemoryPointer * output,
+    const int D, const int B, const float *const device_ones){
+
+    sgemv(CblasTrans, B, D, (float) 1., (float *) (output->ptr),
+        device_ones, (float) 0., (float *) (bias->ptr));
+}
+
 void CPUDriver::maxpool_forward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
     const struct _pool_forward_arg_helper args) {
 
@@ -481,6 +490,14 @@ void CPUDriver::sgemm_new(const CBLAS_TRANSPOSE TA, const CBLAS_TRANSPOSE TB,
   int ldb = (TB == CblasNoTrans) ? N : K;
   cblas_sgemm(CblasRowMajor, TA, TB, M, N, K, alpha, pA, lda, pB,
       ldb, beta, pC, N);
+
+}
+
+void CPUDriver::sgemv(const CBLAS_TRANSPOSE TA, const int M, const int N,
+    const float alpha, const float * pA, const float * px, const float beta,
+    float * py) {
+      
+  cblas_sgemv(CblasRowMajor, TA, M, N, alpha, pA, N, px, 1, beta, py, 1);
 
 }
 

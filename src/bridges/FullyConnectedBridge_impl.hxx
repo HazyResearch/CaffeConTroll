@@ -93,13 +93,11 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
   // ---------------------------------------------------------------------------
   // Extra cubes
   // ---------------------------------------------------------------------------
-  // On the GPU, we also need to make a vector of ones, of size oR*oC*iB = iB
+  // We also need to make a vector of ones, of size oR*oC*iB = iB
   // We don't need to use a cube for this but it's easier
   // Allocated on the device
-  if (!std::is_same<DriverClass, CPUDriver>::value) {
-    ones_bias_vector = new LogicalCube<DataType, Layout_CRDB>(iB, 1, 1, 1, p_driver);
-    p_driver->sconstant_initialize(ones_bias_vector->get_device_pointer(p_driver), (DataType) 1.);
-  }
+  ones_bias_vector = new LogicalCube<DataType, Layout_CRDB>(iB, 1, 1, 1, p_driver);
+  p_driver->sconstant_initialize(ones_bias_vector->get_device_pointer(p_driver), (DataType) 1.);
   
   // ---------------------------------------------------------------------------
   // Additional Cubes
@@ -213,24 +211,15 @@ forward() {
   
   // Add bias
   if (bias_term) {
-    DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
-    DeviceMemoryPointer * bias = p_bias_cube->get_device_pointer(p_driver);
     if (std::is_same<DriverClass, CPUDriver>::value) {
-       // SHADJIS TODO: Replace this with BLAS like the GPU, or instead implement
-       // with same # threads as GEMM will use (we only use 1 partition for FC, but
-       // with multiple threads).
-      _bias_arg_helper _arg1;
-      _arg1.src_skip = sizeof(DataType); // skip m^2, i.e. iterate for every b and for every d
-      _arg1.DataTypeSize = sizeof(DataType);
-      _arg1.oD = oD;
-      size_t ORxOC = 1;
-      DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg1,
-        sizeof(_bias_arg_helper));
-      DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&ORxOC,
-          sizeof(size_t));
-      p_driver->template parallel_map<_f_src_to_dst_bias_forward,
-        _f_bias_forward>(bias, output, _arg1.src_skip, arg1, arg2);
+      // SHADJIS TODO: Also use this GEMM for fw conv bias
+      // SHADJIS TODO: We are doing this with a GEMM although there is no
+      // reduction so SAXPY / parallel blocked loop could be faster (but time is very small)
+      p_driver->sgemm_new(CblasNoTrans, CblasNoTrans, data_C, model_R, 1, (float)1.,
+          ones_bias_vector->get_p_data(), p_bias_cube->get_p_data(), (float)1., output_d_cube->get_p_data());
     } else {
+      DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
+      DeviceMemoryPointer * bias = p_bias_cube->get_device_pointer(p_driver);
       p_driver->forward_bias(bias, output, /* oR*oC = */ 1, oD, iB);
     }
   }
@@ -320,40 +309,16 @@ backward() {
   if (bias_term) {
     DeviceMemoryPointer * output = output_g_cube->get_device_pointer(p_driver);
     DeviceMemoryPointer * bias = p_bias_gradient_cube->get_device_pointer(p_driver);
-    p_driver->sconstant_initialize(bias, DataType(0.)); // SHADJIS TODO: Not needed for GPU
-    if (std::is_same<DriverClass, CPUDriver>::value) {
-      // SHADJIS TODO: Here we used to call parallel map to do this:
-      //   For each batch b
-      //     For each depth d (in parallel)
-      //       For each pixel p of feature map in batch b and depth d
-      //         bias[d] += p
-      // This can't be done with a single parallel map because of the outer batch loop.
-      // On the CPU parallel_map is still used however since it is done serially. If that
-      // changes, rewrite that too.
-       // SHADJIS TODO: Replace this with BLAS like the GPU
-      _bias_arg_helper _arg1;
-      _arg1.src_skip = sizeof(DataType);
-      _arg1.DataTypeSize = sizeof(DataType);
-      _arg1.oD = oD;
-      size_t ORxOC = 1;
-      DeviceMemoryPointer * arg1 = p_driver->get_device_pointer((void*)&_arg1,
-        sizeof(_bias_arg_helper));
-      DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&ORxOC,
-          sizeof(size_t));
-      p_driver->template parallel_map<_f_src_to_dst_bias_backward,
-        _f_bias_backward>(bias, output, _arg1.src_skip, arg1, arg2);
-    } else {
-      // Note: Because the FC bridge has oR*oC = 1x1, we don't need to call the
-      // normal p_driver->backward_bias() which does 1 GEMV for each batch, and
-      // sums all the GEMV results (i.e. beta=1). Instead, we can calculate as
-      // a single GEMV, by transposing to place the batches next to each other
-      // in memory.
-      // SHADJIS TODO: Profile to see if this is faster
-      // Old call: (ones_bias_vector can also be a factor of B smaller)
-      //p_driver->backward_bias(bias, output, /* oR*oC = */ 1, oD, iB, ones_bias_vector->get_p_data());
-      // SHADJIS TODO: No need to initialize bias anymore (since all done in 1 GEMV)
-      p_driver->backward_bias_fc(bias, output, oD, iB, ones_bias_vector->get_p_data());
-    }
+    // Note: Because the FC bridge has oR*oC = 1x1, we don't need to call the
+    // normal p_driver->backward_bias() which does 1 GEMV for each batch, and
+    // sums all the GEMV results (i.e. beta=1). Instead, we can calculate as
+    // a single GEMV, by transposing to place the batches next to each other
+    // in memory.
+    // SHADJIS TODO: Profile to see if this is faster
+    // Old call: (ones_bias_vector can also be a factor of B smaller)
+    //p_driver->backward_bias(bias, output, /* oR*oC = */ 1, oD, iB, ones_bias_vector->get_p_data());
+    // SHADJIS TODO: No need to initialize bias anymore (since all done in 1 GEMV)
+    p_driver->backward_bias_fc(bias, output, oD, iB, ones_bias_vector->get_p_data());
   }
   
   PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "    Bias:        " << seconds << "\n"; t.restart(); )
@@ -403,6 +368,7 @@ FullyConnectedBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>:
   }
   delete p_model_cube_shadow;
   delete p_model_gradient_cube;
+  delete ones_bias_vector;
 }
 
 #endif

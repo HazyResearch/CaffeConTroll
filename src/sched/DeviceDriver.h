@@ -197,6 +197,8 @@ public:
   void sgemm_new(const CBLAS_TRANSPOSE TA, const CBLAS_TRANSPOSE TB,
         const int M, const int N, const int K, const float alpha,
         const float * pA, const float * pB, const float beta, float * pC);
+  void sgemv(const CBLAS_TRANSPOSE TA, const int M, const int N, const float alpha,
+        const float * pA, const float * px, const float beta, float * py);
 
   template<FUNC_SREDUCE func>
   void selementwise_reduce2(DeviceMemoryPointer *dst, DeviceMemoryPointer *src1,

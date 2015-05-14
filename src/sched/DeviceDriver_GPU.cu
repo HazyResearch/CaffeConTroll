@@ -587,7 +587,7 @@ void GPUDriver::backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * s
     // by transposing. But when output fmap size oR*oC != 1x1, we use multiple GEMVs.
     for (int ib=0; ib < batch_size; ++ib)
     {
-        // SHADJIS TODO: Call DeviceDriver_GPU::sgemv
+        // SHADJIS TODO: Call DeviceDriver_GPU::sgemv instead
         status = cublasSgemv(handle, ta, fmap_size, depth, &one, (float *) (src->ptr) + ib*fmap_size*depth,
             fmap_size, device_ones, 1, &one, (float *) dst->ptr, 1);
     }
@@ -597,19 +597,12 @@ void GPUDriver::backward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * s
 }
 
 // SHADJIS TODO: This is just a gemv call, could call p_driver->sgemv() directly from
-// fc bridge rather than call this (that does not exist yet)
+// fc bridge rather than call this
 void GPUDriver::backward_bias_fc(DeviceMemoryPointer * bias, DeviceMemoryPointer * output,
     const int D, const int B, const float *const device_ones){
 
-    set_device();
-    const float one = 1;
-    const float zero = 1;
-    cublasOperation_t ta = CUBLAS_OP_N;
-    status = cublasSgemv(handle, ta, D, B, &one, (float *) (output->ptr),
-        D, device_ones, 1, &zero, (float *) (bias->ptr), 1);
-    err = cudaGetLastError();
-    assert(err == cudaSuccess);
-    assert(status == CUBLAS_STATUS_SUCCESS);
+    sgemv(CblasTrans, B, D, (float) 1., (float *) (output->ptr),
+        device_ones, (float) 0., (float *) (bias->ptr));
 }
 
 __global__ void _fw_bias_helper(float * bias, float * output, const int fmap_size, const int depth, const int batch_size){
@@ -958,8 +951,24 @@ void GPUDriver::sgemm_new(const CBLAS_TRANSPOSE TA, const CBLAS_TRANSPOSE TB,
         (TA == CblasNoTrans) ? CUBLAS_OP_N : CUBLAS_OP_T;
     cublasOperation_t cuTransB =
         (TB == CblasNoTrans) ? CUBLAS_OP_N : CUBLAS_OP_T;
-    cublasSgemm(handle, cuTransB, cuTransA,
+    status = cublasSgemm(handle, cuTransB, cuTransA,
         N, M, K, &alpha, pB, ldb, pA, lda, &beta, pC, N);
+
+    err = cudaGetLastError();
+    assert(err == cudaSuccess);
+    assert(status == CUBLAS_STATUS_SUCCESS);
+}
+
+void GPUDriver::sgemv(const CBLAS_TRANSPOSE TA, const int M, const int N,
+    const float alpha, const float * pA, const float * px, const float beta,
+    float * py) {
+  
+    set_device();
+
+    cublasOperation_t cuTransA =
+        (TA == CblasNoTrans) ? CUBLAS_OP_T : CUBLAS_OP_N;
+    status = cublasSgemv(handle, cuTransA, N, M, &alpha,
+        pA, N, px, 1, &beta, py, 1);
 
     err = cudaGetLastError();
     assert(err == cudaSuccess);
