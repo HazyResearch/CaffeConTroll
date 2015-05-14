@@ -121,6 +121,9 @@ int DeepNet::find_accuracy(const LogicalCubeFloat * const labels, const LogicalC
 // pass. Only the bridges variable is modified.
 void DeepNet::construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetParameter & net_param,
   const cnn::SolverParameter & solver_param) {
+  
+  assert(false); // SHADJIS TODO: Deprecate this hxx (.h is more up-to-date)
+  
   CPUDriver driver;
   size_t input_R = corpus.n_rows, input_C = corpus.n_cols, input_D = corpus.dim, B = corpus.mini_batch_size;
 

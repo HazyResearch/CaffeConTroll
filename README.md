@@ -105,12 +105,11 @@ blood](http://en.wikipedia.org/wiki/Trollhunter) of christian men.
 Known Issues
 ------------
 
-* OpenBLAS seems to be the fastest, free library. However, OpenBLAS
-  has some known issues on MACs. It will compile, but it will may
-  unpredictably
-  [crash](https://github.com/xianyi/OpenBLAS/issues/218). On recent OS
-  X, you can use the built in BLAS and LAPACK (see Caffe install
-  instruction.)
+* If you encounter the OpenBLAS error "Program is Terminated. Because you tried to 
+  allocate too many memory regions" then follow the instructions 
+  [here](https://github.com/xianyi/OpenBLAS/wiki/faq#allocmorebuffers) to rebuild
+  OpenBLAS with more threads. You can also use other libraries, for example BLAS
+  and LAPACK are built-in to OS X (see Caffe install instructions).
   
 Contact
 -------

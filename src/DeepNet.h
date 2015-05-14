@@ -162,6 +162,9 @@ class DeepNet {
     static void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetParameter & net_param,
         const cnn::SolverParameter & solver_param) {
       CPUDriver * const driver = new CPUDriver(); // SHADJIS TODO: delete this later or put on stack
+      const int hw_concurrency = std::thread::hardware_concurrency();
+      assert(hw_concurrency > 0);
+      
       size_t input_R = corpus.n_rows, input_C = corpus.n_cols, input_D = corpus.dim, B = corpus.mini_batch_size;
 
       // Create the Logical Cubes for the initial data layer
@@ -244,11 +247,11 @@ class DeepNet {
                     next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
                     next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
-                    // SHADJIS TODO: Rather than hard-code 16 partitions, use std::thread::hardware_concurrency()
-                    // Or if we want the user to be able specify, then still do not pass this as an argument, 
-                    // instead let it be part of the same config file as GPU
+                    // SHADJIS TODO: No need to pass partitions and threads as an argument, abstract it within
+                    // the pbridge. Or for the user to be able specify # partitions, then also do not pass 
+                    // this as an argument, instead let it be part of the same config file as GPU
                     bridge = new ParallelizedBridge<DataType_SFFloat, ConvolutionBridge>
-                             (prev_layers[i], next_layer, &layer_param, &solver_param, driver, min<size_t>(16, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+                             (prev_layers[i], next_layer, &layer_param, &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
                     bridge->name = layer_param.name();
                     bridge->needs_to_calc_backward_grad = !is_first_conv; // for the first CONV layer, do not need to calc grad for backward step
                     bridges.push_back(bridge);
@@ -265,7 +268,7 @@ class DeepNet {
                       next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
                       bridge = new ParallelizedBridge<DataType_SFFloat, ConvolutionBridge>
-                               (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(16, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+                               (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
                       bridge->name = layer_param.name();
                       bridge->needs_to_calc_backward_grad = !is_first_conv; // for the first CONV layer, do not need to calc grad for backward step
 
@@ -315,13 +318,13 @@ class DeepNet {
                 next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
                 bridge = new ParallelizedBridge<DataType_SFFloat, FullyConnectedBridge>
-                         (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), 16);
+                         (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), hw_concurrency);
 
                 //bridge = new FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layers[0],
                 //  next_layer, &layer_param, &solver_param);
 
                 bridge->name = layer_param.name();
-                bridge->run_with_n_threads = 16;  // TODO: Add a better abstraction here.
+                bridge->run_with_n_threads = hw_concurrency;  // TODO: Add a better abstraction here.
                 bridges.push_back(bridge);
                 next_layers.push_back(next_layer);
             }
@@ -343,7 +346,7 @@ class DeepNet {
                   next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
                   bridge = new ParallelizedBridge<DataType_SFFloat, MaxPoolingBridge>(prev_layers[i], next_layer, &layer_param,
-                             &solver_param, driver, min<size_t>(16, corpus.mini_batch_size), 1);
+                             &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1);
                   bridge->name = layer_param.name();
                   bridges.push_back(bridge);
                   next_layers.push_back(next_layer);
@@ -363,7 +366,7 @@ class DeepNet {
                   next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
                   bridge = new ParallelizedBridge<DataType_SFFloat, ReLUBridge>(prev_layers[i], next_layer, &layer_param,
-                             &solver_param, driver, min<size_t>(16, corpus.mini_batch_size), 1);
+                             &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1);
                   bridge->name = layer_param.name();
 
                   bridges.push_back(bridge);
@@ -384,7 +387,7 @@ class DeepNet {
                   next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
                   bridge = new ParallelizedBridge<DataType_SFFloat, LRNBridge>(prev_layers[i], next_layer, &layer_param,
-                             &solver_param, driver, min<size_t>(16, corpus.mini_batch_size), 1);
+                             &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1);
                   bridge->name = layer_param.name();
 
                   bridges.push_back(bridge);

@@ -61,6 +61,7 @@ TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.
 			tests/test_parallelized_convolution.cpp \
 			tests/test_lrn_bridge.cpp \
 			tests/test_ReLU_bridge.cpp \
+			tests/test_parallelized_fc.cpp \
 			tests/test_parallelized_convolution_large_CPU.cpp \
 			tests/test_parallelized_convolution_large_CPU_batch.cpp \
 			tests/test_convolution.cpp \
@@ -79,6 +80,7 @@ TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.
 			#tests/test_ReLU_bridge_GPU.cpp \
 			tests/test_lrn_bridge_GPU.cpp \
 			tests/test_MaxPooling_bridge_GPU.cpp \
+			tests/test_parallelized_fc_GPU.cpp \
 			tests/test_parallelized_convolution_GPU.cpp \
 			tests/test_parallelized_convolution_large_GPU_batch.cpp \
 			tests/test_parallelized_convolution_large_GPU.cpp \
