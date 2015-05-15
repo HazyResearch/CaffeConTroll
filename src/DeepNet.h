@@ -4,6 +4,7 @@
 #include <iostream>
 #include <algorithm>
 #include <boost/program_options.hpp>
+#include <ctime>
 #include "LogicalCube.h"
 #include "Layer.h"
 #include "Connector.h"
@@ -66,7 +67,7 @@ class DeepNet {
     // file specifies the data layer
     static Corpus * read_corpus_from_lmdb(const cnn::NetParameter & net_param, const string data_binary, bool train) {
       if (train) {
-        const cnn::LayerParameter layer_param = net_param.layers(0);
+        const cnn::LayerParameter layer_param = net_param.layers(0); // SHADJIS TODO: Should we be hard-coding layer 0 = train?
         if (layer_param.type() == cnn::LayerParameter_LayerType_DATA) {
           if (layer_param.include(0).phase() == 0) { // training phase
             return new Corpus(layer_param, data_binary);
@@ -115,11 +116,13 @@ class DeepNet {
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
         model = (*bridge)->get_model_cube();
         if (model) {
-          fread(model->get_p_data(), sizeof(DataType_SFFloat), model->n_elements, pFile);
+          size_t num_elements_read = fread(model->get_p_data(), sizeof(DataType_SFFloat), model->n_elements, pFile);
+          assert(num_elements_read == model->n_elements);
         }
         bias = (*bridge)->get_bias_cube();
         if (bias) {
-          fread(bias->get_p_data(), sizeof(DataType_SFFloat), bias->n_elements, pFile);
+          size_t num_elements_read = fread(bias->get_p_data(), sizeof(DataType_SFFloat), bias->n_elements, pFile);
+          assert(num_elements_read == bias->n_elements);
         }
       }
       fclose(pFile);
@@ -464,13 +467,17 @@ class DeepNet {
     // Right now, we do this in a single-thread fashion. TODO: Create a Scheduler class, that schedules workers
     // for each batch size, so that we can perform these forward and backward passes in parallel.
     static void train_network(const BridgeVector & bridges, const Corpus & corpus, const cnn::NetParameter & net_param,
-        const cnn::SolverParameter & solver_param) {
+        const cnn::SolverParameter & solver_param, const string input_model_file, const string output_model_file) {
 
       SoftmaxBridge * const softmax = (SoftmaxBridge *) bridges.back();
       Bridge * const first = (Bridge *) bridges.front();
 
       LogicalCubeFloat * const labels = softmax->p_data_labels;
       LogicalCubeFloat * const input_data = first->p_input_layer->p_data_cube;
+      
+      // Also make a temporary labels array for when we wrap around the training set
+      // SHADJIS TODO: Can do this in other ways, can time to see if slow.
+      float *labels_buffer = new float [corpus.mini_batch_size];
 
       float t_load;
       float t_forward;
@@ -480,107 +487,181 @@ class DeepNet {
       Timer t_total;
 
 #ifdef _LAYER_PROFILING
-     const int display_iter = 1;
+      const int display_iter = 1;
 #else
-      const int display_iter = 50;
+      const int display_iter = solver_param.display();
 #endif
+      const int snapshot = solver_param.snapshot();
+      
+      // SHADJIS TODO: Support solver_param.test_interval(), i.e. every few training
+      // iterations do testing (validation set). For now we can keep the batch size
+      // the same during testing but this also does not need to be the case.
+      const int test_interval = solver_param.test_interval();
 
-      const size_t num_epochs = solver_param.max_iter();
-      for (size_t epoch = 0; epoch < num_epochs; ++epoch) {
-        cout << "EPOCH: " << epoch << endl;
+      // Read the number of iterations to run. This is the number of times we will
+      // update weights, i.e. the number of mini-batches we will run.
+      const size_t num_batch_iterations = solver_param.max_iter();
+      
+      // Open the file for the first time during training
+      FILE * pFile = fopen (corpus.filename.c_str(), "rb");
+      if (!pFile)
+        throw runtime_error("Error opening the corpus file: " + corpus.filename);
 
-        FILE * pFile = fopen (corpus.filename.c_str(), "rb");
-        if (!pFile)
-          throw runtime_error("Error opening the corpus file: " + corpus.filename);
+      // Keep track of the image number in the dataset we are on
+      size_t current_image_location_in_dataset = 0;
+      size_t current_epoch = 0;    
+      cout << "EPOCH: " << current_epoch << endl;
+    
+      // Run for max_iter iterations
+      for (size_t batch = 0; batch < num_batch_iterations; ++batch) {
 
-#ifdef _LAYER_PROFILING
-       // for profiling run, it is confusing and does not make sense to run the last batch
-       for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches - 1; ++batch,
-           corpus_batch_index += corpus.mini_batch_size) {
-#else
-          // SHADJIS TODO: Fix last batch, causes some errors now
-          for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches; ++batch,
-              corpus_batch_index += corpus.mini_batch_size) {
-#endif
+        Timer t;
+        Timer t2;
+        
+        // SHADJIS TODO: corpus.last_batch_size is unused, can remove now
+        // SHADJIS TODO: This should be done in parallel with the network execution if slow (measure)
+        // SHADJIS TODO: curr_B is unused now in every bridge, can remove it or plan to support variable batch size
 
-            Timer t;
-            Timer t2;
-
-            const size_t curr_batch_size = (batch == corpus.num_mini_batches - 1) ? corpus.last_batch_size : corpus.mini_batch_size;
-
-            // The last batch may be smaller, but all other batches should be the appropriate size.
-            // rs will then contain the real number of entires
-            size_t rs = fread(corpus.images->get_p_data(), sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
-            if (rs != corpus.images->n_elements && batch != corpus.num_mini_batches - 1) {
-              std::cout << "Error in reading data from " << corpus.filename << " in batch " << batch << " of " << corpus.num_mini_batches << std::endl;
-              std::cout << "read:  " << rs << " expected " << corpus.images->n_elements << std::endl;
-              exit(1);
+        // Read in the next mini-batch from file
+        size_t rs = fread(corpus.images->get_p_data(), sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
+        // initialize labels for this mini batch
+        labels->set_p_data(corpus.labels->physical_get_RCDslice(current_image_location_in_dataset));
+        // If we read less than we expected, read the rest from the beginning
+        size_t num_floats_left_to_read = corpus.images->n_elements - rs;
+        if (num_floats_left_to_read > 0) {
+            // Increment epoch
+            ++current_epoch;
+            cout << "EPOCH: " << current_epoch << endl;
+            // Close the file and re-open it
+            fclose(pFile);
+            pFile = fopen (corpus.filename.c_str(), "rb");
+            if (!pFile)
+              throw runtime_error("Error opening the corpus file: " + corpus.filename);
+            // Read the remaining data from the file, adjusting the pointer to where we
+            // read until previously as well as the amount to read
+            size_t rs2 = fread((float *) (corpus.images->get_p_data()) + rs, sizeof(DataType_SFFloat), num_floats_left_to_read, pFile);
+            assert(rs2 == num_floats_left_to_read);
+            // Also, we need to copy over the labels to a contiguous memory location
+            // The labels are all allocated in corpus.labels. Normally we just set
+            // the data pointer of our local "labels" cube to the right place in the
+            // corpus labels cube data. But since the labels we want aren't anywhere
+            // contiguously, we can allocate an array for them.
+            // First, copy the correct labels to the array
+            // This involves 2 steps: the end portion of the training set and the 
+            // beginning portion.
+            
+            // Check if we actually read nothing (i.e. we were right at the end before)
+            // In this case, we don't have to copy anything else
+            if (rs == 0) {
+                assert(current_image_location_in_dataset == 0);
+                memcpy(labels_buffer, corpus.labels->physical_get_RCDslice(0), sizeof(float) * corpus.mini_batch_size);
             }
-
-            t_load = t.elapsed();
-
-            t.restart();
-            // initialize input_data for this mini batch
-            // Ce: Notice the change here compared with the master branch -- this needs to be refactored
-            // to make the switching between this and the master branch (that load everything in memory)
-            // dynamically and improve code reuse.
-            float * const mini_batch = corpus.images->physical_get_RCDslice(0);
-            input_data->set_p_data(mini_batch);
-
-            softmax->reset_loss();
-
-            // initialize labels for this mini batch
-            labels->set_p_data(corpus.labels->physical_get_RCDslice(corpus_batch_index));
-
-            // forward pass
-            for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
-              (*bridge)->set_curr_batch_size(curr_batch_size);
-              (*bridge)->forward();
-#ifdef _LAYER_PROFILING
-             (*bridge)->report_forward();
-#endif
+            // Otherwise, we have to copy twice
+            else {
+                size_t num_images_from_end = corpus.n_images - current_image_location_in_dataset;
+                assert(num_images_from_end > 0);
+                assert(num_images_from_end < corpus.mini_batch_size);
+                size_t num_images_from_beginning = corpus.mini_batch_size - num_images_from_end;
+                memcpy(labels_buffer,
+                    corpus.labels->physical_get_RCDslice(current_image_location_in_dataset),
+                    sizeof(float) * num_images_from_end);
+                memcpy(labels_buffer + num_images_from_end,
+                    corpus.labels->physical_get_RCDslice(0),
+                    sizeof(float) * num_images_from_beginning);
             }
-
-            t_forward = t.elapsed();
-
-            float loss = (softmax->get_loss() / corpus.mini_batch_size);
-            int accuracy = DeepNet::find_accuracy(labels, (*--bridges.end())->p_output_layer->p_data_cube);
-
-            // backward pass
-            t.restart();
-            for (auto bridge = bridges.rbegin(); bridge != bridges.rend(); ++bridge) {
-              (*bridge)->set_curr_batch_size(curr_batch_size);
-              (*bridge)->backward();
-#ifdef _LAYER_PROFILING
-             (*bridge)->report_backward();
-#endif
-            }
-            t_backward = t.elapsed();
-
-            t_pass = t2.elapsed();
-
-            if (batch % display_iter == 0) {
-              cout << "BATCH: " << batch << endl;
-              std::cout << "\033[1;31m";
-              std::cout << "Loading Time (seconds)     : " << t_load << std::endl;
-              std::cout << "Forward Pass Time (seconds) : " << t_forward << std::endl;
-              std::cout << "Backward Pass Time (seconds): " << t_backward << std::endl;
-              std::cout << "Total Time & Loss & Accuracy: " << t_pass << "    " << loss
-                << "    " << 1.0*accuracy/corpus.mini_batch_size;
-              std::cout << "\033[0m" << std::endl;
-            }
-
-          }
-
-          fclose(pFile);
-
-          // TODO: handle the very last batch, which may not have the same
-          // batch size as the rest of the batches
-          cout << "Average Time (seconds) per Epoch: " << t_total.elapsed()/(epoch + 1) << endl;
+            // Now point labels to this array
+            labels->set_p_data(labels_buffer);
         }
-        cout << "Total Time (seconds): " << t_total.elapsed() << endl;
+        
+        current_image_location_in_dataset += corpus.mini_batch_size;
+        if (current_image_location_in_dataset >= corpus.n_images) {
+            current_image_location_in_dataset -= corpus.n_images;
+        }
+        
+        t_load = t.elapsed();
 
+        t.restart();
+        // initialize input_data for this mini batch
+        // Ce: Notice the change here compared with the master branch -- this needs to be refactored
+        // to make the switching between this and the master branch (that load everything in memory)
+        // dynamically and improve code reuse.
+        float * const mini_batch = corpus.images->physical_get_RCDslice(0);
+        input_data->set_p_data(mini_batch);
+
+        softmax->reset_loss();
+
+        // forward pass
+        for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
+          // (*bridge)->set_curr_batch_size(curr_batch_size);
+          (*bridge)->forward();
+#ifdef _LAYER_PROFILING
+         (*bridge)->report_forward();
+#endif
+        }
+
+        t_forward = t.elapsed();
+
+        float loss = (softmax->get_loss() / corpus.mini_batch_size);
+        int accuracy = DeepNet::find_accuracy(labels, (*--bridges.end())->p_output_layer->p_data_cube);
+
+        // backward pass
+        t.restart();
+        for (auto bridge = bridges.rbegin(); bridge != bridges.rend(); ++bridge) {
+          // (*bridge)->set_curr_batch_size(curr_batch_size);
+          (*bridge)->backward();
+#ifdef _LAYER_PROFILING
+          (*bridge)->report_backward();
+#endif
+        }
+        t_backward = t.elapsed();
+
+        t_pass = t2.elapsed();
+
+        // Check if we should print batch status
+        if ( (batch+1) % display_iter == 0 ) {
+          cout << "BATCH: " << batch << endl;
+          std::cout << "\033[1;31m";
+          std::cout << "Loading Time (seconds)     : " << t_load << std::endl;
+          std::cout << "Forward Pass Time (seconds) : " << t_forward << std::endl;
+          std::cout << "Backward Pass Time (seconds): " << t_backward << std::endl;
+          std::cout << "Total Time & Loss & Accuracy: " << t_pass << "    " << loss
+            << "    " << 1.0*accuracy/corpus.mini_batch_size;
+          std::cout << "\033[0m" << std::endl;
+        }
+        // Check if we should run validation
+        if (test_interval > 0 && (batch+1) % test_interval == 0) {
+            // SHADJIS TODO: Here I should check the size of the validation set,
+            // divide by solver_param.test_iter(), and use that as the mini-batch
+            // size to run the validation for test_iter. However, the current bridges
+            // are "rigid" i.e. they cannot support variable batch size. Fixing this is
+            // easy since it just involves changing connectors/kernels/anything else
+            // which expects a fixed-size cube.
+            // For now, use the same batch size as training for validation.
+        }
+        // Check if we should write a snapshot
+        if (snapshot > 0 && (batch+1) % snapshot == 0) {
+          time_t rawtime;
+          struct tm * timeinfo;
+          char buffer[80];
+          time (&rawtime);
+          timeinfo = localtime(&rawtime);
+          strftime(buffer,80,"%d-%m-%Y-%I-%M-%S",timeinfo);
+          std::string str(buffer);
+          std::string snapshot_name;
+          if (output_model_file == "NA") {
+            snapshot_name = "trained_model.bin." + str;
+          } else {
+            snapshot_name = output_model_file + "." + str;
+          }
+          write_model_to_file(bridges, snapshot_name);
+          std::cout << "======= Writing snapshot " << snapshot_name << " =======\n";
+        }
       }
+      
+      fclose(pFile);
+      delete labels_buffer;
+      cout << "Total Time (seconds): " << t_total.elapsed() << endl;
+    }
 
       static Corpus * load_network(const char * file, const string & data_binary, cnn::SolverParameter & solver_param,
           cnn::NetParameter & net_param, BridgeVector & bridges, bool train) {
@@ -594,14 +675,15 @@ class DeepNet {
           Corpus * corpus = DeepNet::read_corpus_from_lmdb(net_param, data_binary, train);
 
 #ifdef DEBUG
-          cout << "Corpus train loaded" << endl;
+          cout << "Corpus " << train ? "train" : "test" << " loaded" << endl;
           cout << "CORPUS NUM IMAGES: " << corpus->n_images << endl;
           cout << "CORPUS NUM ROWS: " << corpus->n_rows << endl;
           cout << "CORPUS NUM COLS: " << corpus->n_cols << endl;
           cout << "CORPUS NUM CHANNELS: " << corpus->dim << endl;
           cout << "CORPUS MINI BATCH SIZE: " << corpus->mini_batch_size << endl;
-          cout << "CORPUS NUM MINI BATCHES: " << corpus->num_mini_batches << endl;
-          cout << "CORPUS LAST BATCH SIZE: " << corpus->last_batch_size << endl;
+          assert(corpus->n_images >= corpus->mini_batch_size);
+          // cout << "CORPUS NUM MINI BATCHES: " << corpus->num_mini_batches << endl;
+          // cout << "CORPUS LAST BATCH SIZE: " << corpus->last_batch_size << endl;
 #endif
 
           DeepNet::construct_network(bridges, *corpus, net_param, solver_param);
@@ -612,6 +694,7 @@ class DeepNet {
           return NULL;
         }
       }
+
 
       static float test_network(const BridgeVector & bridges, const Corpus & corpus, const cnn::NetParameter & net_param,
           const cnn::SolverParameter & solver_param) {
@@ -633,14 +716,30 @@ class DeepNet {
         float t_forward;
         float t_pass;
         int total_accuracy = 0;
-        const int display_iter = 20;
+        const int display_iter = solver_param.display();
+        
+        // SHADJIS TODO: The test_network function is called both for validation and testing.
+        // During validation, it is called during training. Currently for training we wrap around 
+        // the dataset, i.e. the last mini-batch may be a different size so we wrap around. An
+        // equivalent solution is to run the last mini-batch as a different size (currently some
+        // refactoring is needed to make the last batch a different size since we have kernels and 
+        // connectors defined in the bridge constructors which are of a fixed size. Eeach bridge 
+        // allocates cubes in the destructor and does not free them until the destructor).
+        // Similarly, the validation (called from training) can also use a different mini-batch size 
+        // than training, but the same refactoring is needed. Eventually, the validation set mini-batch 
+        // size would be defined like this:
+        //const int test_iter = solver_param.test_iter();
+        //const size_t test_mini_batch_size = corpus->n_images / test_iter;
+        // The test set should also use this size. For now, just use training mini-batch size.
+        
         for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches - 1; ++batch,
             corpus_batch_index += corpus.mini_batch_size) {
 
           Timer t;
           Timer t2;
 
-          fread(corpus.images->get_p_data(), sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
+          size_t num_elements_read = fread(corpus.images->get_p_data(), sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
+          assert(num_elements_read == corpus.images->n_elements);
           t_load = t.elapsed();
           t.restart();
           float * const mini_batch = corpus.images->physical_get_RCDslice(0);
@@ -696,48 +795,56 @@ class DeepNet {
       //    represented as an STL vector of Bridge pointers, so that we
       //    can easily compute the forward pass and the backward pass.
       //
-      // 3) For epoch = 0 -> num_epochs (<- extracted from prototxt file)
-      //      For batch = 0 -> num_batches - 1 (<- extracted from protoxt file)
+      // 3) For iter = 0 -> max_iter-1 (<- extracted from prototxt file)
+      //      Run the next batch
+      //          (Notes: 1. Wrap around training set when done
+      //                  2. Batch size is extracted from protoxt file)
       //        Compute forward pass (iterate through vector of Bridge pointers)
-      //      Compute forward pass for last batch (might not have the same
-      //                                           size as the rest of batches)
-      //      For batch = 0 -> num_batches - 1 (<- extracted from protoxt file)
       //        Compute backward pass (iterate through vector of Bridge
       //                               pointers backwards)
-      //      Compute backward pass for last batch (again, might not have the same
-      //                                            size as the rest of batches)
       //
-      static void load_and_train_network(const char * file, const string data_binary, const string model_file) {
+      static void load_and_train_network(const char * file, const string data_binary, const string input_model_file,
+            const string output_model_file) {
         DeepNetConfig::train_ = true;
 
         BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
         Corpus * const corpus = DeepNet::load_network(file, data_binary, solver_param, net_param, bridges, true);
 
-        // Step 3:
-        // Now, the bridges vector is fully populated
-        train_network(bridges, *corpus, net_param, solver_param);
-        if (model_file == "NA") {
-          write_model_to_file(bridges, "deepnetmodel.bin");
+        // Now, the bridges vector is filled. Check if we want to load weights.
+        if (input_model_file != "NA") {
+          read_model_from_file(bridges, input_model_file);
+          std::cout << "Reading saved model from " << input_model_file << "\n";
         } else {
-          write_model_to_file(bridges, model_file);
+          std::cout << "Training new model\n";
         }
+        
+        train_network(bridges, *corpus, net_param, solver_param, input_model_file, output_model_file);
+        std::string output_model_name;
+        if (output_model_file == "NA") {
+          output_model_name = "trained_model.bin";
+        } else {
+          output_model_name = output_model_file;
+        }
+        write_model_to_file(bridges, output_model_name);
+        std::cout << "\nTrained model written to " + output_model_name +  ". Load it using the -input-model or -i flag.\n";
+        
         // Step 4: Clean up!
         clean_up(bridges, corpus);
       }
 
-      static float load_and_test_network(const char * file, const string data_binary, const string model_file) {
+      static float load_and_test_network(const char * file, const string data_binary, const string input_model_file) {
         DeepNetConfig::train_ = false;
 
         BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
         Corpus * const corpus = DeepNet::load_network(file, data_binary, solver_param, net_param, bridges, false);
 
-        if (model_file != "NA") {
-          read_model_from_file(bridges, model_file);
+        if (input_model_file != "NA") {
+          read_model_from_file(bridges, input_model_file);
           const float acc = test_network(bridges, *corpus, net_param, solver_param);
           clean_up(bridges, corpus);
           return acc;
         } else {
-          cout << "No valid model file provided" << endl;
+          cout << "No valid model file provided, use the -i or -input-model flag to specify your trained model." << endl;
           assert(false);
           return -1;
         }

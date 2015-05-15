@@ -89,6 +89,9 @@ Corpus::Corpus(const cnn::LayerParameter & layer_param, const string data_binary
  * This is
  */
 void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_param, const string data_binary) {
+
+  assert(false); // SHADJIS TODO: This code is never called
+
   cnn::Datum datum;
   cnn::Cube cube;
   MDB_env* mdb_env_ = NULL;
@@ -161,31 +164,57 @@ void Corpus::initialize_input_data_and_labels(const cnn::LayerParameter & layer_
   labels = new LogicalCube<DataType_SFFloat, Layout_CRDB>(1, 1, 1, n_images);
 
   filename = data_binary;
+  
+  // SHADJIS TODO: Why do we use fopen/fread some places? Why not C++? Need to make consistent.
 
   //if (filename != "NA"){
-    FILE * pFile = fopen(filename.c_str(), "wb+");
-    if (pFile == NULL) {
-      // perror("Error");
-      throw std::runtime_error("File open error: " + filename + " " + strerror(errno)); // TODO: REAL MESSAGE
-    }
-    LogicalCube<DataType_SFFloat, Layout_CRDB> * tmpimg = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, 1);
-    images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, mini_batch_size);  // Ce: only one batch in memory
-    std::cout << "Start writing " << n_images << " to " << filename.c_str() << "..." << std::endl;
-    MDB_cursor_op op = MDB_FIRST;
-    float * const labels_data = labels->get_p_data();
-    for (size_t b = 0; b < n_images; b++) {
-      mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
-      datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
-      int img_label = datum.label();
-      labels_data[b] = img_label;
-      float * const single_input_batch = tmpimg->physical_get_RCDslice(0); // Ce: only one batch
-      process_image(layer_param, single_input_batch, datum);
-      fwrite(tmpimg->get_p_data(), sizeof(DataType_SFFloat), tmpimg->n_elements, pFile);
-      op = MDB_NEXT;
-    }
-    std::cout << "Finished writing images to " << filename.c_str() << "..." << std::endl;
 
-    fclose(pFile);
+    // First check if the file already exists
+    FILE * pFile = fopen(filename.c_str(), "r");
+    if(pFile) {
+        fclose(pFile);
+        std::cout << "Data binary " << filename << " already exists, no need to write\n"; // Skip preprocessing
+        images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, mini_batch_size);  // Ce: only one mini-batch in memory
+        // We avoid having to write everything back to disk but we still have to read in labels
+        MDB_cursor_op op = MDB_FIRST;
+        float * const labels_data = labels->get_p_data();
+        for (size_t b = 0; b < n_images; b++) {
+          mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
+          datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
+          int img_label = datum.label();
+          labels_data[b] = img_label;
+          op = MDB_NEXT;
+        }
+    }
+  // SHADJIS TODO: Here we preprocess the entire dataset and save in binary format. Note for Imagenet, this can take
+  // hours (but only needs to be done once). The alternative is to preprocess the data in real-time rather than in advance.
+    else {
+        std::cout << "Data binary " << filename << " does not exist, creating\n";
+        pFile = fopen(filename.c_str(), "wb+");
+        if (pFile == NULL) {
+          // perror("Error");
+          throw std::runtime_error("File open error: " + filename + " " + strerror(errno)); // TODO: REAL MESSAGE
+        }
+        LogicalCube<DataType_SFFloat, Layout_CRDB> * tmpimg = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, 1);
+        // Note that the corpus owns the storage of its images
+        images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, mini_batch_size);  // Ce: only one mini-batch in memory
+        std::cout << "Start writing " << n_images << " to " << filename.c_str() << "..." << std::endl;
+        MDB_cursor_op op = MDB_FIRST;
+        float * const labels_data = labels->get_p_data();
+        for (size_t b = 0; b < n_images; b++) {
+          mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
+          datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
+          int img_label = datum.label();
+          labels_data[b] = img_label;
+          float * const single_input_batch = tmpimg->physical_get_RCDslice(0); // Ce: only one batch
+          process_image(layer_param, single_input_batch, datum);
+          fwrite(tmpimg->get_p_data(), sizeof(DataType_SFFloat), tmpimg->n_elements, pFile);
+          op = MDB_NEXT;
+        }
+        std::cout << "Finished writing images to " << filename.c_str() << "..." << std::endl;
+        delete tmpimg;
+        fclose(pFile);
+    }
   //}
   // else{
   //   images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, n_images);

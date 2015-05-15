@@ -101,7 +101,7 @@ message SolverParameter {
   optional float base_lr = 5; // The base learning rate
   // the number of iterations between displaying info. If display = 0, no info
   // will be displayed.
-  // optional int32 display = 6;
+  optional int32 display = 6 [default = 10];
   // Display the cost averaged over the last average_cost iterations
   // optional int32 average_loss = 33 [default = 1];
   optional int32 max_iter = 7; // the maximum number of iterations
@@ -117,7 +117,7 @@ message SolverParameter {
   optional int32 stepsize = 13;
   // the stepsize for learning rate policy "multistep"
   // repeated int32 stepvalue = 34;
-  // optional int32 snapshot = 14 [default = 0]; // The snapshot interval
+  optional int32 snapshot = 14 [default = 0]; // The snapshot interval
   // optional string snapshot_prefix = 15; // The prefix for the snapshot.
   // whether to snapshot diff in the results or not. Snapshotting diff will help
   // debugging but the final protocol buffer size will be much larger.
