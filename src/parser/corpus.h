@@ -140,6 +140,11 @@ class Corpus {
       
       // First check if the file already exists
       FILE * pFile = fopen(filename.c_str(), "r");
+      // SHADJIS TODO: If using default names, maybe do not overwrite binary since otherwise could end up 
+      // using old binary by accident? E.g. if the user switches the dataset and does not specify a binary,
+      // we don't want to be using an old binary, so could overwrite anyway if using default names.
+      // There may be better ways to prevent that, e.g. a new option?
+      //if(pFile && filename != "val_preprocessed.bin" && filename != "test_preprocessed.bin" && filename != "train_preprocessed.bin") {
       if(pFile) {
           fclose(pFile);
           std::cout << "Data binary " << filename << " already exists, no need to write\n"; // Skip preprocessing
