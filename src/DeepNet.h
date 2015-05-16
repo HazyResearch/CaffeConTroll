@@ -467,7 +467,8 @@ class DeepNet {
     // Right now, we do this in a single-thread fashion. TODO: Create a Scheduler class, that schedules workers
     // for each batch size, so that we can perform these forward and backward passes in parallel.
     static void train_network(const BridgeVector & bridges, const Corpus & corpus, const cnn::NetParameter & net_param,
-        const cnn::SolverParameter & solver_param, const string input_model_file, const string output_model_file) {
+        const cnn::SolverParameter & solver_param, const string input_model_file, const string output_model_file,
+        const Corpus & val_corpus) {
 
       SoftmaxBridge * const softmax = (SoftmaxBridge *) bridges.back();
       Bridge * const first = (Bridge *) bridges.front();
@@ -630,13 +631,11 @@ class DeepNet {
         }
         // Check if we should run validation
         if (test_interval > 0 && (batch+1) % test_interval == 0) {
-            // SHADJIS TODO: Here I should check the size of the validation set,
-            // divide by solver_param.test_iter(), and use that as the mini-batch
-            // size to run the validation for test_iter. However, the current bridges
-            // are "rigid" i.e. they cannot support variable batch size. Fixing this is
-            // easy since it just involves changing connectors/kernels/anything else
-            // which expects a fixed-size cube.
-            // For now, use the same batch size as training for validation.
+            std::cout << "--------------------------------------------------------------------------\n";
+            std::cout << "Running validation set...\n";
+            float acc = test_network(bridges, val_corpus, net_param, solver_param);
+            std::cout << "Validation set accuracy: " << acc << "\n";
+            std::cout << "--------------------------------------------------------------------------\n";
         }
         // Check if we should write a snapshot
         if (snapshot > 0 && (batch+1) % snapshot == 0) {
@@ -709,30 +708,45 @@ class DeepNet {
         FILE * pFile = fopen(corpus.filename.c_str(), "rb");
         if (!pFile)
           throw runtime_error("Error opening the corpus file: " + corpus.filename);
-
-        // num_mini_batches - 1, because we need one more iteration for the final mini batch
-        // (the last mini batch may not be the same size as the rest of the mini batches)
+        
+        // SHADJIS TODO: Here I could check the size of the corpus (test or validation set),
+        // divide by solver_param.test_iter(), and use that as the mini-batch
+        // size to run the testing for test_iter. Instead, for now I will just use whatever 
+        // batch size is defined in the train/test prototxt file. 
+        //
+        // The reason for this is that this function (test_network) is called both for validation 
+        // and testing. For validation, it is called from within training). During training, the 
+        // bridges are constructed for only the mini-batch size: currently for training we wrap 
+        // around the dataset, i.e. the last mini-batch may be a different size so we wrap around 
+        // and keep every batch size the same always. An equivalent solution is to run the last 
+        // mini-batch as a different size, but currently some refactoring is needed to make the 
+        // last batch a different size since we have kernels and connectors defined in the bridge 
+        // constructors which are of a fixed size (each bridge allocates cubes in the constructor 
+        // and does not free them until the destructor).
+        // 
+        // So because:
+        //   1) in training the bridges are constructed for the training mini-batch size,
+        //   2) bridges do not support variable sized batches yet,and
+        //   3) test_network() could be called from training to run validation (with the same
+        //      bridges used in training),
+        // currently this function uses the mini-batch size for the testing batch size, i.e. what
+        // is in the train/test prototxt, not the solver prototxt. 
+        // So eventually the test set mini-batch size will be defined like this:
+        //const int test_iter = solver_param.test_iter();
+        //const size_t test_mini_batch_size = corpus.n_images / test_iter;
+        // But for now to change the test set mini-batch size just change the train/test prototxt.
+        
         float t_load;
         float t_forward;
         float t_pass;
         int total_accuracy = 0;
-        const int display_iter = solver_param.display();
-        
-        // SHADJIS TODO: The test_network function is called both for validation and testing.
-        // During validation, it is called during training. Currently for training we wrap around 
-        // the dataset, i.e. the last mini-batch may be a different size so we wrap around. An
-        // equivalent solution is to run the last mini-batch as a different size (currently some
-        // refactoring is needed to make the last batch a different size since we have kernels and 
-        // connectors defined in the bridge constructors which are of a fixed size. Eeach bridge 
-        // allocates cubes in the destructor and does not free them until the destructor).
-        // Similarly, the validation (called from training) can also use a different mini-batch size 
-        // than training, but the same refactoring is needed. Eventually, the validation set mini-batch 
-        // size would be defined like this:
-        //const int test_iter = solver_param.test_iter();
-        //const size_t test_mini_batch_size = corpus->n_images / test_iter;
-        // The test set should also use this size. For now, just use training mini-batch size.
-        
-        for (size_t batch = 0, corpus_batch_index = 0; batch < corpus.num_mini_batches - 1; ++batch,
+        const int display_iter = solver_param.display(); // SHADJIS TODO: Make new param for test_display
+
+        // num_mini_batches - 1, because we need one more iteration for the final mini batch
+        // (the last mini batch may not be the same size as the rest of the mini batches)
+        // Ignore remainder for now, since should try to use a test batch size that divides test set
+        const size_t num_batch_iterations = corpus.n_images / corpus.mini_batch_size;
+        for (size_t batch = 0, corpus_batch_index = 0; batch < num_batch_iterations; ++batch,
             corpus_batch_index += corpus.mini_batch_size) {
 
           Timer t;
@@ -761,7 +775,7 @@ class DeepNet {
 
           t_pass = t2.elapsed();
 
-          if (batch % display_iter == 0) {
+          if ((batch+1) % display_iter == 0) {
             cout << "BATCH: " << batch << endl;
             std::cout << "Loading Time (seconds)     : " << t_load << std::endl;
             std::cout << "Forward Pass Time (seconds) : " << t_forward << std::endl;
@@ -772,7 +786,7 @@ class DeepNet {
           }
 
         }
-        float acc = (1.0*total_accuracy/((corpus.num_mini_batches - 1)*corpus.mini_batch_size));
+        float acc = (1.0*total_accuracy/(num_batch_iterations*corpus.mini_batch_size));
         cout << "Overall Accuracy " << acc << endl;
         fclose(pFile);
         return acc;
@@ -804,7 +818,7 @@ class DeepNet {
       //                               pointers backwards)
       //
       static void load_and_train_network(const char * file, const string data_binary, const string input_model_file,
-            const string output_model_file) {
+            const string output_model_file, const string val_data_binary) {
         DeepNetConfig::train_ = true;
 
         BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
@@ -818,7 +832,15 @@ class DeepNet {
           std::cout << "Training new model\n";
         }
         
-        train_network(bridges, *corpus, net_param, solver_param, input_model_file, output_model_file);
+        // If we are going to run a validation set during training, also need to load it
+        Corpus * val_corpus = NULL;
+        if (solver_param.test_interval() > 0 && 
+            solver_param.test_interval() <= solver_param.max_iter())
+        {
+            val_corpus = DeepNet::read_corpus_from_lmdb(net_param, val_data_binary, false);
+        }
+        
+        train_network(bridges, *corpus, net_param, solver_param, input_model_file, output_model_file, *val_corpus);
         std::string output_model_name;
         if (output_model_file == "NA") {
           output_model_name = "trained_model.bin";

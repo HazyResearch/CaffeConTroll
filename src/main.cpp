@@ -18,6 +18,7 @@ int main(int argc, const char * argv[]) {
   }
 
   string data_binary;
+  string val_binary;
   string input_model_file;
   string output_model_file;
 
@@ -30,10 +31,13 @@ int main(int argc, const char * argv[]) {
     // only) preprocessing for a large dataset the first time it is used.
     ("data-binary,b", boost::program_options::value<string>(& data_binary)->default_value(string(argv[1]) + "_preprocessed.bin"),
      "Processed data binary")
-    // Option 'input-model' and 'im' are equivalent.
+    // Option 'val-binary' and 'v' are equivalent.
+    ("val-binary,v", boost::program_options::value<string>(& val_binary)->default_value("val_preprocessed.bin"),
+     "Processed validation set binary")
+    // Option 'input-model' and 'i' are equivalent.
     ("input-model,i", boost::program_options::value<string>(& input_model_file)->default_value("NA"),
      "Model binary (input)")
-    // Option 'output-model' and 'om' are equivalent.
+    // Option 'output-model' and 'o' are equivalent.
     ("output-model,o", boost::program_options::value<string>(& output_model_file)->default_value("NA"),
      "Model binary (output)")
     ;
@@ -43,7 +47,7 @@ int main(int argc, const char * argv[]) {
   boost::program_options::notify(vm);
 
   if (string(argv[1]) == "train") {
-    DeepNet::load_and_train_network(argv[2], data_binary, input_model_file, output_model_file);
+    DeepNet::load_and_train_network(argv[2], data_binary, input_model_file, output_model_file, val_binary);
   } else if (string(argv[1]) == "test") {
     DeepNet::load_and_test_network(argv[2], data_binary, input_model_file);
   }
