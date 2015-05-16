@@ -45,11 +45,13 @@ void ReadModelFromFile(BridgeVector & bridges){
   for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
     model = (*bridge)->get_model_cube();
     if(model){
-      fread(model->get_p_data(), sizeof(DataType_SFFloat), model->n_elements, pFile);
+      size_t num_elements_read = fread(model->get_p_data(), sizeof(DataType_SFFloat), model->n_elements, pFile);
+      assert(num_elements_read == model->n_elements);
     }
     bias = (*bridge)->get_bias_cube();
     if(bias){
-      fread(bias->get_p_data(), sizeof(DataType_SFFloat), bias->n_elements, pFile);
+      size_t num_elements_read = fread(bias->get_p_data(), sizeof(DataType_SFFloat), bias->n_elements, pFile);
+      assert(num_elements_read == bias->n_elements);
     }
   }
   fclose(pFile);

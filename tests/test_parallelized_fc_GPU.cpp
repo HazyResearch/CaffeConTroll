@@ -132,7 +132,7 @@ TYPED_TEST(ParallelizedFCBridgeTestGPU, TestInitialization){
 
 
 TYPED_TEST(ParallelizedFCBridgeTestGPU, TestForward){
-  typedef typename TypeParam::T T;
+  // typedef typename TypeParam::T T;
 
   for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
     this->data1->get_p_data()[i] = float(rand()%100) / 100.0;
@@ -166,7 +166,7 @@ TYPED_TEST(ParallelizedFCBridgeTestGPU, TestForward){
 }
 
 TYPED_TEST(ParallelizedFCBridgeTestGPU, TestBackward){
-  typedef typename TypeParam::T T;
+  // typedef typename TypeParam::T T;
 
   for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
     this->data1->get_p_data()[i] = float(rand()%100) / 100.0;
