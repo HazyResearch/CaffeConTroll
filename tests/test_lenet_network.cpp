@@ -18,7 +18,7 @@ TEST(LenetTrainTest, RunTest) {
   argv[0] = a;
   argv[1] = b;
   argv[2] = c;
-  std::string data_binary = "tests/toprocess.bin";
+  std::string data_binary = "tests/lenet_toprocess.bin";
   std::string model_file = "tests/model.bin";
 
   DeepNet::load_and_train_network(argv[2], data_binary, "NA", model_file, "");

@@ -333,6 +333,29 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
       delete output_d_cube; output_d_cube = NULL;
       delete output_g_cube; output_g_cube = NULL;
     }
+    
+    // SHADJIS TODO:
+    // For the CPU abstract bridge only I will also declare some functions which are only 
+    // related to the scheduler, and therefore only called by parallelized bridge (only
+    // relevant for abstract bridge with cpu driver since pbridge always uses gpu driver).
+    // The reason I am adding these here now is because I want to call these for pbridges,
+    // but all I have in DeepNet is a vector of abstractbridges (i.e. some are pbridgrs, some
+    // are softmax/dropout/funnel/etc.). Morever, even if all bridges were created by pbridges,
+    // I would still have a vector of all different types of pbridges (since pbridge currently
+    // has the sub-bridge type as a template). So to avoid dealing with templates I am putting
+    // these scheduler functions here, and overloading them in the pbridge (which handles 
+    // scheduling within layers). Should fix the abstraction so this is not part of abstract
+    // bridge, but only parallelized bridge, or e.g. some scheduler class.
+    virtual void set_share_pointer_with_prev_bridge(bool _share) { assert(false); }
+    virtual bool get_share_pointer_with_prev_bridge() { assert(false); }
+    virtual void set_share_pointer_with_next_bridge(bool _share) { assert(false); }
+    virtual bool get_share_pointer_with_next_bridge() { assert(false); }
+    virtual size_t get_num_partitions_CPU() { assert(false); }
+    virtual std::vector <size_t> get_GPU_batch_sizes() { assert(false); }
+    virtual std::vector <int> get_used_gpu_to_device_id_map() { assert(false); }
+    virtual std::vector< LogicalCube<InputLayerDataType, Layout_CRDB> *> get_data_cubes_higher() { assert(false); }
+    virtual std::vector< LogicalCube<InputLayerDataType, Layout_CRDB> *> get_grad_cubes_higher() { assert(false); }
+
 };
 
 

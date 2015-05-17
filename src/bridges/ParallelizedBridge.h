@@ -160,6 +160,13 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     // only want to sue GPU2 for some reason.
     std::vector <int> used_gpu_to_device_id_map;
     
+    // SHADJIS TODO: Can return a (const?) reference instead
+    std::vector <size_t> get_GPU_batch_sizes() { return GPU_batch_sizes; }
+    std::vector <int> get_used_gpu_to_device_id_map() { return used_gpu_to_device_id_map; }
+    std::vector<LogicalCubeType *> get_data_cubes_higher() { return _data_cubes_higher; }
+    std::vector<LogicalCubeType *> get_grad_cubes_higher() { return _grad_cubes_higher; }
+    size_t get_num_partitions_CPU() { return num_partitions_CPU; }
+    
     // A local CPU driver used by the scheduler
     // This is the same driver which templatizes the ParallelizedBridge,
     // and is used e.g. for collecting gradients
@@ -174,6 +181,19 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     // and assert it's never used. That way I don't have to ifdef it out everywhere.
     std::vector<CPUDriver *> scheduler_gpudrivers;
 #endif
+
+    // Also, keep track of whether this PBridge shares pointers to data and
+    // gradients with the bridges that came before and after it. Originally
+    // this was always true since every PBridge began by copying its data from
+    // the CPU and finished by copying its data back to the CPU. So everything 
+    // was always on the CPU in between. Since this is inneficient, instead we
+    // need to keep track of whether this bridge shares pointers with the bridges
+    // which come before and after it, or equivalently whether it is necessary
+    // to copy from / back to the CPU (for sub-bridges on the CPU this makes no
+    // difference since it is already on the CPU).
+    bool share_pointer_with_prev_bridge;
+    bool share_pointer_with_next_bridge;
+    
     // -------------------------------------------------------------------------
     // End of Scheduler class members
     // -------------------------------------------------------------------------
@@ -193,7 +213,12 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
         const cnn::LayerParameter * const _layer_param,
         const cnn::SolverParameter * const _solver_param,
         CPUDriver * const _p_driver, size_t _n_partition,
-        size_t _n_cpu_thread_per_partition);
+        size_t _n_cpu_thread_per_partition,
+        const size_t PREVIOUS_BRIDGE_num_partitions_CPU = 0,
+        const std::vector<size_t>& PREVIOUS_BRIDGE_GPU_batch_sizes = std::vector<size_t>(),
+        const std::vector<int>   & PREVIOUS_BRIDGE_used_gpu_to_device_id_map = std::vector<int>(),
+        const std::vector<LogicalCubeType *> & PREVIOUS_BRIDGE_data_cubes_lower  = std::vector<LogicalCubeType *>(),
+        const std::vector<LogicalCubeType *> & PREVIOUS_BRIDGE_grad_cubes_lower  = std::vector<LogicalCubeType *>());
 
     ~ParallelizedBridge();
 
@@ -215,6 +240,19 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
 
     GradientUpdater<DataType, CPUDriver> * const get_bias_updater() {
         return p_grad_updater_bias;
+    }
+    
+    void set_share_pointer_with_prev_bridge(bool _share) {
+        share_pointer_with_prev_bridge = _share;
+    }
+    bool get_share_pointer_with_prev_bridge() {
+        return share_pointer_with_prev_bridge;
+    }
+    void set_share_pointer_with_next_bridge(bool _share) {
+        share_pointer_with_next_bridge = _share;
+    }
+    bool get_share_pointer_with_next_bridge() {
+        return share_pointer_with_next_bridge;
     }
 
     
@@ -350,6 +388,41 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
 
 
     PhysicalStratum stratum;
+    
+    // Helper function for pbridge, checks if vectors match
+    bool do_bridges_have_same_device_assignments(
+        const std::vector<size_t>& GPU_batch_sizes = std::vector<size_t>(),
+        const std::vector<int>   & used_gpu_to_device_id_map = std::vector<int>(),
+        const std::vector<size_t>& PREVIOUS_BRIDGE_GPU_batch_sizes = std::vector<size_t>(),
+        const std::vector<int>   & PREVIOUS_BRIDGE_used_gpu_to_device_id_map = std::vector<int>())
+    {
+        // First check if the sizes mismatch
+        if (GPU_batch_sizes.size() != PREVIOUS_BRIDGE_GPU_batch_sizes.size()) {
+            return false;
+        }
+        if (used_gpu_to_device_id_map.size() != PREVIOUS_BRIDGE_used_gpu_to_device_id_map.size()) {
+            return false;
+        }
+        // We know the same # GPUs are used for both bridges
+        // Next, check if the GPUs are the same
+        for (size_t i=0; i<used_gpu_to_device_id_map.size(); ++i) {
+            if (used_gpu_to_device_id_map[i] != PREVIOUS_BRIDGE_used_gpu_to_device_id_map[i]) {
+                return false;
+            }
+        }
+        // The GPUs match. Finally, check that the batch sizes match.
+        for (size_t i=0; i<GPU_batch_sizes.size(); ++i) {
+            if (GPU_batch_sizes[i] != PREVIOUS_BRIDGE_GPU_batch_sizes[i]) {
+                return false;
+            }
+        }
+        // The previous pbridge and the current one allocate batches identically to CPU/GPU, so
+        // we can share the device pointers.
+        // SHADJIS TODO: In the future less strict conditions may apply, e.g. if we go from 2 GPUs
+        // to 1 GPU, we can still share some of the pointers (e.g. half of the data is still on GPU 1)
+        return true;
+    }
+    
 };
 
 #include "ParallelizedBridge_impl.hxx"

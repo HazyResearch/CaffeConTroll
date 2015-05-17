@@ -28,7 +28,6 @@ using namespace std;
 typedef LogicalCube<DataType_SFFloat, Layout_CRDB> LogicalCubeFloat;
 typedef AbstractBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver> Bridge;
 typedef SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver> SoftmaxBridge;
-// TODO: we have a problem here....do we create another BridgeVector for GPU Bridges???
 typedef std::vector<Bridge *> BridgeVector;
 
 class DeepNet {
@@ -186,6 +185,50 @@ class DeepNet {
 
       size_t output_R = input_R, output_C = input_C, output_D = input_D;
       bool is_first_conv = true;
+      
+      // -----------------------------------------------------------------------
+      // Scheduler
+      //
+      // Eventually there will be a global scheduler which schedules data 
+      // movement across bridges. For now, part of this scheduler will be 
+      // inside the following loop. The portion of the scheduler that schedules
+      // within bridges is in ParallelizedBridge.
+      // 
+      // When 2 PBridges are consecutive, e.g. a conv bridge is followed be a
+      // relu bridge, and if both bridges are on the GPU, then there is no need
+      // to copy back and forth from the host between bridges. This can be done
+      // currently in PBridge but the bridge needs to know:
+      //   1. Device information + data from the previous PBridge, and
+      //   2. Whether to share data with the next PBridge
+      // Since each PBridge is isolated from the others, those signals are 
+      // passed to the bridges through the loop below
+
+      // First, make (initially empty) vectors storing device information of
+      // the previous bridge. These will be updated each iteration by creating
+      // a bridge and then reading the result from that bridge.
+      //
+      // SHADJIS TODO: But these are only defined for PBridges, not other types
+      // of bridges. All bridges in the loop below are just AbstractBridges, i.e.
+      // these vectors may not exist for that bridge. This is motivation to just
+      // merge AbstractBridge and ParallelizedBridge, but can do that later.
+      size_t prev_num_partitions_CPU;
+      std::vector<size_t> prev_GPU_batch_sizes;
+      std::vector<int> prev_gpu_to_device_id_map;
+      std::vector< LogicalCube<DataType_SFFloat, Layout_CRDB> *> prev_data_cubes_higher;
+      std::vector< LogicalCube<DataType_SFFloat, Layout_CRDB> *> prev_grad_cubes_higher;
+      
+      // Second, also make a vector of the bridges from the last iteration
+      BridgeVector pbridges_from_last_iteration;
+      BridgeVector pbridges_from_this_iteration;
+      
+      // SHADJIS TODO: Currently we only use the vectors above to adjust 
+      // PBridges. This does not affect those bridges which are not part of a
+      // PBridge (softmax, funnel, and dropout). Need to also make those
+      // pbridges, so that they too can avoid copies / extra allocations. Then,
+      // everything is a PBridge, so either merge PBridge and AbstractBridge or
+      // move certain scheduler elements to the AbstractBridge.
+
+      // -----------------------------------------------------------------------
 
       for (size_t i_layer = 0; i_layer < num_layers; ++i_layer) {
 
@@ -254,11 +297,13 @@ class DeepNet {
                     // the pbridge. Or for the user to be able specify # partitions, then also do not pass 
                     // this as an argument, instead let it be part of the same config file as GPU
                     bridge = new ParallelizedBridge<DataType_SFFloat, ConvolutionBridge>
-                             (prev_layers[i], next_layer, &layer_param, &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+                             (prev_layers[i], next_layer, &layer_param, &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1, // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher);
                     bridge->name = layer_param.name();
                     bridge->needs_to_calc_backward_grad = !is_first_conv; // for the first CONV layer, do not need to calc grad for backward step
                     bridges.push_back(bridge);
                     next_layers.push_back(next_layer);
+                    pbridges_from_this_iteration.push_back(bridge);
                   }
                   is_first_conv = false;
                 } else {
@@ -271,12 +316,14 @@ class DeepNet {
                       next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
                       bridge = new ParallelizedBridge<DataType_SFFloat, ConvolutionBridge>
-                               (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1); // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+                               (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1, // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+                               prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher);
                       bridge->name = layer_param.name();
                       bridge->needs_to_calc_backward_grad = !is_first_conv; // for the first CONV layer, do not need to calc grad for backward step
 
                       bridges.push_back(bridge);
                       next_layers.push_back(next_layer);
+                      pbridges_from_this_iteration.push_back(bridge);
                     }
                     is_first_conv = false;
                   } else {
@@ -285,6 +332,30 @@ class DeepNet {
                     assert(false);
                   }
                 }
+                // -------------- Scheduler Update ----------------
+                // SHADJIS TODO: Rather than copy this everywhere refactor into a function.
+                // Or, instead, just make every bridge into a pbridge so we can refactor the
+                // code below to the end of the loop. Then can also re-use bridges instead
+                // of creating pbridges_from_this_iteration. Or, can move the function
+                // set_share_pointer_with_next_bridge into abstract bridge (but only
+                // overload for pbridge) and then calling this for non-pbridges will have
+                // no effect, so the code can still be refactored.
+                assert(pbridges_from_this_iteration.size());
+                bool bridge_shares_data_with_prev_bridge = 
+                    pbridges_from_this_iteration[0]->get_share_pointer_with_prev_bridge();
+                if (bridge_shares_data_with_prev_bridge) {
+                  for (size_t it = 0; it < pbridges_from_last_iteration.size(); ++it) {
+                    pbridges_from_last_iteration[it]->set_share_pointer_with_next_bridge(true);
+                  }
+                }
+                pbridges_from_last_iteration = pbridges_from_this_iteration;
+                pbridges_from_this_iteration.clear();
+                prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
+                prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
+                prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
+                prev_data_cubes_higher = pbridges_from_this_iteration[0]->get_data_cubes_higher();
+                prev_grad_cubes_higher = pbridges_from_this_iteration[0]->get_grad_cubes_higher();
+                // ----------End of Scheduler Update --------------
             }
             break;
             {
@@ -321,7 +392,8 @@ class DeepNet {
                 next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
                 bridge = new ParallelizedBridge<DataType_SFFloat, FullyConnectedBridge>
-                         (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), hw_concurrency);
+                         (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), hw_concurrency,
+                         prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher);
 
                 //bridge = new FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layers[0],
                 //  next_layer, &layer_param, &solver_param);
@@ -330,6 +402,24 @@ class DeepNet {
                 bridge->run_with_n_threads = hw_concurrency;  // TODO: Add a better abstraction here.
                 bridges.push_back(bridge);
                 next_layers.push_back(next_layer);
+                pbridges_from_this_iteration.push_back(bridge);
+                // -------------- Scheduler Update ----------------
+                assert(pbridges_from_this_iteration.size());
+                bool bridge_shares_data_with_prev_bridge = 
+                    pbridges_from_this_iteration[0]->get_share_pointer_with_prev_bridge();
+                if (bridge_shares_data_with_prev_bridge) {
+                  for (size_t it = 0; it < pbridges_from_last_iteration.size(); ++it) {
+                    pbridges_from_last_iteration[it]->set_share_pointer_with_next_bridge(true);
+                  }
+                }
+                pbridges_from_last_iteration = pbridges_from_this_iteration;
+                pbridges_from_this_iteration.clear();
+                prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
+                prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
+                prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
+                prev_data_cubes_higher = pbridges_from_this_iteration[0]->get_data_cubes_higher();
+                prev_grad_cubes_higher = pbridges_from_this_iteration[0]->get_grad_cubes_higher();
+                // ----------End of Scheduler Update --------------
             }
             break;
             {
@@ -349,11 +439,30 @@ class DeepNet {
                   next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
                   bridge = new ParallelizedBridge<DataType_SFFloat, MaxPoolingBridge>(prev_layers[i], next_layer, &layer_param,
-                             &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1);
+                             &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1,
+                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher);
                   bridge->name = layer_param.name();
                   bridges.push_back(bridge);
                   next_layers.push_back(next_layer);
+                  pbridges_from_this_iteration.push_back(bridge);
                 }
+                // -------------- Scheduler Update ----------------
+                assert(pbridges_from_this_iteration.size());
+                bool bridge_shares_data_with_prev_bridge = 
+                    pbridges_from_this_iteration[0]->get_share_pointer_with_prev_bridge();
+                if (bridge_shares_data_with_prev_bridge) {
+                  for (size_t it = 0; it < pbridges_from_last_iteration.size(); ++it) {
+                    pbridges_from_last_iteration[it]->set_share_pointer_with_next_bridge(true);
+                  }
+                }
+                pbridges_from_last_iteration = pbridges_from_this_iteration;
+                pbridges_from_this_iteration.clear();
+                prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
+                prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
+                prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
+                prev_data_cubes_higher = pbridges_from_this_iteration[0]->get_data_cubes_higher();
+                prev_grad_cubes_higher = pbridges_from_this_iteration[0]->get_grad_cubes_higher();
+                // ----------End of Scheduler Update --------------
             }
             break;
             {
@@ -369,12 +478,31 @@ class DeepNet {
                   next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
                   bridge = new ParallelizedBridge<DataType_SFFloat, ReLUBridge>(prev_layers[i], next_layer, &layer_param,
-                             &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1);
+                             &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1,
+                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher);
                   bridge->name = layer_param.name();
 
                   bridges.push_back(bridge);
                   next_layers.push_back(next_layer);
+                  pbridges_from_this_iteration.push_back(bridge);
                 }
+                // -------------- Scheduler Update ----------------
+                assert(pbridges_from_this_iteration.size());
+                bool bridge_shares_data_with_prev_bridge = 
+                    pbridges_from_this_iteration[0]->get_share_pointer_with_prev_bridge();
+                if (bridge_shares_data_with_prev_bridge) {
+                  for (size_t it = 0; it < pbridges_from_last_iteration.size(); ++it) {
+                    pbridges_from_last_iteration[it]->set_share_pointer_with_next_bridge(true);
+                  }
+                }
+                pbridges_from_last_iteration = pbridges_from_this_iteration;
+                pbridges_from_this_iteration.clear();
+                prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
+                prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
+                prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
+                prev_data_cubes_higher = pbridges_from_this_iteration[0]->get_data_cubes_higher();
+                prev_grad_cubes_higher = pbridges_from_this_iteration[0]->get_grad_cubes_higher();
+                // ----------End of Scheduler Update --------------
             }
             break;
             {
@@ -390,12 +518,32 @@ class DeepNet {
                   next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
                   bridge = new ParallelizedBridge<DataType_SFFloat, LRNBridge>(prev_layers[i], next_layer, &layer_param,
-                             &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1);
+                             &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1,
+                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher);
                   bridge->name = layer_param.name();
 
                   bridges.push_back(bridge);
                   next_layers.push_back(next_layer);
+                  
+                  pbridges_from_this_iteration.push_back(bridge);
                 }
+                // -------------- Scheduler Update ----------------
+                assert(pbridges_from_this_iteration.size());
+                bool bridge_shares_data_with_prev_bridge = 
+                    pbridges_from_this_iteration[0]->get_share_pointer_with_prev_bridge();
+                if (bridge_shares_data_with_prev_bridge) {
+                  for (size_t it = 0; it < pbridges_from_last_iteration.size(); ++it) {
+                    pbridges_from_last_iteration[it]->set_share_pointer_with_next_bridge(true);
+                  }
+                }
+                pbridges_from_last_iteration = pbridges_from_this_iteration;
+                pbridges_from_this_iteration.clear();
+                prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
+                prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
+                prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
+                prev_data_cubes_higher = pbridges_from_this_iteration[0]->get_data_cubes_higher();
+                prev_grad_cubes_higher = pbridges_from_this_iteration[0]->get_grad_cubes_higher();
+                // ----------End of Scheduler Update --------------
             }
             break;
             {

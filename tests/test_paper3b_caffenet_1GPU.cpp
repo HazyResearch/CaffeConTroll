@@ -9,7 +9,7 @@
 #include "test_types.h"
 
 
-TEST(CaffenetPaper3bTrainTest, RunTest) {
+TEST(CaffenetPaper3bTrainTest_1GPU, RunTest) {
 
   char const * a = "deepnet";
   char const * b = "train";
