@@ -67,6 +67,15 @@ class LogicalCube {
         return p_driver->get_device_pointer(p_data, n_elements*sizeof(T));
     }
 
+    DeviceMemoryPointer * get_device_pointer_RCDslice(DeviceDriver * p_driver, size_t b_offset,
+        size_t num_batches) const {
+      #ifdef _DO_ASSERT
+        assert(b_offset<B);
+        assert(b_offset + num_batches <= B);
+      #endif
+        return p_driver->get_device_pointer(p_data + b_offset*R*C*D, num_batches*R*C*D*sizeof(T));
+    }
+
     /**
      * Constuctor that actually allocates the data.
      * If a cube allcoates the data, it needs to

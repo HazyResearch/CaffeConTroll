@@ -674,7 +674,8 @@ class DeepNet {
           Corpus * corpus = DeepNet::read_corpus_from_lmdb(net_param, data_binary, train);
 
 #ifdef DEBUG
-          cout << "Corpus " << train ? "train" : "test" << " loaded" << endl;
+          std::string corpus_type = train ? "train" : "test";
+          cout << "Corpus " << corpus_type << " loaded" << endl;
           cout << "CORPUS NUM IMAGES: " << corpus->n_images << endl;
           cout << "CORPUS NUM ROWS: " << corpus->n_rows << endl;
           cout << "CORPUS NUM COLS: " << corpus->n_cols << endl;

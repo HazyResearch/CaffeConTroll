@@ -74,7 +74,7 @@ class AbstractBridge : public PhysicalOperator {
         report_backward_updateweight_last_transfer.print();
     }
 
-    // SHADJIS TODO: I'm not convinced we ever need this. I think this should always just
+    // SHADJIS TODO: I'm not sure if we ever need this. I think this should always just
     // be handled with a direct driver->memcpy(), and if the src/dst are host or device
     // is abstracted to the caller
     void copy_from_host_to_device(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
@@ -233,12 +233,16 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
         report_backward_updateweight_last_transfer.print();
     }
 
+    // SHADJIS TODO: I'm not sure if we ever need this. I think this should always just
+    // be handled with a direct driver->memcpy(), and if the src/dst are host or device
+    // is abstracted to the caller
     // If p_driver == CPUDriver, then we just need to reassign pointers
     void copy_from_host_to_device(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
 	LogicalCube<InputLayerDataType, InputLayerLayout> * const src) {
       dst->set_p_data(src->get_p_data());
     }
 
+    // SHADJIS TODO: See comment above for copy_from_host_to_device, this seems unnecessary
     void copy_from_device_to_host(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
 	LogicalCube<InputLayerDataType, InputLayerLayout> * const src) {
       dst->set_p_data(src->get_p_data());
@@ -385,6 +389,9 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
         report_backward_updateweight_last_transfer.print();
     }
 
+    // SHADJIS TODO: I'm not sure if we ever need this. I think this should always just
+    // be handled with a direct driver->memcpy(), and if the src/dst are host or device
+    // is abstracted to the caller
     void copy_from_host_to_device(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
 	LogicalCube<InputLayerDataType, InputLayerLayout> * const src) {
         // We know local is a CPU driver
@@ -393,6 +400,7 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
         delete local_cpu_driver;
     }
 
+    // SHADJIS TODO: See comment above for copy_from_host_to_device, this seems unnecessary
     void copy_from_device_to_host(LogicalCube<InputLayerDataType, InputLayerLayout> * const dst,
 	LogicalCube<InputLayerDataType, InputLayerLayout> * const src) {
         // We know local is a CPU driver
@@ -452,12 +460,15 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
         solver_param(_solver_param), p_driver(_p_driver), bias_term(false) {
 
           // GPU: Use constructor to own data. I.e. allocate this on the device.
+          // Update: originally the GPU did own its own data in these cubes, but now
+          // that has been refactored to the pbridge, i.e. the pbridge has the cubes
+          // which own device data and these just point to those.
           // SHADJIS TODO: For GPU, if we decide to copy 1 image at a time in the
           // batch to the GPU, iB / oB below would change to 1. 
-          input_d_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(iR, iC, iD, iB, p_driver);
-          input_g_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(iR, iC, iD, iB, p_driver);
-          output_d_cube = new LogicalCube<OutputLayerDataType, OutputLayerLayout>(oR, oC, oD, oB, p_driver);
-          output_g_cube = new LogicalCube<OutputLayerDataType, OutputLayerLayout>(oR, oC, oD, oB, p_driver);
+          input_d_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(NULL, iR, iC, iD, iB, p_driver);
+          input_g_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(NULL, iR, iC, iD, iB, p_driver);
+          output_d_cube = new LogicalCube<OutputLayerDataType, OutputLayerLayout>(NULL, oR, oC, oD, oB, p_driver);
+          output_g_cube = new LogicalCube<OutputLayerDataType, OutputLayerLayout>(NULL, oR, oC, oD, oB, p_driver);
         }
 
     // Second constructor, which does NOT take in a cnn::LayerParameter as a third argument.

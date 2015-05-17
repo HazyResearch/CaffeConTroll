@@ -184,20 +184,15 @@ forward() {
     p_model_cube->set_p_data(p_model_cube_shadow->get_p_data());
   }
 
-  // Copy input to device memory
-  // SHADJIS TODO: Refactor this copy out of the bridge
-  if (std::is_same<DriverClass, CPUDriver>::value) {
-    input_d_cube->set_p_data( p_input_layer->p_data_cube->get_p_data());
-    output_d_cube->set_p_data(p_output_layer->p_data_cube->get_p_data());
-  } else {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(input_d_cube,
-      p_input_layer->p_data_cube);
-  }
+  // Make sure the internal cube pointers of this abstract bridge match the bridge's layer cubes
+  // SHADJIS TODO: Eventually no need for input_d_cube/etc. (the 4 cubes defined in AbstractBridge),
+  // since will always be same pointer as p_input_layer->p_data_cube, etc.
+  input_d_cube->set_p_data( p_input_layer->p_data_cube->get_p_data());
+  output_d_cube->set_p_data(p_output_layer->p_data_cube->get_p_data());
 
   // Start Reporting
   // This is done after the copy since that will be refactored out of the bridge.
   report_forward_last_transfer.reset();
-  PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  Copy local to device: " << seconds << "\n"; t.restart();)
 
   // Do the GEMM. No lowering is needed for FC.
   // SHADJIS TODO: Note here we're not using kernel, just doing the GEMM.
@@ -229,19 +224,6 @@ forward() {
   // Finish reporting. 
   report_forward_last_transfer.end();
   
-  // SHADJIS TODO: Need to refactor the copies below out of the bridge
-  
-  // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy output to host memory here
-  // SHADJIS TODO: In the future, if 2 consecutive bridges are on GPU, no need to
-  // copy back to the host.
-  if (!std::is_same<DriverClass, CPUDriver>::value) {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_host(
-        p_output_layer->p_data_cube, output_d_cube
-      );
-  }
-
-  PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  Copy device to local: " << seconds << "\n";)
-
   // SHADJIS TODO: Similarly, refactor this call to destroy cuBLAS out of the bridge
   p_driver->destroy_thread();
    
@@ -284,22 +266,15 @@ backward() {
   DeviceMemoryPointer * model_gradient_pointer = p_model_gradient_cube->get_device_pointer(p_driver);
   p_driver->sconstant_initialize(model_gradient_pointer, DataType(0.));
 
-  // Copy output grad to device memory
-  // SHADJIS TODO: Move this copy out of fc bridge.
-  if (std::is_same<DriverClass, CPUDriver>::value) {
-    output_g_cube->set_p_data(p_output_layer->p_gradient_cube->get_p_data());
-    input_g_cube->set_p_data(p_input_layer->p_gradient_cube->get_p_data());
-  } else {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(output_g_cube,
-      p_output_layer->p_gradient_cube);
-  }
-  
-  // Copy input data to device.
+  // Make sure the internal cube pointers of this abstract bridge match the bridge's layer cubes
+  // SHADJIS TODO: Eventually no need for input_d_cube/etc. (the 4 cubes defined in AbstractBridge),
+  // since will always be same pointer as p_input_layer->p_data_cube, etc.
+  output_g_cube->set_p_data(p_output_layer->p_gradient_cube->get_p_data());
+  input_g_cube->set_p_data(p_input_layer->p_gradient_cube->get_p_data());
   // SHADJIS TODO: Since this was done in FW pass and never freed from fw this currently is not needed.
+  // If we do need it again, refactor the copy out to pbridge like the others were.
   //AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(input_d_cube,
   //    p_input_layer->p_data_cube);
-
-  PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  Copy local to device: " << seconds << "\n"; t.restart();)
 
   // Start Reporting
   // SHADJIS TODO: This is done after the copy since that will be refactored out of the bridge.
@@ -341,17 +316,6 @@ backward() {
   // to be refactored out of the bridge
   report_backward_updateweight_last_transfer.end();
   
-  // SHADJIS TODO: Need to refactor the copies below out of the bridge
-  
-  // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy input grad to host memory here
-  if (!std::is_same<DriverClass, CPUDriver>::value) {
-    AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_host(
-        p_input_layer->p_gradient_cube, input_g_cube
-      );
-  }
-
-  PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  Copy device to local: " << seconds << "\n";)
-
   // SHADJIS TODO: Similarly, refactor this call to destroy cuBLAS out of the bridge
   p_driver->destroy_thread();
 

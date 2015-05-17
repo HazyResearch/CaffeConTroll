@@ -275,11 +275,11 @@ forward() {
   
       p_driver->set_num_threads(run_with_n_threads);
       
-      // Copy input to device memory
+      // Make sure the internal cube pointers of this abstract bridge match the bridge's layer cubes
+      // SHADJIS TODO: Refactor these out of "if" statement for all bridges since always need to do it now
+      // SHADJIS TODO: Eventually no need for input_d_cube/etc. (the 4 cubes defined in AbstractBridge),
+      // since will always be same pointer as p_input_layer->p_data_cube, etc.
       input_d_cube->set_p_data( p_input_layer->p_data_cube->get_p_data());
-          
-      // If DriverClass == CPUDriver, we also need to update the p_data pointer of output_d_cube to point to
-      // p_output_layer->p_data_cube->p_data
       output_d_cube->set_p_data(p_output_layer->p_data_cube->get_p_data());
       
       if (p_model_cube->get_p_data() == NULL) {
@@ -380,6 +380,13 @@ forward() {
 
       PROFILE_ONLY(p_driver->device_sync(); std::cout << "Conv Forward\n"; float seconds = 0.; Timer t;)
       
+      // Make sure the internal cube pointers of this abstract bridge match the bridge's layer cubes
+      // SHADJIS TODO: Refactor these out of "if" statement for all bridges since always need to do it now
+      // SHADJIS TODO: Eventually no need for input_d_cube/etc. (the 4 cubes defined in AbstractBridge),
+      // since will always be same pointer as p_input_layer->p_data_cube, etc.
+      input_d_cube->set_p_data( p_input_layer->p_data_cube->get_p_data());
+      output_d_cube->set_p_data(p_output_layer->p_data_cube->get_p_data());
+
       // SHADJIS TODO: Eventually we should only copy one image at a time to the device
       // This is very easy, just
       //  1) put this copy inside the loop, and
@@ -388,16 +395,17 @@ forward() {
       //  3) Make a single-image (host) cube that points to 1 image at a time from p_input_layer->p_data_cube
       //  4) input_d_cube_SINGLE_IMAGE can be deleted once input_d_cube is only size 1 image
       // For now, input_d_cube is the full size so copy the entire cube.
-      AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(input_d_cube,
-          p_input_layer->p_data_cube);
-
-      PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  Copy local to device: " << seconds << "\n"; t.restart();)
+      // Update: The copy was moved out to PBridge but same idea (can loop over images inside pbridge
+      // then call conv->forward())
 
       // Start Reporting
       // This is done after the copy since that will be refactored out of the bridge.
       report_forward_last_transfer.reset();
   
       // Do lowering/GEMM one image at a time
+      // SHADJIS TODO: Eventually we should refactor this loop out because the conv bridge should not
+      // care what device it is running on, just be given a batch size (e.g. 1 element if called from
+      // within a loop in the scheduler, or all elements if called as batch convolution e.g. for CPU).
       for (size_t ib = 0; ib < iB; ++ib) {
           
           // Get pointers to the right data for the lowering
@@ -463,15 +471,6 @@ forward() {
       // to be refactored out of the bridge
       report_forward_last_transfer.end();
       
-      // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy output to host memory here
-      // SHADJIS TODO: In the future, if 2 consecutive bridges are on GPU, no need to
-      // copy back to the host.
-      AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_host(
-          p_output_layer->p_data_cube, output_d_cube
-        );
-
-      PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  Copy device to local: " << seconds << "\n";)
-  
       // SHADJIS TODO: Need to refactor the copies below out of the bridge
       // Similarly, refactor this call to destroy cuBLAS out of the bridge
       p_driver->destroy_thread();
@@ -530,11 +529,12 @@ backward() {
   
       p_driver->set_num_threads(run_with_n_threads);
       
+      // Make sure the internal cube pointers of this abstract bridge match the bridge's layer cubes
+      // SHADJIS TODO: Refactor these out of "if" statement for all bridges since always need to do it now
+      // SHADJIS TODO: Eventually no need for input_d_cube/etc. (the 4 cubes defined in AbstractBridge),
+      // since will always be same pointer as p_input_layer->p_data_cube, etc.
       // Copy output grad to device memory
       output_g_cube->set_p_data(p_output_layer->p_gradient_cube->get_p_data());
-          
-      // If DriverClass == CPUDriver, we also need to update the p_data pointer of input_g_cube to point to
-      // p_input_layer->p_gradient_cube->p_data
       input_g_cube->set_p_data(p_input_layer->p_gradient_cube->get_p_data());
       
       // Start Reporting
@@ -650,14 +650,21 @@ backward() {
       
       PROFILE_ONLY(std::cout << "Conv Backward\n"; float seconds = 0.; Timer t;)
       
+      // Make sure the internal cube pointers of this abstract bridge match the bridge's layer cubes
+      // SHADJIS TODO: Refactor these out of "if" statement for all bridges since always need to do it now
+      // SHADJIS TODO: Eventually no need for input_d_cube/etc. (the 4 cubes defined in AbstractBridge),
+      // since will always be same pointer as p_input_layer->p_data_cube, etc.
       // Copy output grad to device memory
-      // SHADJIS TODO: Move this copy out of conv bridge. A bridge should just be passed a device memory poitner
+      output_g_cube->set_p_data(p_output_layer->p_gradient_cube->get_p_data());
+      input_g_cube->set_p_data(p_input_layer->p_gradient_cube->get_p_data());
+      
+      
+      // Copy output grad to device memory
+      // Update: Moved this copy out of conv bridge. A bridge should just be passed a device memory poitner
       // or a cube and use the driver to get the next image from the cube. If the cube is already on the device,
       // i.e. all the images were copied before, then it just returns the pointer, and if it is not, it does the 
       // copy of that one image. Then the decision to copy all at once or 1 image at a time is handled be a
       // scheduler which knows the memory size of each device.
-      AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(output_g_cube,
-          p_output_layer->p_gradient_cube);
 
       // SHADJIS TODO: Eventually we should only copy one image at a time to the device
       // This is very easy, just
@@ -669,11 +676,13 @@ backward() {
       // For now, input_d_cube is the full size so copy the entire cube.
       // Also, see comment above: only need to copy the data because we aren't copying the lowered data.
       //
+      // Update: The copy was moved out to PBridge but same idea (can loop over images inside pbridge
+      // then call conv->forward())
+
       // SHADJIS TODO: Actually the data was never freed from fw so this currently is not needed
+      // If we do free, then this copy below needs to be moved into pbridge, like all other copies were
       //AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_host_to_device(input_d_cube,
       //    p_input_layer->p_data_cube);
-
-      PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  Copy local to device: " << seconds << "\n"; t.restart();)
 
       // Start Reporting
       // SHADJIS TODO: This is done after the copy since that will be refactored out of the bridge.
@@ -731,13 +740,6 @@ backward() {
       // SHADJIS TODO: This is done before copy back to device, since copies need 
       // to be refactored out of the bridge
       report_backward_updateweight_last_transfer.end();
-      
-      // If DriverClass == GPUDriver (or DriverClass != CPUDriver), we copy input grad to host memory here
-      AbstractBridge<DataType, Layout_CRDB, DataType,Layout_CRDB, DriverClass>::copy_from_device_to_host(
-          p_input_layer->p_gradient_cube, input_g_cube
-        );
-
-      PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "  Copy device to local: " << seconds << "\n";)
       
       // SHADJIS TODO: Need to refactor the copies below out of the bridge
       // Similarly, refactor this call to destroy cuBLAS out of the bridge
