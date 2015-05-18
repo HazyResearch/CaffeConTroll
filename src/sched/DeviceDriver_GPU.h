@@ -62,6 +62,7 @@ public:
     const struct _lrn_backward_arg_helper args);
   void lower_cube_helper(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     const struct PMapHelper args);
+  void L1_update(const int n_elements, float * const p_gradient, const float lambda, const float * const p_model);
 
   template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
   void pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,

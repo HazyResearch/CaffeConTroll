@@ -97,10 +97,14 @@ class DeepNet {
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
         model = (*bridge)->get_model_cube();
         if (model) {
+          // If the model is not currently on the host (e.g. it could be on some remote device),
+          // force a copy back to the host
+          (*bridge)->force_device_to_host_model_copy();
           fwrite(model->get_p_data(), sizeof(DataType_SFFloat), model->n_elements, pFile);
         }
         bias = (*bridge)->get_bias_cube();
         if (bias) {
+          (*bridge)->force_device_to_host_bias_copy();
           fwrite(bias->get_p_data(), sizeof(DataType_SFFloat), bias->n_elements, pFile);
         }
       }
@@ -117,11 +121,13 @@ class DeepNet {
         if (model) {
           size_t num_elements_read = fread(model->get_p_data(), sizeof(DataType_SFFloat), model->n_elements, pFile);
           assert(num_elements_read == model->n_elements);
+          (*bridge)->force_host_to_device_model_copy();
         }
         bias = (*bridge)->get_bias_cube();
         if (bias) {
           size_t num_elements_read = fread(bias->get_p_data(), sizeof(DataType_SFFloat), bias->n_elements, pFile);
           assert(num_elements_read == bias->n_elements);
+          (*bridge)->force_host_to_device_bias_copy();
         }
       }
       fclose(pFile);
@@ -211,7 +217,7 @@ class DeepNet {
       // of bridges. All bridges in the loop below are just AbstractBridges, i.e.
       // these vectors may not exist for that bridge. This is motivation to just
       // merge AbstractBridge and ParallelizedBridge, but can do that later.
-      size_t prev_num_partitions_CPU;
+      size_t prev_num_partitions_CPU = 0;
       std::vector<size_t> prev_GPU_batch_sizes;
       std::vector<int> prev_gpu_to_device_id_map;
       std::vector< LogicalCube<DataType_SFFloat, Layout_CRDB> *> prev_data_cubes_higher;

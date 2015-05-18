@@ -135,6 +135,9 @@ TYPED_TEST(GPUPerfConvolutionBridgeTest_1, TestForwardBackward){
     this->grad2->get_p_data()[i] = i*0.1;
   }
 
+  this->ParallelizedConvolutionBridge_->force_host_to_device_model_copy();
+  this->ParallelizedConvolutionBridge_->force_host_to_device_bias_copy();
+
   // Run FW and BW pass many times
   for (int i = 0; i < 100; ++i) {
     this->ParallelizedConvolutionBridge_->forward();
@@ -142,6 +145,9 @@ TYPED_TEST(GPUPerfConvolutionBridgeTest_1, TestForwardBackward){
     this->ParallelizedConvolutionBridge_->backward();
     //this->ParallelizedConvolutionBridge_->report_backward();
   }
+  
+  this->ParallelizedConvolutionBridge_->force_device_to_host_model_copy();
+  this->ParallelizedConvolutionBridge_->force_device_to_host_bias_copy();
   
   // Print results
   std::cout<<"\n\nreport_pbridge_fw\n";

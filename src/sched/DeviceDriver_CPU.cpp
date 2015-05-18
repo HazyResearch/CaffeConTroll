@@ -106,6 +106,15 @@ inline void CPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMem
     }
 }
 
+void CPUDriver::L1_update(const int n_elements, float * const p_gradient,
+    const float lambda, const float * const p_model) {
+
+    for (int i = 0; i < n_elements; ++i) {
+      p_gradient[i] += lambda * (p_model[i] > 0 ? 1 : -1);
+    }
+}
+
+
 #define FW_LOWER_OPTIMIZATIONS 1
 
 // Type 1 lowering as defined in the paper

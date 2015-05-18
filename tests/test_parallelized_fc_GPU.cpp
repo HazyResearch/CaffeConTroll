@@ -155,9 +155,19 @@ TYPED_TEST(ParallelizedFCBridgeTestGPU, TestForward){
       = this->ParallelizedConvolutionBridge_->p_bias_cube->get_p_data()[i];
   }
 
+  this->ParallelizedConvolutionBridge_->force_host_to_device_model_copy();
+  this->ParallelizedFCBridge_->force_host_to_device_model_copy();
+  this->ParallelizedConvolutionBridge_->force_host_to_device_bias_copy();
+  this->ParallelizedFCBridge_->force_host_to_device_bias_copy();
+
   this->ParallelizedConvolutionBridge_->forward();
 
   this->ParallelizedFCBridge_->forward();
+  
+  this->ParallelizedConvolutionBridge_->force_device_to_host_model_copy();
+  this->ParallelizedFCBridge_->force_device_to_host_model_copy();
+  this->ParallelizedConvolutionBridge_->force_device_to_host_bias_copy();
+  this->ParallelizedFCBridge_->force_device_to_host_bias_copy();
 
   // Verify that the FC layer matches the conv layer
   for (int i=0;i<this->oR*this->oC*this->oD*this->mB;i++) {
@@ -198,11 +208,21 @@ TYPED_TEST(ParallelizedFCBridgeTestGPU, TestBackward){
     this->grad2c->get_p_data()[i] = i*0.1;
   }
 
+  this->ParallelizedConvolutionBridge_->force_host_to_device_model_copy();
+  this->ParallelizedFCBridge_->force_host_to_device_model_copy();
+  this->ParallelizedConvolutionBridge_->force_host_to_device_bias_copy();
+  this->ParallelizedFCBridge_->force_host_to_device_bias_copy();
+
   this->ParallelizedConvolutionBridge_->forward();
   this->ParallelizedFCBridge_->forward();
   
   this->ParallelizedConvolutionBridge_->backward();
   this->ParallelizedFCBridge_->backward();
+
+  this->ParallelizedConvolutionBridge_->force_device_to_host_model_copy();
+  this->ParallelizedFCBridge_->force_device_to_host_model_copy();
+  this->ParallelizedConvolutionBridge_->force_device_to_host_bias_copy();
+  this->ParallelizedFCBridge_->force_device_to_host_bias_copy();
 
   // Verify FC matches Conv
 

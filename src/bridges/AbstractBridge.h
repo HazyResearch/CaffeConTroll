@@ -355,7 +355,10 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
     virtual std::vector <int> get_used_gpu_to_device_id_map() { assert(false); }
     virtual std::vector< LogicalCube<InputLayerDataType, Layout_CRDB> *> get_data_cubes_higher() { assert(false); }
     virtual std::vector< LogicalCube<InputLayerDataType, Layout_CRDB> *> get_grad_cubes_higher() { assert(false); }
-
+    virtual void force_host_to_device_model_copy() { assert(false); }
+    virtual void force_host_to_device_bias_copy()  { assert(false); }
+    virtual void force_device_to_host_model_copy() { assert(false); }
+    virtual void force_device_to_host_bias_copy()  { assert(false); }
 };
 
 

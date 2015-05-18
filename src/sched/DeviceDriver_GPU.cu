@@ -855,6 +855,39 @@ void GPUDriver::set_num_threads(const int nThreads) {
   // SHADJIS TODO: Can implement this on GPU but not really needed, mostly just for CPU
 }
 
+__global__ void _L1_update_helper (const int n_elements, float * const p_gradient,
+    const float lambda, const float * const p_model) {
+    
+    const int i = blockDim.x * blockIdx.x + threadIdx.x;
+    if (i < n_elements) {
+      p_gradient[i] += lambda * (p_model[i] > 0 ? 1 : -1);
+    }
+}
+
+void GPUDriver::L1_update(const int n_elements, float * const p_gradient,
+    const float lambda, const float * const p_model) {
+
+    set_device();
+	int blocksPerGrid = (n_elements + threadsPerBlock - 1) / threadsPerBlock;
+	const int num_calls = (blocksPerGrid + max_cuda_blocks - 1) / max_cuda_blocks;
+	if (num_calls > 1) {
+		blocksPerGrid = max_cuda_blocks;
+	}
+    int n_elements_left = n_elements;
+	for (int call_counter=0; call_counter < num_calls; ++call_counter)
+	{
+        const int offset = call_counter*blocksPerGrid*threadsPerBlock;
+		_L1_update_helper<<<blocksPerGrid, threadsPerBlock>>>(n_elements_left, p_gradient + offset, lambda, p_model + offset);
+		err = cudaGetLastError();
+		if(err != cudaSuccess){
+			std::cout << "Fail to launch _L1_update_helper" << "  ERROR " << err << std::endl;
+			assert(false);
+		}
+		n_elements_left -= blocksPerGrid*threadsPerBlock; // Decrement #elements left to process
+	}
+	err = cudaGetLastError();
+	assert(err == cudaSuccess);
+}
 
 void GPUDriver::sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB, 
     int M, int N, int K, float alpha, float * pA, int LDA, float * pB, int LDB,

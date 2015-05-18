@@ -134,7 +134,11 @@ TYPED_TEST(ParallelizedConvolutionBridgeLargeGPU_batchTest, TestForward){
   }
   bias_file.close();
 
+  this->ParallelizedConvolutionBridge_->force_host_to_device_model_copy();
+  this->ParallelizedConvolutionBridge_->force_host_to_device_bias_copy();
   this->ParallelizedConvolutionBridge_->forward();
+  this->ParallelizedConvolutionBridge_->force_device_to_host_model_copy();
+  this->ParallelizedConvolutionBridge_->force_device_to_host_bias_copy();
 
 #if WRITE_MODE
   std::ofstream expected_output("tests/output/conv_forward_large.txt"); // File size: oD*m*m*mB
@@ -206,8 +210,14 @@ TYPED_TEST(ParallelizedConvolutionBridgeLargeGPU_batchTest, TestBackward){
   }
 
 
+  this->ParallelizedConvolutionBridge_->force_host_to_device_model_copy();
+  this->ParallelizedConvolutionBridge_->force_host_to_device_bias_copy();
+  
   this->ParallelizedConvolutionBridge_->forward();
   this->ParallelizedConvolutionBridge_->backward();
+  
+  this->ParallelizedConvolutionBridge_->force_device_to_host_model_copy();
+  this->ParallelizedConvolutionBridge_->force_device_to_host_bias_copy();
 
 #if WRITE_MODE
   std::ofstream expected_output("tests/output/conv_backward_large.txt"); // File size: oD*m*m*mB

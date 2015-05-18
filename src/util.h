@@ -58,8 +58,8 @@ class Util {
     static inline void regularize(std::string regularization_type,
         const int n, float lambda, T * const gradient, const T * const current_param) {
       if (regularization_type == "L2") {
-        for (int i = 0; i < n; ++i) { // To is easily compiled to SIMD, so let's
-                              // not over-optimize before it becomes bottleneck
+        // This can be compiled to SIMD, can optimize later if needed
+        for (int i = 0; i < n; ++i) { 
           gradient[i] += lambda * current_param[i];
         }
       }else if (regularization_type == "L1") {
@@ -70,8 +70,8 @@ class Util {
     }
 
     /**
-     * Acknowledgement: Following code is directly forked
-     * from https://github.com/BVLC/caffe/blob/master/src/caffe/solver.cpp#L363
+     * The following code is from
+     * https://github.com/BVLC/caffe/blob/master/src/caffe/solver.cpp#L363
      **/
     static inline float get_learning_rate(std::string lr_policy, float base_lr, float gamma,
       float iter, float caffe_stepsize, float power, float max_iter) {
@@ -100,7 +100,7 @@ class Util {
     }
 
     // memcpy doesn't inline with clang++/g++, so we use this instead
-    // (Shamelessly stolen from https://software.intel.com/en-us/articles/memcpy-performance)
+    // (from https://software.intel.com/en-us/articles/memcpy-performance)
     static inline void * _our_memcpy(void *b, const void *a, size_t n) {
       char *s1 = (char*) b;
       const char *s2 = (const char*)a;

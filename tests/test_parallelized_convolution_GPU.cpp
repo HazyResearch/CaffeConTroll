@@ -155,7 +155,11 @@ TYPED_TEST(GPUParallelizedConvolutionBridgeTest, TestForward){
   }
   bias_file.close();
 
+  this->ParallelizedConvolutionBridge_->force_host_to_device_model_copy();
+  this->ParallelizedConvolutionBridge_->force_host_to_device_bias_copy();
   this->ParallelizedConvolutionBridge_->forward();
+  this->ParallelizedConvolutionBridge_->force_device_to_host_model_copy();
+  this->ParallelizedConvolutionBridge_->force_device_to_host_bias_copy();
 
   std::fstream expected_output("tests/output/conv_forward.txt", std::ios_base::in);
   if(TypeParam::FUNC == FUNC_NOFUNC){
@@ -218,9 +222,14 @@ TYPED_TEST(GPUParallelizedConvolutionBridgeTest, TestBackward){
     this->grad2->get_p_data()[i] = i*0.1;
   }
 
+  this->ParallelizedConvolutionBridge_->force_host_to_device_model_copy();
+  this->ParallelizedConvolutionBridge_->force_host_to_device_bias_copy();
 
   this->ParallelizedConvolutionBridge_->forward();
   this->ParallelizedConvolutionBridge_->backward();
+  
+  this->ParallelizedConvolutionBridge_->force_device_to_host_model_copy();
+  this->ParallelizedConvolutionBridge_->force_device_to_host_bias_copy();
 
   std::fstream expected_output("tests/output/conv_backward.txt", std::ios_base::in);
   T output;

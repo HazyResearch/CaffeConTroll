@@ -40,6 +40,8 @@ public:
     const struct _lrn_forward_arg_helper args, const struct _lrn_forward_normalize_arg_helper args2);
   void lrn_backward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
     const struct _lrn_backward_arg_helper args);
+  void L1_update(const int n_elements, float * const p_gradient, 
+    const float lambda, const float * const p_model);
     
   template<FPMAP_ID f_id, FPMAP_DATA_READC f_data>
   void pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,

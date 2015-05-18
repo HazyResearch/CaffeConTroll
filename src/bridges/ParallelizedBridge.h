@@ -193,6 +193,7 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     // difference since it is already on the CPU).
     bool share_pointer_with_prev_bridge;
     bool share_pointer_with_next_bridge;
+    bool skip_model_copy_gpu;
     
     // -------------------------------------------------------------------------
     // End of Scheduler class members
@@ -207,6 +208,12 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     // See comment in ParallelizedBridge_impl.hxx
     GradientUpdater<DataType, CPUDriver> * p_grad_updater;
     GradientUpdater<DataType, CPUDriver> * p_grad_updater_bias;
+#ifdef _INCLUDE_GPUDRIVER
+    // Update: Eventually we want to distribute updates for all GPUs.
+    // For now this is only handled for the case of a single GPU.
+    GradientUpdater<DataType, GPUDriver> * gpu_grad_updater;
+    GradientUpdater<DataType, GPUDriver> * gpu_grad_updater_bias;
+#endif
 
     ParallelizedBridge(Layer<DataType, Layout_CRDB> * const _input_layer,
         Layer<DataType, Layout_CRDB> * const _output_layer,
@@ -267,6 +274,31 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     vector<BridgeType <DataType, Layout_CRDB, DataType, Layout_CRDB, CPUDriver> *> _gpu_bridges;
 #endif
     
+    // Recently I added an optimization to not have to copy the model cubes back to the host all the
+    // time (since it is slow for fully connected), but to keep on device. However, sometimes we
+    // want to write the model to file or read it from file, so it must be on the host.
+    // We can force that copy with these
+    void force_host_to_device_model_copy() {
+        if (skip_model_copy_gpu) {
+            scheduler_gpudrivers[0]->memcpy(_gpu_bridges[0]->get_model_cube()->get_device_pointer(scheduler_gpudrivers[0]), p_model_cube->get_device_pointer(scheduler_local_cpudriver));
+        }
+    }
+    void force_host_to_device_bias_copy()  {
+        if (skip_model_copy_gpu) {
+            scheduler_gpudrivers[0]->memcpy(_gpu_bridges[0]->get_bias_cube() ->get_device_pointer(scheduler_gpudrivers[0]), p_bias_cube ->get_device_pointer(scheduler_local_cpudriver));
+        }
+    }
+    void force_device_to_host_model_copy() {
+        if (skip_model_copy_gpu) {
+            scheduler_gpudrivers[0]->memcpy(p_model_cube->get_device_pointer(scheduler_local_cpudriver), _gpu_bridges[0]->get_model_cube()->get_device_pointer(scheduler_gpudrivers[0]));
+        }
+    }
+    void force_device_to_host_bias_copy()  {
+        if (skip_model_copy_gpu) {
+            scheduler_gpudrivers[0]->memcpy(p_bias_cube->get_device_pointer(scheduler_local_cpudriver), _gpu_bridges[0]->get_bias_cube()->get_device_pointer(scheduler_gpudrivers[0]));
+        }
+    }
+
   protected:
 
     // Overload this for PBridge  
@@ -422,7 +454,7 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
         // to 1 GPU, we can still share some of the pointers (e.g. half of the data is still on GPU 1)
         return true;
     }
-    
+
 };
 
 #include "ParallelizedBridge_impl.hxx"

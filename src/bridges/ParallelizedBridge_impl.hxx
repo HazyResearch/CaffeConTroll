@@ -9,7 +9,7 @@
 #ifndef moka_ParallelizedBridge_impl_hxx
 #define moka_ParallelizedBridge_impl_hxx
 
-#include <csignal> // or signal.h if C code
+#include <csignal>
 
 // SHADJIS TODO: Once we have many GPUs running we may need to do a synchronize 
 // at the end of pbridge before going to the next bridge. Currently this is done
@@ -70,12 +70,17 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
     scheduler_local_cpudriver(NULL),
     share_pointer_with_prev_bridge(false),
     share_pointer_with_next_bridge(false),
+    skip_model_copy_gpu(false),
     model_base_learning_rate(1.0),
     bias_base_learning_rate(1.0),
     model_base_regularization(1.0),
     bias_base_regularization(1.0),
     p_grad_updater(NULL),
     p_grad_updater_bias(NULL)
+#ifdef _INCLUDE_GPUDRIVER
+    ,gpu_grad_updater(NULL),
+    gpu_grad_updater_bias(NULL)
+#endif
 {
   // Start reporting
   report_forward_constructor.reset();
@@ -104,6 +109,7 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
     );
   // The decision to share data pointers on the device with the previous pbridge 
   share_pointer_with_prev_bridge = prev_bridge_has_same_device_assignments;
+  skip_model_copy_gpu = (num_partitions == 1 && num_partitions_GPU == 1);
 
   // Right now, we only partition by data, not model
   // First, partition data on the CPU
@@ -276,8 +282,8 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
 
   // create the master model for this parallel bridge
   assert(_cpu_bridges.size() + _gpu_bridges.size() >= 1); // we need at least one partition.
-  
-  // get one convbrdige as example
+
+  // get one bridge as example
   LogicalCubeType * example_bridge_model_cube = NULL;
   bool example_bridge_bias_term = false;
   LogicalCubeType * example_bridge_bias_cube = NULL;
@@ -293,34 +299,7 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
   // TODO: p_model_cube should be T * __const__
   LogicalCubeType * const example_cube = example_bridge_model_cube;
   if (example_cube != NULL) {
-    p_model_cube = new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B);
-
-    // Currently, the parallelized bridge ("scheduler") has a local copy of the model/bias, and
-    // this is currently on the host. However, each individual bridge is on the device (CPU, GPU, in future remote, etc.). 
-    // This means that we need to get a copy of the weights from one of those bridges.
-    // For this, use a device memory pointer memcpy.
-    // SHADJIS TODO: Is the local copy of the model even needed? Currently it's only because the gradient update
-    // is done on the CPU.
-    // SHADJIS TODO: There may be some inneficiency here, since each bridge is allocating and setting the exact same
-    // model, even though e.g. if all bridges are on the GPU, we only need to do that once. And if all are on the CPU,
-    // there is no need to allocate any models inside the individual bridges, since we can just keep a pointer to the
-    // central copy in parallelized bridge.
-    // SHADJIS TODO: Every call to get_device_pointer leaks memory?
     
-    // Get the driver class of bridges[0]
-    if (num_partitions_CPU > 0) {
-        scheduler_local_cpudriver->memcpy(p_model_cube->get_device_pointer(scheduler_local_cpudriver), example_cube->get_device_pointer(scheduler_local_cpudriver));
-    } else {
-        // We can pick any GPU to copy from, so let's pick 0 since
-        // it is always the fastest one
-        scheduler_gpudrivers[0]->memcpy(p_model_cube->get_device_pointer(scheduler_local_cpudriver), example_cube->get_device_pointer(scheduler_gpudrivers[0]));
-    }
-
-    // Similarly, the parallelized bridge (scheduler) has its own local gradient cube
-    // SHADJIS TODO: Should make it clear what is local and not by the variable name
-    p_model_grad = new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B);
-    p_model_subgrad = new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B);
-
     if (_layer_param->blobs_lr_size() != 0) {
       model_base_learning_rate = _layer_param->blobs_lr(0);
     }
@@ -328,10 +307,55 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
       model_base_regularization = _layer_param->weight_decay(0);
     }
     
-    // The parallelized bridge also has a SGDGradientUpdater object which updates the gradients given all the sub-bridges
-    // For now, do the updating on the CPU
-    p_grad_updater = new SGDGradientUpdater<DataType, CPUDriver>(p_model_cube->n_elements, p_model_cube->get_p_data(),
-						      _solver_param, model_base_learning_rate, model_base_regularization, scheduler_local_cpudriver);
+    // If we have a single GPU partition, updates will be on that GPU
+    // There is no need then to allocate any model on the CPU
+    // SHADJIS TODO: Support gradient updates on all GPUs without having to go through host
+    if (skip_model_copy_gpu) {
+#ifdef _INCLUDE_GPUDRIVER
+        // This p_model_cube represents the CPU's local copy of the model cube
+        // Since the model is entirely on the GPU this may not be needed, however
+        // if we ever want to read or write the model from/to a file we will need
+        // a host copy, so that will be stored here.
+        p_model_cube = new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B);
+        gpu_grad_updater = new SGDGradientUpdater<DataType, GPUDriver>(example_cube->n_elements, example_cube->get_p_data(),
+                                  _solver_param, model_base_learning_rate, model_base_regularization, scheduler_gpudrivers[0]);
+#endif
+    } else {
+        p_model_cube = new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B);
+
+        // Currently, the parallelized bridge ("scheduler") has a local copy of the model/bias, and
+        // this is currently on the host. However, each individual bridge is on the device (CPU, GPU, in future remote, etc.). 
+        // This means that we need to get a copy of the weights from one of those bridges.
+        // For this, use a device memory pointer memcpy.
+        // SHADJIS TODO: Is the local copy of the model even needed? Currently it's only because the gradient update
+        // is done on the CPU.
+        // SHADJIS TODO: There may be some inneficiency here, since each bridge is allocating and setting the exact same
+        // model, even though e.g. if all bridges are on the GPU, we only need to do that once. And if all are on the CPU,
+        // there is no need to allocate any models inside the individual bridges, since we can just keep a pointer to the
+        // central copy in parallelized bridge.
+        // SHADJIS TODO: Every call to get_device_pointer leaks memory?
+        
+        // Get the driver class of bridges[0]
+        // SHADJIS TODO: This copy on CPU isn't needed, can just set pointer
+        if (num_partitions_CPU > 0) {
+            scheduler_local_cpudriver->memcpy(p_model_cube->get_device_pointer(scheduler_local_cpudriver), example_cube->get_device_pointer(scheduler_local_cpudriver));
+        } else {
+            // We can pick any GPU to copy from, so let's pick 0 since
+            // it is always the fastest one
+            scheduler_gpudrivers[0]->memcpy(p_model_cube->get_device_pointer(scheduler_local_cpudriver), example_cube->get_device_pointer(scheduler_gpudrivers[0]));
+        }
+
+        // Similarly, the parallelized bridge (scheduler) has its own local gradient cube
+        // SHADJIS TODO: Should make it clear what is local and not by the variable name
+        p_model_grad = new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B);
+        p_model_subgrad = new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B);
+
+        // The parallelized bridge also has a SGDGradientUpdater object which updates the gradients given all the sub-bridges
+        // For now, do the updating on the CPU
+        p_grad_updater = new SGDGradientUpdater<DataType, CPUDriver>(p_model_cube->n_elements, p_model_cube->get_p_data(),
+                                  _solver_param, model_base_learning_rate, model_base_regularization, scheduler_local_cpudriver);
+    }
+    
   } else {
     p_model_cube = NULL;
     p_model_grad = NULL;
@@ -341,32 +365,58 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
   if (example_bridge_bias_term) {
     LogicalCubeType * const example_bias = example_bridge_bias_cube;
     if (example_bias != NULL) {
-      p_bias_cube = new LogicalCubeType(example_bias->R, example_bias->C, example_bias->D, example_bias->B);
-      // Like above, use a device memcpy here
-      if (num_partitions_CPU > 0) {
-          scheduler_local_cpudriver->memcpy(p_bias_cube->get_device_pointer(scheduler_local_cpudriver), example_bias->get_device_pointer(scheduler_local_cpudriver));
-      } else {
-          scheduler_gpudrivers[0]->memcpy(p_bias_cube->get_device_pointer(scheduler_local_cpudriver), example_bias->get_device_pointer(scheduler_gpudrivers[0]));
-      }
-      p_bias_grad = new LogicalCubeType(example_bias->R, example_bias->C, example_bias->D, example_bias->B);
-      p_bias_subgrad = new LogicalCubeType(example_bias->R, example_bias->C, example_bias->D, example_bias->B);
-
+    
       if (_layer_param->blobs_lr_size() >1) {
         bias_base_learning_rate = _layer_param->blobs_lr(1);
       }
       if (_layer_param->weight_decay_size() >1) {
         bias_base_regularization = _layer_param->weight_decay(1);
       }
-
-      p_grad_updater_bias = new SGDGradientUpdater<DataType, CPUDriver>(p_bias_cube->n_elements, p_bias_cube->get_p_data(),
-							     _solver_param, bias_base_learning_rate, bias_base_regularization, scheduler_local_cpudriver);
+        
+      // If we have a single GPU partition, updates will be on that GPU
+      // There is no need then to allocate any model on the CPU
+      // SHADJIS TODO: Support gradient updates on all GPUs without having to go through host
+      if (skip_model_copy_gpu) {
+#ifdef _INCLUDE_GPUDRIVER
+        // This p_bias_cube represents the CPU's local copy of the bias cube
+        // Since the bias is entirely on the GPU this may not be needed, however
+        // if we ever want to read or write the bias from/to a file we will need
+        // a host copy, so that will be stored here.
+        p_bias_cube = new LogicalCubeType(example_bias->R, example_bias->C, example_bias->D, example_bias->B);
+        gpu_grad_updater_bias = new SGDGradientUpdater<DataType, GPUDriver>(example_bias->n_elements, example_bias->get_p_data(),
+                                _solver_param, bias_base_learning_rate, bias_base_regularization, scheduler_gpudrivers[0]);
+#endif
+      } else {
+        p_bias_cube = new LogicalCubeType(example_bias->R, example_bias->C, example_bias->D, example_bias->B);
+        // Like above, use a device memcpy here
+        if (num_partitions_CPU > 0) {
+            scheduler_local_cpudriver->memcpy(p_bias_cube->get_device_pointer(scheduler_local_cpudriver), example_bias->get_device_pointer(scheduler_local_cpudriver));
+        } else {
+            scheduler_gpudrivers[0]->memcpy(p_bias_cube->get_device_pointer(scheduler_local_cpudriver), example_bias->get_device_pointer(scheduler_gpudrivers[0]));
+        }
+        p_bias_grad = new LogicalCubeType(example_bias->R, example_bias->C, example_bias->D, example_bias->B);
+        p_bias_subgrad = new LogicalCubeType(example_bias->R, example_bias->C, example_bias->D, example_bias->B);
+        
+        p_grad_updater_bias = new SGDGradientUpdater<DataType, CPUDriver>(p_bias_cube->n_elements, p_bias_cube->get_p_data(),
+                                _solver_param, bias_base_learning_rate, bias_base_regularization, scheduler_local_cpudriver);
+      }
     } else {
       p_bias_cube = NULL;
     }
   } else {
     p_bias_cube = NULL;
   }
-
+  
+  if (share_pointer_with_prev_bridge) {
+    std::cout << "    Sharing data pointers (no data copy) with previous bridge\n";
+  }
+  if (p_model_cube || p_bias_cube) {
+      if (skip_model_copy_gpu) {
+        std::cout << "    Gradient updates will happen on the device\n";
+      } else {
+        std::cout << "    Gradient updates will happen on the host\n";
+      }
+  } 
   // SHADJIS TODO: This constructor takes a couple of seconds when using GPU
   // This is minor for now but may become an issue with many other types of devices
   report_backward_updateweight_constructor.end(0, 0, 0);
@@ -383,6 +433,7 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
   assert(num_partitions == _cpu_bridges.size() + _gpu_bridges.size()); // SHADJIS TODO: For variable batch size, assert <=
 
   // Iterate over all bridges and set the model cube for this iteration
+  PROFILE_ONLY(Timer t; float seconds;)
   
   // CPU batches
   for (size_t i = 0; i < num_partitions_CPU; ++i) {
@@ -395,16 +446,22 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
     }
   }
   // GPU batches
-  for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
+  // Recall we might not want to copy to the GPU if it updates the
+  // gradients itself
+  if (!skip_model_copy_gpu)
   {
-    // Check if this bridge has a model (e.g. not for max pool)
-    if (p_model_cube)
-    {
-        // General-case: copy from host to device
-        scheduler_gpudrivers[gpu_i]->memcpy(_gpu_bridges[gpu_i]->get_model_cube()->get_device_pointer(scheduler_gpudrivers[gpu_i]), p_model_cube->get_device_pointer(scheduler_local_cpudriver));
-        scheduler_gpudrivers[gpu_i]->memcpy(_gpu_bridges[gpu_i]->get_bias_cube() ->get_device_pointer(scheduler_gpudrivers[gpu_i]), p_bias_cube ->get_device_pointer(scheduler_local_cpudriver));
+      for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
+      {
+        // Check if this bridge has a model (e.g. not for max pool)
+        if (p_model_cube)
+        {
+            // General-case: copy from host to device
+            scheduler_gpudrivers[gpu_i]->memcpy(_gpu_bridges[gpu_i]->get_model_cube()->get_device_pointer(scheduler_gpudrivers[gpu_i]), p_model_cube->get_device_pointer(scheduler_local_cpudriver));
+            scheduler_gpudrivers[gpu_i]->memcpy(_gpu_bridges[gpu_i]->get_bias_cube() ->get_device_pointer(scheduler_gpudrivers[gpu_i]), p_bias_cube ->get_device_pointer(scheduler_local_cpudriver));
+        }
     }
   }
+  PROFILE_ONLY(seconds = t.elapsed(); std::cout << "    PB:  Copy Model -> Device:    " << seconds << "\n"; t.restart(); )
 
   // Also, iterate over all bridges and set the data cubes
   // These were set in the constructor. Recall the data cubes defining each sub-bridge are just
@@ -476,6 +533,7 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
       }
     #endif
   }
+  PROFILE_ONLY(seconds = t.elapsed(); std::cout << "    PB:  Copy Data -> Device:     " << seconds << "\n"; t.restart(); )
 
   // Now do the actual forward pass for each sub-bridge
   
@@ -483,6 +541,8 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
   stratum.set_executor_bound(num_partitions);
   stratum.forward();
 
+  PROFILE_ONLY(t.restart();)
+  
   // Now that the forward step is complete, copy back the data to the host
   // This is analogous to the copy earlier in this function from host -> device
   // This time however, there is no need to copy back to the host if we know the
@@ -524,6 +584,7 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
         scheduler_gpudrivers[gpu_i]->device_sync();
       }
   }
+  PROFILE_ONLY(seconds = t.elapsed(); std::cout << "    PB:  Copy Data -> Host:       " << seconds << "\n"; t.restart(); )
 
   report_forward_last_transfer.end();
   report_forward_last_transfer.aggregate_onlystat(stratum.report_forward_last_transfer);
@@ -538,6 +599,8 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
   report_backward_updateweight_last_transfer.reset();
   assert(num_partitions == _cpu_bridges.size() + _gpu_bridges.size()); // SHADJIS TODO: For variable batch size, assert <=
 
+  PROFILE_ONLY(Timer t; float seconds;)
+  
   // Update the status of whether we should calculate the output gradient
   // in the backward loop.
   for (size_t ib = 0; ib < _cpu_bridges.size(); ib++) {
@@ -573,56 +636,41 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
       }
     #endif
   }
+  PROFILE_ONLY(seconds = t.elapsed(); std::cout << "    PB:  Copy Data -> Device:     " << seconds << "\n"; t.restart(); )
 
   stratum.set_executor_bound(num_partitions);
   stratum.backward();
 
-  // Now that the forward step is complete, copy back the data to the host
-  // This is analogous to the copy earlier in this function from host -> device
-  if (!share_pointer_with_prev_bridge)
-  {
-      size_t b = num_partitions_CPU * n_batch_per_partition_cpu;
-      for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
-      {
-        // Get the amount to copy from GPU
-        size_t n_batch_this_partition = GPU_batch_sizes[gpu_i];
-        assert(n_batch_this_partition > 0);
-        // Copy from the GPU's output cube back to the location b of the PBridge's data/gradient layers
-        scheduler_gpudrivers[gpu_i]->memcpy(
-            // dst = the cpu data in the output layer starting at the right batch (batch "b")
-            p_input_layer->p_gradient_cube->get_device_pointer_RCDslice(scheduler_local_cpudriver, b, n_batch_this_partition),
-            // src = the cube in the _data_cubes_higher vector corresponding to this GPU
-            // (this is where the output data for the GPU was stored during the bridge execution)
-            _grad_cubes_lower[gpu_i + num_partitions_CPU]->get_device_pointer(scheduler_gpudrivers[gpu_i])
-        );
-        // Update the pointer to the right batch for the next sub-bridge
-        b += n_batch_this_partition;
-      }
-    #ifdef _DO_ASSERT
-      if (num_partitions_GPU > 0) {
-        assert(b == curr_B); // Must have completed every image now
-      }
-    #endif
-  }
-  // SHADJIS TODO: It makes sense to sync here so we do not return too early
-  // before the computations are done. Syncing is automatically done by copying
-  // back to the host but since sometimes we skip this, I'll add a sync here for
-  // each device. Should verify that without it there are errors, since it makes
-  // GPU a bit slower.
-  else {
-      for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i) {
-        scheduler_gpudrivers[gpu_i]->device_sync();
-      }
-  }
+  PROFILE_ONLY(t.restart();)
 
   /**
-   * The following two aggregation steps uses the simple fact that,
-   * no matter what bridges we are using, if we are parallelizing with
-   * batches, then the aggreation of gradients is always the SUM.
-   * This is not the property of each layer, this is the property of the
-   * derivitive of multivariant functions.
+   * Aggregate gradients. No matter what bridges we are using, if we are 
+   * parallelizing with batches then the aggreation is always the sum.
   **/
+  
+  // If we are going to be skipping the model copy, then the GPUs
+  // will be in charge of their own gradient updates. That means that we 
+  // need to initialize cuBLAS for the thread running this pbridge, since
+  // the update is run as part of the same thread.
+  if (skip_model_copy_gpu) {
+    scheduler_gpudrivers[0]->init_thread();
+  }
 
+  // SHADJIS TODO: When using multiple GPUs we need to combine gradients for each one.
+  // The naive way is to copy all the gradients back to the host and sum them there,
+  // then copy the new model back to each GPU. This aggregation can be slow on CPU 
+  // however (update is saxpy) and also requires many copies back. We need to think
+  // of how to solve the problem for a distributed setting.
+  //
+  // For now, handle the special-case the case of 1 GPU. In this case, the GPU is 
+  // used to calculate its own gradient update and does not need the weights to
+  // be copied to it again before the forward pass.
+  // 
+  // In the similar case of 1 GPU + also some portion of the batch on CPU, again the 
+  // GPU can calculate its own gradient, but now also needs to be given the graidents 
+  // from the CPU. That case will also be handled later, not in the current version.
+  // Then later also generalize to multi-GPU (e.g. in a similar way, each other GPU 
+  // can pass gradients to GPU 0, etc.)
   if (p_model_cube != NULL) {
     // After backward, it is the responsibility of ParallelizedBridge to merge
     // result back.
@@ -664,24 +712,26 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
       
     } else {
       // Just 1 partition (sub-bridge)
+      
       // In this special-case, we are not summing results from multiple subgradients
       // (multiple partitions) so there is no need to allocate a temporary buffer.
       if (num_partitions_CPU > 0) {
         p_grad_updater->update(_cpu_bridges[0]->get_model_grad_cube()->get_p_data());
       } else {
-        scheduler_gpudrivers[0]->memcpy(p_model_subgrad->get_device_pointer(scheduler_local_cpudriver), _gpu_bridges[0]->get_model_grad_cube()->get_device_pointer(scheduler_gpudrivers[0]));
-      
-        // SHADJIS TODO:
-        // If this is to be done on the device, we need to copy back
-        // For now, I will keep gradient updates on the CPU. To go
-        // to the GPU instead, remove the copy above and do the
-        // gradient too on the device.
-        p_grad_updater->update(p_model_subgrad->get_p_data());
+        // Here handle the special-case of a single GPU. The GPU can
+        // sum its own gradient to its model and therefore we can eliminate a copy
+        // of the gradients back to the host, the CPU saxpy updates, and the copy
+        // of the new model back to the device.
+#ifdef _INCLUDE_GPUDRIVER
+        assert(skip_model_copy_gpu);
+        gpu_grad_updater->update(_gpu_bridges[0]->get_model_grad_cube()->get_p_data());
+#endif
       }
 
     }
 
   }
+  PROFILE_ONLY(seconds = t.elapsed(); std::cout << "    PB:  Update model:            " << seconds << "\n"; t.restart(); )
   
   // Repeat for bias cube
 
@@ -717,15 +767,64 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
       if (num_partitions_CPU > 0) {
         p_grad_updater_bias->update(_cpu_bridges[0]->get_bias_grad_cube()->get_p_data());
       } else {
-        scheduler_gpudrivers[0]->memcpy(p_bias_subgrad->get_device_pointer(scheduler_local_cpudriver), _gpu_bridges[0]->get_bias_grad_cube()->get_device_pointer(scheduler_gpudrivers[0]));      
-        // SHADJIS TODO:
-        // If this is to be done on the device, we need to copy back
-        // For now, I will keep gradient updates on the CPU. To go
-        // to the GPU instead, remove the copy above and do the
-        // gradient too on the device.
-        p_grad_updater_bias->update(p_bias_subgrad->get_p_data());
+        // Here handle the special-case of a single GPU. The GPU can
+        // sum its own gradient to its model and therefore we can eliminate a copy
+        // of the gradients back to the host, the CPU saxpy updates, and the copy
+        // of the new model back to the device.
+#ifdef _INCLUDE_GPUDRIVER
+        assert(skip_model_copy_gpu);
+        gpu_grad_updater_bias->update(_gpu_bridges[0]->get_bias_grad_cube()->get_p_data());
+#endif
       }
     }
+  }
+
+  PROFILE_ONLY(seconds = t.elapsed(); std::cout << "    PB:  Update bias:             " << seconds << "\n"; t.restart(); )
+
+  // Now that the backward step is complete, copy data gradients back to the host
+  // This is analogous to the copy earlier in this function from host -> device
+  if (!share_pointer_with_prev_bridge)
+  {
+      size_t b = num_partitions_CPU * n_batch_per_partition_cpu;
+      for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
+      {
+        // Get the amount to copy from GPU
+        size_t n_batch_this_partition = GPU_batch_sizes[gpu_i];
+        assert(n_batch_this_partition > 0);
+        // Copy from the GPU's output cube back to the location b of the PBridge's data/gradient layers
+        scheduler_gpudrivers[gpu_i]->memcpy(
+            // dst = the cpu data in the output layer starting at the right batch (batch "b")
+            p_input_layer->p_gradient_cube->get_device_pointer_RCDslice(scheduler_local_cpudriver, b, n_batch_this_partition),
+            // src = the cube in the _data_cubes_higher vector corresponding to this GPU
+            // (this is where the output data for the GPU was stored during the bridge execution)
+            _grad_cubes_lower[gpu_i + num_partitions_CPU]->get_device_pointer(scheduler_gpudrivers[gpu_i])
+        );
+        // Update the pointer to the right batch for the next sub-bridge
+        b += n_batch_this_partition;
+      }
+    #ifdef _DO_ASSERT
+      if (num_partitions_GPU > 0) {
+        assert(b == curr_B); // Must have completed every image now
+      }
+    #endif
+  }
+  // SHADJIS TODO: It makes sense to sync here so we do not return too early
+  // before the computations are done. Syncing is automatically done by copying
+  // back to the host but since sometimes we skip this, I'll add a sync here for
+  // each device. Should verify that without it there are errors, since it makes
+  // GPU a bit slower.
+  // SHADJIS TODO: Also, in the bw pass, this sync might not be necessary since
+  // we may have already copied the weights back (so can check if that was done
+  // and if so, that copy would cause a sync to skip this sync).
+  else {
+      for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i) {
+        scheduler_gpudrivers[gpu_i]->device_sync();
+      }
+  }
+  PROFILE_ONLY(seconds = t.elapsed(); std::cout << "    PB:  Copy Data -> Host:       " << seconds << "\n"; t.restart(); )
+
+  if (skip_model_copy_gpu) {
+    scheduler_gpudrivers[0]->destroy_thread();
   }
 
   report_backward_updateweight_last_transfer.end();
@@ -754,24 +853,20 @@ ParallelizedBridge<DataType, BridgeType>::~ParallelizedBridge() {
     delete (*bridge);
   }
 
-  if (p_model_cube) {
-    delete p_model_cube;
-    delete p_model_grad;
-    delete p_model_subgrad;
-    delete p_grad_updater;
-  }
-
-  if (p_bias_cube) {
-    delete p_bias_cube;
-    delete p_bias_grad;
-    delete p_bias_subgrad;
-    delete p_grad_updater_bias;
-  }
-  
-  // SHADJIS TODO: Delete this properly (causes warnings)
-  // delete scheduler_local_cpudriver; // Only if we don't use p_driver
+  if (p_model_cube)    delete p_model_cube;
+  if (p_model_grad)    delete p_model_grad;
+  if (p_model_subgrad) delete p_model_subgrad;
+  if (p_grad_updater)  delete p_grad_updater;
+  if (p_bias_cube)     delete p_bias_cube;
+  if (p_bias_grad)     delete p_bias_grad;
+  if (p_bias_subgrad)  delete p_bias_subgrad;
+#ifdef _INCLUDE_GPUDRIVER
+  if (gpu_grad_updater)  delete gpu_grad_updater;
+  if (gpu_grad_updater_bias) delete gpu_grad_updater_bias;
+#endif  
+  // SHADJIS TODO: Delete these
+  // delete scheduler_local_cpudriver;
   // if (scheduler_gpudriver) { delete scheduler_gpudriver; }
-
 }
 
 #endif

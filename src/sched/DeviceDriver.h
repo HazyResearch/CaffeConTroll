@@ -111,6 +111,11 @@ public:
     assert(false);
   }
   
+  virtual void L1_update(const int n_elements, float * const p_gradient, 
+    const float lambda, const float * const p_model) {
+    assert(false);
+  }
+  
   void inverse_lower_cube(DeviceMemoryPointer * dst, DeviceMemoryPointer * src,
     const struct _inverse_lower_cube_arg_helper args){
     assert(false);

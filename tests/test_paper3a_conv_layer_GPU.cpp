@@ -107,6 +107,9 @@ TYPED_TEST(GPUPerfConvolutionBridgeTest_paper3a, TestForwardBackward){
     this->grad2->get_p_data()[i] = i*0.1;
   }
   
+  this->ParallelizedConvolutionBridge_->force_host_to_device_model_copy();
+  this->ParallelizedConvolutionBridge_->force_host_to_device_bias_copy();
+  
   // Run FW and BW pass 100 times
   for (int i = 0; i < 100; ++i) {
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
@@ -115,6 +118,9 @@ TYPED_TEST(GPUPerfConvolutionBridgeTest_paper3a, TestForwardBackward){
     this->ParallelizedConvolutionBridge_->forward();
     this->ParallelizedConvolutionBridge_->backward();
   }
+  
+  this->ParallelizedConvolutionBridge_->force_device_to_host_model_copy();
+  this->ParallelizedConvolutionBridge_->force_device_to_host_bias_copy();
   
   // NOTE: Be sure to run with inside-layer profiling (make test_profile2) to do
   // device syncs in the appropriate place. Without that, the GPU 

@@ -3,6 +3,7 @@
 #define _GradientUpdater_H
 
 #include <algorithm>
+#include "../LogicalCube.h"
 #include "../parser/corpus.h"
 #include "../util.h"
 /**
@@ -27,14 +28,16 @@ class GradientUpdater {
     const cnn::SolverParameter * const p_solver; /*< object that contains solver parameters. */
     float base_learning_rate, base_regularization;
 
-    const DriverClass * const p_driver;
+    DriverClass * const p_driver;
     /**
      * Given a gradient, update the model.
      **/
     virtual void update(DataType * const p_gradient) = 0;
 
+    // SHADJIS TODO: This will not work on the GPU, should use device version
     void reset_zero() {
-      std::fill(p_model, p_model+n_elements, DataType(0.0));
+      // std::fill(p_model, p_model+n_elements, DataType(0.0));
+      assert(false);
     }
 
     float get_stepsize() {
@@ -44,7 +47,7 @@ class GradientUpdater {
 
     float get_weight_decay() { return p_solver->weight_decay() * base_regularization; }
 
- GradientUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver, float _blr, float _br, const DriverClass * const _p_driver) :
+ GradientUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver, float _blr, float _br, DriverClass * const _p_driver) :
     current_iter(0), n_elements(_n_elements), p_model(_p_model), p_solver(_p_solver), base_learning_rate(_blr), base_regularization(_br), p_driver(_p_driver) {}
 
     virtual ~GradientUpdater() {}
@@ -53,45 +56,76 @@ class GradientUpdater {
 template<class DataType, class DriverClass>
 class SGDGradientUpdater : public GradientUpdater<DataType, DriverClass> {
   public:
+   
+    using GradientUpdater<DataType, DriverClass>::current_iter;
+    using GradientUpdater<DataType, DriverClass>::n_elements;
+    using GradientUpdater<DataType, DriverClass>::p_model;  // May be on host or device
+    using GradientUpdater<DataType, DriverClass>::p_solver;
+    using GradientUpdater<DataType, DriverClass>::get_stepsize;
+    using GradientUpdater<DataType, DriverClass>::get_weight_decay;
+    using GradientUpdater<DataType, DriverClass>::p_driver;
 
-  using GradientUpdater<DataType, DriverClass>::current_iter;
-  using GradientUpdater<DataType, DriverClass>::n_elements;
-  using GradientUpdater<DataType, DriverClass>::p_model;
-  using GradientUpdater<DataType, DriverClass>::p_solver;
-  using GradientUpdater<DataType, DriverClass>::get_stepsize;
-  using GradientUpdater<DataType, DriverClass>::get_weight_decay;
+    typedef LogicalCube<DataType, Layout_CRDB> LogicalCubeType;
 
     const float momentum;
-    DataType * const p_history_updates; /*< Update History */
 
- SGDGradientUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver, float _blr, float _br, const DriverClass * const _p_driver) :
-    GradientUpdater<DataType, DriverClass>(_n_elements, _p_model, _p_solver, _blr, _br, _p_driver), momentum(p_solver->momentum()),
-      p_history_updates(new DataType[_n_elements]) {
-        std::fill(p_history_updates, p_history_updates+n_elements, DataType(0.0));
-      }
+    // SHADJIS TODO: For SGD update I'm introducing cubes so that
+    // device functions are easier to call. Should do this for other
+    // updater algorithms too.
+    LogicalCubeType *p_history_updates_cube;
+    LogicalCubeType *p_model_cube;
+
+    SGDGradientUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver, 
+        float _blr, float _br, DriverClass * const _p_driver) :
+        GradientUpdater<DataType, DriverClass>(_n_elements, _p_model, _p_solver, _blr, _br, _p_driver), momentum(p_solver->momentum()),
+        p_history_updates_cube(NULL), p_model_cube(NULL) {
+        
+      // Allocate on device
+      p_history_updates_cube = new LogicalCubeType(n_elements, 1, 1, 1, p_driver);
+      p_driver->sconstant_initialize(p_history_updates_cube->get_device_pointer(p_driver), DataType(0.));
+      p_model_cube = new LogicalCubeType(p_model, n_elements, 1, 1, 1, p_driver); 
+    }
 
     ~SGDGradientUpdater() {
-      delete p_history_updates;
+      delete p_history_updates_cube;
+      delete p_model_cube;
     }
 
     void update(DataType * const p_gradient) {
       ++current_iter;
+      
+      PROFILE_ONLY(Timer t; float seconds;)
+
       const float stepsize = get_stepsize();
       const float lambda   = get_weight_decay();
 
       if (lambda != 0) {
-        Util::regularize(p_solver->regularization_type(), n_elements, lambda,
-            p_gradient, p_model);
+          if (p_solver->regularization_type() == "L2") {
+            p_driver->math_saxpy(n_elements, lambda, p_model, p_gradient);
+          }else if (p_solver->regularization_type() == "L1") {
+            p_driver->L1_update(n_elements, p_gradient, lambda, p_model);
+          }
       }
 
+      PROFILE_ONLY(seconds = t.elapsed(); std::cout << "        Update step 1:  " << seconds << "\n"; t.restart(); )
+      
       // std::cout << "STEPSIZE = " << stepsize << " MOMENTUM = " << momentum << " BASE_LR = "
       //	<< base_learning_rate << " BASE_REG = " << base_regularization << std::endl ;
 
       //#warning "[BROKEN ABSTRACTION] Using Util when we should be using a driver "
 
       // This is the right code?
-      this->p_driver->math_saxpby(n_elements,stepsize, p_gradient, momentum, p_history_updates);
-      this->p_driver->math_saxpy(n_elements, -1.0, p_history_updates, p_model);
+      
+      // All these can be combined into a single kernel call
+      
+      this->p_driver->math_saxpby(n_elements,stepsize, p_gradient, momentum, p_history_updates_cube->get_p_data());
+      
+      PROFILE_ONLY(seconds = t.elapsed(); std::cout << "        Update step 2:  " << seconds << "\n"; t.restart(); )
+      
+      this->p_driver->math_saxpy(n_elements, -1.0, p_history_updates_cube->get_p_data(), p_model_cube->get_p_data());
+      
+      PROFILE_ONLY(seconds = t.elapsed(); std::cout << "        Update step 3:  " << seconds << "\n"; t.restart(); )
+      
       /* for (int i=0;i<n_elements;i++) { */
       /* 	p_history_updates[i] = stepsize * p_gradient[i] + momentum * p_history_updates[i]; */
       /* 	p_model[i] -= p_history_updates[i]; */
@@ -118,7 +152,9 @@ class AdaGradUpdater : public GradientUpdater<DataType, DriverClass> {
 
     AdaGradUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver) :
       GradientUpdater<DataType, DriverClass>(_n_elements, _p_model, _p_solver),
+      // SHADJIS TODO: This will not work on the GPU
       p_history_updates(new DataType[_n_elements]) {
+        // SHADJIS TODO: This will not work on the GPU
         std::fill(p_history_updates, p_history_updates+n_elements, DataType(0.0));
       }
 
@@ -134,11 +170,13 @@ class AdaGradUpdater : public GradientUpdater<DataType, DriverClass> {
       const float delta = p_solver->delta();
 
       if (lambda != 0) {
+        // SHADJIS TODO: This will not work on the GPU
         Util::regularize(p_solver->regularization_type(), n_elements, lambda,
             p_gradient, p_model);
       }
 
       for (int i=0;i<n_elements;i++) {
+        // SHADJIS TODO: This will not work on the GPU
         p_history_updates[i] += p_gradient[i]*p_gradient[i];
         p_model[i] -= stepsize / (sqrt(p_history_updates[i])+delta) * p_gradient[i];
         if (i == 0) {
@@ -161,11 +199,14 @@ class NesterovUpdater : public GradientUpdater<DataType, DriverClass> {
     const float momentum;
     DataType * const p_history_updates; /*< Update History */
 
- NesterovUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver, DriverClass * const _p_driver) :
-    GradientUpdater<DataType, DriverClass>(_n_elements, _p_model, _p_solver, _p_driver), momentum(p_solver->momentum()),
-      p_history_updates(new DataType[_n_elements]) {
-        std::fill(p_history_updates, p_history_updates+n_elements, DataType(0.0));
-      }
+    NesterovUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver, DriverClass * const _p_driver) :
+        GradientUpdater<DataType, DriverClass>(_n_elements, _p_model, _p_solver, _p_driver), momentum(p_solver->momentum()),
+        // SHADJIS TODO: This will not work on the GPU
+        p_history_updates(new DataType[_n_elements]) {
+        
+      // SHADJIS TODO: This will not work on the GPU
+      std::fill(p_history_updates, p_history_updates+n_elements, DataType(0.0));
+    }
 
     ~NesterovUpdater() {
       delete p_history_updates;
@@ -177,12 +218,14 @@ class NesterovUpdater : public GradientUpdater<DataType, DriverClass> {
       const float lambda = get_weight_decay();
       //const float delta = p_solver->delta();
 
+      // SHADJIS TODO: This will not work on the GPU
       if (lambda != 0) {
         Util::regularize(p_solver->regularization_type(), n_elements, lambda,
             p_gradient, p_model);
       }
 
       DataType tmp;
+      // SHADJIS TODO: This will not work on the GPU
       for (int i=0;i<n_elements;i++) {
         tmp = p_history_updates[i];
         p_history_updates[i] = stepsize * p_gradient[i] + momentum * tmp;
