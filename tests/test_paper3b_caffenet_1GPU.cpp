@@ -14,7 +14,7 @@ TEST(CaffenetPaper3bTrainTest_1GPU, RunTest) {
   char const * a = "deepnet";
   char const * b = "train";
   //char const * c = "tests/imagenet_train/solver/imagenet_snapshot_solver_6_iters_2_batch.prototxt";
-  char const * c = "tests/imagenet_train/solver/alexnet_solver_1000_1GPU.prototxt";
+  char const * c = "tests/imagenet_train/solver/caffenet_solver_1000_1GPU.prototxt";
   char const * argv[3];
   argv[0] = a;
   argv[1] = b;

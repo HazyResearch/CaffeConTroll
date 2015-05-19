@@ -1,14 +1,14 @@
-net: "tests/imagenet_train/train_val/alexnet_train_val_1000_1GPU.prototxt"
-test_iter: 1
+net: "tests/imagenet_train/train_val/caffenet_train_val_1000.prototxt"
+test_iter: 100
 test_interval: 1000
-base_lr: 0.01
+base_lr: 0.005
 lr_policy: "step"
 gamma: 0.1
 stepsize: 100000
 display: 1
-max_iter: 10
+max_iter: 500
 momentum: 0.9
 weight_decay: 0.0005
 # snapshot: 10000
 # snapshot_prefix: "models/bvlc_alexnet/caffe_alexnet_train"
-solver_mode: CPU
+# solver_mode: CPU

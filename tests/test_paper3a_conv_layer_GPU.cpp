@@ -112,6 +112,7 @@ TYPED_TEST(GPUPerfConvolutionBridgeTest_paper3a, TestForwardBackward){
   
   // Run FW and BW pass 100 times
   for (int i = 0; i < 100; ++i) {
+    std::cout << "--------- Test Iteration " << i << " ------------\n";
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
         this->data1->get_p_data()[i] =  drand48();
     }
