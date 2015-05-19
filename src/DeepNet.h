@@ -190,7 +190,12 @@ class DeepNet {
       Layer<DataType_SFFloat, Layout_CRDB> * next_layer = NULL;
 
       size_t output_R = input_R, output_C = input_C, output_D = input_D;
-      bool is_first_conv = true;
+      // SHADJIS TODO: Currently this just skips the backward data calculation
+      // for the first conv but it could be applied to all layers before it too,
+      // or the first fc and all layers before it (if the net has no conv).
+      // No backward pass wrt data is needed for the first fc or conv layer
+      // (whichever is first) as well as everything before it.
+      bool before_first_weight_layer = true;
       
       // -----------------------------------------------------------------------
       // Scheduler
@@ -306,12 +311,13 @@ class DeepNet {
                              (prev_layers[i], next_layer, &layer_param, &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1, // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
                              prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher);
                     bridge->name = layer_param.name();
-                    bridge->needs_to_calc_backward_grad = !is_first_conv; // for the first CONV layer, do not need to calc grad for backward step
+                    if (before_first_weight_layer) {
+                        bridge->needs_to_calc_backward_grad = false;
+                    }
                     bridges.push_back(bridge);
                     next_layers.push_back(next_layer);
                     pbridges_from_this_iteration.push_back(bridge);
                   }
-                  is_first_conv = false;
                 } else {
                   if (grouping != 1 && n_previous_groups == 1) {
                     // in this case, we fork the single input group into multile output groups
@@ -325,13 +331,13 @@ class DeepNet {
                                (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1, // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
                                prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher);
                       bridge->name = layer_param.name();
-                      bridge->needs_to_calc_backward_grad = !is_first_conv; // for the first CONV layer, do not need to calc grad for backward step
-
+                      if (before_first_weight_layer) {
+                          bridge->needs_to_calc_backward_grad = false;
+                      }
                       bridges.push_back(bridge);
                       next_layers.push_back(next_layer);
                       pbridges_from_this_iteration.push_back(bridge);
                     }
-                    is_first_conv = false;
                   } else {
                     std::cout << "ERROR: Currently we do not support the case where input group is " << n_previous_groups
                       << " and output group is " << grouping << " for CONV layer..." << std::endl;
@@ -362,6 +368,7 @@ class DeepNet {
                 prev_data_cubes_higher = pbridges_from_this_iteration[0]->get_data_cubes_higher();
                 prev_grad_cubes_higher = pbridges_from_this_iteration[0]->get_grad_cubes_higher();
                 // ----------End of Scheduler Update --------------
+                before_first_weight_layer = false;
             }
             break;
             {
@@ -426,6 +433,7 @@ class DeepNet {
                 prev_data_cubes_higher = pbridges_from_this_iteration[0]->get_data_cubes_higher();
                 prev_grad_cubes_higher = pbridges_from_this_iteration[0]->get_grad_cubes_higher();
                 // ----------End of Scheduler Update --------------
+                before_first_weight_layer = false;
             }
             break;
             {

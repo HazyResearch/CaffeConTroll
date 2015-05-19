@@ -145,6 +145,7 @@ class AbstractBridge : public PhysicalOperator {
         solver_param(_solver_param), p_driver(_p_driver), bias_term(false) {
 
           // Default non-softmax: Use constructor to own data. Allocates on the device.
+          assert(false); // For now nothing should use this default constructor, change this for new devices
           input_d_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(iR, iC, iD, iB, p_driver);
           input_g_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(iR, iC, iD, iB, p_driver);
           output_d_cube = new LogicalCube<OutputLayerDataType, OutputLayerLayout>(oR, oC, oD, oB, p_driver);
@@ -166,6 +167,7 @@ class AbstractBridge : public PhysicalOperator {
         bias_term(false) {
 
           // Default softmax: Use constructor to own data. Allocates on the device.
+          assert(false); // For now nothing should use this default constructor, change this for new devices
           input_d_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(iR, iC, iD, iB, p_driver);
           input_g_cube = new LogicalCube<InputLayerDataType, InputLayerLayout>(iR, iC, iD, iB, p_driver);
           output_d_cube = new LogicalCube<OutputLayerDataType, OutputLayerLayout>(oR, oC, oD, oB, p_driver);

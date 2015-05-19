@@ -107,7 +107,7 @@ class SGDGradientUpdater : public GradientUpdater<DataType, DriverClass> {
           }
       }
 
-      PROFILE_ONLY(seconds = t.elapsed(); std::cout << "        Update step 1:  " << seconds << "\n"; t.restart(); )
+      PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "        Update step 1:  " << seconds << "\n"; t.restart(); )
       
       // std::cout << "STEPSIZE = " << stepsize << " MOMENTUM = " << momentum << " BASE_LR = "
       //	<< base_learning_rate << " BASE_REG = " << base_regularization << std::endl ;
@@ -120,11 +120,11 @@ class SGDGradientUpdater : public GradientUpdater<DataType, DriverClass> {
       
       this->p_driver->math_saxpby(n_elements,stepsize, p_gradient, momentum, p_history_updates_cube->get_p_data());
       
-      PROFILE_ONLY(seconds = t.elapsed(); std::cout << "        Update step 2:  " << seconds << "\n"; t.restart(); )
+      PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "        Update step 2:  " << seconds << "\n"; t.restart(); )
       
       this->p_driver->math_saxpy(n_elements, -1.0, p_history_updates_cube->get_p_data(), p_model_cube->get_p_data());
       
-      PROFILE_ONLY(seconds = t.elapsed(); std::cout << "        Update step 3:  " << seconds << "\n"; t.restart(); )
+      PROFILE_ONLY(p_driver->device_sync(); seconds = t.elapsed(); std::cout << "        Update step 3:  " << seconds << "\n"; t.restart(); )
       
       /* for (int i=0;i<n_elements;i++) { */
       /* 	p_history_updates[i] = stepsize * p_gradient[i] + momentum * p_history_updates[i]; */

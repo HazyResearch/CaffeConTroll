@@ -238,4 +238,5 @@ clean:
 	rm -f $(TEST_CUDA_OBJ_FILES)
 	rm -f $(MAIN_CUDA_OBJ_FILES)
 	rm -f $(SNAPSHOT_EXECUTABLE)
-	rm -f tests/toprocess.bin tests/model.bin
+	rm -f tests/toprocess.bin tests/model.bin tests/model.bin.* tests/lenet_toprocess.bin tests/imgnet_toprocess.bin
+

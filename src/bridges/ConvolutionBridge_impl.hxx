@@ -146,6 +146,8 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   // cube here to only allocate it once
   // Batch Note: Currently on GPU we only calculate 1 backward grad at a time so
   // we only need to allocate space for a single image on the device.
+  // SHADJIS TODO: Only need to allocate this if backwards pass (not for testing
+  // or first bridge)
   p_backward_inputgrad = new LogicalCube<DataType, Layout_CRDB>(K*K*iD, oR*oC*batch_size_device, 1, 1, p_driver);
   
   

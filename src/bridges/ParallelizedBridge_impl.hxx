@@ -110,6 +110,11 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
   // The decision to share data pointers on the device with the previous pbridge 
   share_pointer_with_prev_bridge = prev_bridge_has_same_device_assignments;
   skip_model_copy_gpu = (num_partitions == 1 && num_partitions_GPU == 1);
+  // By default every bridge calculates the backward data gradient, except the
+  // first conv layer.
+  // SHADJIS TODO: More generally, we could skip bw data gradient computation
+  // for the first layer which is either conv or fc, as well as everything before it.
+  needs_to_calc_backward_grad = true;
 
   // Right now, we only partition by data, not model
   // First, partition data on the CPU
@@ -208,6 +213,8 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
             new LogicalCubeType(p_input_layer->dR, p_input_layer->dC, p_input_layer->dD, n_batch_this_partition,
               scheduler_gpudrivers[gpu_i])
             );
+        // SHADJIS TODO: This one doesn't need to be allocated if this is the first bridge
+        // or if we are running in test mode.
         _grad_cubes_lower.push_back(
             new LogicalCubeType(p_input_layer->gR, p_input_layer->gC, p_input_layer->gD, n_batch_this_partition,
               scheduler_gpudrivers[gpu_i])
@@ -430,7 +437,9 @@ template<typename DataType,
 void ParallelizedBridge<DataType, BridgeType>::forward() {
   report_forward_last_transfer.reset();
   // Assert less than or equal since we might have a smaller final batch
+#ifdef _DO_ASSERT
   assert(num_partitions == _cpu_bridges.size() + _gpu_bridges.size()); // SHADJIS TODO: For variable batch size, assert <=
+#endif
 
   // Iterate over all bridges and set the model cube for this iteration
   PROFILE_ONLY(Timer t; float seconds;)
@@ -509,7 +518,9 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
         
         // Get the amount to copy to GPU
         size_t n_batch_this_partition = GPU_batch_sizes[gpu_i];
+#ifdef _DO_ASSERT
         assert(n_batch_this_partition > 0);
+#endif
         
         // Copy from location b of the PBridge's data/gradient layers
         scheduler_gpudrivers[gpu_i]->memcpy(
@@ -556,7 +567,9 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
       {
         // Get the amount to copy from GPU
         size_t n_batch_this_partition = GPU_batch_sizes[gpu_i];
+#ifdef _DO_ASSERT
         assert(n_batch_this_partition > 0);
+#endif
         // Copy from the GPU's output cube back to the location b of the PBridge's data/gradient layers
         scheduler_gpudrivers[gpu_i]->memcpy(
             // dst = the cpu data in the output layer starting at the right batch (batch "b")
@@ -577,8 +590,7 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
   // SHADJIS TODO: It makes sense to sync here so we do not return too early
   // before the computations are done. Syncing is automatically done by copying
   // back to the host but since sometimes we skip this, I'll add a sync here for
-  // each device. Should verify that without it there are errors, since it makes
-  // GPU a bit slower.
+  // each device. Might not be necessary though.
   else {
       for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i) {
         scheduler_gpudrivers[gpu_i]->device_sync();
@@ -597,7 +609,9 @@ template<typename DataType,
                    typename DriverClass> class BridgeType>
 void ParallelizedBridge<DataType, BridgeType>::backward() {
   report_backward_updateweight_last_transfer.reset();
+#ifdef _DO_ASSERT
   assert(num_partitions == _cpu_bridges.size() + _gpu_bridges.size()); // SHADJIS TODO: For variable batch size, assert <=
+#endif
 
   PROFILE_ONLY(Timer t; float seconds;)
   
@@ -618,7 +632,9 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
       {
         // Get the amount to copy to GPU
         size_t n_batch_this_partition = GPU_batch_sizes[gpu_i];
+#ifdef _DO_ASSERT
         assert(n_batch_this_partition > 0);
+#endif
         // Copy from location b of the PBridge's data/gradient layers
         scheduler_gpudrivers[gpu_i]->memcpy(
             // dst = the cube in the _data_cubes_lower vector corresponding to this GPU
@@ -652,6 +668,8 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
   // will be in charge of their own gradient updates. That means that we 
   // need to initialize cuBLAS for the thread running this pbridge, since
   // the update is run as part of the same thread.
+  // SHADJIS TODO: Now I call this for every pbridge backward pass, may
+  // be okay to just call once (not for each pbridge and each iteration)
   if (skip_model_copy_gpu) {
     scheduler_gpudrivers[0]->init_thread();
   }
@@ -723,7 +741,9 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
         // of the gradients back to the host, the CPU saxpy updates, and the copy
         // of the new model back to the device.
 #ifdef _INCLUDE_GPUDRIVER
+    #ifdef _DO_ASSERT
         assert(skip_model_copy_gpu);
+    #endif
         gpu_grad_updater->update(_gpu_bridges[0]->get_model_grad_cube()->get_p_data());
 #endif
       }
@@ -772,7 +792,9 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
         // of the gradients back to the host, the CPU saxpy updates, and the copy
         // of the new model back to the device.
 #ifdef _INCLUDE_GPUDRIVER
+    #ifdef _DO_ASSERT
         assert(skip_model_copy_gpu);
+    #endif
         gpu_grad_updater_bias->update(_gpu_bridges[0]->get_bias_grad_cube()->get_p_data());
 #endif
       }
@@ -783,14 +805,16 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
 
   // Now that the backward step is complete, copy data gradients back to the host
   // This is analogous to the copy earlier in this function from host -> device
-  if (!share_pointer_with_prev_bridge)
+  if (needs_to_calc_backward_grad && !share_pointer_with_prev_bridge)
   {
       size_t b = num_partitions_CPU * n_batch_per_partition_cpu;
       for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
       {
         // Get the amount to copy from GPU
         size_t n_batch_this_partition = GPU_batch_sizes[gpu_i];
+#ifdef _DO_ASSERT
         assert(n_batch_this_partition > 0);
+#endif
         // Copy from the GPU's output cube back to the location b of the PBridge's data/gradient layers
         scheduler_gpudrivers[gpu_i]->memcpy(
             // dst = the cpu data in the output layer starting at the right batch (batch "b")
@@ -811,11 +835,7 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
   // SHADJIS TODO: It makes sense to sync here so we do not return too early
   // before the computations are done. Syncing is automatically done by copying
   // back to the host but since sometimes we skip this, I'll add a sync here for
-  // each device. Should verify that without it there are errors, since it makes
-  // GPU a bit slower.
-  // SHADJIS TODO: Also, in the bw pass, this sync might not be necessary since
-  // we may have already copied the weights back (so can check if that was done
-  // and if so, that copy would cause a sync to skip this sync).
+  // each device. Might not be necessary though.
   else {
       for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i) {
         scheduler_gpudrivers[gpu_i]->device_sync();

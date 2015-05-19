@@ -690,11 +690,15 @@ DeviceMemoryPointer * GPUDriver::get_device_pointer(void * ptr, size_t size_in_b
 
 void GPUDriver::malloc(DeviceMemoryPointer * dst){
     set_device();
-	err = cudaMalloc((void**)&dst->ptr, dst->size_in_byte);
-	if(err != cudaSuccess){
-	  std::cout << "Failed cudaMalloc"  << "  ERROR " << err << std::endl;
-	  assert(false);
-	}
+    err = cudaMalloc((void**)&dst->ptr, dst->size_in_byte);
+    if(err != cudaSuccess){
+      std::cout << "\nFailed cudaMalloc"  << "  ERROR " << err << "   " << cudaGetErrorString(err) << " on GPU " << gpu_id << std::endl;
+      if (err == cudaErrorMemoryAllocation) {
+        std::cout << "This is usually because your network is too large for the number of GPUs.\n";
+        std::cout << "You can add partitions on the CPU or on other GPUs.\n\n";
+      } 
+      assert(false);
+    }
 }
 
 void GPUDriver::free(DeviceMemoryPointer * dst){

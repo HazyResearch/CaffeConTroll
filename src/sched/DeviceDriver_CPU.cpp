@@ -88,7 +88,9 @@ inline void CPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMem
 
     // input block sizes
     size_t sBR = args.sBR, sBC = args.sBC;
+#ifdef _DO_ASSERT
     assert(sBC*sBR > 0);
+#endif
     size_t n_thread_per_block_C = sBC;
     size_t n_thread_per_block_R = sBR;
     size_t n_block_X = ((args.sR + sBR-1)/sBR)*((args.sC + sBC-1)/sBC);

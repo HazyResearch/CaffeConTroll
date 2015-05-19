@@ -147,7 +147,17 @@ class Corpus {
       //if(pFile && filename != "val_preprocessed.bin" && filename != "test_preprocessed.bin" && filename != "train_preprocessed.bin") {
       if(pFile) {
           fclose(pFile);
-          std::cout << "Data binary " << filename << " already exists, no need to write\n"; // Skip preprocessing
+          
+          // Warn
+          if(filename == "val_preprocessed.bin" || filename == "test_preprocessed.bin" || filename == "train_preprocessed.bin") {
+            std::cout << "\n** WARNING **  Data binary " << filename << " (the default name) already exists,";
+            std::cout << "\n               and will not be overwritten. If the dataset for this net is";
+            std::cout << "\n               different, specify a new binary name (\"-b\" option) or move the";
+            std::cout << "\n               current " << filename << " to a new location.\n\n";
+          } else {
+            std::cout << "Data binary " << filename << " already exists, no need to write\n"; // Skip preprocessing
+          }
+          
           images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, mini_batch_size);  // Ce: only one mini-batch in memory
           // We avoid having to write everything back to disk but we still have to read in labels
           MDB_cursor_op op = MDB_FIRST;
@@ -182,7 +192,11 @@ class Corpus {
               labels_data[b] = img_label;
               float * const single_input_batch = tmpimg->physical_get_RCDslice(0); // Ce: only one batch
               process_image(layer_param, single_input_batch, datum);
-              fwrite(tmpimg->get_p_data(), sizeof(DataType_SFFloat), tmpimg->n_elements, pFile);
+              size_t written_bytes = fwrite(tmpimg->get_p_data(), sizeof(DataType_SFFloat), tmpimg->n_elements, pFile);
+              if (written_bytes != tmpimg->n_elements) {
+                perror("\nError writing data binary file");
+                assert(false);
+              }
               op = MDB_NEXT;
           }
           std::cout << "Finished writing images to " << filename.c_str() << "..." << std::endl;
