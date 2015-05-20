@@ -49,7 +49,10 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
     const std::vector<size_t>& PREVIOUS_BRIDGE_GPU_batch_sizes,
     const std::vector<int>   & PREVIOUS_BRIDGE_used_gpu_to_device_id_map,
     const std::vector<LogicalCubeType *> & PREVIOUS_BRIDGE_data_cubes_higher,
-    const std::vector<LogicalCubeType *> & PREVIOUS_BRIDGE_grad_cubes_higher
+    const std::vector<LogicalCubeType *> & PREVIOUS_BRIDGE_grad_cubes_higher,
+    // Is the bridge's top and bottom layer the same (i.e. the bridge shares an input and output
+    // layer, like ReLU and dropout)
+    bool _share_input_output_layer
     // End of class members from previous bridge
     ) : AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, CPUDriver>(_input_layer,
       _output_layer, _layer_param, _solver_param, _p_driver),
@@ -70,6 +73,7 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
     scheduler_local_cpudriver(NULL),
     share_pointer_with_prev_bridge(false),
     share_pointer_with_next_bridge(false),
+    share_input_output_layer(_share_input_output_layer),
     skip_model_copy_gpu(false),
     model_base_learning_rate(1.0),
     bias_base_learning_rate(1.0),
@@ -158,11 +162,19 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
           p_input_layer->gR, p_input_layer->gC, p_input_layer->gD, n_batch_this_partition)
         );
 
+    // SHADJIS TODO: For the GPU, if the bridge has the same top and bottom layer
+    // (e.g. this is true for ReLU, dropout) then we re-use the input pointers as 
+    // output pointers for each sub-bridge. We do not do this for CPU (below) since
+    // deepnet allocated the output cubes already and will use those as the input
+    // cubes for the next layer. If in the future we want to save that allocation 
+    // on the CPU (i.e. if we want to not make new output cubes for ReLU/dropout in
+    // deepnet that own their own data but rather make cubes that point to the input
+    // cubes of those bridges), then here we need to set the output cube pointers to 
+    // the input cube pointers as we do in the GPU case.
     _data_cubes_higher.push_back(
         new LogicalCubeType(p_output_layer->p_data_cube->physical_get_RCDslice(b),
           p_output_layer->dR, p_output_layer->dC, p_output_layer->dD, n_batch_this_partition)
         );
-
     _grad_cubes_higher.push_back(
         new LogicalCubeType(p_output_layer->p_gradient_cube->physical_get_RCDslice(b),
           p_output_layer->gR, p_output_layer->gC, p_output_layer->gD, n_batch_this_partition)
@@ -221,17 +233,31 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
             );
     }
  
-    // We always own our output cubes (they have to exist somewhere on device, so use the convention
-    // of "the bridge always owns its output cubes on the device")
-    _data_cubes_higher.push_back(
-        new LogicalCubeType(p_output_layer->dR, p_output_layer->dC, p_output_layer->dD, n_batch_this_partition,
-          scheduler_gpudrivers[gpu_i])
-        );
- 
-    _grad_cubes_higher.push_back(
-        new LogicalCubeType(p_output_layer->gR, p_output_layer->gC, p_output_layer->gD, n_batch_this_partition,
-          scheduler_gpudrivers[gpu_i])
-        );
+    // If the top and bottom layers are different, bridges own their output cubes (they have to exist somewhere 
+    // on device, so use the convention of "the bridge always owns its output cubes on the device")
+    // If the bridge has the same top and bottom layer (e.g. this is true for ReLU, dropout)
+    // then re-use the input cube pointers as output cube pointers for each sub-bridge (no allocation)
+    if (share_input_output_layer) {
+        _data_cubes_higher.push_back(
+            new LogicalCubeType(_data_cubes_lower.back()->get_p_data(),
+              p_input_layer->dR, p_input_layer->dC, p_input_layer->dD, n_batch_this_partition,
+              scheduler_gpudrivers[gpu_i])
+            );
+        _grad_cubes_higher.push_back(
+            new LogicalCubeType(_grad_cubes_lower.back()->get_p_data(),
+              p_input_layer->gR, p_input_layer->gC, p_input_layer->gD, n_batch_this_partition,
+              scheduler_gpudrivers[gpu_i])
+            );
+    } else {
+        _data_cubes_higher.push_back(
+            new LogicalCubeType(p_output_layer->dR, p_output_layer->dC, p_output_layer->dD, n_batch_this_partition,
+              scheduler_gpudrivers[gpu_i])
+            );
+        _grad_cubes_higher.push_back(
+            new LogicalCubeType(p_output_layer->gR, p_output_layer->gC, p_output_layer->gD, n_batch_this_partition,
+              scheduler_gpudrivers[gpu_i])
+            );
+    }
         
     b += n_batch_this_partition;
     ++i;
@@ -415,7 +441,7 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
   }
   
   if (share_pointer_with_prev_bridge) {
-    std::cout << "    Sharing data pointers (no data copy) with previous bridge\n";
+    std::cout << "    Sharing data pointers with previous bridge (no input cube allocation or data copy)\n";
   }
   if (p_model_cube || p_bias_cube) {
       if (skip_model_copy_gpu) {
@@ -424,6 +450,9 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
         std::cout << "    Gradient updates will happen on the host\n";
       }
   } 
+  if (share_input_output_layer) {
+    std::cout << "    Input and output layer cubes will share data (no output cube allocation)\n";
+  }
   // SHADJIS TODO: This constructor takes a couple of seconds when using GPU
   // This is minor for now but may become an issue with many other types of devices
   report_backward_updateweight_constructor.end(0, 0, 0);

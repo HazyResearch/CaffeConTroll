@@ -193,6 +193,10 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     // difference since it is already on the CPU).
     bool share_pointer_with_prev_bridge;
     bool share_pointer_with_next_bridge;
+    // Some bridges, e.g. ReLU and dropout, have the same top and bottom layer,
+    // i.e. they do not need to allocate any cubes
+    bool share_input_output_layer;
+    // For the GPU, we might not need to copy the model back to the host
     bool skip_model_copy_gpu;
     
     // -------------------------------------------------------------------------
@@ -225,7 +229,8 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
         const std::vector<size_t>& PREVIOUS_BRIDGE_GPU_batch_sizes = std::vector<size_t>(),
         const std::vector<int>   & PREVIOUS_BRIDGE_used_gpu_to_device_id_map = std::vector<int>(),
         const std::vector<LogicalCubeType *> & PREVIOUS_BRIDGE_data_cubes_lower  = std::vector<LogicalCubeType *>(),
-        const std::vector<LogicalCubeType *> & PREVIOUS_BRIDGE_grad_cubes_lower  = std::vector<LogicalCubeType *>());
+        const std::vector<LogicalCubeType *> & PREVIOUS_BRIDGE_grad_cubes_lower  = std::vector<LogicalCubeType *>(),
+        bool _share_input_output_layer = false);
 
     ~ParallelizedBridge();
 

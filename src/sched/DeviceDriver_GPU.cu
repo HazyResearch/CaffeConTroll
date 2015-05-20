@@ -641,7 +641,7 @@ void GPUDriver::forward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * sr
             fmap_size, depth, batch_size);
 		err = cudaGetLastError();
 		if(err != cudaSuccess){
-			std::cout << "Fail to launch _sapply" << "  ERROR " << err << std::endl;
+			std::cout << "Fail to launch _fw_bias_helper" << "  ERROR " << err << std::endl;
 			assert(false);
 		}
 	}
@@ -1128,10 +1128,11 @@ void GPUDriver::destroy_thread() {
 }
 
 void GPUDriver::set_device() const {
+  cudaError_t d_err = cudaGetLastError(); // Reset error
   cudaSetDevice(gpu_id);
-  cudaError_t d_err = cudaGetLastError();
+  d_err = cudaGetLastError();
   if(d_err != cudaSuccess){
-    std::cout << "Fail to set device " << gpu_id << "  ERROR " << err << std::endl;
+    std::cout << "Fail to set device " << gpu_id << "  ERROR " << d_err << std::endl;
     assert(false);
   }
 }

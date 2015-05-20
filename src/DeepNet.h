@@ -245,7 +245,21 @@ class DeepNet {
 
         const cnn::LayerParameter layer_param = net_param.layers(i_layer);
         const cnn::LayerParameter_LayerType layer_type = layer_param.type();
-
+        
+        // SHADJIS TODO: Some layers, e.g. ReLU and dropout, have the same top
+        // and bottom layers and therefore don't need to allocate any output cubes.
+        // For now, we will avoid this allocation only in PBridge (since it matters
+        // more for the GPU), i.e. just for ReLU. When we support dropout and others
+        // (e.g. funnel may also have same top/bottom) as PBridges, then those will
+        // also benefit from not needing extra cube allocations (and also not needing
+        // copies to/from host if entire network is on GPU)
+        bool share_input_output_layer = false;
+        if (layer_param.top_size() && layer_param.bottom_size() &&
+            layer_param.top_size() == layer_param.bottom_size() &&
+            layer_param.top(0) == layer_param.bottom(0))
+        {
+            share_input_output_layer = true;
+        }
         const size_t n_previous_groups = prev_layers.size();
 
         if (layer_type != cnn::LayerParameter_LayerType_DATA) {
@@ -309,7 +323,8 @@ class DeepNet {
                     // this as an argument, instead let it be part of the same config file as GPU
                     bridge = new ParallelizedBridge<DataType_SFFloat, ConvolutionBridge>
                              (prev_layers[i], next_layer, &layer_param, &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1, // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
-                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher);
+                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher,
+                             share_input_output_layer);
                     bridge->name = layer_param.name();
                     if (before_first_weight_layer) {
                         bridge->needs_to_calc_backward_grad = false;
@@ -329,7 +344,8 @@ class DeepNet {
 
                       bridge = new ParallelizedBridge<DataType_SFFloat, ConvolutionBridge>
                                (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1, // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
-                               prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher);
+                               prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher,
+                               share_input_output_layer);
                       bridge->name = layer_param.name();
                       if (before_first_weight_layer) {
                           bridge->needs_to_calc_backward_grad = false;
@@ -352,6 +368,11 @@ class DeepNet {
                 // set_share_pointer_with_next_bridge into abstract bridge (but only
                 // overload for pbridge) and then calling this for non-pbridges will have
                 // no effect, so the code can still be refactored.
+                //
+                // SHADJIS TODO: Also, if the 2 bridges are sharing device data pointers,
+                // then there is no need to copy the data to or from the host, so the cube
+                // allocations above (the cubes own their own data) are unnecessary since
+                // those cubes are never used anywhere in pbridge.
                 assert(pbridges_from_this_iteration.size());
                 bool bridge_shares_data_with_prev_bridge = 
                     pbridges_from_this_iteration[0]->get_share_pointer_with_prev_bridge();
@@ -406,7 +427,8 @@ class DeepNet {
 
                 bridge = new ParallelizedBridge<DataType_SFFloat, FullyConnectedBridge>
                          (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), hw_concurrency,
-                         prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher);
+                         prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher,
+                         share_input_output_layer);
 
                 //bridge = new FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layers[0],
                 //  next_layer, &layer_param, &solver_param);
@@ -454,7 +476,8 @@ class DeepNet {
 
                   bridge = new ParallelizedBridge<DataType_SFFloat, MaxPoolingBridge>(prev_layers[i], next_layer, &layer_param,
                              &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1,
-                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher);
+                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher,
+                             share_input_output_layer);
                   bridge->name = layer_param.name();
                   bridges.push_back(bridge);
                   next_layers.push_back(next_layer);
@@ -493,7 +516,8 @@ class DeepNet {
 
                   bridge = new ParallelizedBridge<DataType_SFFloat, ReLUBridge>(prev_layers[i], next_layer, &layer_param,
                              &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1,
-                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher);
+                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher,
+                             share_input_output_layer);
                   bridge->name = layer_param.name();
 
                   bridges.push_back(bridge);
@@ -533,7 +557,8 @@ class DeepNet {
 
                   bridge = new ParallelizedBridge<DataType_SFFloat, LRNBridge>(prev_layers[i], next_layer, &layer_param,
                              &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1,
-                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher);
+                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher,
+                             share_input_output_layer);
                   bridge->name = layer_param.name();
 
                   bridges.push_back(bridge);
