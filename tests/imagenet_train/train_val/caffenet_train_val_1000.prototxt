@@ -1,3 +1,6 @@
+# The network described in https://github.com/BVLC/caffe/tree/master/models/bvlc_reference_caffenet
+# AlexNet + 2 differences described in that document
+
 name: "CaffeNet"
 layers {
   name: "data"
@@ -149,6 +152,7 @@ layers {
     num_output: 384
     pad: 1
     kernel_size: 3
+    group: 2
     weight_filler {
       type: "gaussian"
       std: 0.01
