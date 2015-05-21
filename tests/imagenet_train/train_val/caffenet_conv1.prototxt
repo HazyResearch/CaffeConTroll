@@ -1,0 +1,44 @@
+# The network described in https://github.com/BVLC/caffe/tree/master/models/bvlc_reference_caffenet
+# AlexNet + 2 differences described in that document
+
+name: "CaffeNet"
+layers {
+  name: "data"
+  type: DATA
+  top: "data"
+  top: "label"
+  data_param {
+    source: "/home/ubuntu/data/ilsvrc12_train_1000_lmdb"
+    backend: LMDB
+    batch_size: 256
+  }
+  transform_param {
+    crop_size: 227
+    mean_file: "/home/ubuntu/imagenet_mean.binaryproto"
+    mirror: true
+  }
+  include: { phase: TRAIN }
+}
+layers {
+  name: "conv1"
+  type: CONVOLUTION
+  bottom: "data"
+  top: "conv1"
+  blobs_lr: 1
+  blobs_lr: 2
+  weight_decay: 1
+  weight_decay: 0
+  convolution_param {
+    num_output: 48
+    kernel_size: 11
+    stride: 4
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}

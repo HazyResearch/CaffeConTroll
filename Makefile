@@ -57,7 +57,10 @@ endif
 TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest
 TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.cpp \
 			src/sched/DeviceDriver_CPU.cpp \
-			tests/test_MaxPooling_bridge.cpp \
+			tests/test_paper3a_conv_layer_GPU.cpp \
+			# tests/test_paper3a_conv_layer_CPU_GPU.cpp \
+			# tests/test_paper3a_conv_layer.cpp \
+			# tests/test_MaxPooling_bridge.cpp \
 			tests/test_parallelized_convolution.cpp \
 			tests/test_lrn_bridge.cpp \
 			tests/test_ReLU_bridge.cpp \
@@ -90,9 +93,6 @@ TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.
 			tests/test_parallelized_convolution_large_2GPU_batch.cpp \
 			tests/test_parallelized_convolution_large_2GPU.cpp \
 			tests/test_parallelized_convolution_large_CPU_GPU_batch.cpp \
-			#tests/test_paper3a_conv_layer.cpp \
-			#tests/test_paper3a_conv_layer_GPU.cpp \
-			#tests/test_paper3a_conv_layer_CPU_GPU.cpp \
 			#tests/test_paper3a_conv_layer_2GPU.cpp \
 			#tests/test_paper3a_conv_layer_4GPU.cpp \
 			#tests/test_paper3b_caffenet.cpp \

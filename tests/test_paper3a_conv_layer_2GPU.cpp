@@ -73,7 +73,7 @@ class GPUPerfConvolutionBridgeTest_paper3a_2GPU : public ::testing::Test {
 
     CPUDriver pdriver;
 
-    static const int mB = 8;
+    static const int mB = 256;
     static const int iD = 3;
     static const int oD = 48;
     static const int iR = 227;
@@ -108,8 +108,8 @@ TYPED_TEST(GPUPerfConvolutionBridgeTest_paper3a_2GPU, TestForwardBackward){
     this->grad2->get_p_data()[i] = i*0.1;
   }
   
-  // Run FW and BW pass 100 times
-  for (int i = 0; i < 100; ++i) {
+  // Run FW and BW pass 10 times
+  for (int i = 0; i < 10; ++i) {
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
         this->data1->get_p_data()[i] =  drand48();
     }
@@ -120,10 +120,13 @@ TYPED_TEST(GPUPerfConvolutionBridgeTest_paper3a_2GPU, TestForwardBackward){
   // NOTE: Be sure to run with inside-layer profiling (make test_profile2) to do
   // device syncs in the appropriate place. Without that, the GPU 
   // times are smaller than they should be.
-  std::cout << "Time for 100 FW, BW passes: ";
   std::cout<<"\n\nreport_pbridge_fw (fw time including memory copies)\n";
   this->ParallelizedConvolutionBridge_->report_forward_history.print();
   std::cout<<"\nreport_pbridge_bw (bw time including memory copies)\n";
+
+  std::cout << "\n\n\nFinished Benchmark (10 fw/bw iterations)\n\n";
+  std::cout << "\n\nTime for 10 FW, BW passes: ";
+  
   this->ParallelizedConvolutionBridge_->report_backward_updateweight_history.print();
   for (int i = 0; i < this->ParallelizedConvolutionBridge_->_gpu_bridges.size(); ++i) {
     std::cout << "\nGPU " << i << "\n";

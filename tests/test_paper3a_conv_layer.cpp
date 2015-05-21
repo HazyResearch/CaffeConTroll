@@ -71,7 +71,7 @@ class PerfConvolutionBridgeTest_paper3a : public ::testing::Test {
 
     CPUDriver pdriver;
 
-    static const int mB = 8;
+    static const int mB = 256;
     static const int iD = 3;
     static const int oD = 48;
     static const int iR = 227;
@@ -106,8 +106,8 @@ TYPED_TEST(PerfConvolutionBridgeTest_paper3a, TestForwardBackward){
     this->grad2->get_p_data()[i] = i*0.1;
   }
   
-  // Run FW and BW pass 100 times
-  for (int i = 0; i < 100; ++i) {
+  // Run FW and BW pass 10 times
+  for (int i = 0; i < 10; ++i) {
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
         this->data1->get_p_data()[i] =  drand48();
     }
@@ -115,14 +115,19 @@ TYPED_TEST(PerfConvolutionBridgeTest_paper3a, TestForwardBackward){
     this->ParallelizedConvolutionBridge_->backward();
   }
   
-  std::cout << "Time for 100 FW, BW passes: ";
-  std::cout<<"\n\nreport_pbridge_fw (fw time including memory copies)\n";
+  std::cout<<"\n\nreport_pbridge_fw (fw time including dataset copies)\n";
   this->ParallelizedConvolutionBridge_->report_forward_history.print();
-  std::cout<<"\nreport_pbridge_bw (bw time including memory copies)\n";
+  std::cout<<"\nreport_pbridge_bw (bw time including dataset copies)\n";
   this->ParallelizedConvolutionBridge_->report_backward_updateweight_history.print();
-  std::cout << "\nFor bridge 0 of total " << this->ParallelizedConvolutionBridge_->_cpu_bridges.size() << " bridges:\n";
-  std::cout<<"\nreport_forward_history (fw time NOT including memory copies)\n";
-  this->ParallelizedConvolutionBridge_->_cpu_bridges[0]->report_forward_history.print();
-  std::cout<<"\nreport_backward_history (bw time NOT including memory copies)\n";
-  this->ParallelizedConvolutionBridge_->_cpu_bridges[0]->report_backward_updateweight_history.print();
+  
+  std::cout << "\n\n\nFinished Benchmark (10 fw/bw iterations)\n\n\n";
+  std::cout << "\n\nTime for 10 FW, BW passes: ";
+  
+  for (int i = 0; i < this->ParallelizedConvolutionBridge_->_cpu_bridges.size(); ++i) {
+    std::cout << "\nCPU " << i << "\n";
+    std::cout<<"\nreport_forward_history  (fw time conv only)\n";
+    this->ParallelizedConvolutionBridge_->_cpu_bridges[i]->report_forward_history.print();
+    std::cout<<"\nreport_backward_history (bw time conv only)\n";
+    this->ParallelizedConvolutionBridge_->_cpu_bridges[i]->report_backward_updateweight_history.print();
+  }
 }

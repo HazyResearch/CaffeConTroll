@@ -29,7 +29,7 @@ class GPUPerfConvolutionBridgeTest_paper3a_CPU_1GPU : public ::testing::Test {
       layer2 = new Layer<T, Layout_CRDB>(data2, grad2);
 
       cnn::LayerParameter layer_param;
-      layer_param.set_gpu_0_batch_proportion(0.7);
+      layer_param.set_gpu_0_batch_proportion(0.85);
       cnn::ConvolutionParameter * const conv_param = layer_param.mutable_convolution_param();
       conv_param->set_num_output(oD);
       conv_param->set_kernel_size(k);
@@ -107,7 +107,7 @@ TYPED_TEST(GPUPerfConvolutionBridgeTest_paper3a_CPU_1GPU, TestForwardBackward){
     this->grad2->get_p_data()[i] = i*0.1;
   }
   
-  // Run FW and BW pass 100 times
+  // Run FW and BW pass 10 times
   for (int i = 0; i < 10; ++i) {
     for(int i=0;i<this->iR*this->iC*this->iD*this->mB;i++){
         this->data1->get_p_data()[i] =  drand48();
@@ -119,24 +119,26 @@ TYPED_TEST(GPUPerfConvolutionBridgeTest_paper3a_CPU_1GPU, TestForwardBackward){
   // NOTE: Be sure to run with inside-layer profiling (make test_profile2) to do
   // device syncs in the appropriate place. Without that, the GPU 
   // times are smaller than they should be.
-  std::cout << "Time for 10 FW, BW passes: ";
-  std::cout<<"\n\nreport_pbridge_fw (fw time including memory copies)\n";
+  std::cout<<"\n\nreport_pbridge_fw (fw time including dataset copies)\n";
   this->ParallelizedConvolutionBridge_->report_forward_history.print();
-  std::cout<<"\nreport_pbridge_bw (bw time including memory copies)\n";
+  std::cout<<"\nreport_pbridge_bw (bw time including dataset copies)\n";
   this->ParallelizedConvolutionBridge_->report_backward_updateweight_history.print();
 
-  std::cout << "\nGPU:\n";
+  std::cout << "\n\n\nFinished Benchmark (10 fw/bw iterations)\n\n\n";
+  std::cout << "\n\nTime for 10 FW, BW passes: ";
+  
   for (int i = 0; i < this->ParallelizedConvolutionBridge_->_gpu_bridges.size(); ++i) {
-    std::cout<<"\nreport_forward_history  (fw time NOT including memory copies)\n";
+    std::cout << "\nGPU " << i << "\n";
+    std::cout<<"\nreport_forward_history  (fw time conv only)\n";
     this->ParallelizedConvolutionBridge_->_gpu_bridges[i]->report_forward_history.print();
-    std::cout<<"\nreport_backward_history (bw time NOT including memory copies)\n";
+    std::cout<<"\nreport_backward_history (bw time conv only)\n";
     this->ParallelizedConvolutionBridge_->_gpu_bridges[i]->report_backward_updateweight_history.print();
   }
-  std::cout << "\nCPU:\n";
   for (int i = 0; i < this->ParallelizedConvolutionBridge_->_cpu_bridges.size(); ++i) {
-    std::cout<<"\nreport_forward_history  (fw time NOT including memory copies)\n";
+    std::cout << "\nCPU " << i << "\n";
+    std::cout<<"\nreport_forward_history  (fw time conv only)\n";
     this->ParallelizedConvolutionBridge_->_cpu_bridges[i]->report_forward_history.print();
-    std::cout<<"\nreport_backward_history (bw time NOT including memory copies)\n";
+    std::cout<<"\nreport_backward_history (bw time conv only)\n";
     this->ParallelizedConvolutionBridge_->_cpu_bridges[i]->report_backward_updateweight_history.print();
   }
 }
