@@ -225,8 +225,10 @@ class DeepNet {
       size_t prev_num_partitions_CPU = 0;
       std::vector<size_t> prev_GPU_batch_sizes;
       std::vector<int> prev_gpu_to_device_id_map;
-      std::vector< LogicalCube<DataType_SFFloat, Layout_CRDB> *> prev_data_cubes_higher;
-      std::vector< LogicalCube<DataType_SFFloat, Layout_CRDB> *> prev_grad_cubes_higher;
+      // Edit: Making this a vector of vectors. The outer vector is for each group,
+      // the inner vector is the # (CPU+GPU) partitions for the bridge of that group.
+      std::vector< std::vector< LogicalCube<DataType_SFFloat, Layout_CRDB> *> > prev_data_cubes_higher_per_group;
+      std::vector< std::vector< LogicalCube<DataType_SFFloat, Layout_CRDB> *> > prev_grad_cubes_higher_per_group;
       
       // Second, also make a vector of the bridges from the last iteration
       BridgeVector pbridges_from_last_iteration;
@@ -309,6 +311,13 @@ class DeepNet {
                 output_D /= grouping;
 
                 if (grouping == n_previous_groups) {
+                  // SHADJIS TODO: Resize these vectors to the right size, filling them with empty vectors
+                  // This is needed so when I pass in e.g. prev_grad_cubes_higher_per_group[3],
+                  // if there were not that many groups previously it will not fail, but just
+                  // pass in an empty vector instead. I think this is not needed (i.e. alternatively
+                  // I could assert that the size is this, for all cases but the first conv layer).
+                  prev_data_cubes_higher_per_group.resize(n_previous_groups);
+                  prev_grad_cubes_higher_per_group.resize(n_previous_groups);
                   // if input group == output group, then for each
                   // input group, create a separate bridge and a
                   // seperate output bridge
@@ -323,7 +332,7 @@ class DeepNet {
                     // this as an argument, instead let it be part of the same config file as GPU
                     bridge = new ParallelizedBridge<DataType_SFFloat, ConvolutionBridge>
                              (prev_layers[i], next_layer, &layer_param, &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1, // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
-                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher,
+                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[i], prev_grad_cubes_higher_per_group[i],
                              share_input_output_layer);
                     bridge->name = layer_param.name();
                     if (before_first_weight_layer) {
@@ -336,6 +345,8 @@ class DeepNet {
                 } else {
                   if (grouping != 1 && n_previous_groups == 1) {
                     // in this case, we fork the single input group into multile output groups
+                    prev_data_cubes_higher_per_group.resize(grouping);
+                    prev_grad_cubes_higher_per_group.resize(grouping);
                     for (size_t i = 0; i < grouping; i++) {
                       // for each group, create bridges
                       next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
@@ -344,7 +355,7 @@ class DeepNet {
 
                       bridge = new ParallelizedBridge<DataType_SFFloat, ConvolutionBridge>
                                (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1, // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
-                               prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher,
+                               prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[i], prev_grad_cubes_higher_per_group[i],
                                share_input_output_layer);
                       bridge->name = layer_param.name();
                       if (before_first_weight_layer) {
@@ -356,7 +367,7 @@ class DeepNet {
                     }
                   } else {
                     std::cout << "ERROR: Currently we do not support the case where input group is " << n_previous_groups
-                      << " and output group is " << grouping << " for CONV layer..." << std::endl;
+                      << " and output group is " << grouping << " for CONV layer" << std::endl;
                     assert(false);
                   }
                 }
@@ -382,12 +393,16 @@ class DeepNet {
                   }
                 }
                 pbridges_from_last_iteration = pbridges_from_this_iteration;
-                pbridges_from_this_iteration.clear();
                 prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
                 prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
                 prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
-                prev_data_cubes_higher = pbridges_from_this_iteration[0]->get_data_cubes_higher();
-                prev_grad_cubes_higher = pbridges_from_this_iteration[0]->get_grad_cubes_higher();
+                prev_data_cubes_higher_per_group.clear();
+                prev_grad_cubes_higher_per_group.clear();
+                for (size_t i=0; i<pbridges_from_this_iteration.size(); ++i) {
+                  prev_data_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_data_cubes_higher());
+                  prev_grad_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_grad_cubes_higher());
+                }
+                pbridges_from_this_iteration.clear();
                 // ----------End of Scheduler Update --------------
                 before_first_weight_layer = false;
             }
@@ -414,6 +429,12 @@ class DeepNet {
                   input_D = output_D;
                   prev_layers.clear();
                   prev_layers.push_back(next_layer);
+                  
+                  // Since we are inserting a cpu bridge, also clear all information about past pbridge
+                  pbridges_from_last_iteration.clear();
+                  pbridges_from_this_iteration.clear();
+                  prev_GPU_batch_sizes.clear();
+                  prev_gpu_to_device_id_map.clear();
                 }
 
                 std::cout << "Constructing FC layer " << "(# Input Grouping=" << 1 << ")" << std::endl;
@@ -425,9 +446,11 @@ class DeepNet {
                 next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
                 next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
+                prev_data_cubes_higher_per_group.resize(1);
+                prev_grad_cubes_higher_per_group.resize(1);
                 bridge = new ParallelizedBridge<DataType_SFFloat, FullyConnectedBridge>
                          (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), hw_concurrency,
-                         prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher,
+                         prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[0], prev_grad_cubes_higher_per_group[0],
                          share_input_output_layer);
 
                 //bridge = new FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layers[0],
@@ -448,12 +471,14 @@ class DeepNet {
                   }
                 }
                 pbridges_from_last_iteration = pbridges_from_this_iteration;
-                pbridges_from_this_iteration.clear();
                 prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
                 prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
                 prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
-                prev_data_cubes_higher = pbridges_from_this_iteration[0]->get_data_cubes_higher();
-                prev_grad_cubes_higher = pbridges_from_this_iteration[0]->get_grad_cubes_higher();
+                prev_data_cubes_higher_per_group.clear();
+                prev_grad_cubes_higher_per_group.clear();
+                prev_data_cubes_higher_per_group.push_back(pbridges_from_this_iteration[0]->get_data_cubes_higher());
+                prev_grad_cubes_higher_per_group.push_back(pbridges_from_this_iteration[0]->get_grad_cubes_higher());
+                pbridges_from_this_iteration.clear();
                 // ----------End of Scheduler Update --------------
                 before_first_weight_layer = false;
             }
@@ -468,6 +493,8 @@ class DeepNet {
                 output_R = compute_conv_next_layer_dimension(input_R, K, 0, stride),
                          output_C = compute_conv_next_layer_dimension(input_C, K, 0, stride);
 
+                prev_data_cubes_higher_per_group.resize(n_previous_groups);
+                prev_grad_cubes_higher_per_group.resize(n_previous_groups);
                 for (size_t i = 0; i < n_previous_groups; i++) {
                   // input_D same as output_D
                   next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, input_D, B);
@@ -476,7 +503,7 @@ class DeepNet {
 
                   bridge = new ParallelizedBridge<DataType_SFFloat, MaxPoolingBridge>(prev_layers[i], next_layer, &layer_param,
                              &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1,
-                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher,
+                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[i], prev_grad_cubes_higher_per_group[i],
                              share_input_output_layer);
                   bridge->name = layer_param.name();
                   bridges.push_back(bridge);
@@ -493,12 +520,16 @@ class DeepNet {
                   }
                 }
                 pbridges_from_last_iteration = pbridges_from_this_iteration;
-                pbridges_from_this_iteration.clear();
                 prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
                 prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
                 prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
-                prev_data_cubes_higher = pbridges_from_this_iteration[0]->get_data_cubes_higher();
-                prev_grad_cubes_higher = pbridges_from_this_iteration[0]->get_grad_cubes_higher();
+                prev_data_cubes_higher_per_group.clear();
+                prev_grad_cubes_higher_per_group.clear();
+                for (size_t i=0; i<pbridges_from_this_iteration.size(); ++i) {
+                  prev_data_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_data_cubes_higher());
+                  prev_grad_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_grad_cubes_higher());
+                }
+                pbridges_from_this_iteration.clear();
                 // ----------End of Scheduler Update --------------
             }
             break;
@@ -508,6 +539,8 @@ class DeepNet {
 
                 std::cout << "Constructing RELU layer " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
 
+                prev_data_cubes_higher_per_group.resize(n_previous_groups);
+                prev_grad_cubes_higher_per_group.resize(n_previous_groups);
                 for (size_t i=0;i<n_previous_groups;i++) {
 
                   next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
@@ -516,7 +549,7 @@ class DeepNet {
 
                   bridge = new ParallelizedBridge<DataType_SFFloat, ReLUBridge>(prev_layers[i], next_layer, &layer_param,
                              &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1,
-                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher,
+                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[i], prev_grad_cubes_higher_per_group[i],
                              share_input_output_layer);
                   bridge->name = layer_param.name();
 
@@ -534,12 +567,16 @@ class DeepNet {
                   }
                 }
                 pbridges_from_last_iteration = pbridges_from_this_iteration;
-                pbridges_from_this_iteration.clear();
                 prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
                 prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
                 prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
-                prev_data_cubes_higher = pbridges_from_this_iteration[0]->get_data_cubes_higher();
-                prev_grad_cubes_higher = pbridges_from_this_iteration[0]->get_grad_cubes_higher();
+                prev_data_cubes_higher_per_group.clear();
+                prev_grad_cubes_higher_per_group.clear();
+                for (size_t i=0; i<pbridges_from_this_iteration.size(); ++i) {
+                  prev_data_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_data_cubes_higher());
+                  prev_grad_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_grad_cubes_higher());
+                }
+                pbridges_from_this_iteration.clear();
                 // ----------End of Scheduler Update --------------
             }
             break;
@@ -549,6 +586,8 @@ class DeepNet {
 
                 std::cout << "Constructing LRN layer " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
 
+                prev_data_cubes_higher_per_group.resize(n_previous_groups);
+                prev_grad_cubes_higher_per_group.resize(n_previous_groups);
                 for (size_t i=0;i<n_previous_groups;i++) {
 
                   next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
@@ -557,7 +596,7 @@ class DeepNet {
 
                   bridge = new ParallelizedBridge<DataType_SFFloat, LRNBridge>(prev_layers[i], next_layer, &layer_param,
                              &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1,
-                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher, prev_grad_cubes_higher,
+                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[i], prev_grad_cubes_higher_per_group[i],
                              share_input_output_layer);
                   bridge->name = layer_param.name();
 
@@ -576,12 +615,16 @@ class DeepNet {
                   }
                 }
                 pbridges_from_last_iteration = pbridges_from_this_iteration;
-                pbridges_from_this_iteration.clear();
                 prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
                 prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
                 prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
-                prev_data_cubes_higher = pbridges_from_this_iteration[0]->get_data_cubes_higher();
-                prev_grad_cubes_higher = pbridges_from_this_iteration[0]->get_grad_cubes_higher();
+                prev_data_cubes_higher_per_group.clear();
+                prev_grad_cubes_higher_per_group.clear();
+                for (size_t i=0; i<pbridges_from_this_iteration.size(); ++i) {
+                  prev_data_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_data_cubes_higher());
+                  prev_grad_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_grad_cubes_higher());
+                }
+                pbridges_from_this_iteration.clear();
                 // ----------End of Scheduler Update --------------
             }
             break;
@@ -603,6 +646,12 @@ class DeepNet {
                   bridges.push_back(bridge);
                   next_layers.push_back(next_layer);
                 }
+                  
+                // Since we are inserting a cpu bridge, also clear all information about past pbridge
+                pbridges_from_last_iteration.clear();
+                pbridges_from_this_iteration.clear();
+                prev_GPU_batch_sizes.clear();
+                prev_gpu_to_device_id_map.clear();
             }
             break;
             {

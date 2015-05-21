@@ -57,10 +57,7 @@ endif
 TEST_LDFLAGS= $(LDFLAGS) -L$(GTEST_LIB_DIR) -lgtest
 TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.cpp \
 			src/sched/DeviceDriver_CPU.cpp \
-			tests/test_paper3a_conv_layer_GPU.cpp \
-			# tests/test_paper3a_conv_layer_CPU_GPU.cpp \
-			# tests/test_paper3a_conv_layer.cpp \
-			# tests/test_MaxPooling_bridge.cpp \
+			tests/test_MaxPooling_bridge.cpp \
 			tests/test_parallelized_convolution.cpp \
 			tests/test_lrn_bridge.cpp \
 			tests/test_ReLU_bridge.cpp \
@@ -85,14 +82,20 @@ TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.
 			tests/test_MaxPooling_bridge_GPU.cpp \
 			tests/test_parallelized_fc_GPU.cpp \
 			tests/test_parallelized_convolution_GPU.cpp \
-			tests/test_parallelized_convolution_large_GPU_batch.cpp \
 			tests/test_parallelized_convolution_large_GPU.cpp \
-			tests/test_lenet_network_GPU.cpp \
-			tests/test_parallelized_convolution_2GPU.cpp \
-			tests/test_parallelized_convolution_4GPU.cpp \
-			tests/test_parallelized_convolution_large_2GPU_batch.cpp \
-			tests/test_parallelized_convolution_large_2GPU.cpp \
+			tests/test_parallelized_convolution_large_GPU_batch.cpp \
 			tests/test_parallelized_convolution_large_CPU_GPU_batch.cpp \
+			tests/test_lenet_network_GPU.cpp \
+			#tests/test_parallelized_convolution_2GPU.cpp \
+			#tests/test_parallelized_convolution_large_2GPU.cpp \
+			#tests/test_parallelized_convolution_large_2GPU_batch.cpp \
+			#tests/test_parallelized_convolution_4GPU.cpp \
+			#tests/test_lenet_network_4GPU.cpp \
+			#tests/test_alexnet_1GPU.cpp \
+			#tests/test_alexnet_4GPU.cpp \
+			#tests/test_paper3a_conv_layer_GPU.cpp \
+			#tests/test_paper3a_conv_layer_CPU_GPU.cpp \
+			#tests/test_paper3a_conv_layer.cpp \
 			#tests/test_paper3a_conv_layer_2GPU.cpp \
 			#tests/test_paper3a_conv_layer_4GPU.cpp \
 			#tests/test_paper3b_caffenet.cpp \
@@ -111,7 +114,7 @@ TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.
 			#tests/test_perf_convolution_5_GPU.cpp \
 			#tests/test_perf_convolution_6_GPU.cpp \
 			#tests/test_perf_convolution_7_GPU.cpp \
-			#tests/test_alexnet_network.cpp
+			#tests/test_alexnet_network.cpp \
 			#tests/test_device_driver_gpu.cpp \
 
 TEST_OBJ_FILES = $(patsubst %.cpp,%.o,$(TEST_SOURCES))
