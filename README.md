@@ -68,15 +68,15 @@ Getting Started AMI
 Probably the easiest way to try CcT is via a VM. These are publicly
 available on AWS:
 
-**g2.2xlarge:**  
+**g2.2xlarge:**  (CCT-0.1-1GPU)  ami-00b5ae68
 
 - Reproduces figure 3a in the [paper](http://arxiv.org/abs/1504.04343)
 
-**c4.4xlarge:**  
+**c4.4xlarge:**  (CCT-0.1-CPU)   ami-58b1aa30
 
 - Reproduces figure 3b in the [paper](http://arxiv.org/abs/1504.04343)
 
-**g2.8xlarge:**  
+**g2.8xlarge:**  (CCT-0.1-4GPU)  ami-04b2a96c
 
 - The recently announced EC2 instance with 4 GPUs
 
