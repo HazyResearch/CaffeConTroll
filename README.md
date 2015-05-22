@@ -1,7 +1,14 @@
-Overview
---------
+Caffe Con Troll v. 0.1
+----------------------
+
+<img src="docs/figures/cct_logo.png" height="200" >
+
+This is an Alpha release of CaffeConTroll. Feedback is welcome!
 
 See our [paper](http://arxiv.org/abs/1504.04343) which will be presented at the 2015 SIGMOD workshop on Data Analytics at Scale (DanaC)
+
+Overview
+--------
 
 Caffe con Troll (CcT) is a clone of the uber popular Caffe framework
 for Deep Learning. CcT is intended to be compatible with Caffe. We're
@@ -66,7 +73,7 @@ Getting Started AMI
 -------------------
 
 Probably the easiest way to try CcT is via a VM. These are publicly
-available on AWS:
+available on AWS and (coming soon!) Azure.
 
 **g2.2xlarge:**  (CCT-0.1-1GPU)  ami-00b5ae68
 
