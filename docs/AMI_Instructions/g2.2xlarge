@@ -1,0 +1,42 @@
+To reproduce the CPU, GPU and GPU+CPU results in figure 3a of the paper:
+
+First load the CUDA and BLAS libraries
+
+> export PATH=/usr/local/cuda/bin:$PATH
+> export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+> export LD_LIBRARY_PATH=/home/ubuntu/CaffeConTroll/externals/OpenBLAS-0.2.14/:$LD_LIBRARY_PATH
+> cd CaffeConTroll/
+
+Run the Caffenet test (already compiled) with:
+> ./test
+
+This will run 10 iterations of AlexNet conv1 on the GPU with extra profiling
+information (built with make_profile2).
+
+To run the CPU+GPU test in figure 3a, edit the Makefile to also uncomment
+tests/test_paper3a_conv_layer_CPU_GPU.cpp (line 61) and recompile with extra
+profile information:
+
+> make clean && make -j test_profile2 && ./test
+
+To run the CPU test in figure 3b, edit the Makefile to also uncomment
+tests/test_paper3a_conv_layer.cpp (line 62) and recompile with extra
+profile information:
+
+> make clean && make -j test_profile2 && ./test
+
+Caffe can be run for this conv1 layer from the CaffeConTroll/ directory using
+
+> ~/caffe/caffe/build/tools/caffe time -model=tests/imagenet_train/train_val/caffenet_conv1.prototxt --iterations 1 -gpu 0
+
+Or for the CPU result
+
+> ~/caffe/caffe/build/tools/caffe time -model=tests/imagenet_train/train_val/caffenet_conv1.prototxt --iterations 1
+
+
+Other Instructions
+
+To run a network using ./caffe-ct (already compiled), compile with make all
+> make clean && make -j all
+> ./caffe-ct <arguments>
+

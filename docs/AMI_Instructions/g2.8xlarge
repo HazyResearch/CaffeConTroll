@@ -1,0 +1,21 @@
+To run AlexNet on 4 GPUs and see the speedup over 1 GPU,
+
+First load the CUDA and BLAS libraries
+
+> export PATH=/usr/local/cuda/bin:$PATH
+> export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+> export LD_LIBRARY_PATH=/home/ubuntu/OpenBLAS/:$LD_LIBRARY_PATH
+> cd CaffeConTroll/
+
+Run CCT (already compiled)
+
+For 1 GPU:
+> ./caffe-ct train tests/imagenet_train/solver/alexnet_solver_1GPU.prototxt -b tests/imgnet_toprocess.bin -o tests/model.bin
+
+Argument description: 
+- Run the net in "train" mode and specify the path to the solver
+- Pass -b (optional) which tells CCT where to write the preprocessed data binary
+- Pass -o (optional) which tells CCT where to write the output model binary
+
+For 4 GPUs:
+> ./caffe-ct train tests/imagenet_train/solver/alexnet_solver_4GPU.prototxt -b tests/imgnet_toprocess.bin -o tests/model.bin
