@@ -127,7 +127,7 @@ specifies that 4 GPUs should be used:
 
 <img src="docs/figures/screenshot4.png" height="400" >
 
-Notice a > 3x speedup on the current AMI. A speedup of 4x on this 4 GPU instance will be available following
+Notice a > 3x speedup on the current AMI compared to 1 GPU. A speedup of 4x on this 4 GPU instance will be available following
 the completion of the model update portion of the distributed CCT project.
 
 
@@ -164,6 +164,69 @@ test file.
 It's good on a laptop, on a server, or for a snack. It is unclear
 whether CcT can [smell the
 blood](http://en.wikipedia.org/wiki/Trollhunter) of christian men.
+
+
+Partitioning Data for Multiple GPUs
+-----------------------------------
+
+Currently CcT allows users to specify the proportion of a layer to run on the GPU using the prototxt attributes:
+
+      gpu_0_batch_proportion
+      gpu_1_batch_proportion
+      gpu_2_batch_proportion
+      gpu_3_batch_proportion
+
+Currently we have attributes for only the first 4 GPUs on the node (as this is most common for a single node) although CcT can support more than 4. 
+
+For example, to run the first convolutional layer of AlexNet on 1 GPU, we add one line to the layer description:
+
+    layers {
+      name: "conv1"
+      type: CONVOLUTION
+      bottom: "data"
+      top: "conv1"
+      ...
+      convolution_param {
+        ...
+      }
+      gpu_0_batch_proportion: 1.0                # New line added
+    }
+
+To run on 4 GPUs, partitioning a mini-batch across all 4 GPUs equally,
+
+    layers {
+      name: "conv1"
+      type: CONVOLUTION
+      bottom: "data"
+      top: "conv1"
+      ...
+      convolution_param {
+        ...
+      }
+      gpu_0_batch_proportion: 0.25
+      gpu_1_batch_proportion: 0.25
+      gpu_2_batch_proportion: 0.25
+      gpu_3_batch_proportion: 0.25
+    }
+
+The partitions do not need to be equal. To run 40% on the CPU and 60% on GPU 2,
+
+    layers {
+      name: "conv1"
+      type: CONVOLUTION
+      bottom: "data"
+      top: "conv1"
+      ...
+      convolution_param {
+        ...
+      }
+      gpu_2_batch_proportion: 0.6
+    }
+
+The default is to run on the CPU, i.e. no modification to the .prototxt file is needed to run the network on the CPU.
+
+For more examples, see the prototxt files in [`tests/imagenet_train/train_val/`](ests/imagenet_train/train_val/)
+
 
 Known Issues
 ------------
