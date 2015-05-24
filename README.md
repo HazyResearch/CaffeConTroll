@@ -83,7 +83,7 @@ available on AWS and (coming soon!) Azure.
 
 - Reproduces figure 3b in the [paper](http://arxiv.org/abs/1504.04343)
 
-**g2.8xlarge:**  (CCT-0.1-4GPU)  ami-04b2a96c
+**g2.8xlarge:**  (CCT-0.1-4GPU)  ami-c75db8ac
 
 - The recently announced EC2 instance with 4 GPUs
 
