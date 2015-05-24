@@ -29,7 +29,7 @@ TEST(LenetTrainTestGPU, RunTest) {
   double output;
   if (expected_accuracy.is_open()) {
     expected_accuracy >> output;
-    EXPECT_NEAR(acc, output, 0.02);
+    EXPECT_NEAR(acc, output, 0.03);
   }else{
     FAIL();
   }
