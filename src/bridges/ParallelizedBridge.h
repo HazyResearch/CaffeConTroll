@@ -80,7 +80,7 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
                                         add optimization to share without copying) is the job
                                         of ParallelizedConvolutionBridge not its caller. **/
     LogicalCubeType * p_model_grad;
-    LogicalCubeType * p_model_subgrad;
+    std::vector<LogicalCubeType *> p_model_subgrads;  // One per partition
     LogicalCubeType * p_bias_grad;
     LogicalCubeType * p_bias_subgrad;
     LogicalCubeType * p_bias_cube;
@@ -338,7 +338,6 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
       std::vector <size_t> GPU_batch_sizes_tmp;
       std::vector <int> used_gpu_to_device_id_map_tmp;
       size_t total_GPU_batch_size = 0;
-      // Also track the first GPU, if any
       for (int i=0; i<GPU_batch_proportions.size(); ++i) {
         size_t num_on_this_gpu = GPU_batch_proportions[i] * curr_B;
         if (num_on_this_gpu > 0) {
@@ -388,9 +387,17 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
           num_partitions_CPU = n_partition;
           n_batch_per_partition_cpu = remainder / num_partitions_CPU;
           const size_t extra_partition_size = remainder % num_partitions_CPU;
+          // Assign extra partition equally to all GPUs
+          const size_t extra_partition_size_per_gpu = extra_partition_size / num_partitions_GPU;
+          const size_t extra_partition_size_gpu_0   = extra_partition_size_per_gpu + extra_partition_size % num_partitions_GPU;
           assert(GPU_batch_sizes[0] >= 0);
-          GPU_batch_sizes[0] += extra_partition_size;
-          total_GPU_batch_size += extra_partition_size;
+          GPU_batch_sizes[0] += extra_partition_size_gpu_0;
+          total_GPU_batch_size += extra_partition_size_gpu_0;
+          for (int gpu_i=1; gpu_i < GPU_batch_sizes.size(); ++gpu_i) {
+            assert(GPU_batch_sizes[gpu_i] >= 0);
+            GPU_batch_sizes[gpu_i] += extra_partition_size_per_gpu;
+            total_GPU_batch_size += extra_partition_size_per_gpu;
+          }
           assert(total_GPU_batch_size <= curr_B);
         }
         // The batch is entirely on the CPU, so any extra images 
@@ -410,6 +417,9 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
       // std::cout << "  #Partitions on CPU   = " << num_partitions_CPU << "\n";
       // std::cout << "  #Partitions on GPU   = " << num_partitions_GPU << "\n";
       // std::cout << "  Total batch size GPU = " << total_GPU_batch_size << "\n";
+      // for (int it = 0; it < num_partitions_GPU; ++it) {
+      //   std::cout << "      " << GPU_batch_sizes[it] << "\n";
+      // }
       // std::cout << "  Partition size CPU   = " << n_batch_per_partition_cpu << "\n";
       // std::cout << "  Extra CPU partition  = " << extra_partition << "\n";
     }

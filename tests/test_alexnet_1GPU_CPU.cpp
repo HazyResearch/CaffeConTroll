@@ -9,11 +9,11 @@
 #include "test_types.h"
 
 
-TEST(AlexNet_4GPU, RunTest) {
+TEST(AlexNet_1GPU_CPU, RunTest) {
 
   char const * a = "deepnet";
   char const * b = "train";
-  char const * c = "tests/imagenet_train/solver/alexnet_solver_4GPU.prototxt";
+  char const * c = "tests/imagenet_train/solver/alexnet_solver_1GPU_CPU.prototxt";
   char const * argv[3];
   argv[0] = a;
   argv[1] = b;

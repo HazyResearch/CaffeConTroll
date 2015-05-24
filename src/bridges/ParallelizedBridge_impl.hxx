@@ -58,7 +58,6 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
       _output_layer, _layer_param, _solver_param, _p_driver),
     p_model_cube(NULL),
     p_model_grad(NULL),
-    p_model_subgrad(NULL),
     p_bias_grad(NULL),
     p_bias_subgrad(NULL),
     p_bias_cube(NULL),
@@ -381,7 +380,9 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
         // Similarly, the parallelized bridge (scheduler) has its own local gradient cube
         // SHADJIS TODO: Should make it clear what is local and not by the variable name
         p_model_grad = new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B);
-        p_model_subgrad = new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B);
+        for (int pi=0; pi<num_partitions_GPU; ++pi) {
+          p_model_subgrads.push_back(new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B));
+        }
 
         // The parallelized bridge also has a SGDGradientUpdater object which updates the gradients given all the sub-bridges
         // For now, do the updating on the CPU
@@ -392,7 +393,6 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
   } else {
     p_model_cube = NULL;
     p_model_grad = NULL;
-    p_model_subgrad = NULL;
   }
 
   if (example_bridge_bias_term) {
@@ -486,17 +486,27 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
   // GPU batches
   // Recall we might not want to copy to the GPU if it updates the
   // gradients itself
-  if (!skip_model_copy_gpu)
+  // Also Check if this bridge has a model (e.g. not for max pool)
+  // SHADJIS TODO: code below assumes p_bias_cube exists because p_model_cube does
+  if (!skip_model_copy_gpu && p_model_cube)
   {
-      for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
-      {
-        // Check if this bridge has a model (e.g. not for max pool)
-        if (p_model_cube)
-        {
+    // We will use threads to do async copies to multiple GPUs
+    // SHADJIS TODO: Can use cuda memcpy async but need to pin memory?
+    if (num_partitions_GPU == 1) { // Special case: Don't launch threads
+        scheduler_gpudrivers[0]->memcpy(_gpu_bridges[0]->get_model_cube()->get_device_pointer(scheduler_gpudrivers[0]), p_model_cube->get_device_pointer(scheduler_local_cpudriver));
+        scheduler_gpudrivers[0]->memcpy(_gpu_bridges[0]->get_bias_cube() ->get_device_pointer(scheduler_gpudrivers[0]), p_bias_cube ->get_device_pointer(scheduler_local_cpudriver));
+    } else if (num_partitions_GPU > 1) {
+      vector<thread> threads;
+      for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i) {
+        threads.push_back(thread([this, gpu_i]() {
             // General-case: copy from host to device
             scheduler_gpudrivers[gpu_i]->memcpy(_gpu_bridges[gpu_i]->get_model_cube()->get_device_pointer(scheduler_gpudrivers[gpu_i]), p_model_cube->get_device_pointer(scheduler_local_cpudriver));
             scheduler_gpudrivers[gpu_i]->memcpy(_gpu_bridges[gpu_i]->get_bias_cube() ->get_device_pointer(scheduler_gpudrivers[gpu_i]), p_bias_cube ->get_device_pointer(scheduler_local_cpudriver));
-        }
+        }));
+      }
+      for (size_t ti = 0; ti < threads.size(); ti++) {
+        threads[ti].join();
+      }
     }
   }
   PROFILE_ONLY(seconds = t.elapsed(); std::cout << "    PB:  Copy Model -> Device:    " << seconds << "\n"; t.restart(); )
@@ -533,45 +543,80 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
   // when the previous bridge did not share device data with the current bridge.
   if (!share_pointer_with_prev_bridge)
   {
-      size_t b = num_partitions_CPU * n_batch_per_partition_cpu;
-
       // GPU batches
-      for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
-      {
-        // assert(i < num_partitions); // Must be at least 1 partition left
-        
-        // Now copy to GPU
-        // Remember that e.g. _data_cubes_lower defines the p_input_layer for each sub-bridge
-        // Inside the bridge, it will assume _data_cubes_lower (called p_input_layer->p_data_cube
-        // inside the bridge) is already allocated on the GPU. This is true for all 4 cubes.
-        
-        // Get the amount to copy to GPU
-        size_t n_batch_this_partition = GPU_batch_sizes[gpu_i];
-#ifdef _DO_ASSERT
-        assert(n_batch_this_partition > 0);
-#endif
-        
-        // Copy from location b of the PBridge's data/gradient layers
-        scheduler_gpudrivers[gpu_i]->memcpy(
-            // dst = the cube in the _data_cubes_lower vector corresponding to this GPU
-            // (this is going to be the input data for the GPU)
-            _data_cubes_lower[gpu_i + num_partitions_CPU]->get_device_pointer(scheduler_gpudrivers[gpu_i]),
-            // src = the cpu data in the input layer starting at the right batch (batch "b")
-            p_input_layer->p_data_cube->get_device_pointer_RCDslice(scheduler_local_cpudriver, b, n_batch_this_partition)
-        );
-        
-        // Update the pointer to the right batch for the next sub-bridge
-        b += n_batch_this_partition;
-        
-        // More things only relevant for variable batch size:
-        // _gpu_bridges[gpu_i]->set_curr_batch_size(n_batch_this_partition);
-        // ++i;
-      }
+      if (num_partitions_GPU == 1) { // Special case: Don't launch threads
+            // assert(i < num_partitions); // Must be at least 1 partition left
+            
+            // Now copy to GPU
+            // Remember that e.g. _data_cubes_lower defines the p_input_layer for each sub-bridge
+            // Inside the bridge, it will assume _data_cubes_lower (called p_input_layer->p_data_cube
+            // inside the bridge) is already allocated on the GPU. This is true for all 4 cubes.
+            
+            // Get the amount to copy to GPU
+            size_t n_batch_this_partition = GPU_batch_sizes[0];
     #ifdef _DO_ASSERT
-      if (num_partitions_GPU > 0) {
-        assert(b == curr_B); // Must have completed every image now
-      }
+            assert(n_batch_this_partition > 0);
     #endif
+            size_t b = num_partitions_CPU * n_batch_per_partition_cpu;
+
+            // Copy from location b of the PBridge's data/gradient layers
+            scheduler_gpudrivers[0]->memcpy(
+                // dst = the cube in the _data_cubes_lower vector corresponding to this GPU
+                // (this is going to be the input data for the GPU)
+                _data_cubes_lower[0 + num_partitions_CPU]->get_device_pointer(scheduler_gpudrivers[0]),
+                // src = the cpu data in the input layer starting at the right batch (batch "b")
+                p_input_layer->p_data_cube->get_device_pointer_RCDslice(scheduler_local_cpudriver, b, n_batch_this_partition)
+            );
+            
+            // Update the pointer to the right batch for the next sub-bridge
+            // b += n_batch_this_partition;
+            
+            // More things only relevant for variable batch size:
+            // _gpu_bridges[gpu_i]->set_curr_batch_size(n_batch_this_partition);
+            // ++i;
+      } else if (num_partitions_GPU > 1) {
+          vector<thread> threads;
+          for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
+          {
+            threads.push_back(thread([this, gpu_i]() {
+                // assert(i < num_partitions); // Must be at least 1 partition left
+                
+                // Now copy to GPU
+                // Remember that e.g. _data_cubes_lower defines the p_input_layer for each sub-bridge
+                // Inside the bridge, it will assume _data_cubes_lower (called p_input_layer->p_data_cube
+                // inside the bridge) is already allocated on the GPU. This is true for all 4 cubes.
+                
+                // Get the amount to copy to GPU
+                size_t n_batch_this_partition = GPU_batch_sizes[gpu_i];
+        #ifdef _DO_ASSERT
+                assert(n_batch_this_partition > 0);
+        #endif
+                size_t b = num_partitions_CPU * n_batch_per_partition_cpu;
+                for (int bi=0; bi<gpu_i; ++bi) {
+                    b += GPU_batch_sizes[bi];
+                }
+                
+                // Copy from location b of the PBridge's data/gradient layers
+                scheduler_gpudrivers[gpu_i]->memcpy(
+                    // dst = the cube in the _data_cubes_lower vector corresponding to this GPU
+                    // (this is going to be the input data for the GPU)
+                    _data_cubes_lower[gpu_i + num_partitions_CPU]->get_device_pointer(scheduler_gpudrivers[gpu_i]),
+                    // src = the cpu data in the input layer starting at the right batch (batch "b")
+                    p_input_layer->p_data_cube->get_device_pointer_RCDslice(scheduler_local_cpudriver, b, n_batch_this_partition)
+                );
+                
+                // Update the pointer to the right batch for the next sub-bridge
+                // b += n_batch_this_partition;
+                
+                // More things only relevant for variable batch size:
+                // _gpu_bridges[gpu_i]->set_curr_batch_size(n_batch_this_partition);
+                // ++i;
+            }));
+          }
+          for (size_t ti = 0; ti < threads.size(); ti++) {
+            threads[ti].join();
+          }
+      }
   }
   PROFILE_ONLY(seconds = t.elapsed(); std::cout << "    PB:  Copy Data -> Device:     " << seconds << "\n"; t.restart(); )
 
@@ -589,32 +634,56 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
   // next bridge will also be on the device.
   if (!share_pointer_with_next_bridge)
   {
-      size_t b = num_partitions_CPU * n_batch_per_partition_cpu;
-      
       // GPU batches
-      for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
-      {
-        // Get the amount to copy from GPU
-        size_t n_batch_this_partition = GPU_batch_sizes[gpu_i];
-#ifdef _DO_ASSERT
-        assert(n_batch_this_partition > 0);
-#endif
-        // Copy from the GPU's output cube back to the location b of the PBridge's data/gradient layers
-        scheduler_gpudrivers[gpu_i]->memcpy(
-            // dst = the cpu data in the output layer starting at the right batch (batch "b")
-            p_output_layer->p_data_cube->get_device_pointer_RCDslice(scheduler_local_cpudriver, b, n_batch_this_partition),
-            // src = the cube in the _data_cubes_higher vector corresponding to this GPU
-            // (this is where the output data for the GPU was stored during the bridge execution)
-            _data_cubes_higher[gpu_i + num_partitions_CPU]->get_device_pointer(scheduler_gpudrivers[gpu_i])
-        );
-        // Update the pointer to the right batch for the next sub-bridge
-        b += n_batch_this_partition;
+      if (num_partitions_GPU == 1) { // Special case: Don't launch threads
+                // Get the amount to copy from GPU
+                size_t n_batch_this_partition = GPU_batch_sizes[0];
+        #ifdef _DO_ASSERT
+                assert(n_batch_this_partition > 0);
+        #endif
+                size_t b = num_partitions_CPU * n_batch_per_partition_cpu;
+                
+                // Copy from the GPU's output cube back to the location b of the PBridge's data/gradient layers
+                scheduler_gpudrivers[0]->memcpy(
+                    // dst = the cpu data in the output layer starting at the right batch (batch "b")
+                    p_output_layer->p_data_cube->get_device_pointer_RCDslice(scheduler_local_cpudriver, b, n_batch_this_partition),
+                    // src = the cube in the _data_cubes_higher vector corresponding to this GPU
+                    // (this is where the output data for the GPU was stored during the bridge execution)
+                    _data_cubes_higher[0 + num_partitions_CPU]->get_device_pointer(scheduler_gpudrivers[0])
+                );
+                // Update the pointer to the right batch for the next sub-bridge
+                // b += n_batch_this_partition;
+      } else if (num_partitions_GPU > 1) {
+          vector<thread> threads;
+          for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
+          {
+            threads.push_back(thread([this, gpu_i]() {
+                // Get the amount to copy from GPU
+                size_t n_batch_this_partition = GPU_batch_sizes[gpu_i];
+        #ifdef _DO_ASSERT
+                assert(n_batch_this_partition > 0);
+        #endif
+                size_t b = num_partitions_CPU * n_batch_per_partition_cpu;
+                for (int bi=0; bi<gpu_i; ++bi) {
+                    b += GPU_batch_sizes[bi];
+                }
+          
+                // Copy from the GPU's output cube back to the location b of the PBridge's data/gradient layers
+                scheduler_gpudrivers[gpu_i]->memcpy(
+                    // dst = the cpu data in the output layer starting at the right batch (batch "b")
+                    p_output_layer->p_data_cube->get_device_pointer_RCDslice(scheduler_local_cpudriver, b, n_batch_this_partition),
+                    // src = the cube in the _data_cubes_higher vector corresponding to this GPU
+                    // (this is where the output data for the GPU was stored during the bridge execution)
+                    _data_cubes_higher[gpu_i + num_partitions_CPU]->get_device_pointer(scheduler_gpudrivers[gpu_i])
+                );
+                // Update the pointer to the right batch for the next sub-bridge
+                // b += n_batch_this_partition;
+            }));
+          }
+          for (size_t ti = 0; ti < threads.size(); ti++) {
+            threads[ti].join();
+          }
       }
-    #ifdef _DO_ASSERT
-      if (num_partitions_GPU > 0) {
-        assert(b == curr_B); // Must have completed every image now
-      }
-    #endif
   }
   // SHADJIS TODO: It makes sense to sync here so we do not return too early
   // before the computations are done. Syncing is automatically done by copying
@@ -656,30 +725,55 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
   // Copy to device, if necessary
   if (!share_pointer_with_next_bridge)
   {
-      size_t b = num_partitions_CPU * n_batch_per_partition_cpu;
-      for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
-      {
+      if (num_partitions_GPU == 1) { // Special case: Don't launch threads
         // Get the amount to copy to GPU
-        size_t n_batch_this_partition = GPU_batch_sizes[gpu_i];
+        size_t n_batch_this_partition = GPU_batch_sizes[0];
 #ifdef _DO_ASSERT
         assert(n_batch_this_partition > 0);
 #endif
+        size_t b = num_partitions_CPU * n_batch_per_partition_cpu;
+        
         // Copy from location b of the PBridge's data/gradient layers
-        scheduler_gpudrivers[gpu_i]->memcpy(
+        scheduler_gpudrivers[0]->memcpy(
             // dst = the cube in the _data_cubes_lower vector corresponding to this GPU
             // (this is going to be the input data for the GPU)
-            _grad_cubes_higher[gpu_i + num_partitions_CPU]->get_device_pointer(scheduler_gpudrivers[gpu_i]),
+            _grad_cubes_higher[0 + num_partitions_CPU]->get_device_pointer(scheduler_gpudrivers[0]),
             // src = the cpu data in the input layer starting at the right batch (batch "b")
             p_output_layer->p_gradient_cube->get_device_pointer_RCDslice(scheduler_local_cpudriver, b, n_batch_this_partition)
         );
         // Update the pointer to the right batch for the next sub-bridge
-        b += n_batch_this_partition;
+        // b += n_batch_this_partition;
+      } else if (num_partitions_GPU > 1) {
+          vector<thread> threads;
+          for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
+          {
+            threads.push_back(thread([this, gpu_i]() {
+                // Get the amount to copy to GPU
+                size_t n_batch_this_partition = GPU_batch_sizes[gpu_i];
+        #ifdef _DO_ASSERT
+                assert(n_batch_this_partition > 0);
+        #endif
+                size_t b = num_partitions_CPU * n_batch_per_partition_cpu;
+                for (int bi=0; bi<gpu_i; ++bi) {
+                    b += GPU_batch_sizes[bi];
+                }
+                
+                // Copy from location b of the PBridge's data/gradient layers
+                scheduler_gpudrivers[gpu_i]->memcpy(
+                    // dst = the cube in the _data_cubes_lower vector corresponding to this GPU
+                    // (this is going to be the input data for the GPU)
+                    _grad_cubes_higher[gpu_i + num_partitions_CPU]->get_device_pointer(scheduler_gpudrivers[gpu_i]),
+                    // src = the cpu data in the input layer starting at the right batch (batch "b")
+                    p_output_layer->p_gradient_cube->get_device_pointer_RCDslice(scheduler_local_cpudriver, b, n_batch_this_partition)
+                );
+                // Update the pointer to the right batch for the next sub-bridge
+                // b += n_batch_this_partition;
+            }));
+          }
+          for (size_t ti = 0; ti < threads.size(); ti++) {
+            threads[ti].join();
+          }
       }
-    #ifdef _DO_ASSERT
-      if (num_partitions_GPU > 0) {
-        assert(b == curr_B); // Must have completed every image now
-      }
-    #endif
   }
   PROFILE_ONLY(seconds = t.elapsed(); std::cout << "    PB:  Copy Data -> Device:     " << seconds << "\n"; t.restart(); )
 
@@ -728,33 +822,77 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
     // any memcpy here (it's all the same pointer).
     if (num_partitions != 1) {
     
-      // Iterate over each sub-bridge (partition) and sum the gradients
-      p_model_grad->reset_cube(DataType(0.0));
-      DataType * const p_grad_data = p_model_grad->get_p_data();
-      const size_t n_element = p_model_grad->n_elements;
+      // For multiple partitions, we will do this:
+      // - Copy back the gradients in parallel
+      // - Do a serial reduction on CPU
+      // - Sum final gradient to model
+      // Can do e.g. on GPU later
+      
+      // SHADJIS TODO: The copy from the GPUs takes longer than the 
+      // saxpy to accumulate gradients. I launch a separate thread to
+      // read from GPUs in parallel but can think how to optimize further.
+      
+      // First, get all the gradients on the host
+      vector<DataType *> gradients_host_pointers;
+      gradients_host_pointers.resize(num_partitions);
+      // Iterate over each sub-bridge (partition) and get the gradients
+      // If sub-bridge on CPU, just get the pointer
+      // Otherwise, do a copy
+      vector<thread> threads_for_memcpy;
       for (size_t i = 0; i < num_partitions; ++i) {
         // Store the gradient from each partition in p_model_subgrad
         // If that partition's bridge was on the CPU already, no need for this copy
         if (i < num_partitions_CPU) {
-          DataType * const p_subgrad_data = _cpu_bridges[i]->get_model_grad_cube()->get_p_data();
-          for (size_t j=0;j<n_element;j++) {
-            p_grad_data[j] += p_subgrad_data[j];
-          }
+            gradients_host_pointers[i] = _cpu_bridges[i]->get_model_grad_cube()->get_p_data();
         } else {
-          scheduler_gpudrivers[i-num_partitions_CPU]->memcpy(p_model_subgrad->get_device_pointer(scheduler_local_cpudriver), _gpu_bridges[i-num_partitions_CPU]->get_model_grad_cube()->get_device_pointer(scheduler_gpudrivers[i-num_partitions_CPU]));
-          DataType * const p_subgrad_data = p_model_subgrad->get_p_data();
-          for (size_t j=0;j<n_element;j++) {
-            p_grad_data[j] += p_subgrad_data[j];
+          threads_for_memcpy.push_back(thread([this, i, &gradients_host_pointers]() { // Capture gradients_host_pointers since not in this object, and capture by ref
+              scheduler_gpudrivers[i-num_partitions_CPU]->memcpy(p_model_subgrads[i-num_partitions_CPU]->get_device_pointer(scheduler_local_cpudriver), _gpu_bridges[i-num_partitions_CPU]->get_model_grad_cube()->get_device_pointer(scheduler_gpudrivers[i-num_partitions_CPU]));
+              gradients_host_pointers[i] = p_model_subgrads[i-num_partitions_CPU]->get_p_data();
+          }));
+        }
+      }
+      // Note, can join later instead
+      for (size_t ti = 0; ti < threads_for_memcpy.size(); ti++) {
+        threads_for_memcpy[ti].join();
+      }
+
+      PROFILE_ONLY(seconds = t.elapsed(); std::cout << "        Update copy:    " << seconds << "\n"; t.restart(); )
+  
+      // Iterate over each sub-bridge (partition) and get the gradients
+      // p_model_grad->reset_cube(DataType(0.0)); // SHADJIS TODO: p_model_grad unused now, can remove
+      DataType * const p_grad_data = gradients_host_pointers[0];
+      const size_t n_element = p_model_grad->n_elements;
+
+      // SHADJIS TODO: Here I do num_partitions saxpy calls, on CPU. Instead of
+      // doing them linearly O(num_partitions) can use a better reduction or do
+      // this on GPU
+      for (size_t i = 1; i < num_partitions; ++i) {
+        // Store the gradient from each partition in p_model_subgrad
+        // If that partition's bridge was on the CPU already, no need for this copy
+        if (i < num_partitions_CPU) {
+         // scheduler_local_cpudriver->set_num_threads(n_partition*n_cpu_thread_per_partition);
+         // scheduler_local_cpudriver->math_saxpy(n_element, 1.0, gradients_host_pointers[i], p_grad_data);
+         for (size_t j=0;j<n_element;++j) {
+           p_grad_data[j] += gradients_host_pointers[i][j];
+         }
+        } else {
+          // scheduler_local_cpudriver->set_num_threads(n_partition*n_cpu_thread_per_partition);
+          // scheduler_local_cpudriver->math_saxpy(n_element, 1.0, gradients_host_pointers[i], p_grad_data);
+          for (size_t j=0;j<n_element;++j) {
+            p_grad_data[j] += gradients_host_pointers[i][j];
           }
         }
       }
       
+      PROFILE_ONLY(seconds = t.elapsed(); std::cout << "        Update step 0:  " << seconds << "\n"; t.restart(); )      
+  
       // Given a gradient, update the model
       
       // SHADJIS TODO:
       // If this is to be done on the device, we need to copy back
       // For now, I will keep gradient updates on the CPU. To go
       // to the GPU instead, add a copy here
+      //scheduler_local_cpudriver->set_num_threads(n_partition*n_cpu_thread_per_partition);
       p_grad_updater->update(p_grad_data); // i.e. p_model_grad->get_p_data()
       
     } else {
@@ -801,7 +939,7 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
         } else {
           scheduler_gpudrivers[i-num_partitions_CPU]->memcpy(p_bias_subgrad->get_device_pointer(scheduler_local_cpudriver), _gpu_bridges[i-num_partitions_CPU]->get_bias_grad_cube()->get_device_pointer(scheduler_gpudrivers[i-num_partitions_CPU]));
           DataType * const p_subbias_data = p_bias_subgrad->get_p_data();
-          for (size_t j=0;j<bias_n_element;j++) {
+          for (size_t j=0;j<bias_n_element;++j) {
             p_grad_data[j] += p_subbias_data[j];
           }
         }
@@ -836,30 +974,55 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
   // This is analogous to the copy earlier in this function from host -> device
   if (needs_to_calc_backward_grad && !share_pointer_with_prev_bridge)
   {
-      size_t b = num_partitions_CPU * n_batch_per_partition_cpu;
-      for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
-      {
+      if (num_partitions_GPU == 1) { // Special case: Don't launch threads
         // Get the amount to copy from GPU
-        size_t n_batch_this_partition = GPU_batch_sizes[gpu_i];
+        size_t n_batch_this_partition = GPU_batch_sizes[0];
 #ifdef _DO_ASSERT
         assert(n_batch_this_partition > 0);
 #endif
+        size_t b = num_partitions_CPU * n_batch_per_partition_cpu;
+        
         // Copy from the GPU's output cube back to the location b of the PBridge's data/gradient layers
-        scheduler_gpudrivers[gpu_i]->memcpy(
+        scheduler_gpudrivers[0]->memcpy(
             // dst = the cpu data in the output layer starting at the right batch (batch "b")
             p_input_layer->p_gradient_cube->get_device_pointer_RCDslice(scheduler_local_cpudriver, b, n_batch_this_partition),
             // src = the cube in the _data_cubes_higher vector corresponding to this GPU
             // (this is where the output data for the GPU was stored during the bridge execution)
-            _grad_cubes_lower[gpu_i + num_partitions_CPU]->get_device_pointer(scheduler_gpudrivers[gpu_i])
+            _grad_cubes_lower[0 + num_partitions_CPU]->get_device_pointer(scheduler_gpudrivers[0])
         );
         // Update the pointer to the right batch for the next sub-bridge
-        b += n_batch_this_partition;
+        // b += n_batch_this_partition;
+      } else if (num_partitions_GPU > 1) {
+          vector<thread> threads;
+          for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
+          {
+            threads.push_back(thread([this, gpu_i]() {
+                // Get the amount to copy from GPU
+                size_t n_batch_this_partition = GPU_batch_sizes[gpu_i];
+        #ifdef _DO_ASSERT
+                assert(n_batch_this_partition > 0);
+        #endif
+                size_t b = num_partitions_CPU * n_batch_per_partition_cpu;
+                for (int bi=0; bi<gpu_i; ++bi) {
+                    b += GPU_batch_sizes[bi];
+                }
+                
+                // Copy from the GPU's output cube back to the location b of the PBridge's data/gradient layers
+                scheduler_gpudrivers[gpu_i]->memcpy(
+                    // dst = the cpu data in the output layer starting at the right batch (batch "b")
+                    p_input_layer->p_gradient_cube->get_device_pointer_RCDslice(scheduler_local_cpudriver, b, n_batch_this_partition),
+                    // src = the cube in the _data_cubes_higher vector corresponding to this GPU
+                    // (this is where the output data for the GPU was stored during the bridge execution)
+                    _grad_cubes_lower[gpu_i + num_partitions_CPU]->get_device_pointer(scheduler_gpudrivers[gpu_i])
+                );
+                // Update the pointer to the right batch for the next sub-bridge
+                // b += n_batch_this_partition;
+            }));
+          }
+          for (size_t ti = 0; ti < threads.size(); ti++) {
+            threads[ti].join();
+          }
       }
-    #ifdef _DO_ASSERT
-      if (num_partitions_GPU > 0) {
-        assert(b == curr_B); // Must have completed every image now
-      }
-    #endif
   }
   // SHADJIS TODO: It makes sense to sync here so we do not return too early
   // before the computations are done. Syncing is automatically done by copying
@@ -904,7 +1067,9 @@ ParallelizedBridge<DataType, BridgeType>::~ParallelizedBridge() {
 
   if (p_model_cube)    delete p_model_cube;
   if (p_model_grad)    delete p_model_grad;
-  if (p_model_subgrad) delete p_model_subgrad;
+  for (int pi=0; pi<p_model_subgrads.size(); ++pi) {
+    delete p_model_subgrads[pi];
+  }
   if (p_grad_updater)  delete p_grad_updater;
   if (p_bias_cube)     delete p_bias_cube;
   if (p_bias_grad)     delete p_bias_grad;
