@@ -225,7 +225,7 @@ The partitions do not need to be equal. To run 40% on the CPU and 60% on GPU 2,
 
 The default is to run on the CPU, i.e. no modification to the .prototxt file is needed to run the network on the CPU.
 
-For more examples, see the prototxt files in [`tests/imagenet_train/train_val/`](ests/imagenet_train/train_val/)
+For more examples, see the prototxt files in [`tests/imagenet_train/train_val/`](tests/imagenet_train/train_val/)
 
 
 Known Issues
