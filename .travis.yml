@@ -2,8 +2,8 @@ notifications:
 email: 
 recipients:
 - chrismre@stanford.edu
-- fabuzaid@stanford.edu
 - czhang@cs.wisc.edu
+- shadjis@stanford.edu
 on_failure: change
 
 language: cpp
@@ -34,5 +34,5 @@ directories:
 
 script:
 - "cp config.travis .config"
-- make test
+- make clean && make -j test_debug
 - ./test

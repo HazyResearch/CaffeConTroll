@@ -1,3 +1,12 @@
+Caffe Con Troll v. 0.1
+----------------------
+
+<img src="docs/figures/cct_logo.png" height="200" >
+
+This is an Alpha release of CaffeConTroll. Feedback is welcome!
+
+See our [paper](http://arxiv.org/abs/1504.04343) which will be presented at the 2015 SIGMOD workshop on Data Analytics at Scale (DanaC)
+
 Overview
 --------
 
@@ -60,14 +69,61 @@ steps an algorithm take to converge*) and hardware efficiency
 
 Of course, if you have feedback or challenge problems, let us know!
 
-A Friendly VM
--------------
+Getting Started AMI
+-------------------
 
-Probably the easiest way to try CcT is via a
-[VM](http://deepdive.stanford.edu/cct/vm_page.html) that comes
-preinstalled have an preinstalled with either MNIST (small and quick)
-or ImageNet (big and fun). These VMs run on Amazon, Google Compute,
-and Azure.
+Probably the easiest way to try CcT is via a VM. These are publicly
+available on AWS and (coming soon!) Azure.
+
+**g2.2xlarge:**  (CCT-0.1-1GPU)  ami-00b5ae68
+
+- Reproduces figure 3a in the [paper](http://arxiv.org/abs/1504.04343)
+
+**c4.4xlarge:**  (CCT-0.1-CPU)   ami-58b1aa30
+
+- Reproduces figure 3b in the [paper](http://arxiv.org/abs/1504.04343)
+
+**g2.8xlarge:**  (CCT-0.1-4GPU)  ami-04b2a96c
+
+- The recently announced EC2 instance with 4 GPUs
+
+Instructions for each AMI are listed in the file 
+
+`/home/ubuntu/AMI_INSTRUCTIONS.txt`
+
+For example, consider the g2.8xlarge AMI, which can be used to run AlexNet
+on 4 GPUs. Once the AMI is opened, look at `AMI_INSTRUCTIONS.txt`:
+
+<img src="docs/figures/screenshot1.png" height="400" >
+
+Follow these instructions to load the correct libraries and change to the
+`CaffeConTroll` root directory.
+
+Once that is done, run AlexNet on 1 GPU:
+
+> `./caffe-ct train tests/imagenet_train/solver/alexnet_solver_1GPU.prototxt -b tests/imgnet_toprocess.bin -o tests/model.bin`
+
+Argument description: 
+
+- Run the net in "train" mode and specify the path to the solver
+- Pass -b (optional) which tells CCT where to write the preprocessed data binary
+- Pass -o (optional) which tells CCT where to write the output model binary
+
+Notice that a forwards + backwards iteration, including gradient updates, takes 2.7s.
+
+<img src="docs/figures/screenshot2.png" height="400" >
+
+Next, run with 4 GPUs. The command is the same, except for a different prototxt file which
+specifies that 4 GPUs should be used.
+
+> `./caffe-ct train tests/imagenet_train/solver/alexnet_solver_4GPU.prototxt -b tests/imgnet_toprocess.bin -o tests/model.bin`
+
+<img src="docs/figures/screenshot3.png" height="400" >
+
+Notice a speedup of 2.7x on the current AMI. Further speedups on this 4 GPU instance will be available following
+the completion of the model update portion of the distributed CCT project.
+
+
 
 Installation from Source
 ------------------------
@@ -87,9 +143,9 @@ dependencies.*
 
 * Step 3. Copy config.sample to .config and edit .config to contain your paths.
 
-* Step 4. Build the executable.
+* Step 4. Build the executable `caffe-ct`
 
-> make
+> make clean && make -j all
 
 * Step 5. (Optional) If you want tests, you need to install Google's
 testing infrastructure, glog and gtest, as with Caffe. Then, make the
