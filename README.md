@@ -109,18 +109,25 @@ Argument description:
 - Pass -b (optional) which tells CCT where to write the preprocessed data binary
 - Pass -o (optional) which tells CCT where to write the output model binary
 
-Notice that a forwards + backwards iteration, including gradient updates, takes 2.7s.
+Notice that a forwards + backwards iteration, including gradient updates, takes 2.75s.
 
 <img src="docs/figures/screenshot2.png" height="400" >
 
-Next, run with 4 GPUs. The command is the same, except for a different prototxt file which
-specifies that 4 GPUs should be used.
+Next, run with 1 GPU as well as the CPU. The command is the same, except for a different prototxt file which
+specifies that the CPU should also be used:
 
-> `./caffe-ct train tests/imagenet_train/solver/alexnet_solver_4GPU.prototxt -b tests/imgnet_toprocess.bin -o tests/model.bin`
+> `./caffe-ct train tests/imagenet_train/solver/alexnet_solver_1GPU_CPU.prototxt -b tests/imgnet_toprocess.bin -o tests/model.bin`
 
 <img src="docs/figures/screenshot3.png" height="400" >
 
-Notice a speedup of 2.7x on the current AMI. Further speedups on this 4 GPU instance will be available following
+Finally, run with 4 GPUs. Once again the command is the same, except for a different prototxt file which
+specifies that 4 GPUs should be used:
+
+> `./caffe-ct train tests/imagenet_train/solver/alexnet_solver_4GPU.prototxt -b tests/imgnet_toprocess.bin -o tests/model.bin`
+
+<img src="docs/figures/screenshot4.png" height="400" >
+
+Notice a > 3x speedup on the current AMI. A speedup of 4x on this 4 GPU instance will be available following
 the completion of the model update portion of the distributed CCT project.
 
 
@@ -170,5 +177,4 @@ Known Issues
 Contact
 -------
 
-Send flames to Chris and praise to those who did the actual work:
-Firas Abuzaid, Shubham Gupta, Stefan Hadjis, and Ce Zhang.
+Send flames to Chris, questions to the current team, Stefan Hadjis, Ce Zhang, and Chris, and praise to past members who built CcT, Firas Abuzaid and Shubham Gupta.
