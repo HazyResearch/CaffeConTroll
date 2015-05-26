@@ -479,6 +479,8 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
     if (p_model_cube)
     {
         // Special-case for CPU: avoid a copy since device is CPU
+        // SHADJIS TODO: Do we still allocate these cubes? No need if we
+        // just share the pointer
         _cpu_bridges[i]->set_model_cube(p_model_cube);
         _cpu_bridges[i]->set_bias_cube(p_bias_cube);
     }

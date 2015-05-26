@@ -79,10 +79,13 @@ Instructions for each AMI are listed in the file
 
 `/home/ubuntu/AMI_INSTRUCTIONS.txt`
 
+g2.8xlarge
+----------
+
 For example, consider the g2.8xlarge AMI, which can be used to run AlexNet
 on 4 GPUs. Once the AMI is opened, look at `AMI_INSTRUCTIONS.txt`:
 
-<img src="docs/figures/screenshot1.png" height="400" >
+<img src="docs/figures/4gpu_screenshot1.png" height="400" >
 
 Follow these instructions to load the correct libraries and change to the
 `CaffeConTroll` root directory.
@@ -99,25 +102,28 @@ Argument description:
 
 Notice that a forwards + backwards iteration, including gradient updates, takes 2.75s.
 
-<img src="docs/figures/screenshot2.png" height="400" >
+<img src="docs/figures/4gpu_screenshot2.png" height="400" >
 
 Next, run with 1 GPU as well as the CPU. The command is the same, except for a different prototxt file which
 specifies that the CPU should also be used:
 
 > `./caffe-ct train tests/imagenet_train/solver/alexnet_solver_1GPU_CPU.prototxt -b tests/imgnet_toprocess.bin -o tests/model.bin`
 
-<img src="docs/figures/screenshot3.png" height="400" >
+<img src="docs/figures/4gpu_screenshot3.png" height="400" >
 
 Finally, run with 4 GPUs. Once again the command is the same, except for a different prototxt file which
 specifies that 4 GPUs should be used:
 
 > `./caffe-ct train tests/imagenet_train/solver/alexnet_solver_4GPU.prototxt -b tests/imgnet_toprocess.bin -o tests/model.bin`
 
-<img src="docs/figures/screenshot4.png" height="400" >
+<img src="docs/figures/4gpu_screenshot4.png" height="400" >
 
 Notice a > 3x speedup on the current AMI compared to 1 GPU. A speedup of 4x on this 4 GPU instance will be available following
 the completion of the model update portion of the distributed CCT project.
 
+These results are summarized below:
+
+<img src="docs/figures/Multiple_GPUs.png" height="600" >
 
 
 Installation from Source
