@@ -123,7 +123,40 @@ the completion of the model update portion of the distributed CCT project.
 
 These results are summarized below:
 
-<img src="docs/figures/Multiple_GPUs.png" height="600" >
+<img src="docs/figures/Multiple_GPUs.png" height="400" >
+
+c4.4xlarge
+----------
+
+Also try the c4.4xlarge AMI (or the larger c4.8xlarge EC2 instance).
+
+Once again, follow the instructions in 
+
+`/home/ubuntu/AMI_INSTRUCTIONS.txt`
+
+to set the correct library paths.
+
+<img src="docs/figures/cpu_screenshot1.png" height="400" >
+
+Once this is done, run CcT on CaffeNet:
+
+> `./caffe-ct train tests/imagenet_train/solver/caffenet_solver_1000.prototxt -b tests/imgnet_toprocess.bin -o tests/model.bin`
+
+<img src="docs/figures/cpu_screenshot2.png" height="400" >
+
+CcT finishes an iteration in 3.8 seconds.
+
+You can also run Caffe on the same prototxt file used by the `caffenet_solver_1000.prototxt` solver:
+
+> `~/caffe/build/tools/caffe time -model=tests/imagenet_train/train_val/caffenet_train_val_1000.prototxt --iterations 1`
+
+<img src="docs/figures/cpu_screenshot3.png" height="400" >
+
+Note that Caffe takes 16.5 seconds per iteration. Note also that Caffe is being run in "time" mode which does not perform gradient updates as part of these 16.5 seconds (CcT does).
+
+CcT partitions each mini-batch into 16 partitions to process in parallel. The impact of batch size is shown below:
+
+<img src="docs/figures/Batching_Slide.png" height="400" >
 
 
 Installation from Source
