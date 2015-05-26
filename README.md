@@ -29,29 +29,17 @@ their CPUs. In the lab, GPUs can be expensive to obtain.  In contrast,
 academic labs like ours have CPUs lying around for other purposes, so
 we were curious about how much throughput we could get from CPUs for
 Deep Learning. CcT is our first attempt. Our initial results suggest
-that our CPU code is almost an order of magnitude more efficient than
-Caffe's CPU code. In particular, two 8 core Haswells deliver roughly
-80% of the throughput of a highest end GPU (NVidia's Titan). At
-current consumer prices, this implies that, chip-to-chip, the CPU
-solution costs almost 20% less than a GPU for the same
-throughput. These numbers are *incredibly rough* but are fun to think
-about (and troll our friends with!)  Our GPU code is also slightly
-faster than Caffe, see our [benchmark
-page](http://deepdive.stanford.edu/cdw/benchmarking.html). The GPU
-speedup is mostly for non-fundamental reasons.
+that our CPU code is 4.5x more efficient than Caffe's CPU code.
 
 **New Techniques** In the initial version of CcT, CcT's algorithms are
 identical to Caffe from a statistical point of view. However, CcT uses
-new lowering techniques to speed up convolutions and other layers
-inspired by join processing in relational databases. As everyone
-agrees, understanding the relational
-[join](http://arxiv.org/abs/1310.3314) is the key to understanding the
-universe. *Yes, that's just more trolling.* In the near future, we
-plan to extend CcT in a few directions:
+batching, device scheduling and other techniques to speed up end-to-end
+network execution time. In the near future, we plan to extend CcT in a 
+few directions:
 
 * Play with our
   [Hogwild!](http://i.stanford.edu/hazy/papers/hogwild-nips.pdf) ideas
-  that are used in some of deep learning frameworks.
+  that are used in some of the deep learning frameworks.
 
 * Explore the trade-off space described in our [DimmWitted
 paper](http://arxiv.org/abs/1403.7550) in the context of Deep
