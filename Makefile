@@ -139,10 +139,7 @@ LINKCC = $(CC)
 LINKFLAG = $(CFLAGS) $(LDFLAGS)
 
 ifdef NVCC
-LINKFLAG += -lcublas
-ifeq ($(UNAME), Linux)
-LINKFLAG += -lcudart
-endif
+LINKFLAG += -lcublas -lcudart
 NVCC_LINK = dlink.o
 endif
  
