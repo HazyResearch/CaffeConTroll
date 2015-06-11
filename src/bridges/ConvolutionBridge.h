@@ -180,11 +180,12 @@ class ConvolutionBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClas
 
     void backward();
 
+    
+//IGOR: moved all of these to public from protected
     LogicalCubeType * p_model_cube;
 
     LogicalCubeType * p_bias_cube;
 
-  protected:
     LogicalCubeType * p_model_gradient_cube;
     LogicalCubeType * p_model_cube_shadow;
 
@@ -194,6 +195,7 @@ class ConvolutionBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClas
     LogicalCubeType * p_backward_inputgrad;
     
     LogicalCubeType * ones_bias_vector;
+protected:
 
     size_t mR, mC, mD, mB; /*< Size of the model LogicalCube */
 

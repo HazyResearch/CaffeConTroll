@@ -119,8 +119,8 @@ __global__ void _parallel_inverse_lower_cube(float * dst, float * src, const str
     const int c =  i / (iC * iR);
     const int h = (i / iC) % iR + p;
     const int w =  i % iC + p;
-    
-    const int w_col_start = (w < k) ? 0 : (w - k) / s + 1;
+
+const int w_col_start = (w < k) ? 0 : (w - k) / s + 1;
     const int w_col_end = device_min(w / s + 1, oC); // SHADJIS TODO: cuda has a min function
     const int h_col_start = (h < k) ? 0 : (h - k) / s + 1;
     const int h_col_end = device_min(h / s + 1, oR); // SHADJIS TODO: cuda has a min function

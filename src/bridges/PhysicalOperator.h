@@ -8,6 +8,7 @@
 
 #ifndef moka_PhysicalOperator_h
 #define moka_PhysicalOperator_h
+#include "../Report.h"
 
 /**
  * A PhysicalOperator is a general

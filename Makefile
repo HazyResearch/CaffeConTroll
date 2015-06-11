@@ -13,6 +13,7 @@ LIB_DIRS=$(BOOST_LIB_DIR) $(GTEST_LIB_DIR) $(GLOG_LIB_DIR) $(GFLAGS_LIB_DIR) \
 LIB_STR=$(foreach d, $(LIB_DIRS), -L$d)
 
 # For Mac OS X 10.10 x86_64 Yosemite
+# NVCCFLAGS = -D_GPU_TARGET -D_INCLUDE_GPUDRIVER -std=c++11 $(LD_BASE) -lcublas -lcuda -lboost_program_options-mt -lboost_serialization -gencode arch=compute_20,code=sm_20 -gencode arch=compute_20,code=sm_21 -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35 -gencode arch=compute_50,code=sm_50 -gencode arch=compute_50,code=compute_50 -I $(CUDA_INCLUDE) -L $(CUDA_LIB)
 ifeq ($(UNAME), Darwin)
   CFLAGS = -Wall -std=c++11 -fsanitize-undefined-trap-on-error -fsanitize=integer-divide-by-zero
   DEBUG_FLAGS = -g -O0 -DDEBUG -ferror-limit=10
@@ -119,9 +120,16 @@ TEST_SOURCES = tests/test_main.cpp src/util.cpp src/timer.cpp src/DeepNetConfig.
 			#tests/test_alexnet_network.cpp \
 			#tests/test_device_driver_gpu.cpp \
 
+#IGOR:
+DIST_SRC_FILES = src/timer.cpp src/main_dist.cpp
+DIST_OBJ_FILES =$(patsubst %.cpp,%.o,$(DIST_SRC_FILES))
+DIST_LINKCC= mpicc
+DIST_EXECUTABLE=dist
+##
+
+
 TEST_OBJ_FILES = $(patsubst %.cpp,%.o,$(TEST_SOURCES))
 TEST_EXECUTABLE=test
-
 ifdef NVCC
 TEST_CUDA_SOURCES = src/sched/DeviceDriver_GPU.cu \
 					#tests/test_convolution.cu					
@@ -140,13 +148,24 @@ LINKFLAG = $(CFLAGS) $(LDFLAGS)
 
 ifdef NVCC
 LINKFLAG += -lcublas
-ifeq ($(UNAME), Linux)
+#ifeq ($(UNAME), Linux)
 LINKFLAG += -lcudart
-endif
+#endif
 NVCC_LINK = dlink.o
 endif
  
 .PHONY: all assembly clean product test warning
+
+
+#IGOR:
+dist: CFLAGS += $(DEBUG_FLAGS)
+dist: LINKFLAG += $(DEBUG_FLAGS)
+dist: $(DIST_OBJ_FILES) cnn.pb.o $(MAIN_CUDA_OBJ_FILES)
+ifdef NVCC
+	$(NVCC) -dlink $^ -o $(NVCC_LINK)
+endif
+	$(DIST_LINKCC) $^ $(NVCC_LINK) -o $(DIST_EXECUTABLE) $(LINKFLAG) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
+#
 
 all: CFLAGS += $(PRODUCT_FLAGS) 
 all: LINKFLAG += $(PRODUCT_FLAGS) 
@@ -171,6 +190,8 @@ ifdef NVCC
 	$(NVCC) -dlink $^ -o $(NVCC_LINK)
 endif
 	$(LINKCC) $^ $(NVCC_LINK) -o $(TARGET) $(LINKFLAG) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
+
+$(info $$var is [${var}])
 
 test: CFLAGS += $(PRODUCT_FLAGS) -I $(GTEST_INCLUDE)
 test: LINKFLAG += $(PRODUCT_FLAGS) -I $(GTEST_INCLUDE)
@@ -236,6 +257,7 @@ assembly:
 clean:
 	rm -f $(TARGET)
 	rm -f $(PROTO_SRC_DIR)*.pb.*
+	rm -f $(DIST_OBJ_FILES)
 	rm -f $(TEST_OBJ_FILES)
 	rm -f $(OBJ_FILES)
 	rm -f $(TEST_EXECUTABLE)
@@ -243,5 +265,6 @@ clean:
 	rm -f $(TEST_CUDA_OBJ_FILES)
 	rm -f $(MAIN_CUDA_OBJ_FILES)
 	rm -f $(SNAPSHOT_EXECUTABLE)
+	rm -f $(DIST_EXECUTABLE)
 	rm -f tests/toprocess.bin tests/model.bin tests/model.bin.* tests/lenet_toprocess.bin tests/imgnet_toprocess.bin
 
