@@ -31,7 +31,7 @@ we were curious about how much throughput we could get from CPUs for
 Deep Learning. Our current results show that CcT's CPU code is an order
 of magnitude faster than Caffe's CPU code:
 
-<img src="docs/figures/Amazon_EC2_Comparison.png" height="200" >
+<img src="docs/figures/Amazon_EC2_Comparison.png" height="400" >
 
 **New Techniques** In the initial version of CcT, CcT's algorithms are
 identical to Caffe from a statistical point of view. However, CcT uses
