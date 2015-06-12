@@ -25,13 +25,15 @@ CCT=
 LMDB_INCLUDE=
 LMDB_LIB_DIR=
 
-# directory where OpenBLAS is installed (if not in path)
+# Directory where BLAS is installed
 BLAS_INCLUDE=
 BLAS_LIB_DIR=
-BLAS_LIBS=BLAS LAPACK # Mac libararies
-BLAS_DEFS=-D_USE_ATLAS
-# BLAS_LIBS=openblas # OpenBlas
-# BLAS_DEFS=-D_USE_OPENBLAS
+# Uncomment these 2 lines for Linux (currently OpenBLAS is recommended)
+BLAS_LIBS=openblas      # OpenBlas
+BLAS_DEFS=-D_USE_OPENBLAS
+# Uncomment these 2 lines for Mac (the default libraries)
+#BLAS_LIBS=BLAS LAPACK  # Mac libararies
+#BLAS_DEFS=-D_USE_ATLAS
 
 # directory where GoogleTest is installed (if not in path)
 GTEST_INCLUDE=

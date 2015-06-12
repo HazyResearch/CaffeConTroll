@@ -28,8 +28,10 @@ providers don't have GPUs or their GPUs are not as rapidly updated as
 their CPUs. In the lab, GPUs can be expensive to obtain.  In contrast,
 academic labs like ours have CPUs lying around for other purposes, so
 we were curious about how much throughput we could get from CPUs for
-Deep Learning. CcT is our first attempt. Our initial results suggest
-that our CPU code is 4.5x more efficient than Caffe's CPU code.
+Deep Learning. Our current results show that CcT's CPU code is an order
+of magnitude faster than Caffe's CPU code:
+
+<img src="docs/figures/Amazon_EC2_Comparison.png" height="200" >
 
 **New Techniques** In the initial version of CcT, CcT's algorithms are
 identical to Caffe from a statistical point of view. However, CcT uses
@@ -175,7 +177,9 @@ dependencies.*
 
 > git clone git@github.com:HazyResearch/CaffeConTroll.git
 
-* Step 3. Copy config.sample to .config and edit .config to contain your paths.
+* Step 3. Copy config.sample to .config and edit .config to contain your paths. On Linux, OpenBLAS 
+is currently recommended. On OS X, the default libraries are recommended (BLAS
+and LAPACK are built-in to OS X, also see Caffe install instructions from Step 1 above).
 
 * Step 4. Build the executable `caffe-ct`
 
