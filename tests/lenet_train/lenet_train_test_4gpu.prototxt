@@ -1,7 +1,7 @@
 name: "LeNet"
-layers {
+layer {
   name: "mnist"
-  type: DATA
+  type: "Data"
   top: "data"
   top: "label"
   data_param {
@@ -14,9 +14,9 @@ layers {
   }
   include: { phase: TRAIN }
 }
-layers {
+layer {
   name: "mnist"
-  type: DATA
+  type: "Data"
   top: "data"
   top: "label"
   data_param {
@@ -30,9 +30,9 @@ layers {
   include: { phase: TEST }
 }
 
-layers {
+layer {
   name: "conv1"
-  type: CONVOLUTION
+  type: "Convolution"
   bottom: "data"
   top: "conv1"
   blobs_lr: 1
@@ -54,9 +54,9 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "pool1"
-  type: POOLING
+  type: "Pooling"
   bottom: "conv1"
   top: "pool1"
   gpu_0_batch_proportion: 0.20
@@ -69,9 +69,9 @@ layers {
     stride: 2
   }
 }
-layers {
+layer {
   name: "conv2"
-  type: CONVOLUTION
+  type: "Convolution"
   bottom: "pool1"
   top: "conv2"
   blobs_lr: 1
@@ -93,9 +93,9 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "pool2"
-  type: POOLING
+  type: "Pooling"
   bottom: "conv2"
   top: "pool2"
   gpu_0_batch_proportion: 0.20
@@ -108,9 +108,9 @@ layers {
     stride: 2
   }
 }
-layers {
+layer {
   name: "ip1"
-  type: INNER_PRODUCT
+  type: "InnerProduct"
   bottom: "pool2"
   top: "ip1"
   blobs_lr: 1
@@ -129,9 +129,9 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "relu1"
-  type: RELU
+  type: "ReLU"
   gpu_0_batch_proportion: 0.26
   gpu_1_batch_proportion: 0.28
   gpu_2_batch_proportion: 0.20
@@ -139,9 +139,9 @@ layers {
   bottom: "ip1"
   top: "ip1"
 }
-layers {
+layer {
   name: "drop1"
-  type: DROPOUT
+  type: "Dropout"
   bottom: "ip1"
   top: "ip1"
   dropout_param {
@@ -152,9 +152,9 @@ layers {
   gpu_2_batch_proportion: 0.25
   gpu_3_batch_proportion: 0.25
 }
-layers {
+layer {
   name: "ip2"
-  type: INNER_PRODUCT
+  type: "InnerProduct"
   bottom: "ip1"
   top: "ip2"
   blobs_lr: 1
@@ -173,9 +173,9 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "loss"
-  type: SOFTMAX_LOSS
+  type: "SoftmaxWithLoss"
   bottom: "ip2"
   bottom: "label"
   top: "loss"

@@ -33,7 +33,7 @@ message FillerParameter {
 
 message NetParameter {
   optional string name = 1; // consider giving the network a name
-  repeated LayerParameter layers = 2; // a bunch of layers.
+  repeated LayerParameter layer = 2;
   // The input blobs to the network.
   repeated string input = 3;
   // The dim of the input blobs. For each input blob there should be four
@@ -118,7 +118,7 @@ message SolverParameter {
   // the stepsize for learning rate policy "multistep"
   // repeated int32 stepvalue = 34;
   optional int32 snapshot = 14 [default = 0]; // The snapshot interval
-  // optional string snapshot_prefix = 15; // The prefix for the snapshot.
+  optional string snapshot_prefix = 15; // The prefix for the snapshot.
   // whether to snapshot diff in the results or not. Snapshotting diff will help
   // debugging but the final protocol buffer size will be much larger.
   // optional bool snapshot_diff = 16 [default = false];
@@ -181,10 +181,35 @@ message NetStateRule {
   repeated string not_stage = 5;
 }
 
+// Specifies training parameters (multipliers on global learning constants,
+// and the name and other settings used for weight sharing).
+message ParamSpec {
+  // The names of the parameter blobs -- useful for sharing parameters among
+  // layers, but never required otherwise.  To share a parameter between two
+  // layers, give it a (non-empty) name.
+  optional string name = 1;
+
+  // Whether to require shared weights to have the same shape, or just the same
+  // count -- defaults to STRICT if unspecified.
+  optional DimCheckMode share_mode = 2;
+  enum DimCheckMode {
+    // STRICT (default) requires that num, channels, height, width each match.
+    STRICT = 0;
+    // PERMISSIVE requires only the count (num*channels*height*width) to match.
+    PERMISSIVE = 1;
+  }
+
+  // The multiplier on the global learning rate for this parameter.
+  optional float lr_mult = 3 [default = 1.0];
+
+  // The multiplier on the global weight decay for this parameter.
+  optional float decay_mult = 4 [default = 1.0];
+}
+
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
-// LayerParameter next available ID: 45 (last added: gpu_3_batch_proportion)
+// LayerParameter next available ID: 46 (last added: param)
 message LayerParameter {
   repeated string bottom = 2; // the name of the bottom blobs
   repeated string top = 3; // the name of the top blobs
@@ -199,60 +224,14 @@ message LayerParameter {
   repeated NetStateRule include = 32;
   repeated NetStateRule exclude = 33;
 
-  // NOTE
-  // Add new LayerTypes to the enum below in lexicographical order (other than
-  // starting with NONE), starting with the next available ID in the comment
-  // line above the enum. Update the next available ID when you add a new
-  // LayerType.
-  //
-  // LayerType next available ID: 38 (last added: CONTRASTIVE_LOSS)
-  enum LayerType {
-    // "NONE" layer type is 0th enum element so that we don't cause confusion
-    // by defaulting to an existent LayerType (instead, should usually error if
-    // the type is unspecified).
-    // NONE = 0;
-    // ABSVAL = 35;
-    // ACCURACY = 1;
-    // ARGMAX = 30;
-    // BNLL = 2;
-    // CONCAT = 3;
-    // CONTRASTIVE_LOSS = 37;
-    CONVOLUTION = 4;
-    DATA = 5;
-    DROPOUT = 6;
-    // DUMMY_DATA = 32;
-    // EUCLIDEAN_LOSS = 7;
-    // ELTWISE = 25;
-    // FLATTEN = 8;
-    // HDF5_DATA = 9;
-    // HDF5_OUTPUT = 10;
-    // HINGE_LOSS = 28;
-    // IM2COL = 11;
-    // IMAGE_DATA = 12;
-    // INFOGAIN_LOSS = 13;
-    INNER_PRODUCT = 14;
-    LRN = 15;
-    // MEMORY_DATA = 29;
-    // MULTINOMIAL_LOGISTIC_LOSS = 16;
-    // MVN = 34;
-    POOLING = 17;
-    // POWER = 26;
-    RELU = 18;
-    // SIGMOID = 19;
-    // SIGMOID_CROSS_ENTROPY_LOSS = 27;
-    // SILENCE = 36;
-    // SOFTMAX = 20;
-    SOFTMAX_LOSS = 21;
-    // SPLIT = 22;
-    // SLICE = 33;
-    // TANH = 23;
-    // WINDOW_DATA = 24;
-    // THRESHOLD = 31;
-  }
-  optional LayerType type = 5; // the layer type from the enum above
-  
+  // Specifies training parameters (multipliers on global learning constants,
+  // and the name and other settings used for weight sharing).
+  repeated ParamSpec param = 45;
+  // These 2 are old and should be removed  
   repeated float blobs_lr = 7;
   repeated float weight_decay = 8;
+
+  optional string type = 5; // the layer type
 
   // optional AccuracyParameter accuracy_param = 27;
   // optional ArgMaxParameter argmax_param = 23;
@@ -301,7 +280,12 @@ message TransformationParameter {
   optional bool mirror = 2 [default = false];
   // Specify if we would like to randomly crop an image.
   optional uint32 crop_size = 3 [default = 0];
+  // mean_file and mean_value cannot be specified at the same time
   optional string mean_file = 4;
+  // if specified can be repeated once (would substract it from all the channels)
+  // or can be repeated the same number of times as channels
+  // (would subtract them from the corresponding channel)
+  repeated float mean_value = 5;
 }
 
 // Message that stores parameters used by AccuracyLayer

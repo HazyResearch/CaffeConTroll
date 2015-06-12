@@ -66,15 +66,19 @@ class DeepNet {
     // file specifies the data layer
     static Corpus * read_corpus_from_lmdb(const cnn::NetParameter & net_param, const string data_binary, bool train) {
       if (train) {
-        const cnn::LayerParameter layer_param = net_param.layers(0); // SHADJIS TODO: Should we be hard-coding layer 0 = train?
-        if (layer_param.type() == cnn::LayerParameter_LayerType_DATA) {
+        const cnn::LayerParameter layer_param = net_param.layer(0); // SHADJIS TODO: Should we be hard-coding layer 0 = train?
+        string layer_type = layer_param.type();
+        std::transform(layer_type.begin(), layer_type.end(), layer_type.begin(), ::toupper);
+        if (layer_type == "DATA") {
           if (layer_param.include(0).phase() == 0) { // training phase
             return new Corpus(layer_param, data_binary);
           }
         }
       } else {
-        const cnn::LayerParameter layer_param = net_param.layers(1);
-        if (layer_param.type() == cnn::LayerParameter_LayerType_DATA) {
+        const cnn::LayerParameter layer_param = net_param.layer(1);
+        string layer_type = layer_param.type();
+        std::transform(layer_type.begin(), layer_type.end(), layer_type.begin(), ::toupper);
+        if (layer_type == "DATA") {
           if (layer_param.include(0).phase() == 1) { // testing phase
             return new Corpus(layer_param, data_binary);
           }
@@ -182,7 +186,7 @@ class DeepNet {
       std::vector<Layer<DataType_SFFloat, Layout_CRDB> *> prev_layers, next_layers;
       prev_layers.push_back(new Layer<DataType_SFFloat, Layout_CRDB>(prev_data, prev_grad));
 
-      const size_t num_layers = net_param.layers_size();
+      const size_t num_layers = net_param.layer_size();
 
       Bridge * bridge = NULL;
       LogicalCubeFloat * next_data = NULL;
@@ -245,9 +249,16 @@ class DeepNet {
 
       for (size_t i_layer = 0; i_layer < num_layers; ++i_layer) {
 
-        const cnn::LayerParameter layer_param = net_param.layers(i_layer);
-        const cnn::LayerParameter_LayerType layer_type = layer_param.type();
-        
+        const cnn::LayerParameter layer_param = net_param.layer(i_layer);
+        string layer_type = layer_param.type();
+        std::transform(layer_type.begin(), layer_type.end(), layer_type.begin(), ::toupper);
+
+        if (layer_type == "ACCURACY")
+        {
+            // Ignore, we do this automatically
+            continue;
+        }
+
         // SHADJIS TODO: Some layers, e.g. ReLU and dropout, have the same top
         // and bottom layers and therefore don't need to allocate any output cubes.
         // For now, we will avoid this allocation only in PBridge (since it matters
@@ -264,74 +275,94 @@ class DeepNet {
         }
         const size_t n_previous_groups = prev_layers.size();
 
-        if (layer_type != cnn::LayerParameter_LayerType_DATA) {
-          switch (layer_type) {
-            // Note: These braces surrounding each case statement are necessary
-            // because we're initializing variables (such as config) inside the case.
-            // (Otherwise, the compiler will complain about a "switch case is in protected
-            // scope" error.)
-            {
-              case cnn::LayerParameter_LayerType_CONVOLUTION:
-                const size_t K = layer_param.convolution_param().kernel_size(),
-                      padding = layer_param.convolution_param().pad(),
-                      stride = layer_param.convolution_param().stride();
-                size_t grouping = layer_param.convolution_param().group();
+        if (layer_type != "DATA") {
+            
+          if (layer_type == "CONVOLUTION")
+          {
+              const size_t K = layer_param.convolution_param().kernel_size(),
+                    padding = layer_param.convolution_param().pad(),
+                    stride = layer_param.convolution_param().stride();
+              size_t grouping = layer_param.convolution_param().group();
 
-                /*
-                 * This is for syntax compatability with Caffe about grouping.
-                 * In the protocol buf file, if layer A, B, C has grouping 1, 2, 2,
-                 * in Caffe, A is also partition'ed into two groups... Without
-                 * the following fix, we need the syntax to be 2, 2, 2 to do
-                 * the same thing. The following fix makes sure the syntax is
-                 * consistent.
-                 */
-                size_t next_conv_layer = i_layer;
-                while ((++next_conv_layer) < num_layers) {
-                  const cnn::LayerParameter next_layer_param = net_param.layers(next_conv_layer);
-                  const cnn::LayerParameter_LayerType next_layer_type = next_layer_param.type();
-                  if (next_layer_type == cnn::LayerParameter_LayerType_CONVOLUTION) {
-                    size_t next_grouping = next_layer_param.convolution_param().group();
-                    if (grouping == 1 && next_grouping != 1) {
-                      grouping = next_grouping;
-                    }
-                    break;
+              /*
+               * This is for syntax compatability with Caffe about grouping.
+               * In the protocol buf file, if layer A, B, C has grouping 1, 2, 2,
+               * in Caffe, A is also partition'ed into two groups... Without
+               * the following fix, we need the syntax to be 2, 2, 2 to do
+               * the same thing. The following fix makes sure the syntax is
+               * consistent.
+               */
+              size_t next_conv_layer = i_layer;
+              while ((++next_conv_layer) < num_layers) {
+                const cnn::LayerParameter next_layer_param = net_param.layer(next_conv_layer);
+                string next_layer_type = next_layer_param.type();
+                std::transform(next_layer_type.begin(), next_layer_type.end(), next_layer_type.begin(), ::toupper);
+                if (next_layer_type == "CONVOLUTION") {
+                  size_t next_grouping = next_layer_param.convolution_param().group();
+                  if (grouping == 1 && next_grouping != 1) {
+                    grouping = next_grouping;
                   }
+                  break;
                 }
+              }
 
-                std::cout << "Constructing CONV layer with Grouping = " << grouping <<
-                  " (# Input Grouping=" << n_previous_groups << ")" << std::endl;
+              std::cout << "Constructing CONV layer with Grouping = " << grouping <<
+                " (# Input Grouping=" << n_previous_groups << ")" << std::endl;
 
-                output_R = compute_conv_next_layer_dimension(input_R, K, padding, stride),
-                         output_C = compute_conv_next_layer_dimension(input_C, K, padding, stride),
-                         output_D = layer_param.convolution_param().num_output();
-                if (output_D % grouping != 0) {
-                  std::cout << "ERROR: Currently we only support the input depth \% grouping == 0." << std::endl;
-                  assert(false);
+              output_R = compute_conv_next_layer_dimension(input_R, K, padding, stride),
+                       output_C = compute_conv_next_layer_dimension(input_C, K, padding, stride),
+                       output_D = layer_param.convolution_param().num_output();
+              if (output_D % grouping != 0) {
+                std::cout << "ERROR: Currently we only support the input depth \% grouping == 0." << std::endl;
+                assert(false);
+              }
+              output_D /= grouping;
+
+              if (grouping == n_previous_groups) {
+                // SHADJIS TODO: Resize these vectors to the right size, filling them with empty vectors
+                // This is needed so when I pass in e.g. prev_grad_cubes_higher_per_group[3],
+                // if there were not that many groups previously it will not fail, but just
+                // pass in an empty vector instead. I think this is not needed (i.e. alternatively
+                // I could assert that the size is this, for all cases but the first conv layer).
+                prev_data_cubes_higher_per_group.resize(n_previous_groups);
+                prev_grad_cubes_higher_per_group.resize(n_previous_groups);
+                // if input group == output group, then for each
+                // input group, create a separate bridge and a
+                // seperate output bridge
+                for (size_t i = 0; i < n_previous_groups; i++) {
+                  // for each group, create bridges
+                  next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
+                  next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
+                  next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
+
+                  // SHADJIS TODO: No need to pass partitions and threads as an argument, abstract it within
+                  // the pbridge. Or for the user to be able specify # partitions, then also do not pass 
+                  // this as an argument, instead let it be part of the same config file as GPU
+                  bridge = new ParallelizedBridge<DataType_SFFloat, ConvolutionBridge>
+                           (prev_layers[i], next_layer, &layer_param, &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1, // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+                           prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[i], prev_grad_cubes_higher_per_group[i],
+                           share_input_output_layer);
+                  bridge->name = layer_param.name();
+                  if (before_first_weight_layer) {
+                      bridge->needs_to_calc_backward_grad = false;
+                  }
+                  bridges.push_back(bridge);
+                  next_layers.push_back(next_layer);
+                  pbridges_from_this_iteration.push_back(bridge);
                 }
-                output_D /= grouping;
-
-                if (grouping == n_previous_groups) {
-                  // SHADJIS TODO: Resize these vectors to the right size, filling them with empty vectors
-                  // This is needed so when I pass in e.g. prev_grad_cubes_higher_per_group[3],
-                  // if there were not that many groups previously it will not fail, but just
-                  // pass in an empty vector instead. I think this is not needed (i.e. alternatively
-                  // I could assert that the size is this, for all cases but the first conv layer).
-                  prev_data_cubes_higher_per_group.resize(n_previous_groups);
-                  prev_grad_cubes_higher_per_group.resize(n_previous_groups);
-                  // if input group == output group, then for each
-                  // input group, create a separate bridge and a
-                  // seperate output bridge
-                  for (size_t i = 0; i < n_previous_groups; i++) {
+              } else {
+                if (grouping != 1 && n_previous_groups == 1) {
+                  // in this case, we fork the single input group into multile output groups
+                  prev_data_cubes_higher_per_group.resize(grouping);
+                  prev_grad_cubes_higher_per_group.resize(grouping);
+                  for (size_t i = 0; i < grouping; i++) {
                     // for each group, create bridges
                     next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
                     next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
                     next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
 
-                    // SHADJIS TODO: No need to pass partitions and threads as an argument, abstract it within
-                    // the pbridge. Or for the user to be able specify # partitions, then also do not pass 
-                    // this as an argument, instead let it be part of the same config file as GPU
                     bridge = new ParallelizedBridge<DataType_SFFloat, ConvolutionBridge>
-                             (prev_layers[i], next_layer, &layer_param, &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1, // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
+                             (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1, // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
                              prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[i], prev_grad_cubes_higher_per_group[i],
                              share_input_output_layer);
                     bridge->name = layer_param.name();
@@ -343,346 +374,313 @@ class DeepNet {
                     pbridges_from_this_iteration.push_back(bridge);
                   }
                 } else {
-                  if (grouping != 1 && n_previous_groups == 1) {
-                    // in this case, we fork the single input group into multile output groups
-                    prev_data_cubes_higher_per_group.resize(grouping);
-                    prev_grad_cubes_higher_per_group.resize(grouping);
-                    for (size_t i = 0; i < grouping; i++) {
-                      // for each group, create bridges
-                      next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
-                      next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
-                      next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
-
-                      bridge = new ParallelizedBridge<DataType_SFFloat, ConvolutionBridge>
-                               (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1, // TODO: need a CMD line option here -- but currently we do not have the interface to do that.
-                               prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[i], prev_grad_cubes_higher_per_group[i],
-                               share_input_output_layer);
-                      bridge->name = layer_param.name();
-                      if (before_first_weight_layer) {
-                          bridge->needs_to_calc_backward_grad = false;
-                      }
-                      bridges.push_back(bridge);
-                      next_layers.push_back(next_layer);
-                      pbridges_from_this_iteration.push_back(bridge);
-                    }
-                  } else {
-                    std::cout << "ERROR: Currently we do not support the case where input group is " << n_previous_groups
-                      << " and output group is " << grouping << " for CONV layer" << std::endl;
-                    assert(false);
-                  }
+                  std::cout << "ERROR: Currently we do not support the case where input group is " << n_previous_groups
+                    << " and output group is " << grouping << " for CONV layer" << std::endl;
+                  assert(false);
                 }
-                // -------------- Scheduler Update ----------------
-                // SHADJIS TODO: Rather than copy this everywhere refactor into a function.
-                // Or, instead, just make every bridge into a pbridge so we can refactor the
-                // code below to the end of the loop. Then can also re-use bridges instead
-                // of creating pbridges_from_this_iteration. Or, can move the function
-                // set_share_pointer_with_next_bridge into abstract bridge (but only
-                // overload for pbridge) and then calling this for non-pbridges will have
-                // no effect, so the code can still be refactored.
-                //
-                // SHADJIS TODO: Also, if the 2 bridges are sharing device data pointers,
-                // then there is no need to copy the data to or from the host, so the cube
-                // allocations above (the cubes own their own data) are unnecessary since
-                // those cubes are never used anywhere in pbridge.
-                assert(pbridges_from_this_iteration.size());
-                bool bridge_shares_data_with_prev_bridge = 
-                    pbridges_from_this_iteration[0]->get_share_pointer_with_prev_bridge();
-                if (bridge_shares_data_with_prev_bridge) {
-                  for (size_t it = 0; it < pbridges_from_last_iteration.size(); ++it) {
-                    pbridges_from_last_iteration[it]->set_share_pointer_with_next_bridge(true);
-                  }
+              }
+              // -------------- Scheduler Update ----------------
+              // SHADJIS TODO: Rather than copy this everywhere refactor into a function.
+              // Or, instead, just make every bridge into a pbridge so we can refactor the
+              // code below to the end of the loop. Then can also re-use bridges instead
+              // of creating pbridges_from_this_iteration. Or, can move the function
+              // set_share_pointer_with_next_bridge into abstract bridge (but only
+              // overload for pbridge) and then calling this for non-pbridges will have
+              // no effect, so the code can still be refactored.
+              //
+              // SHADJIS TODO: Also, if the 2 bridges are sharing device data pointers,
+              // then there is no need to copy the data to or from the host, so the cube
+              // allocations above (the cubes own their own data) are unnecessary since
+              // those cubes are never used anywhere in pbridge.
+              assert(pbridges_from_this_iteration.size());
+              bool bridge_shares_data_with_prev_bridge = 
+                  pbridges_from_this_iteration[0]->get_share_pointer_with_prev_bridge();
+              if (bridge_shares_data_with_prev_bridge) {
+                for (size_t it = 0; it < pbridges_from_last_iteration.size(); ++it) {
+                  pbridges_from_last_iteration[it]->set_share_pointer_with_next_bridge(true);
                 }
-                pbridges_from_last_iteration = pbridges_from_this_iteration;
-                prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
-                prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
-                prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
-                prev_data_cubes_higher_per_group.clear();
-                prev_grad_cubes_higher_per_group.clear();
-                for (size_t i=0; i<pbridges_from_this_iteration.size(); ++i) {
-                  prev_data_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_data_cubes_higher());
-                  prev_grad_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_grad_cubes_higher());
-                }
-                pbridges_from_this_iteration.clear();
-                // ----------End of Scheduler Update --------------
-                before_first_weight_layer = false;
-            }
-            break;
-            {
-              case cnn::LayerParameter_LayerType_INNER_PRODUCT:
-
-                if (n_previous_groups != 1) {
-                  // if the previous group of this fully-connected layer contains multiple
-                  // groups, then it's the time to unify them! To do this, we introduce a
-                  // bridge whose only role is a funnel
-                  std::cout << "Constructing FUNNEL layer with grouping 1 (# Input Grouping=" << n_previous_groups << ")" << std::endl;
-                  output_R = input_R; output_C = input_C; output_D = input_D * n_previous_groups;
-                  next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
-                  next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
-                  next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
-                  bridge = new FunnelBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>(prev_layers[0],
-                      next_layer, &layer_param, &solver_param, driver);
-                  for (size_t i = 0; i < n_previous_groups; i++) {
-                    ((FunnelBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>*)bridge)->p_input_layers.push_back(prev_layers[i]);
-                  }
-                  bridge->name = "FUNNEL";
-                  bridges.push_back(bridge);
-                  input_D = output_D;
-                  prev_layers.clear();
-                  prev_layers.push_back(next_layer);
-                  
-                  // Since we are inserting a cpu bridge, also clear all information about past pbridge
-                  pbridges_from_last_iteration.clear();
-                  pbridges_from_this_iteration.clear();
-                  prev_GPU_batch_sizes.clear();
-                  prev_gpu_to_device_id_map.clear();
-                }
-
-                std::cout << "Constructing FC layer " << "(# Input Grouping=" << 1 << ")" << std::endl;
-
-                // The R and C dimensions for a fully connected layer are always 1 x 1
-                output_R = output_C = 1;
-                output_D = layer_param.inner_product_param().num_output();
+              }
+              pbridges_from_last_iteration = pbridges_from_this_iteration;
+              prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
+              prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
+              prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
+              prev_data_cubes_higher_per_group.clear();
+              prev_grad_cubes_higher_per_group.clear();
+              for (size_t i=0; i<pbridges_from_this_iteration.size(); ++i) {
+                prev_data_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_data_cubes_higher());
+                prev_grad_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_grad_cubes_higher());
+              }
+              pbridges_from_this_iteration.clear();
+              // ----------End of Scheduler Update --------------
+              before_first_weight_layer = false;
+          }
+          else if (layer_type == "INNERPRODUCT")
+          {
+              if (n_previous_groups != 1) {
+                // if the previous group of this fully-connected layer contains multiple
+                // groups, then it's the time to unify them! To do this, we introduce a
+                // bridge whose only role is a funnel
+                std::cout << "Constructing FUNNEL layer with grouping 1 (# Input Grouping=" << n_previous_groups << ")" << std::endl;
+                output_R = input_R; output_C = input_C; output_D = input_D * n_previous_groups;
                 next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
                 next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
                 next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
-
-                prev_data_cubes_higher_per_group.resize(1);
-                prev_grad_cubes_higher_per_group.resize(1);
-                bridge = new ParallelizedBridge<DataType_SFFloat, FullyConnectedBridge>
-                         (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), hw_concurrency,
-                         prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[0], prev_grad_cubes_higher_per_group[0],
-                         share_input_output_layer);
-
-                //bridge = new FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layers[0],
-                //  next_layer, &layer_param, &solver_param);
-
-                bridge->name = layer_param.name();
-                bridge->run_with_n_threads = hw_concurrency;  // TODO: Add a better abstraction here.
+                bridge = new FunnelBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>(prev_layers[0],
+                    next_layer, &layer_param, &solver_param, driver);
+                for (size_t i = 0; i < n_previous_groups; i++) {
+                  ((FunnelBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>*)bridge)->p_input_layers.push_back(prev_layers[i]);
+                }
+                bridge->name = "FUNNEL";
                 bridges.push_back(bridge);
-                next_layers.push_back(next_layer);
-                pbridges_from_this_iteration.push_back(bridge);
-                // -------------- Scheduler Update ----------------
-                assert(pbridges_from_this_iteration.size());
-                bool bridge_shares_data_with_prev_bridge = 
-                    pbridges_from_this_iteration[0]->get_share_pointer_with_prev_bridge();
-                if (bridge_shares_data_with_prev_bridge) {
-                  for (size_t it = 0; it < pbridges_from_last_iteration.size(); ++it) {
-                    pbridges_from_last_iteration[it]->set_share_pointer_with_next_bridge(true);
-                  }
-                }
-                pbridges_from_last_iteration = pbridges_from_this_iteration;
-                prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
-                prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
-                prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
-                prev_data_cubes_higher_per_group.clear();
-                prev_grad_cubes_higher_per_group.clear();
-                prev_data_cubes_higher_per_group.push_back(pbridges_from_this_iteration[0]->get_data_cubes_higher());
-                prev_grad_cubes_higher_per_group.push_back(pbridges_from_this_iteration[0]->get_grad_cubes_higher());
-                pbridges_from_this_iteration.clear();
-                // ----------End of Scheduler Update --------------
-                before_first_weight_layer = false;
-            }
-            break;
-            {
-              case cnn::LayerParameter_LayerType_POOLING:
-
-                std::cout << "Constructing MAXPOOLING " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
-
-                const size_t K = layer_param.pooling_param().kernel_size(), stride = layer_param.pooling_param().stride();
-
-                output_R = compute_conv_next_layer_dimension(input_R, K, 0, stride),
-                         output_C = compute_conv_next_layer_dimension(input_C, K, 0, stride);
-
-                prev_data_cubes_higher_per_group.resize(n_previous_groups);
-                prev_grad_cubes_higher_per_group.resize(n_previous_groups);
-                for (size_t i = 0; i < n_previous_groups; i++) {
-                  // input_D same as output_D
-                  next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, input_D, B);
-                  next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, input_D, B);
-                  next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
-
-                  bridge = new ParallelizedBridge<DataType_SFFloat, MaxPoolingBridge>(prev_layers[i], next_layer, &layer_param,
-                             &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1,
-                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[i], prev_grad_cubes_higher_per_group[i],
-                             share_input_output_layer);
-                  bridge->name = layer_param.name();
-                  bridges.push_back(bridge);
-                  next_layers.push_back(next_layer);
-                  pbridges_from_this_iteration.push_back(bridge);
-                }
-                // -------------- Scheduler Update ----------------
-                assert(pbridges_from_this_iteration.size());
-                bool bridge_shares_data_with_prev_bridge = 
-                    pbridges_from_this_iteration[0]->get_share_pointer_with_prev_bridge();
-                if (bridge_shares_data_with_prev_bridge) {
-                  for (size_t it = 0; it < pbridges_from_last_iteration.size(); ++it) {
-                    pbridges_from_last_iteration[it]->set_share_pointer_with_next_bridge(true);
-                  }
-                }
-                pbridges_from_last_iteration = pbridges_from_this_iteration;
-                prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
-                prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
-                prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
-                prev_data_cubes_higher_per_group.clear();
-                prev_grad_cubes_higher_per_group.clear();
-                for (size_t i=0; i<pbridges_from_this_iteration.size(); ++i) {
-                  prev_data_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_data_cubes_higher());
-                  prev_grad_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_grad_cubes_higher());
-                }
-                pbridges_from_this_iteration.clear();
-                // ----------End of Scheduler Update --------------
-            }
-            break;
-            {
-              case cnn::LayerParameter_LayerType_RELU:
-                // input_[R,C,D] is the same as output_[R,C,D]
-
-                std::cout << "Constructing RELU layer " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
-
-                prev_data_cubes_higher_per_group.resize(n_previous_groups);
-                prev_grad_cubes_higher_per_group.resize(n_previous_groups);
-                for (size_t i=0;i<n_previous_groups;i++) {
-
-                  next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
-                  next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
-                  next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
-
-                  bridge = new ParallelizedBridge<DataType_SFFloat, ReLUBridge>(prev_layers[i], next_layer, &layer_param,
-                             &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1,
-                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[i], prev_grad_cubes_higher_per_group[i],
-                             share_input_output_layer);
-                  bridge->name = layer_param.name();
-
-                  bridges.push_back(bridge);
-                  next_layers.push_back(next_layer);
-                  pbridges_from_this_iteration.push_back(bridge);
-                }
-                // -------------- Scheduler Update ----------------
-                assert(pbridges_from_this_iteration.size());
-                bool bridge_shares_data_with_prev_bridge = 
-                    pbridges_from_this_iteration[0]->get_share_pointer_with_prev_bridge();
-                if (bridge_shares_data_with_prev_bridge) {
-                  for (size_t it = 0; it < pbridges_from_last_iteration.size(); ++it) {
-                    pbridges_from_last_iteration[it]->set_share_pointer_with_next_bridge(true);
-                  }
-                }
-                pbridges_from_last_iteration = pbridges_from_this_iteration;
-                prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
-                prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
-                prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
-                prev_data_cubes_higher_per_group.clear();
-                prev_grad_cubes_higher_per_group.clear();
-                for (size_t i=0; i<pbridges_from_this_iteration.size(); ++i) {
-                  prev_data_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_data_cubes_higher());
-                  prev_grad_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_grad_cubes_higher());
-                }
-                pbridges_from_this_iteration.clear();
-                // ----------End of Scheduler Update --------------
-            }
-            break;
-            {
-              case cnn::LayerParameter_LayerType_LRN:
-                // input_[R,C,D] is the same as output_[R,C,D]
-
-                std::cout << "Constructing LRN layer " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
-
-                prev_data_cubes_higher_per_group.resize(n_previous_groups);
-                prev_grad_cubes_higher_per_group.resize(n_previous_groups);
-                for (size_t i=0;i<n_previous_groups;i++) {
-
-                  next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
-                  next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
-                  next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
-
-                  bridge = new ParallelizedBridge<DataType_SFFloat, LRNBridge>(prev_layers[i], next_layer, &layer_param,
-                             &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1,
-                             prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[i], prev_grad_cubes_higher_per_group[i],
-                             share_input_output_layer);
-                  bridge->name = layer_param.name();
-
-                  bridges.push_back(bridge);
-                  next_layers.push_back(next_layer);
-                  
-                  pbridges_from_this_iteration.push_back(bridge);
-                }
-                // -------------- Scheduler Update ----------------
-                assert(pbridges_from_this_iteration.size());
-                bool bridge_shares_data_with_prev_bridge = 
-                    pbridges_from_this_iteration[0]->get_share_pointer_with_prev_bridge();
-                if (bridge_shares_data_with_prev_bridge) {
-                  for (size_t it = 0; it < pbridges_from_last_iteration.size(); ++it) {
-                    pbridges_from_last_iteration[it]->set_share_pointer_with_next_bridge(true);
-                  }
-                }
-                pbridges_from_last_iteration = pbridges_from_this_iteration;
-                prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
-                prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
-                prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
-                prev_data_cubes_higher_per_group.clear();
-                prev_grad_cubes_higher_per_group.clear();
-                for (size_t i=0; i<pbridges_from_this_iteration.size(); ++i) {
-                  prev_data_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_data_cubes_higher());
-                  prev_grad_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_grad_cubes_higher());
-                }
-                pbridges_from_this_iteration.clear();
-                // ----------End of Scheduler Update --------------
-            }
-            break;
-            {
-              case cnn::LayerParameter_LayerType_DROPOUT:
-
-                std::cout << "Constructing DROPOUT layer " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
-
-                // input_[R,C,D] is the same as output_[R,C,D]
-                for (size_t i = 0; i < n_previous_groups; i++) {
-
-                  next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
-                  next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
-                  next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
-                  bridge = new DropoutBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>(prev_layers[i],
-                      next_layer, &layer_param, &solver_param, driver);
-                  bridge->name = layer_param.name();
-
-                  bridges.push_back(bridge);
-                  next_layers.push_back(next_layer);
-                }
-                  
+                input_D = output_D;
+                prev_layers.clear();
+                prev_layers.push_back(next_layer);
+                
                 // Since we are inserting a cpu bridge, also clear all information about past pbridge
                 pbridges_from_last_iteration.clear();
                 pbridges_from_this_iteration.clear();
                 prev_GPU_batch_sizes.clear();
                 prev_gpu_to_device_id_map.clear();
-            }
-            break;
-            {
-              case cnn::LayerParameter_LayerType_SOFTMAX_LOSS:
+              }
 
-                std::cout << "Constructing SOFTMAX layer " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
+              std::cout << "Constructing FC layer " << "(# Input Grouping=" << 1 << ")" << std::endl;
 
-                // input_[R,C,D] is the same as output_[R,C,D]
-                if (n_previous_groups != 1) {
-                  std::cout << "ERROR: Currently, we only support FC layer to connect " <<
-                    "between multiple input groups to a single output group." << std::endl;
-                  assert(false);
+              // The R and C dimensions for a fully connected layer are always 1 x 1
+              output_R = output_C = 1;
+              output_D = layer_param.inner_product_param().num_output();
+              next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
+              next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, output_D, B);
+              next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
+
+              prev_data_cubes_higher_per_group.resize(1);
+              prev_grad_cubes_higher_per_group.resize(1);
+              bridge = new ParallelizedBridge<DataType_SFFloat, FullyConnectedBridge>
+                       (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), hw_concurrency,
+                       prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[0], prev_grad_cubes_higher_per_group[0],
+                       share_input_output_layer);
+
+              //bridge = new FullyConnectedBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB>(prev_layers[0],
+              //  next_layer, &layer_param, &solver_param);
+
+              bridge->name = layer_param.name();
+              bridge->run_with_n_threads = hw_concurrency;  // TODO: Add a better abstraction here.
+              bridges.push_back(bridge);
+              next_layers.push_back(next_layer);
+              pbridges_from_this_iteration.push_back(bridge);
+              // -------------- Scheduler Update ----------------
+              assert(pbridges_from_this_iteration.size());
+              bool bridge_shares_data_with_prev_bridge = 
+                  pbridges_from_this_iteration[0]->get_share_pointer_with_prev_bridge();
+              if (bridge_shares_data_with_prev_bridge) {
+                for (size_t it = 0; it < pbridges_from_last_iteration.size(); ++it) {
+                  pbridges_from_last_iteration[it]->set_share_pointer_with_next_bridge(true);
                 }
+              }
+              pbridges_from_last_iteration = pbridges_from_this_iteration;
+              prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
+              prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
+              prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
+              prev_data_cubes_higher_per_group.clear();
+              prev_grad_cubes_higher_per_group.clear();
+              prev_data_cubes_higher_per_group.push_back(pbridges_from_this_iteration[0]->get_data_cubes_higher());
+              prev_grad_cubes_higher_per_group.push_back(pbridges_from_this_iteration[0]->get_grad_cubes_higher());
+              pbridges_from_this_iteration.clear();
+              // ----------End of Scheduler Update --------------
+              before_first_weight_layer = false;
+          }
+          else if (layer_type == "POOLING")
+          {
+              std::cout << "Constructing MAXPOOLING " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
+
+              const size_t K = layer_param.pooling_param().kernel_size(), stride = layer_param.pooling_param().stride();
+
+              output_R = compute_conv_next_layer_dimension(input_R, K, 0, stride),
+                       output_C = compute_conv_next_layer_dimension(input_C, K, 0, stride);
+
+              prev_data_cubes_higher_per_group.resize(n_previous_groups);
+              prev_grad_cubes_higher_per_group.resize(n_previous_groups);
+              for (size_t i = 0; i < n_previous_groups; i++) {
+                // input_D same as output_D
+                next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, input_D, B);
+                next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(output_R, output_C, input_D, B);
+                next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
+
+                bridge = new ParallelizedBridge<DataType_SFFloat, MaxPoolingBridge>(prev_layers[i], next_layer, &layer_param,
+                           &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1,
+                           prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[i], prev_grad_cubes_higher_per_group[i],
+                           share_input_output_layer);
+                bridge->name = layer_param.name();
+                bridges.push_back(bridge);
+                next_layers.push_back(next_layer);
+                pbridges_from_this_iteration.push_back(bridge);
+              }
+              // -------------- Scheduler Update ----------------
+              assert(pbridges_from_this_iteration.size());
+              bool bridge_shares_data_with_prev_bridge = 
+                  pbridges_from_this_iteration[0]->get_share_pointer_with_prev_bridge();
+              if (bridge_shares_data_with_prev_bridge) {
+                for (size_t it = 0; it < pbridges_from_last_iteration.size(); ++it) {
+                  pbridges_from_last_iteration[it]->set_share_pointer_with_next_bridge(true);
+                }
+              }
+              pbridges_from_last_iteration = pbridges_from_this_iteration;
+              prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
+              prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
+              prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
+              prev_data_cubes_higher_per_group.clear();
+              prev_grad_cubes_higher_per_group.clear();
+              for (size_t i=0; i<pbridges_from_this_iteration.size(); ++i) {
+                prev_data_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_data_cubes_higher());
+                prev_grad_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_grad_cubes_higher());
+              }
+              pbridges_from_this_iteration.clear();
+              // ----------End of Scheduler Update --------------
+          }
+          else if (layer_type == "RELU")
+          {
+              // input_[R,C,D] is the same as output_[R,C,D]
+
+              std::cout << "Constructing RELU layer " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
+
+              prev_data_cubes_higher_per_group.resize(n_previous_groups);
+              prev_grad_cubes_higher_per_group.resize(n_previous_groups);
+              for (size_t i=0;i<n_previous_groups;i++) {
 
                 next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
                 next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
                 next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
-                // must be initialized to point to next mini batch
-                LogicalCubeFloat * const labels = new LogicalCubeFloat(NULL, 1, 1, 1, B);
 
-                bridge = new SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
-                       Layout_CRDB, CPUDriver>(prev_layers[0], next_layer, labels, driver);
+                bridge = new ParallelizedBridge<DataType_SFFloat, ReLUBridge>(prev_layers[i], next_layer, &layer_param,
+                           &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1,
+                           prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[i], prev_grad_cubes_higher_per_group[i],
+                           share_input_output_layer);
                 bridge->name = layer_param.name();
 
                 bridges.push_back(bridge);
                 next_layers.push_back(next_layer);
-            }
-            break;
-            default:
-            cout << "This layer type is not supported: "<< layer_type << "!" << endl;
-            assert(false);
+                pbridges_from_this_iteration.push_back(bridge);
+              }
+              // -------------- Scheduler Update ----------------
+              assert(pbridges_from_this_iteration.size());
+              bool bridge_shares_data_with_prev_bridge = 
+                  pbridges_from_this_iteration[0]->get_share_pointer_with_prev_bridge();
+              if (bridge_shares_data_with_prev_bridge) {
+                for (size_t it = 0; it < pbridges_from_last_iteration.size(); ++it) {
+                  pbridges_from_last_iteration[it]->set_share_pointer_with_next_bridge(true);
+                }
+              }
+              pbridges_from_last_iteration = pbridges_from_this_iteration;
+              prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
+              prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
+              prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
+              prev_data_cubes_higher_per_group.clear();
+              prev_grad_cubes_higher_per_group.clear();
+              for (size_t i=0; i<pbridges_from_this_iteration.size(); ++i) {
+                prev_data_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_data_cubes_higher());
+                prev_grad_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_grad_cubes_higher());
+              }
+              pbridges_from_this_iteration.clear();
+              // ----------End of Scheduler Update --------------
+          }
+          else if (layer_type == "LRN")
+          {
+              // input_[R,C,D] is the same as output_[R,C,D]
+
+              std::cout << "Constructing LRN layer " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
+
+              prev_data_cubes_higher_per_group.resize(n_previous_groups);
+              prev_grad_cubes_higher_per_group.resize(n_previous_groups);
+              for (size_t i=0;i<n_previous_groups;i++) {
+
+                next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
+                next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
+                next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
+
+                bridge = new ParallelizedBridge<DataType_SFFloat, LRNBridge>(prev_layers[i], next_layer, &layer_param,
+                           &solver_param, driver, min<size_t>(hw_concurrency, corpus.mini_batch_size), 1,
+                           prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[i], prev_grad_cubes_higher_per_group[i],
+                           share_input_output_layer);
+                bridge->name = layer_param.name();
+
+                bridges.push_back(bridge);
+                next_layers.push_back(next_layer);
+                
+                pbridges_from_this_iteration.push_back(bridge);
+              }
+              // -------------- Scheduler Update ----------------
+              assert(pbridges_from_this_iteration.size());
+              bool bridge_shares_data_with_prev_bridge = 
+                  pbridges_from_this_iteration[0]->get_share_pointer_with_prev_bridge();
+              if (bridge_shares_data_with_prev_bridge) {
+                for (size_t it = 0; it < pbridges_from_last_iteration.size(); ++it) {
+                  pbridges_from_last_iteration[it]->set_share_pointer_with_next_bridge(true);
+                }
+              }
+              pbridges_from_last_iteration = pbridges_from_this_iteration;
+              prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
+              prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
+              prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
+              prev_data_cubes_higher_per_group.clear();
+              prev_grad_cubes_higher_per_group.clear();
+              for (size_t i=0; i<pbridges_from_this_iteration.size(); ++i) {
+                prev_data_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_data_cubes_higher());
+                prev_grad_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_grad_cubes_higher());
+              }
+              pbridges_from_this_iteration.clear();
+              // ----------End of Scheduler Update --------------
+          }
+          else if (layer_type == "DROPOUT")
+          {
+              std::cout << "Constructing DROPOUT layer " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
+
+              // input_[R,C,D] is the same as output_[R,C,D]
+              for (size_t i = 0; i < n_previous_groups; i++) {
+
+                next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
+                next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
+                next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
+                bridge = new DropoutBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>(prev_layers[i],
+                    next_layer, &layer_param, &solver_param, driver);
+                bridge->name = layer_param.name();
+
+                bridges.push_back(bridge);
+                next_layers.push_back(next_layer);
+              }
+                
+              // Since we are inserting a cpu bridge, also clear all information about past pbridge
+              pbridges_from_last_iteration.clear();
+              pbridges_from_this_iteration.clear();
+              prev_GPU_batch_sizes.clear();
+              prev_gpu_to_device_id_map.clear();
+          }
+          else if (layer_type == "SOFTMAXWITHLOSS")
+          {
+              std::cout << "Constructing SOFTMAX layer " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
+
+              // input_[R,C,D] is the same as output_[R,C,D]
+              if (n_previous_groups != 1) {
+                std::cout << "ERROR: Currently, we only support FC layer to connect " <<
+                  "between multiple input groups to a single output group." << std::endl;
+                assert(false);
+              }
+
+              next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
+              next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
+              next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
+              // must be initialized to point to next mini batch
+              LogicalCubeFloat * const labels = new LogicalCubeFloat(NULL, 1, 1, 1, B);
+
+              bridge = new SoftmaxLossBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat,
+                     Layout_CRDB, CPUDriver>(prev_layers[0], next_layer, labels, driver);
+              bridge->name = layer_param.name();
+
+              bridges.push_back(bridge);
+              next_layers.push_back(next_layer);
+          }
+          else
+          {
+              cout << "This layer type is not supported: "<< layer_type << "!" << endl;
+              assert(false);
           }
 
           input_R = output_R, input_C = output_C, input_D = output_D;
@@ -703,7 +701,7 @@ class DeepNet {
     // Right now, we do this in a single-thread fashion. TODO: Create a Scheduler class, that schedules workers
     // for each batch size, so that we can perform these forward and backward passes in parallel.
     static void train_network(const BridgeVector & bridges, const Corpus & corpus, const cnn::NetParameter & net_param,
-        const cnn::SolverParameter & solver_param, const string input_model_file, const string output_model_file,
+        const cnn::SolverParameter & solver_param, const string input_model_file, const string snapshot_file_name,
         const Corpus & val_corpus) {
 
       SoftmaxBridge * const softmax = (SoftmaxBridge *) bridges.back();
@@ -729,7 +727,7 @@ class DeepNet {
       const int display_iter = solver_param.display();
 #endif
       const int snapshot = solver_param.snapshot();
-      
+
       // SHADJIS TODO: Support solver_param.test_interval(), i.e. every few training
       // iterations do testing (validation set). For now we can keep the batch size
       // the same during testing but this also does not need to be the case.
@@ -883,10 +881,11 @@ class DeepNet {
           strftime(buffer,80,"%d-%m-%Y-%I-%M-%S",timeinfo);
           std::string str(buffer);
           std::string snapshot_name;
-          if (output_model_file == "NA") {
+          
+          if (snapshot_file_name == "NA") {
             snapshot_name = "trained_model.bin." + str;
           } else {
-            snapshot_name = output_model_file + "." + str;
+            snapshot_name = snapshot_file_name + "." + str;
           }
           write_model_to_file(bridges, snapshot_name);
           std::cout << "======= Writing snapshot " << snapshot_name << " =======\n";
@@ -1077,7 +1076,17 @@ class DeepNet {
             val_corpus = DeepNet::read_corpus_from_lmdb(net_param, val_data_binary, false);
         }
         
-        train_network(bridges, *corpus, net_param, solver_param, input_model_file, output_model_file, *val_corpus);
+        // Determine the snapshot name. By default this is the same as the ouput
+        // model file (plus a timestamp)
+        std::string snapshot_name = output_model_file;
+        // If a snapshot name was specified in protobuf, use that instead of the 
+        // output model name as the snapshot base name
+        std::string snapshot_prefix = solver_param.snapshot_prefix();
+        if (snapshot_prefix.length()) {
+            snapshot_name = snapshot_prefix;
+        }
+        
+        train_network(bridges, *corpus, net_param, solver_param, input_model_file, snapshot_name, *val_corpus);
         std::string output_model_name;
         if (output_model_file == "NA") {
           output_model_name = "trained_model.bin";

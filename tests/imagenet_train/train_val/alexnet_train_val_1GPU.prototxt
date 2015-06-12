@@ -1,7 +1,7 @@
 name: "AlexNet"
-layers {
+layer {
   name: "data"
-  type: DATA
+  type: "Data"
   top: "data"
   top: "label"
   data_param {
@@ -16,9 +16,9 @@ layers {
   }
   include: { phase: TRAIN }
 }
-layers {
+layer {
   name: "data"
-  type: DATA
+  type: "Data"
   top: "data"
   top: "label"
   data_param {
@@ -33,9 +33,9 @@ layers {
   }
   include: { phase: TEST }
 }
-layers {
+layer {
   name: "conv1"
-  type: CONVOLUTION
+  type: "Convolution"
   bottom: "data"
   top: "conv1"
   blobs_lr: 1
@@ -57,16 +57,16 @@ layers {
   }
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "relu1"
-  type: RELU
+  type: "ReLU"
   bottom: "conv1"
   top: "conv1"
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "pool1"
-  type: POOLING
+  type: "Pooling"
   bottom: "conv1"
   top: "pool1"
   pooling_param {
@@ -76,9 +76,9 @@ layers {
   }
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "norm1"
-  type: LRN
+  type: "LRN"
   bottom: "pool1"
   top: "norm1"
   lrn_param {
@@ -88,9 +88,9 @@ layers {
   }
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "conv2"
-  type: CONVOLUTION
+  type: "Convolution"
   bottom: "norm1"
   top: "conv2"
   blobs_lr: 1
@@ -112,16 +112,16 @@ layers {
   }
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "relu2"
-  type: RELU
+  type: "ReLU"
   bottom: "conv2"
   top: "conv2"
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "pool2"
-  type: POOLING
+  type: "Pooling"
   bottom: "conv2"
   top: "pool2"
   pooling_param {
@@ -131,9 +131,9 @@ layers {
   }
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "norm2"
-  type: LRN
+  type: "LRN"
   bottom: "pool2"
   top: "norm2"
   lrn_param {
@@ -143,9 +143,9 @@ layers {
   }
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "conv3"
-  type: CONVOLUTION
+  type: "Convolution"
   bottom: "norm2"
   top: "conv3"
   blobs_lr: 1
@@ -167,16 +167,16 @@ layers {
   }
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "relu3"
-  type: RELU
+  type: "ReLU"
   bottom: "conv3"
   top: "conv3"
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "conv4"
-  type: CONVOLUTION
+  type: "Convolution"
   bottom: "conv3"
   top: "conv4"
   blobs_lr: 1
@@ -198,16 +198,16 @@ layers {
   }
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "relu4"
-  type: RELU
+  type: "ReLU"
   bottom: "conv4"
   top: "conv4"
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "conv5"
-  type: CONVOLUTION
+  type: "Convolution"
   bottom: "conv4"
   top: "conv5"
   blobs_lr: 1
@@ -229,16 +229,16 @@ layers {
   }
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "relu5"
-  type: RELU
+  type: "ReLU"
   bottom: "conv5"
   top: "conv5"
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "pool5"
-  type: POOLING
+  type: "Pooling"
   bottom: "conv5"
   top: "pool5"
   pooling_param {
@@ -248,9 +248,9 @@ layers {
   }
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "fc6"
-  type: INNER_PRODUCT
+  type: "InnerProduct"
   bottom: "pool5"
   top: "fc6"
   blobs_lr: 1
@@ -270,16 +270,16 @@ layers {
   }
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "relu6"
-  type: RELU
+  type: "ReLU"
   bottom: "fc6"
   top: "fc6"
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "drop6"
-  type: DROPOUT
+  type: "Dropout"
   bottom: "fc6"
   top: "fc6"
   dropout_param {
@@ -287,9 +287,9 @@ layers {
   }
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "fc7"
-  type: INNER_PRODUCT
+  type: "InnerProduct"
   bottom: "fc6"
   top: "fc7"
   blobs_lr: 1
@@ -309,16 +309,16 @@ layers {
   }
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "relu7"
-  type: RELU
+  type: "ReLU"
   bottom: "fc7"
   top: "fc7"
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "drop7"
-  type: DROPOUT
+  type: "Dropout"
   bottom: "fc7"
   top: "fc7"
   dropout_param {
@@ -326,9 +326,9 @@ layers {
   }
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "fc8"
-  type: INNER_PRODUCT
+  type: "InnerProduct"
   bottom: "fc7"
   top: "fc8"
   blobs_lr: 1
@@ -348,9 +348,9 @@ layers {
   }
   gpu_0_batch_proportion: 1.0
 }
-layers {
+layer {
   name: "loss"
-  type: SOFTMAX_LOSS
+  type: "SoftmaxWithLoss"
   bottom: "fc8"
   bottom: "label"
   top: "loss"

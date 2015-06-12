@@ -118,6 +118,7 @@ class Corpus {
       mean = new LogicalCube<DataType_SFFloat, Layout_CRDB>(datum.height(), datum.width(), dim, 1);
       float * const mean_data = mean->get_p_data();
 
+      // Check for mean_file
       if (layer_param.transform_param().has_mean_file()) {
         const string & mean_file = layer_param.transform_param().mean_file();
         Parser::read_proto_from_binary_file(mean_file.c_str(), &cube);
@@ -125,7 +126,24 @@ class Corpus {
         for (int i = 0; i < count_; ++i) {
           mean_data[i] = cube.data(i);
         }
-      } else {
+      }
+      // If no mean_file, then check for individual channel means
+      // SHADJIS TODO: Currently I am copying these mean values to 
+      // a cube, but would be faster/use less memory to just store
+      // the values for each channel and use those directly.
+      else if (layer_param.transform_param().mean_value_size() > 0) {
+        // Iterate over each channel and set mean value
+        for (unsigned int d = 0; d < dim; ++d) {
+          float channel_mean_val = 0.;
+          if (d < size_t(layer_param.transform_param().mean_value_size())) {
+            channel_mean_val = layer_param.transform_param().mean_value(d);
+          }
+          for (int px = 0; px < datum.height()*datum.width(); ++px) {
+            mean_data[px + d*datum.height()*datum.width()] = channel_mean_val;
+          }
+        }
+      }
+      else {
         mean->reset_cube();
       }
 

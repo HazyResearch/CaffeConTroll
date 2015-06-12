@@ -117,7 +117,10 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
   // first conv layer.
   // SHADJIS TODO: More generally, we could skip bw data gradient computation
   // for the first layer which is either conv or fc, as well as everything before it.
+  // Also if LR = 0 there is no need to calc the model grad (but that is another
+  // bool, currently if there is a model, we always calculate its gradient)
   needs_to_calc_backward_grad = true;
+  //needs_to_calc_backward_model_grad = true;
 
   // Right now, we only partition by data, not model
   // First, partition data on the CPU
@@ -332,12 +335,26 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
   LogicalCubeType * const example_cube = example_bridge_model_cube;
   if (example_cube != NULL) {
     
+    // First check for the blobs_lr and weight_decay
+    // These are old and can be removed in future versions
     if (_layer_param->blobs_lr_size() != 0) {
       model_base_learning_rate = _layer_param->blobs_lr(0);
     }
     if (_layer_param->weight_decay_size() != 0) {
       model_base_regularization = _layer_param->weight_decay(0);
     }
+    // If not, we are using the new format,
+    //
+    //  param {
+    //    lr_mult: 1
+    //    decay_mult: 1
+    //  }
+    //
+    if (_layer_param->param_size() != 0) {
+      model_base_learning_rate  = _layer_param->param(0).lr_mult();
+      model_base_regularization = _layer_param->param(0).decay_mult();
+    }
+    
     
     // If we have a single GPU partition, updates will be on that GPU
     // There is no need then to allocate any model on the CPU
@@ -398,12 +415,26 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
   if (example_bridge_bias_term) {
     LogicalCubeType * const example_bias = example_bridge_bias_cube;
     if (example_bias != NULL) {
-    
+
+
+      // First check for the blobs_lr and weight_decay
+      // These are old and can be removed in future versions
       if (_layer_param->blobs_lr_size() >1) {
         bias_base_learning_rate = _layer_param->blobs_lr(1);
       }
       if (_layer_param->weight_decay_size() >1) {
         bias_base_regularization = _layer_param->weight_decay(1);
+      }
+      // If not, we are using the new format,
+      //
+      //  param {
+      //    lr_mult: 1
+      //    decay_mult: 1
+      //  }
+      //
+      if (_layer_param->param_size() > 1) {
+        bias_base_learning_rate  = _layer_param->param(1).lr_mult();
+        bias_base_regularization = _layer_param->param(1).decay_mult();
       }
         
       // If we have a single GPU partition, updates will be on that GPU

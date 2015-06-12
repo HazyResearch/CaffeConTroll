@@ -2,9 +2,9 @@
 # AlexNet + 2 differences described in that document
 
 name: "CaffeNet"
-layers {
+layer {
   name: "data"
-  type: DATA
+  type: "Data"
   top: "data"
   top: "label"
   data_param {
@@ -19,9 +19,9 @@ layers {
   }
   include: { phase: TRAIN }
 }
-layers {
+layer {
   name: "conv1"
-  type: CONVOLUTION
+  type: "Convolution"
   bottom: "data"
   top: "conv1"
   blobs_lr: 1
