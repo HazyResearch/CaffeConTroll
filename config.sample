@@ -11,7 +11,7 @@
 # LD_LIBRARY_PATH, please use the Makefile variables below
 # to configure the compilation. Remember: use absolute paths!
 
-# C compiler. g++-4.8 or later recommended (for C++11).
+# C compiler. clang++ (mac) or g++-4.8 or later (linux) recommended for C++11.
 CC=clang++ 
 # CUDA compiler. 7.0 or later recommended (for C++11).
 NVCC=

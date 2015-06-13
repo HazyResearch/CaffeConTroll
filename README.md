@@ -171,21 +171,53 @@ contain a working build script for Ubuntu, if you are confused about
 dependencies.*
 
 
-* Step 1. Install the packages listed at the Caffe link.
+* **Step 1.** Install the packages listed at the Caffe link. The dependencies are also listed in .travis.yml.
 
-* Step 2. Clone our repository 
+* **Step 2.** Clone our repository 
 
 > git clone git@github.com:HazyResearch/CaffeConTroll.git
 
-* Step 3. Copy config.sample to .config and edit .config to contain your paths. On Linux, OpenBLAS 
-is currently recommended. On OS X, the default libraries are recommended (BLAS
-and LAPACK are built-in to OS X, also see Caffe install instructions from Step 1 above).
+* **Step 3.** Copy config.sample to .config and **edit .config** to contain your paths.
 
-* Step 4. Build the executable `caffe-ct`
+  <h4>Note on BLAS:</h4>
+
+  The BLAS implementation you use can be the same as for Caffe. However, it is currently necessary to modify .config to point to the paths you want to use.
+
+  On OS X we recommend using the default BLAS libraries. BLAS
+and LAPACK are built-in to OS X (also see Caffe install instructions from Step 1 above).
+For example, this configuration may work inside .config:
+
+  > BLAS\_INCLUDE=/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/Headers
+
+  > BLAS\_LIB\_DIR=/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A
+
+  > BLAS\_LIBS=BLAS LAPACK       # Mac libararies
+
+  > BLAS\_DEFS=-D\_USE\_ATLAS
+
+  On Linux, we currently recommend using OpenBLAS. First, install OpenBLAS from http://www.openblas.net/
+
+     1. Download and unpack the source
+     2. `make`
+     3. Add the OpenBLAS library to your path, e.g. using the command
+
+  > export LD\_LIBRARY\_PATH=/path/to/OpenBLAS/:$LD\_LIBRARY\_PATH
+
+  Then, fill out the paths inside .config:
+
+  > BLAS\_INCLUDE=/path/to/OpenBLAS
+
+  > BLAS\_LIB\_DIR=/path/to/OpenBLAS
+
+  > BLAS\_LIBS=openblas          # OpenBLAS
+
+  > BLAS\_DEFS=-D\_USE\_OPENBLAS
+
+* **Step 4.** Build the executable `caffe-ct`
 
 > make clean && make -j all
 
-* Step 5. (Optional) If you want tests, you need to install Google's
+* **Step 5.** (Optional) If you want tests, you need to install Google's
 testing infrastructure, glog and gtest, as with Caffe. Then, make the
 test file.
 

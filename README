@@ -9,22 +9,42 @@ Installation Instructions
    dependencies as caffe (http://caffe.berkeleyvision.org/installation.html).
    Because our installation procedure is almost the same as caffe it makes 
    sense to start with these instructions.
-2. Copy config.sample to .config and fill it out with your correct paths
+2. Copy config.sample to .config and fill it out with your correct paths.
 
-Note: if you are using OpenBLAS, then you can install OpenBLAS 
-from http://www.openblas.net/
-  - Download and unpack the source
-  - `make`
-  - Add the OpenBLAS library to your path, e.g. using the command
-  
-> export LD_LIBRARY_PATH=/path/to/OpenBLAS/:$LD_LIBRARY_PATH
+   Note on BLAS:
 
-4. To generate the caffe-ct executable, from the root CaffeConTroll directory,
+    The BLAS type that you use can be the same as for Caffe.
+    However, you currently need to modify .config to point to the paths you want to use.
+
+    On OS X we recommend using the default BLAS libraries. For example, this
+    configuration may work inside .config:
+
+    BLAS_INCLUDE=/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/Headers
+    BLAS_LIB_DIR=/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A
+    BLAS_LIBS=BLAS LAPACK       # Mac libararies
+    BLAS_DEFS=-D_USE_ATLAS
+
+    On Linux, we currently recommend using OpenBLAS. First, install OpenBLAS from http://www.openblas.net/
+      - Download and unpack the source
+      - `make`
+      - Add the OpenBLAS library to your path, e.g. using the command
+
+    > export LD_LIBRARY_PATH=/path/to/OpenBLAS/:$LD_LIBRARY_PATH
+
+    Then, fill out the paths inside .config:
+
+    BLAS_INCLUDE=/path/to/OpenBLAS
+    BLAS_LIB_DIR=/path/to/OpenBLAS
+    BLAS_LIBS=openblas          # OpenBLAS
+    BLAS_DEFS=-D_USE_OPENBLAS
+
+
+3. To generate the caffe-ct executable, from the root CaffeConTroll directory,
    compile with:
 
 > make clean && make -j all
 
-5. You can also compile tests
+4. You can also compile tests
 
 > make clean && make -j test
 
