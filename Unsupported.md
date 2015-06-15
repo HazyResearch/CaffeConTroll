@@ -1,10 +1,12 @@
+SHADJIS TODO: This is a very old list, need to update with new prototxt format
+
 The following features are unsupported:
 
 
+```
 message FillerParameter {
   optional int32 sparse = 7 [default = -1];
 }
-
 message SolverParameter {
   optional bool test_initialization = 32 [default = true];
   optional int32 display = 6;
@@ -14,8 +16,6 @@ message SolverParameter {
   optional float gamma = 9;
   optional float power = 10;
   repeated int32 stepvalue = 34;
-  optional int32 snapshot = 14 [default = 0];
-  optional string snapshot_prefix = 15;
    optional bool snapshot_diff = 16 [default = false];
    the mode solver will use: 0 for CPU and 1 for GPU. Use GPU in default.
    enum SolverMode {
@@ -113,3 +113,4 @@ message PoolingParameter {
 message ReLUParameter {
   optional float negative_slope = 1 [default = 0];
 }
+```
