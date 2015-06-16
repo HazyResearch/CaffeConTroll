@@ -194,17 +194,19 @@ Note: When running this AMI on a different EC2 instance (e.g. running this c4.4x
 Azure D-Series
 --------------
 
-To run on an Azure Standard D-Series VM, open a VM and then download and run
+To run on an Azure Standard D-Series VM (tested on Ubuntu 14.04), open a VM and then download and run
 the following [script](docs/VM_Instructions/azure_setup.bash)
 
-> `sudo ./azure_setup.bash`
+> `wget https://raw.githubusercontent.com/HazyResearch/CaffeConTroll/master/docs/VM_Instructions/azure_setup.bash`
+> `chmod 777 azure_setup.bash`
+> `./azure_setup.bash`
 
 This will install CcT and set the correct library paths for the session.
 When opening a new session, follow the instructions in [script](docs/VM_Instructions/Azure_Standard_D_Series).
 
 Once this is done, run CcT on CaffeNet:
 
-> `./caffe-ct train tests/imagenet_train/solver/caffenet_solver_1000.prototxt -b tests/imgnet_toprocess.bin -o tests/model.bin`
+> `./caffe-ct train tests/imagenet_train/solver/caffenet_solver_1000_azure.prototxt -b tests/imgnet_toprocess.bin -o tests/model.bin`
 
 Result on D4 instance:
 
@@ -216,7 +218,7 @@ Result on D14 instance:
 
 Note: When switching instances for the same VM (e.g. from D4 to D14), you may need to recompile OpenBLAS to avoid memory errors:
 
-```cd CaffeConTroll/externals/OpenBLAS-0.2.14/```
+```cd CaffeConTroll-master/externals/OpenBLAS-0.2.14/```
 
 ``` make clean && make -j```
 

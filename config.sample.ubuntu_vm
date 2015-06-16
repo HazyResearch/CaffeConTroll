@@ -26,8 +26,8 @@ LMDB_INCLUDE=
 LMDB_LIB_DIR=
 
 # Directory where BLAS is installed
-BLAS_INCLUDE=~/CaffeConTroll-master/externals/OpenBLAS-0.2.14/
-BLAS_LIB_DIR=~/CaffeConTroll-master/externals/OpenBLAS-0.2.14/
+BLAS_INCLUDE=/home/azureuser/CaffeConTroll-master/externals/OpenBLAS-0.2.14/
+BLAS_LIB_DIR=/home/azureuser/CaffeConTroll-master/externals/OpenBLAS-0.2.14/
 # Uncomment these 2 lines for Linux (currently OpenBLAS is recommended)
 BLAS_LIBS=openblas      # OpenBlas
 BLAS_DEFS=-D_USE_OPENBLAS
