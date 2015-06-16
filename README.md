@@ -197,9 +197,11 @@ Azure D-Series
 To run on an Azure Standard D-Series VM (tested on Ubuntu 14.04), open a VM and then download and run
 the following [script](docs/VM_Instructions/azure_setup.bash)
 
-> `wget https://raw.githubusercontent.com/HazyResearch/CaffeConTroll/master/docs/VM_Instructions/azure_setup.bash`
-> `chmod 777 azure_setup.bash`
-> `./azure_setup.bash`
+```wget https://raw.githubusercontent.com/HazyResearch/CaffeConTroll/master/docs/VM_Instructions/azure_setup.bash```
+
+```chmod 777 azure_setup.bash```
+
+```./azure_setup.bash```
 
 This will install CcT and set the correct library paths for the session.
 When opening a new session, follow the instructions in [script](docs/VM_Instructions/Azure_Standard_D_Series).
