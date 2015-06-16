@@ -204,7 +204,7 @@ the following [script](docs/VM_Instructions/azure_setup.bash)
 > `./azure_setup.bash`
 
 This will install CcT and set the correct library paths for the session.
-When opening a new session, follow the instructions in [script](docs/VM_Instructions/Azure_Standard_D_Series).
+When opening a new session, follow the instructions [here](docs/VM_Instructions/Azure_Standard_D_Series).
 
 Once this is done, run CcT on CaffeNet:
 
