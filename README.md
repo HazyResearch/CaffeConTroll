@@ -5,7 +5,22 @@ Caffe Con Troll v. 0.1
 
 This is an Alpha release of CaffeConTroll. Feedback is welcome!
 
-See our [paper](http://arxiv.org/abs/1504.04343) which will be presented at the 2015 SIGMOD workshop on Data Analytics at Scale (DanaC)
+See our [paper](http://arxiv.org/abs/1504.04343) presented the 2015 SIGMOD workshop on Data Analytics at Scale (DanaC)
+
+
+Table of Contents
+-----------------
+
+  * [Overview](#overview)  
+  * [Getting Started VM](#getting-started-vm)  
+    * [Amazon EC2 g2.8xlarge](#ec2-g28xlarge)  
+    * [Amazon EC2 c4.4xlarge](#ec2-c44xlarge)  
+    * [Microsoft Azure D-Series](#azure-d-series)  
+  * [Installation from Source](#installation-from-source)
+  * [Partitioning Data for (Multiple) GPUs](#partitioning-data-for-multiple-gpus)
+  * [Known Issues](#known-issues)
+  * [Contact](#contact)
+  
 
 Overview
 --------
@@ -59,21 +74,21 @@ steps an algorithm take to converge*) and hardware efficiency
 
 Of course, if you have feedback or challenge problems, let us know!
 
-Getting Started AMI
--------------------
+Getting Started VM
+------------------
 
 Probably the easiest way to try CcT is via a VM. These are publicly
-available on AWS and (coming soon!) Azure.
+available on AWS and Azure.
 
-**g2.2xlarge:**  (CCT-0.1-1GPU)  ami-00b5ae68
+**EC2 g2.2xlarge:**  (CCT-0.1-1GPU)  ami-00b5ae68
 
 - Reproduces figure 3a in the [paper](http://arxiv.org/abs/1504.04343)
 
-**c4.4xlarge:**  (CCT-0.1-CPU)   ami-58b1aa30
+**EC2 c4.4xlarge:**  (CCT-0.1-CPU)   ami-58b1aa30
 
 - Reproduces figure 3b in the [paper](http://arxiv.org/abs/1504.04343)
 
-**g2.8xlarge:**  (CCT-0.1-4GPU)  ami-c75db8ac
+**EC2 g2.8xlarge:**  (CCT-0.1-4GPU)  ami-c75db8ac
 
 - The recently announced EC2 instance with 4 GPUs
 
@@ -81,11 +96,18 @@ Instructions for each AMI are listed in the file
 
 `/home/ubuntu/AMI_INSTRUCTIONS.txt`
 
-g2.8xlarge
-----------
+**Azure D-Series:**  (See instructions below)
+
+
+EC2 g2.8xlarge
+--------------
 
 For example, consider the g2.8xlarge AMI, which can be used to run AlexNet
-on 4 GPUs. Once the AMI is opened, look at `AMI_INSTRUCTIONS.txt`:
+on 4 GPUs.
+
+First, open the EC2 instance: (CCT-0.1-4GPU)  ami-c75db8ac
+
+Once the AMI is opened, look at `AMI_INSTRUCTIONS.txt`:
 
 <img src="docs/figures/4gpu_screenshot1.png" height="400" >
 
@@ -127,12 +149,14 @@ These results are summarized below:
 
 <img src="docs/figures/Multiple_GPUs.png" height="400" >
 
-c4.4xlarge
-----------
+EC2 c4.4xlarge
+--------------
 
-Also try the c4.4xlarge AMI (or the larger c4.8xlarge EC2 instance).
+To run the c4.4xlarge AMI (or the larger c4.8xlarge EC2 instance):
 
-Once again, follow the instructions in 
+First, open the EC2 instance: (CCT-0.1-CPU)   ami-58b1aa30
+
+Follow the instructions in 
 
 `/home/ubuntu/AMI_INSTRUCTIONS.txt`
 
@@ -159,6 +183,42 @@ Note that Caffe takes 16.5 seconds per iteration. Note also that Caffe is being 
 CcT partitions each mini-batch into 16 partitions to process in parallel. The impact of batch size is shown below:
 
 <img src="docs/figures/Batching_Slide.png" height="400" >
+
+Note: When running this AMI on a different EC2 instance (e.g. running this c4.4xlarge AMI on c4.8xlarge), you may need to recompile OpenBLAS to avoid memory errors:
+
+```cd CaffeConTroll/externals/OpenBLAS-0.2.14/```
+
+``` make clean && make -j```
+
+
+Azure D-Series
+--------------
+
+To run on an Azure Standard D-Series VM, open a VM and then download and run
+the following [script](docs/VM_Instructions/azure_setup.bash)
+
+> `sudo ./azure_setup.bash`
+
+This will install CcT and set the correct library paths for the session.
+When opening a new session, follow the instructions in [script](docs/VM_Instructions/Azure_Standard_D_Series).
+
+Once this is done, run CcT on CaffeNet:
+
+> `./caffe-ct train tests/imagenet_train/solver/caffenet_solver_1000.prototxt -b tests/imgnet_toprocess.bin -o tests/model.bin`
+
+Result on D4 instance:
+
+<img src="docs/figures/azure_screenshot_D4.png" height="400" >
+
+Result on D14 instance:
+
+<img src="docs/figures/azure_screenshot_D14.png" height="400" >
+
+Note: When switching instances for the same VM (e.g. from D4 to D14), you may need to recompile OpenBLAS to avoid memory errors:
+
+```cd CaffeConTroll/externals/OpenBLAS-0.2.14/```
+
+``` make clean && make -j```
 
 
 Installation from Source
@@ -229,8 +289,8 @@ whether CcT can [smell the
 blood](http://en.wikipedia.org/wiki/Trollhunter) of christian men.
 
 
-Partitioning Data for Multiple GPUs
------------------------------------
+Partitioning Data for (Multiple) GPUs
+-------------------------------------
 
 Currently CcT allows users to specify the proportion of a layer to run on the GPU using the prototxt attributes:
 
@@ -297,7 +357,17 @@ Known Issues
 * If you encounter the OpenBLAS error "Program is Terminated. Because you tried to 
   allocate too many memory regions" then follow the instructions 
   [here](https://github.com/xianyi/OpenBLAS/wiki/faq#allocmorebuffers) to rebuild
-  OpenBLAS with more threads. You can also use other libraries, for example BLAS
+  OpenBLAS with more threads.
+  
+  If you encounter this error on a VM (e.g. EC2, Azure)
+  then first try just recompiling OpenBLAS, as OpenBLAS compiled for one VM may not
+  work on another VM. For example on the provided Azure and EC2 instances,
+
+  ```cd CaffeConTroll/externals/OpenBLAS-0.2.14/```
+
+  ``` make clean && make -j```
+
+  You can also use other libraries, for example BLAS
   and LAPACK are built-in to OS X (see Caffe install instructions).
   
 Contact

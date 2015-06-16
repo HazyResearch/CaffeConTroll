@@ -169,9 +169,9 @@ class Corpus {
           // Warn
           if(filename == "val_preprocessed.bin" || filename == "test_preprocessed.bin" || filename == "train_preprocessed.bin") {
             std::cout << "\n** WARNING **  Data binary " << filename << " (the default name) already exists,";
-            std::cout << "\n               and will not be overwritten. If the dataset for this net is";
-            std::cout << "\n               different, specify a new binary name (\"-b\" option) or move the";
-            std::cout << "\n               current " << filename << " to a new location.\n\n";
+            std::cout << "\n               and will not be overwritten. If the dataset for this net is different";
+            std::cout << "\n               from the last time you ran, specify a new binary name (\"-b\" option)";
+            std::cout << "\n               or move the current " << filename << " to a new location.\n\n";
           } else {
             std::cout << "Data binary " << filename << " already exists, no need to write\n"; // Skip preprocessing
           }

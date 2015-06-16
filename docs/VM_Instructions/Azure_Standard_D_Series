@@ -1,0 +1,27 @@
+To run on Azure Ubuntu on the D-Series VMs, run the script 
+
+sudo ./azure_setup.bash
+
+Once this is run, the VM will be set up and the following commands can be used:
+
+> export LD_LIBRARY_PATH=/home/azureuser/CaffeConTroll/externals/OpenBLAS-0.2.14/:$LD_LIBRARY_PATH
+> cd CaffeConTroll/
+
+Run CCT (already compiled)
+
+> ./caffe-ct train tests/imagenet_train/solver/caffenet_solver_1000.prototxt -b tests/imgnet_toprocess.bin -o tests/model.bin
+
+Argument description: 
+- Run the net in "train" mode and specify the path to the solver
+- Pass -b (optional) which tells CCT where to write the preprocessed data binary
+- Pass -o (optional) which tells CCT where to write the output model binary
+
+
+Other Instructions
+
+Run tests by modifying the Makefile and recompiling
+> make clean && make -j test && ./test
+
+To run a network using ./caffe-ct (already compiled), compile with make all
+> make clean && make -j all
+> ./caffe-ct <arguments>

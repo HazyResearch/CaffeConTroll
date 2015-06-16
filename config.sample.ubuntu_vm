@@ -1,0 +1,52 @@
+# This is the configuration file that the Makefile
+# will use to compile CcT. We have the following dependencies:
+#   * lmdb
+#   * OpenBLAS or Atlas
+#   * GoogleTest
+#   * google-glog
+#   * google-gflags
+#   * Boost
+#
+# If any of these libraries are not currently part of your
+# LD_LIBRARY_PATH, please use the Makefile variables below
+# to configure the compilation. Remember: use absolute paths!
+
+# C compiler. clang++ (mac) or g++-4.8 or later (linux) recommended for C++11.
+CC=g++ 
+# CUDA compiler. 7.0 or later recommended (for C++11).
+NVCC=
+CUDA_INCLUDE = 
+CUDA_LIB=
+
+# absolute path to CcT
+CCT=
+
+# directory where lmdb library is installed (if not in path)
+LMDB_INCLUDE=
+LMDB_LIB_DIR=
+
+# Directory where BLAS is installed
+BLAS_INCLUDE=~/CaffeConTroll-master/externals/OpenBLAS-0.2.14/
+BLAS_LIB_DIR=~/CaffeConTroll-master/externals/OpenBLAS-0.2.14/
+# Uncomment these 2 lines for Linux (currently OpenBLAS is recommended)
+BLAS_LIBS=openblas      # OpenBlas
+BLAS_DEFS=-D_USE_OPENBLAS
+# Uncomment these 2 lines for Mac (the default libraries)
+#BLAS_LIBS=BLAS LAPACK  # Mac libararies
+#BLAS_DEFS=-D_USE_ATLAS
+
+# directory where GoogleTest is installed (if not in path)
+GTEST_INCLUDE=
+GTEST_LIB_DIR=
+
+# directory where google-glog is installed (if not in path)
+GLOG_LIB_DIR=
+GLOG_INCLUDE=
+
+# directory where google-gflags is installed (if not in path)
+GFLAGS_LIB_DIR=
+GFLAGS_INCLUDE=
+
+# directory where Boost C++ Library is installed (if not in path)
+BOOST_LIB_DIR=
+BOOST_INCLUDE=
