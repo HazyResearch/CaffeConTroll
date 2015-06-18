@@ -2,6 +2,9 @@ import cPickle as pickle
 import numpy as np
 import os
 
+
+## These are a bunch of functions used for parsing and preprocessing hr CIFAR-10 dataset
+
 def load_CIFAR_batch(filename):
   """ load single batch of cifar """
   with open(filename, 'r') as f:
@@ -34,7 +37,7 @@ def get_CIFAR10_data(num_training=49000, num_validation=1000, num_test=1000):
     we used for the SVM, but condensed to a single function.
     """
     # Load the raw CIFAR-10 data
-    cifar10_dir = '/usr/local/school/CCT/datasets/cifar-10-batches-py'
+    cifar10_dir = 'cifar-10-batches-py'
     X_train, y_train, X_test, y_test = load_CIFAR10(cifar10_dir)
 
     # Subsample the data

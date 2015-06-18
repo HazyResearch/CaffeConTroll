@@ -1,6 +1,7 @@
 Running the distributed version
 
-1. Get the CIFAR-10 dataset by running:
+0. Install dependencies: mpich2, mpi4py, numpy
+1. Get the CIFAR-10 dataset by running in CaffeConTroll dir:
   ./get_datasets.sh
 2 Compilte the distributed version:
    make dist
