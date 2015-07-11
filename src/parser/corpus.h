@@ -170,7 +170,7 @@ class Corpus {
           if(filename == "val_preprocessed.bin" || filename == "test_preprocessed.bin" || filename == "train_preprocessed.bin") {
             std::cout << "\n** WARNING **  Data binary " << filename << " (the default name) already exists,";
             std::cout << "\n               and will not be overwritten. If the dataset for this net is different";
-            std::cout << "\n               from the last time you ran, specify a new binary name (\"-b\" option)";
+            std::cout << "\n               from the last time you ran, specify a new binary name (\"-b\" or \"-v\" option)";
             std::cout << "\n               or move the current " << filename << " to a new location.\n\n";
           } else {
             std::cout << "Data binary " << filename << " already exists, no need to write\n"; // Skip preprocessing
@@ -256,13 +256,13 @@ class Corpus {
       if (crop_size > 0) {
         int h_off, w_off;
         if (layer_param.include(0).phase() == 0) {         // Training Phase
-          h_off = rand() % (height - crop_size);
+          h_off = rand() % (height - crop_size);// Take random patch
           w_off = rand() % (width - crop_size);
         } else {
-          h_off = (height - crop_size) / 2;
+          h_off = (height - crop_size) / 2;     // Take center
           w_off = (width - crop_size) / 2;
         }
-        if (mirror && rand() % 2) {
+        if (mirror && rand() % 2) {             // Mirror with probability 50%
           // Copy mirrored version
           const float * const mean_data = mean->get_p_data();
           for (size_t c = 0; c < dim; ++c) {
@@ -291,7 +291,7 @@ class Corpus {
             }
           }
         }
-      } else {
+      } else { // No crop (and no mirror)
         const float * const mean_data = mean->get_p_data();
         for (size_t d = 0; d < dim; ++d) {
           for (size_t r = 0; r < n_rows; ++r) {

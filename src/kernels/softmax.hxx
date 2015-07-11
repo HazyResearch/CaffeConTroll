@@ -3,6 +3,7 @@
 #define _KERNEL_SOFTMAX_HXX
 
 #include "softmax.h"
+#include <cfloat>
 
 #ifdef _GPU_TARGET
 __host__ __device__
@@ -44,7 +45,8 @@ inline void _f_softmax_forward(void * output, void * input, void * const _arg,
     output_data[i] = exp(single_input_batch[i] - max) / denom;
   }
 
-  *loss -= log(output_data[static_cast<int>(ground_truth[0])]);
+  *loss -= log(std::max(output_data[static_cast<int>(ground_truth[0])], float(FLT_MIN)));
+
 }
 
 #ifdef _GPU_TARGET
