@@ -52,7 +52,7 @@ message NetParameter {
 // NOTE
 // Update the next available ID when you add a new SolverParameter field.
 //
-// SolverParameter next available ID: 35 (last added: stepvalue)
+// SolverParameter next available ID: 36 (last added: test_display)
 message SolverParameter {
   //////////////////////////////////////////////////////////////////////////////
   // Specifying the train and test networks
@@ -102,6 +102,7 @@ message SolverParameter {
   // the number of iterations between displaying info. If display = 0, no info
   // will be displayed.
   optional int32 display = 6 [default = 10];
+  optional int32 test_display = 35 [default = 10000];
   // Display the cost averaged over the last average_cost iterations
   // optional int32 average_loss = 33 [default = 1];
   optional int32 max_iter = 7; // the maximum number of iterations

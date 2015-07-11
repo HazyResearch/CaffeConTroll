@@ -304,6 +304,20 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
         }
     }
 
+    // This function is used to run a different dataset on the network
+    // (e.g. for validation set)
+    void update_p_input_layer(float * new_data)  {
+      // Step 1: Update the input layer for the pbridge
+      p_input_layer->p_data_cube->set_p_data(new_data);
+      // Step 2: Update the input layer for each sub-bridge
+      // Note: we only need to do this for CPU bridges because GPU
+      // bridges use pointers to device memory (not the corpus data,
+      // which is on the host)
+      for (size_t i = 0, b = 0; i < _cpu_bridges.size(); ++i, b += n_batch_per_partition_cpu) {
+        _cpu_bridges[i]->update_p_input_layer(p_input_layer->p_data_cube->physical_get_RCDslice(b));
+      }
+    }
+    
   protected:
 
     // Overload this for PBridge  

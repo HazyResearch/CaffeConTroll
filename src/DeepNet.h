@@ -867,8 +867,12 @@ class DeepNet {
         if (test_interval > 0 && (batch+1) % test_interval == 0) {
             std::cout << "--------------------------------------------------------------------------\n";
             std::cout << "Running validation set...\n";
-            float acc = test_network(bridges, val_corpus, net_param, solver_param);
-            std::cout << "Validation set accuracy: " << acc << "\n";
+            // Switch dataset to val
+            bridges[0]->update_p_input_layer(val_corpus.images->physical_get_RCDslice(0));
+            /*float acc = */test_network(bridges, val_corpus, net_param, solver_param);
+            // Switch dataset back to train
+            bridges[0]->update_p_input_layer(corpus.images->physical_get_RCDslice(0));
+            // std::cout << "Validation set accuracy: " << acc << "\n";
             std::cout << "--------------------------------------------------------------------------\n";
         }
         // Check if we should write a snapshot
@@ -975,8 +979,9 @@ class DeepNet {
         float t_load;
         float t_forward;
         float t_pass;
+        float total_loss = 0.;
         int total_accuracy = 0;
-        const int display_iter = solver_param.display(); // SHADJIS TODO: Make new param for test_display
+        const int display_iter = solver_param.test_display();
 
         // num_mini_batches - 1, because we need one more iteration for the final mini batch
         // (the last mini batch may not be the same size as the rest of the mini batches)
@@ -1006,6 +1011,7 @@ class DeepNet {
           t_forward = t.elapsed();
 
           float loss = (softmax->get_loss() / corpus.mini_batch_size);
+          total_loss += loss;
           int batch_accuracy = DeepNet::find_accuracy(labels, softmax->p_output_layer->p_data_cube);
           total_accuracy += batch_accuracy;
 
@@ -1023,7 +1029,8 @@ class DeepNet {
 
         }
         float acc = (1.0*total_accuracy/(num_batch_iterations*corpus.mini_batch_size));
-        cout << "Overall Accuracy " << acc << endl;
+        cout << "Test Loss     " << total_loss << endl;
+        cout << "Test Accuracy " << acc << endl;
         fclose(pFile);
         return acc;
       }
@@ -1074,6 +1081,10 @@ class DeepNet {
             solver_param.test_interval() <= solver_param.max_iter())
         {
             val_corpus = DeepNet::read_corpus_from_lmdb(net_param, val_data_binary, false);
+            assert(val_corpus->n_rows          == corpus->n_rows);
+            assert(val_corpus->n_cols          == corpus->n_cols);
+            assert(val_corpus->dim             == corpus->dim);
+            assert(val_corpus->mini_batch_size == corpus->mini_batch_size);
         }
         
         // Determine the snapshot name. By default this is the same as the ouput

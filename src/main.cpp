@@ -13,7 +13,7 @@ int main(int argc, const char * argv[]) {
   //srand(0); // TODO: for determinsitic
 
   if (argc < 3) {
-    cout << "Usage: ./caffe-ct <train/test> <solver.prototxt> [-data-binary|-b data_binary_file] [-input-model|-i input_model_binary_file [-output-model|-o output_model_binary_file]" << endl;
+    cout << "Usage: ./caffe-ct <train/test> <solver.prototxt> [-data-binary|-b data_binary_file] [-val-binary|-v validation_data_binary_file] [-input-model|-i input_model_binary_file [-output-model|-o output_model_binary_file]" << endl;
     exit(1);
   }
 

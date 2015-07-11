@@ -181,6 +181,12 @@ class AbstractBridge : public PhysicalOperator {
       delete output_d_cube; output_d_cube = NULL;
       delete output_g_cube; output_g_cube = NULL;
     }
+    
+    // This function is used to run a different dataset on the network
+    // (e.g. for validation set)
+    virtual void update_p_input_layer(InputLayerDataType * new_data)  {
+      p_input_layer->p_data_cube->set_p_data(new_data);
+    }
 };
 
 // CPUDriver specialization
@@ -361,6 +367,12 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
     virtual void force_host_to_device_bias_copy()  { assert(false); }
     virtual void force_device_to_host_model_copy() { assert(false); }
     virtual void force_device_to_host_bias_copy()  { assert(false); }
+
+    // This function is used to run a different dataset on the network
+    // (e.g. for validation set)
+    virtual void update_p_input_layer(InputLayerDataType * new_data)  {
+      p_input_layer->p_data_cube->set_p_data(new_data);
+    }
 };
 
 
@@ -527,6 +539,12 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
       delete input_g_cube;  input_g_cube  = NULL;
       delete output_d_cube; output_d_cube = NULL;
       delete output_g_cube; output_g_cube = NULL;
+    }
+    
+    // This function is used to run a different dataset on the network
+    // (e.g. for validation set)
+    virtual void update_p_input_layer(InputLayerDataType * new_data)  {
+      p_input_layer->p_data_cube->set_p_data(new_data);
     }
 };
 #endif // _INCLUDE_GPUDRIVER
