@@ -26,7 +26,8 @@ Overview
 --------
 
 Caffe con Troll (CcT) is a clone of the uber popular Caffe framework
-for Deep Learning. CcT is intended to be compatible with Caffe. We're
+for Deep Learning. CcT takes the same input files and produces the same 
+outputs as Caffe, but has rebuilt internals. We're
 academics, which means that CcT is built for a research purpose: *to
 explore the relative efficiency of GPUs and CPUs for Deep Learning*.
 

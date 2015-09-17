@@ -25,9 +25,19 @@ CCT=
 LMDB_INCLUDE=
 LMDB_LIB_DIR=
 
+
 # Directory where BLAS is installed
 BLAS_INCLUDE=
 BLAS_LIB_DIR=
+#
+# Linux: Build OpenBLAS locally
+#BLAS_INCLUDE=/path/to/OpenBLAS/root/directory
+#BLAS_LIB_DIR=/path/to/OpenBLAS/root/directory
+#
+# Mac: These are possible paths (verify that they exist)
+#BLAS_INCLUDE=/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/Headers
+#BLAS_LIB_DIR=/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A
+
 # Uncomment these 2 lines for Linux (currently OpenBLAS is recommended)
 BLAS_LIBS=openblas      # OpenBlas
 BLAS_DEFS=-D_USE_OPENBLAS
