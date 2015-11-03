@@ -5,7 +5,7 @@ Caffe Con Troll v. 0.1
 
 This is an Alpha release of CaffeConTroll. Feedback is welcome!
 
-See our [paper](http://arxiv.org/abs/1504.04343) and [slides](docs/slides/CcT_DanaC.pdf) presented the 2015 SIGMOD workshop on Data Analytics at Scale (DanaC)
+See our [paper](http://arxiv.org/abs/1504.04343) and [slides](http://cs.stanford.edu/people/shadjis/CcT_DanaC.pdf) presented the 2015 SIGMOD workshop on Data Analytics at Scale (DanaC)
 
 
 Table of Contents

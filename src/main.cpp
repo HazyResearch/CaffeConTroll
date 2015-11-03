@@ -13,7 +13,26 @@ int main(int argc, const char * argv[]) {
   //srand(0); // TODO: for determinsitic
 
   if (argc < 3) {
-    cout << "Usage: ./caffe-ct <train/test> <solver.prototxt> [-data-binary|-b data_binary_file] [-val-binary|-v validation_data_binary_file] [-input-model|-i input_model_binary_file [-output-model|-o output_model_binary_file]" << endl;
+    cout << "Usage:\n";
+    cout << "./caffe-ct <train/test> <solver.prototxt> [-b train_data_binary_file] [-v validation_data_binary_file] [-i input_model_binary_file] [-o output_model_binary_file] [-t]" << "\n\n";
+    cout << "Example:" << "\n";
+    cout << "./caffe-ct train path/to/solver.prototxt -b data/train_data.bin -v data/val_data.bin -i models/previous_model -o models/new_model -t" << "\n\n";
+    cout << "Option      Required?    Description" << "\n";
+    cout << "----------------------------------------------------------------------------------------------------------------------" << "\n";
+    cout << "train/test  yes ........ Run the network in train mode (forward + backward) or test mode (forward only)" << "\n";
+    cout << "solver      yes ........ Path to solver prototxt file" << "\n";
+    cout << "-b <file>   no  ........ File of data in single-precision floating point format. If the file does not exist" << "\n";
+    cout << "                         it will be generated from lmdb data. If the parameter is not specified the generated" << "\n";
+    cout << "                         file will be written to <train/test>_preprocessed.bin" << "\n";
+    cout << "                          -> This parameter can also be specified by --data-binary=path/to/file" << "\n";
+    cout << "-v <file>   no  ........ Like -b but for validation data. If not specified the file is written to val_preprocessed.bin" << "\n";
+    cout << "                          -> This parameter can also be specified by --val-binary=path/to/file" << "\n";
+    cout << "-i <file>   no  ........ Like -b but specifies an input model. If not specified a new model is used." << "\n";
+    cout << "                          -> This parameter can also be specified by --input-model=path/to/file" << "\n";
+    cout << "-o <file>   no  ........ Like -o but specifies the output model. If not specified a trained_model.bin is created." << "\n";
+    cout << "                          -> This parameter can also be specified by --output-model=path/to/file" << "\n";
+    cout << "-t          no  ........ Print elapsed time per iteration." << "\n";
+    cout << "                           -> This parameter can also be specified by --time" << "\n\n";
     exit(1);
   }
 
@@ -21,6 +40,7 @@ int main(int argc, const char * argv[]) {
   string val_binary;
   string input_model_file;
   string output_model_file;
+  bool time_iterations = false;
 
   boost::program_options::options_description desc("CaffeConTroll Options");
   desc.add_options()
@@ -40,6 +60,9 @@ int main(int argc, const char * argv[]) {
     // Option 'output-model' and 'o' are equivalent.
     ("output-model,o", boost::program_options::value<string>(& output_model_file)->default_value("NA"),
      "Model binary (output)")
+    // Run with timing information
+    ("time,t", boost::program_options::value<bool>(& time_iterations)->implicit_value(true),
+     "Time iterations")
     ;
 
   boost::program_options::variables_map vm;
@@ -47,9 +70,9 @@ int main(int argc, const char * argv[]) {
   boost::program_options::notify(vm);
 
   if (string(argv[1]) == "train") {
-    DeepNet::load_and_train_network(argv[2], data_binary, input_model_file, output_model_file, val_binary);
+    DeepNet::load_and_train_network(argv[2], data_binary, input_model_file, output_model_file, val_binary, time_iterations);
   } else if (string(argv[1]) == "test") {
-    DeepNet::load_and_test_network(argv[2], data_binary, input_model_file);
+    DeepNet::load_and_test_network(argv[2], data_binary, input_model_file, time_iterations);
   }
 
   return 0;

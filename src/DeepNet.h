@@ -137,7 +137,7 @@ class DeepNet {
       fclose(pFile);
     }
 
-    static int find_accuracy(const LogicalCubeFloat * const labels, const LogicalCubeFloat * output) {
+    static int find_accuracy(const LogicalCubeFloat * const labels, const LogicalCubeFloat * output, bool verbose = false) {
       const float * actual_data = output->get_p_data();
       const float * expected_label = labels->get_p_data();
       int top_k = 1;
@@ -158,6 +158,9 @@ class DeepNet {
             data_vector.end(), std::greater<std::pair<float, int> >());
         // check if true label is in top k predictions
         for (int k = 0; k < top_k; k++) {
+          if (verbose) {
+            std::cout << "Guess = " << data_vector[k].second << " | Actual = " << static_cast<int>(expected_label[i]) << "\n";
+          }
           if (data_vector[k].second == static_cast<int>(expected_label[i])) {
             ++accuracy;
             break;
@@ -702,7 +705,7 @@ class DeepNet {
     // for each batch size, so that we can perform these forward and backward passes in parallel.
     static void train_network(const BridgeVector & bridges, const Corpus & corpus, const cnn::NetParameter & net_param,
         const cnn::SolverParameter & solver_param, const string input_model_file, const string snapshot_file_name,
-        const Corpus & val_corpus) {
+        const Corpus & val_corpus, bool time_iterations = false) {
 
       SoftmaxBridge * const softmax = (SoftmaxBridge *) bridges.back();
       Bridge * const first = (Bridge *) bridges.front();
@@ -745,7 +748,9 @@ class DeepNet {
       // Keep track of the image number in the dataset we are on
       size_t current_image_location_in_dataset = 0;
       size_t current_epoch = 0;    
-      cout << "EPOCH: " << current_epoch << endl;
+      // cout << "EPOCH: " << current_epoch << endl;
+      float loss = 0.;
+      float accuracy = 0.;
     
       // Run for max_iter iterations
       for (size_t batch = 0; batch < num_batch_iterations; ++batch) {
@@ -766,7 +771,6 @@ class DeepNet {
         if (num_floats_left_to_read > 0) {
             // Increment epoch
             ++current_epoch;
-            cout << "EPOCH: " << current_epoch << endl;
             // Close the file and re-open it
             fclose(pFile);
             pFile = fopen (corpus.filename.c_str(), "rb");
@@ -836,8 +840,8 @@ class DeepNet {
 
         t_forward = t.elapsed();
 
-        float loss = (softmax->get_loss() / corpus.mini_batch_size);
-        int accuracy = DeepNet::find_accuracy(labels, (*--bridges.end())->p_output_layer->p_data_cube);
+        loss += (softmax->get_loss() / float(corpus.mini_batch_size));
+        accuracy += float(DeepNet::find_accuracy(labels, (*--bridges.end())->p_output_layer->p_data_cube)) / float(corpus.mini_batch_size);
 
         // backward pass
         t.restart();
@@ -853,27 +857,40 @@ class DeepNet {
         t_pass = t2.elapsed();
 
         // Check if we should print batch status
+        // Edit: Instead we will make display_iter print the average since
+        // the previous display, since this seems more useful
         if ( (batch+1) % display_iter == 0 ) {
-          cout << "BATCH: " << batch << endl;
-          std::cout << "\033[1;31m";
-          std::cout << "Loading Time (seconds)     : " << t_load << std::endl;
-          std::cout << "Forward Pass Time (seconds) : " << t_forward << std::endl;
-          std::cout << "Backward Pass Time (seconds): " << t_backward << std::endl;
-          std::cout << "Total Time & Loss & Accuracy: " << t_pass << "    " << loss
-            << "    " << 1.0*accuracy/corpus.mini_batch_size;
+          float learning_rate = Util::get_learning_rate(solver_param.lr_policy(), solver_param.base_lr(), solver_param.gamma(),
+            batch+1, solver_param.stepsize(), solver_param.power(), solver_param.max_iter());
+          
+          cout << "Training Status Report (Epoch " << current_epoch << " / Mini-batch iter " << batch << "), LR = " << learning_rate << endl;
+          std::cout << "  \033[1;32m";
+          std::cout << "Loss & Accuracy [Average of Past " << display_iter << " Iterations]\t" << loss/float(display_iter) << "\t" << float(accuracy)/(float(display_iter));
           std::cout << "\033[0m" << std::endl;
+          loss = 0.;
+          accuracy = 0.;
+          
+          if (time_iterations) {
+            std::cout << "\033[1;31m";
+            std::cout << "  Iteration Time Status Report (seconds)" << std::endl;
+            std::cout << "    Loading Data:  " << t_load << std::endl;
+            std::cout << "    Forward Pass:  " << t_forward << std::endl;
+            std::cout << "    Backward Pass: " << t_backward << std::endl;
+            std::cout << "    Total:         " << t_pass << std::endl;
+            std::cout << "\033[0m";
+          }
+          
         }
         // Check if we should run validation
         if (test_interval > 0 && (batch+1) % test_interval == 0) {
-            std::cout << "--------------------------------------------------------------------------\n";
-            std::cout << "Running validation set...\n";
+            std::cout << "Validation/Test Status Report (Epoch " << current_epoch << " / Mini-batch iter " << batch << ")" << endl;
             // Switch dataset to val
+            std::cout << "  \033[1;36m";
             bridges[0]->update_p_input_layer(val_corpus.images->physical_get_RCDslice(0));
-            /*float acc = */test_network(bridges, val_corpus, net_param, solver_param);
+            test_network(bridges, val_corpus, net_param, solver_param, time_iterations);
             // Switch dataset back to train
             bridges[0]->update_p_input_layer(corpus.images->physical_get_RCDslice(0));
-            // std::cout << "Validation set accuracy: " << acc << "\n";
-            std::cout << "--------------------------------------------------------------------------\n";
+            std::cout << "    [Run on entire validation set]\033[0m" << std::endl;
         }
         // Check if we should write a snapshot
         if (snapshot > 0 && (batch+1) % snapshot == 0) {
@@ -936,7 +953,7 @@ class DeepNet {
 
 
       static float test_network(const BridgeVector & bridges, const Corpus & corpus, const cnn::NetParameter & net_param,
-          const cnn::SolverParameter & solver_param) {
+          const cnn::SolverParameter & solver_param, bool time_iterations = false) {
 
         // TODO: we need a more general AbstractLossBridge
         SoftmaxBridge * const softmax = (SoftmaxBridge *) bridges.back();
@@ -976,12 +993,12 @@ class DeepNet {
         //const size_t test_mini_batch_size = corpus.n_images / test_iter;
         // But for now to change the test set mini-batch size just change the train/test prototxt.
         
-        float t_load;
-        float t_forward;
-        float t_pass;
+        //float t_load;
+        //float t_forward;
+        //float t_pass;
         float total_loss = 0.;
         int total_accuracy = 0;
-        const int display_iter = solver_param.test_display();
+        // const int display_iter = solver_param.test_display();
 
         // num_mini_batches - 1, because we need one more iteration for the final mini batch
         // (the last mini batch may not be the same size as the rest of the mini batches)
@@ -990,13 +1007,13 @@ class DeepNet {
         for (size_t batch = 0, corpus_batch_index = 0; batch < num_batch_iterations; ++batch,
             corpus_batch_index += corpus.mini_batch_size) {
 
-          Timer t;
-          Timer t2;
+          //Timer t;
+          //Timer t2;
 
           size_t num_elements_read = fread(corpus.images->get_p_data(), sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
           assert(num_elements_read == corpus.images->n_elements);
-          t_load = t.elapsed();
-          t.restart();
+          //t_load = t.elapsed();
+          //t.restart();
           float * const mini_batch = corpus.images->physical_get_RCDslice(0);
           input_data->set_p_data(mini_batch);
 
@@ -1008,29 +1025,27 @@ class DeepNet {
           for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
             (*bridge)->forward();
           }
-          t_forward = t.elapsed();
+          //t_forward = t.elapsed();
 
           float loss = (softmax->get_loss() / corpus.mini_batch_size);
           total_loss += loss;
           int batch_accuracy = DeepNet::find_accuracy(labels, softmax->p_output_layer->p_data_cube);
           total_accuracy += batch_accuracy;
 
-          t_pass = t2.elapsed();
+          //t_pass = t2.elapsed();
 
-          if ((batch+1) % display_iter == 0) {
-            cout << "BATCH: " << batch << endl;
-            std::cout << "Loading Time (seconds)     : " << t_load << std::endl;
-            std::cout << "Forward Pass Time (seconds) : " << t_forward << std::endl;
-            std::cout << "\033[1;31m";
-            std::cout << "Total Time & Loss & Accuracy: " << t_pass << "    " << loss
-              << "    " << 1.0*batch_accuracy/corpus.mini_batch_size;
-            std::cout << "\033[0m" << std::endl;
-          }
+          //if (time_iterations) {
+          //  std::cout << "\033[1;31m";
+          //  std::cout << "  Iteration Time Status Report (seconds)" << std::endl;
+          //  std::cout << "    Loading Data:  " << t_load << std::endl;
+          //  std::cout << "    Forward Pass:  " << t_forward << std::endl;
+          //  std::cout << "    Total:         " << t_pass << std::endl;
+          //  std::cout << "\033[0m";
+          //}
 
         }
         float acc = (1.0*total_accuracy/(num_batch_iterations*corpus.mini_batch_size));
-        cout << "Test Loss     " << total_loss << endl;
-        cout << "Test Accuracy " << acc << endl;
+        cout << "Loss = " << total_loss / float(num_batch_iterations) << ", Accuracy " << acc;
         fclose(pFile);
         return acc;
       }
@@ -1061,7 +1076,7 @@ class DeepNet {
       //                               pointers backwards)
       //
       static void load_and_train_network(const char * file, const string data_binary, const string input_model_file,
-            const string output_model_file, const string val_data_binary) {
+            const string output_model_file, const string val_data_binary, bool time_iterations = false) {
         DeepNetConfig::train_ = true;
 
         BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
@@ -1084,7 +1099,12 @@ class DeepNet {
             assert(val_corpus->n_rows          == corpus->n_rows);
             assert(val_corpus->n_cols          == corpus->n_cols);
             assert(val_corpus->dim             == corpus->dim);
-            assert(val_corpus->mini_batch_size == corpus->mini_batch_size);
+            if (val_corpus->mini_batch_size != corpus->mini_batch_size) {
+                std::cout << "\nError: For now, the train and test sets must have matching batch sizes\n";
+                std::cout << "Please update the train/test prototxt to make the batch sizes match\n";
+                std::cout << "(there is no real need for this and it will be fixed in future releases)\n";
+                exit(0);
+            }
         }
         
         // Determine the snapshot name. By default this is the same as the ouput
@@ -1097,21 +1117,26 @@ class DeepNet {
             snapshot_name = snapshot_prefix;
         }
         
-        train_network(bridges, *corpus, net_param, solver_param, input_model_file, snapshot_name, *val_corpus);
+        train_network(bridges, *corpus, net_param, solver_param, input_model_file, snapshot_name, *val_corpus, time_iterations);
         std::string output_model_name;
         if (output_model_file == "NA") {
           output_model_name = "trained_model.bin";
         } else {
           output_model_name = output_model_file;
         }
-        write_model_to_file(bridges, output_model_name);
-        std::cout << "\nTrained model written to " + output_model_name +  ". Load it using the -input-model or -i flag.\n";
+        // Write to file unless snapshot_after_train was set to false
+        if (solver_param.snapshot_after_train()) {
+          write_model_to_file(bridges, output_model_name);
+          std::cout << "\nTrained model written to " + output_model_name +  ". Load it using the -input-model or -i flag.\n";
+        } else {
+          std::cout << "\nNot writing trained model to file (snapshot_after_train = false)\n";
+        }
         
-        // Step 4: Clean up!
+        // Step 4: Clean up
         clean_up(bridges, corpus);
       }
 
-      static float load_and_test_network(const char * file, const string data_binary, const string input_model_file) {
+      static float load_and_test_network(const char * file, const string data_binary, const string input_model_file, bool time_iterations = false) {
         DeepNetConfig::train_ = false;
 
         BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
@@ -1119,7 +1144,7 @@ class DeepNet {
 
         if (input_model_file != "NA") {
           read_model_from_file(bridges, input_model_file);
-          const float acc = test_network(bridges, *corpus, net_param, solver_param);
+          const float acc = test_network(bridges, *corpus, net_param, solver_param, time_iterations);
           clean_up(bridges, corpus);
           return acc;
         } else {
