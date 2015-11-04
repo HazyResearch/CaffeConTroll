@@ -23,7 +23,6 @@
 #include "DeepNetConfig.h"
 #include "util.h"
 
-using namespace std;
 
 typedef LogicalCube<DataType_SFFloat, Layout_CRDB> LogicalCubeFloat;
 typedef AbstractBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver> Bridge;
@@ -84,7 +83,7 @@ class DeepNet {
           }
         }
       }
-      cout << "No data layer present in prototxt file!" << endl;
+      std::cout << "No data layer present in prototxt file!" << std::endl;
       assert(false);
       return NULL;
     }
@@ -94,7 +93,7 @@ class DeepNet {
     static void write_model_to_file(const BridgeVector bridges, const string model_file) {
       FILE * pFile = fopen (model_file.c_str(), "wb");
       if (!pFile)
-        throw runtime_error("Error opening " + model_file);
+        throw std::runtime_error("Error opening " + model_file);
 
       LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
       LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
@@ -158,9 +157,9 @@ class DeepNet {
             data_vector.end(), std::greater<std::pair<float, int> >());
         // check if true label is in top k predictions
         for (int k = 0; k < top_k; k++) {
-          if (verbose) {
-            std::cout << "Guess = " << data_vector[k].second << " | Actual = " << static_cast<int>(expected_label[i]) << "\n";
-          }
+          //if (verbose) {
+          //  std::cout << "Guess = " << data_vector[k].second << " | Actual = " << static_cast<int>(expected_label[i]) << "\n";
+          //}
           if (data_vector[k].second == static_cast<int>(expected_label[i])) {
             ++accuracy;
             break;
@@ -168,7 +167,7 @@ class DeepNet {
         }
       }
       return accuracy;
-      //cout << "Accuracy: " << (accuracy / num) << endl;
+      //cout << "Accuracy: " << (accuracy / num) << std::endl;
     }
 
     // This takes in the bridge vector (which has been initialized to be empty in load_and_train_network)
@@ -682,7 +681,7 @@ class DeepNet {
           }
           else
           {
-              cout << "This layer type is not supported: "<< layer_type << "!" << endl;
+              std::cout << "This layer type is not supported: "<< layer_type << "!" << std::endl;
               assert(false);
           }
 
@@ -743,12 +742,12 @@ class DeepNet {
       // Open the file for the first time during training
       FILE * pFile = fopen (corpus.filename.c_str(), "rb");
       if (!pFile)
-        throw runtime_error("Error opening the corpus file: " + corpus.filename);
+        throw std::runtime_error("Error opening the corpus file: " + corpus.filename);
 
       // Keep track of the image number in the dataset we are on
       size_t current_image_location_in_dataset = 0;
       size_t current_epoch = 0;    
-      // cout << "EPOCH: " << current_epoch << endl;
+      // std::cout << "EPOCH: " << current_epoch << std::endl;
       float loss = 0.;
       float accuracy = 0.;
     
@@ -775,7 +774,7 @@ class DeepNet {
             fclose(pFile);
             pFile = fopen (corpus.filename.c_str(), "rb");
             if (!pFile)
-              throw runtime_error("Error opening the corpus file: " + corpus.filename);
+              throw std::runtime_error("Error opening the corpus file: " + corpus.filename);
             // Read the remaining data from the file, adjusting the pointer to where we
             // read until previously as well as the amount to read
             size_t rs2 = fread((float *) (corpus.images->get_p_data()) + rs, sizeof(DataType_SFFloat), num_floats_left_to_read, pFile);
@@ -863,7 +862,7 @@ class DeepNet {
           float learning_rate = Util::get_learning_rate(solver_param.lr_policy(), solver_param.base_lr(), solver_param.gamma(),
             batch+1, solver_param.stepsize(), solver_param.power(), solver_param.max_iter());
           
-          cout << "Training Status Report (Epoch " << current_epoch << " / Mini-batch iter " << batch << "), LR = " << learning_rate << endl;
+          std::cout << "Training Status Report (Epoch " << current_epoch << " / Mini-batch iter " << batch << "), LR = " << learning_rate << std::endl;
           std::cout << "  \033[1;32m";
           std::cout << "Loss & Accuracy [Average of Past " << display_iter << " Iterations]\t" << loss/float(display_iter) << "\t" << float(accuracy)/(float(display_iter));
           std::cout << "\033[0m" << std::endl;
@@ -883,7 +882,7 @@ class DeepNet {
         }
         // Check if we should run validation
         if (test_interval > 0 && (batch+1) % test_interval == 0) {
-            std::cout << "Validation/Test Status Report (Epoch " << current_epoch << " / Mini-batch iter " << batch << ")" << endl;
+            std::cout << "Validation/Test Status Report (Epoch " << current_epoch << " / Mini-batch iter " << batch << ")" << std::endl;
             // Switch dataset to val
             std::cout << "  \033[1;36m";
             bridges[0]->update_p_input_layer(val_corpus.images->physical_get_RCDslice(0));
@@ -915,7 +914,7 @@ class DeepNet {
       
       fclose(pFile);
       delete labels_buffer;
-      cout << "Total Time (seconds): " << t_total.elapsed() << endl;
+      std::cout << "Total Time (seconds): " << t_total.elapsed() << std::endl;
     }
 
       static Corpus * load_network(const char * file, const string & data_binary, cnn::SolverParameter & solver_param,
@@ -931,22 +930,22 @@ class DeepNet {
 
 #ifdef DEBUG
           std::string corpus_type = train ? "train" : "test";
-          cout << "Corpus " << corpus_type << " loaded" << endl;
-          cout << "CORPUS NUM IMAGES: " << corpus->n_images << endl;
-          cout << "CORPUS NUM ROWS: " << corpus->n_rows << endl;
-          cout << "CORPUS NUM COLS: " << corpus->n_cols << endl;
-          cout << "CORPUS NUM CHANNELS: " << corpus->dim << endl;
-          cout << "CORPUS MINI BATCH SIZE: " << corpus->mini_batch_size << endl;
+          std::cout << "Corpus " << corpus_type << " loaded" << std::endl;
+          std::cout << "CORPUS NUM IMAGES: " << corpus->n_images << std::endl;
+          std::cout << "CORPUS NUM ROWS: " << corpus->n_rows << std::endl;
+          std::cout << "CORPUS NUM COLS: " << corpus->n_cols << std::endl;
+          std::cout << "CORPUS NUM CHANNELS: " << corpus->dim << std::endl;
+          std::cout << "CORPUS MINI BATCH SIZE: " << corpus->mini_batch_size << std::endl;
           assert(corpus->n_images >= corpus->mini_batch_size);
-          // cout << "CORPUS NUM MINI BATCHES: " << corpus->num_mini_batches << endl;
-          // cout << "CORPUS LAST BATCH SIZE: " << corpus->last_batch_size << endl;
+          // std::cout << "CORPUS NUM MINI BATCHES: " << corpus->num_mini_batches << std::endl;
+          // std::cout << "CORPUS LAST BATCH SIZE: " << corpus->last_batch_size << std::endl;
 #endif
 
           DeepNet::construct_network(bridges, *corpus, net_param, solver_param);
 
           return corpus;
         } else {
-          throw runtime_error("Error parsing the solver.protoxt file or train_val.txt file");
+          throw std::runtime_error("Error parsing the solver.protoxt file or train_val.txt file");
           return NULL;
         }
       }
@@ -964,7 +963,7 @@ class DeepNet {
 
         FILE * pFile = fopen(corpus.filename.c_str(), "rb");
         if (!pFile)
-          throw runtime_error("Error opening the corpus file: " + corpus.filename);
+          throw std::runtime_error("Error opening the corpus file: " + corpus.filename);
         
         // SHADJIS TODO: Here I could check the size of the corpus (test or validation set),
         // divide by solver_param.test_iter(), and use that as the mini-batch
@@ -1045,7 +1044,7 @@ class DeepNet {
 
         }
         float acc = (1.0*total_accuracy/(num_batch_iterations*corpus.mini_batch_size));
-        cout << "Loss = " << total_loss / float(num_batch_iterations) << ", Accuracy " << acc;
+        std::cout << "Loss = " << total_loss / float(num_batch_iterations) << ", Accuracy " << acc;
         fclose(pFile);
         return acc;
       }
@@ -1148,7 +1147,7 @@ class DeepNet {
           clean_up(bridges, corpus);
           return acc;
         } else {
-          cout << "No valid model file provided, use the -i or -input-model flag to specify your trained model." << endl;
+          std::cout << "No valid model file provided, use the -i or -input-model flag to specify your trained model." << std::endl;
           assert(false);
           return -1;
         }

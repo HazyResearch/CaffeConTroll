@@ -13,26 +13,26 @@ int main(int argc, const char * argv[]) {
   //srand(0); // TODO: for determinsitic
 
   if (argc < 3) {
-    cout << "Usage:\n";
-    cout << "./caffe-ct <train/test> <solver.prototxt> [-b train_data_binary_file] [-v validation_data_binary_file] [-i input_model_binary_file] [-o output_model_binary_file] [-t]" << "\n\n";
-    cout << "Example:" << "\n";
-    cout << "./caffe-ct train path/to/solver.prototxt -b data/train_data.bin -v data/val_data.bin -i models/previous_model -o models/new_model -t" << "\n\n";
-    cout << "Option      Required?    Description" << "\n";
-    cout << "----------------------------------------------------------------------------------------------------------------------" << "\n";
-    cout << "train/test  yes ........ Run the network in train mode (forward + backward) or test mode (forward only)" << "\n";
-    cout << "solver      yes ........ Path to solver prototxt file" << "\n";
-    cout << "-b <file>   no  ........ File of data in single-precision floating point format. If the file does not exist" << "\n";
-    cout << "                         it will be generated from lmdb data. If the parameter is not specified the generated" << "\n";
-    cout << "                         file will be written to <train/test>_preprocessed.bin" << "\n";
-    cout << "                          -> This parameter can also be specified by --data-binary=path/to/file" << "\n";
-    cout << "-v <file>   no  ........ Like -b but for validation data. If not specified the file is written to val_preprocessed.bin" << "\n";
-    cout << "                          -> This parameter can also be specified by --val-binary=path/to/file" << "\n";
-    cout << "-i <file>   no  ........ Like -b but specifies an input model. If not specified a new model is used." << "\n";
-    cout << "                          -> This parameter can also be specified by --input-model=path/to/file" << "\n";
-    cout << "-o <file>   no  ........ Like -o but specifies the output model. If not specified a trained_model.bin is created." << "\n";
-    cout << "                          -> This parameter can also be specified by --output-model=path/to/file" << "\n";
-    cout << "-t          no  ........ Print elapsed time per iteration." << "\n";
-    cout << "                           -> This parameter can also be specified by --time" << "\n\n";
+    std::cout << "Usage:\n";
+    std::cout << "./caffe-ct <train/test> <solver.prototxt> [-b train_data_binary_file] [-v validation_data_binary_file] [-i input_model_binary_file] [-o output_model_binary_file] [-t]" << "\n\n";
+    std::cout << "Example:" << "\n";
+    std::cout << "./caffe-ct train path/to/solver.prototxt -b data/train_data.bin -v data/val_data.bin -i models/previous_model -o models/new_model -t" << "\n\n";
+    std::cout << "Option      Required?    Description" << "\n";
+    std::cout << "----------------------------------------------------------------------------------------------------------------------" << "\n";
+    std::cout << "train/test  yes ........ Run the network in train mode (forward + backward) or test mode (forward only)" << "\n";
+    std::cout << "solver      yes ........ Path to solver prototxt file" << "\n";
+    std::cout << "-b <file>   no  ........ File of data in single-precision floating point format. If the file does not exist" << "\n";
+    std::cout << "                         it will be generated from lmdb data. If the parameter is not specified the generated" << "\n";
+    std::cout << "                         file will be written to <train/test>_preprocessed.bin" << "\n";
+    std::cout << "                          -> This parameter can also be specified by --data-binary=path/to/file" << "\n";
+    std::cout << "-v <file>   no  ........ Like -b but for validation data. If not specified the file is written to val_preprocessed.bin" << "\n";
+    std::cout << "                          -> This parameter can also be specified by --val-binary=path/to/file" << "\n";
+    std::cout << "-i <file>   no  ........ Like -b but specifies an input model. If not specified a new model is used." << "\n";
+    std::cout << "                          -> This parameter can also be specified by --input-model=path/to/file" << "\n";
+    std::cout << "-o <file>   no  ........ Like -o but specifies the output model. If not specified a trained_model.bin is created." << "\n";
+    std::cout << "                          -> This parameter can also be specified by --output-model=path/to/file" << "\n";
+    std::cout << "-t          no  ........ Print elapsed time per iteration." << "\n";
+    std::cout << "                           -> This parameter can also be specified by --time" << "\n\n";
     exit(1);
   }
 

@@ -20,7 +20,6 @@
 #define 	MDB_NOTLS   0x200000
 #endif
 
-using namespace std;
 
 using google::protobuf::io::FileInputStream;
 using google::protobuf::io::FileOutputStream;
