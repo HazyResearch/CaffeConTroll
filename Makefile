@@ -153,6 +153,14 @@ ifdef NVCC
 endif
 	$(LINKCC) $^ $(NVCC_LINK) -o $(TARGET) $(LINKFLAG) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
+all_assert: CFLAGS += $(PRODUCT_FLAGS) -D_DO_ASSERT
+all_assert: LINKFLAG += $(PRODUCT_FLAGS) 
+all_assert: $(OBJ_FILES) cnn.pb.o $(MAIN_CUDA_OBJ_FILES)
+ifdef NVCC
+	$(NVCC) -dlink $^ -o $(NVCC_LINK)
+endif
+	$(LINKCC) $^ $(NVCC_LINK) -o $(TARGET) $(LINKFLAG) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
+
 release: CFLAGS += $(PRODUCT_FLAGS)
 release: LINKFLAG += $(PRODUCT_FLAGS)
 release: $(OBJ_FILES) cnn.pb.o $(MAIN_CUDA_OBJ_FILES)

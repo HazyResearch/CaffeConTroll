@@ -207,6 +207,86 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     float bias_base_learning_rate;
     float model_base_regularization;
     float bias_base_regularization;
+    
+    // If doing asynchronous model updates, we do not always want the model
+    // update to take place immediately after the backward pass. This can be
+    // the case if we want a shared model on some server with other servers
+    // passing back gradients (parameter server).
+    bool update_model_gradients;
+
+    // Also keep pointers to where the gradients are after the backwards step
+    // This is in case we choose not to update the gradients in the backwards
+    // step but rather store them to be read later.
+    // 
+    // There are many ways to accomplish that. For example, each backwards pass,
+    // we can either return 2 pointers: to the accumulated model gradient, and
+    // to the accumulated bias gradient. Then the gradients can be copied to some
+    // other location, etc.
+    // 
+    // Another strategy is to just store those pointers to the most recently
+    // computed gradients in this pbridge class, and then expose a function
+    // which returns a pointer to those gradients when they are needed. That
+    // is the one I will do now.
+    //
+    // There are many optimizations around accumulating gradients inside the
+    // pbridge. Overall we have gradients for model and for bias, as well as
+    // 4 cases of gradient accumulation:
+    //
+    //  - #bridges > 1, at least one on CPU
+    //  - #bridges > 1, all on GPU
+    //  - #bridges = 1, on CPU
+    //  - #bridges = 1, on GPU
+    //
+    // So overall we have 8 cases (4 for model gradient, 4 for bias gradient)
+    // Currently, these are the locations of the gradient following a call
+    // to backward():
+    //
+    // Model:
+    //  - #bridges > 1, at least one on CPU
+    //      - _cpu_bridges[0]->get_model_grad_cube()->get_p_data()
+    //      - This memory is owned by the sub-bridge (host)
+    //  - #bridges > 1, all on GPU
+    //      - p_model_subgrads[0]
+    //      - This memory is owned by the parallelized bridge (host)
+    //  - #bridges = 1, on CPU
+    //      - _cpu_bridges[0]->get_model_grad_cube()->get_p_data()
+    //      - This memory is owned by the sub-bridge (host)
+    //  - #bridges = 1, on GPU
+    //      - _gpu_bridges[0]->get_model_grad_cube()->get_p_data()
+    //      - This memory is owned by the sub-bridge (device, never copied back to host)
+    // 
+    // Bias:
+    //  - #bridges > 1, at least one on CPU
+    //      - p_bias_grad->get_p_data()
+    //      - This memory is owned by the parallelized bridge (host)
+    //  - #bridges > 1, all on GPU
+    //      - p_bias_grad->get_p_data()
+    //      - This memory is owned by the parallelized bridge (host)
+    //  - #bridges = 1, on CPU
+    //      - _cpu_bridges[0]->get_bias_grad_cube()->get_p_data()
+    //      - This memory is owned by the sub-bridge (host)
+    //  - #bridges = 1, on GPU
+    //      - _gpu_bridges[0]->get_bias_grad_cube()->get_p_data()
+    //      - This memory is owned by the sub-bridge (device, never copied back to host)
+    //
+    // Side note: The reason for asymmetry in case 1 and 2 for model vs bias is that for the 
+    // model case we employ the following optimization:
+    // For bias, which is small, we (1) keep a host copy of the bias gradient, (2) set it to 0,
+    // then iterate over each partition's gradients and add them to the bias gradient from (1).
+    // For model, we save one of these accumulations by getting a pointer to the first partition's
+    // gradient (which is always on host in case 1 or is copied to host in case 2) and then iterate
+    // over each other partition's gradients (i.e. starting from the 2nd one) and add to the first.
+    // For large models (fully-connected) the speedup was not insignificant.
+    // Another difference for model vs bias is that for multiple GPUs we copy back to host in parallel
+    // whereas for bias we don't. This is why PBridge has only one buffer cube for bias gradients,
+    // i.e. p_bias_grad, whereas for model we have p_model_subgrads.
+    //
+    // So given that all these cases store gradients in different places, let's just introduce 2 
+    // pointers and set them to wherever the gradients are stored. If the gradients are on the
+    // device, then we know we are in case 4 and so we can return NULL.
+    DataType * pointer_to_host_copy_of_latest_model_grad;
+    DataType * pointer_to_host_copy_of_latest_bias_grad;
+    
 
     // For now, run the gradient updates on the CPU
     // See comment in ParallelizedBridge_impl.hxx
@@ -218,6 +298,7 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     GradientUpdater<DataType, GPUDriver> * gpu_grad_updater;
     GradientUpdater<DataType, GPUDriver> * gpu_grad_updater_bias;
 #endif
+
 
     ParallelizedBridge(Layer<DataType, Layout_CRDB> * const _input_layer,
         Layer<DataType, Layout_CRDB> * const _output_layer,
@@ -246,10 +327,14 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
         return p_bias_cube;
     }
 
+    // This shouldn't be used because the updater will be NULL if there is
+    // only 1 bridge and it is a GPU bridge
     GradientUpdater<DataType, CPUDriver> * const get_model_updater() {
         return p_grad_updater;
     }
 
+    // This shouldn't be used because the updater will be NULL if there is
+    // only 1 bridge and it is a GPU bridge
     GradientUpdater<DataType, CPUDriver> * const get_bias_updater() {
         return p_grad_updater_bias;
     }
@@ -267,6 +352,9 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
         return share_pointer_with_next_bridge;
     }
 
+    void set_update_model_gradients(bool _update_model_gradients) {
+        update_model_gradients = _update_model_gradients;
+    }
     
     // SHADJIS TODO: May be possible to have a single vector for all bridges
     // These can also be protected like they used to be
@@ -283,6 +371,7 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     // time (since it is slow for fully connected), but to keep on device. However, sometimes we
     // want to write the model to file or read it from file, so it must be on the host.
     // We can force that copy with these
+    // SHADJIS TODO: Should check here if the src pointer is NULL. If so, don't copy.
     void force_host_to_device_model_copy() {
         if (skip_model_copy_gpu) {
             scheduler_gpudrivers[0]->memcpy(_gpu_bridges[0]->get_model_cube()->get_device_pointer(scheduler_gpudrivers[0]), p_model_cube->get_device_pointer(scheduler_local_cpudriver));
@@ -303,18 +392,90 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
             scheduler_gpudrivers[0]->memcpy(p_bias_cube->get_device_pointer(scheduler_local_cpudriver), _gpu_bridges[0]->get_bias_cube()->get_device_pointer(scheduler_gpudrivers[0]));
         }
     }
+    
 
+    // These return a host pointer to the last model gradients calculated by this bridge
+    DataType * get_model_gradient_host() {
+        
+        if (pointer_to_host_copy_of_latest_model_grad) {
+            return pointer_to_host_copy_of_latest_model_grad;
+        }
+        // There are two reasons this is NULL:
+        //  1. This is on GPU
+        //  2. This has not been calculated yet
+        else if (skip_model_copy_gpu) {
+            scheduler_gpudrivers[0]->memcpy(p_model_grad->get_device_pointer(scheduler_local_cpudriver), _gpu_bridges[0]->get_model_grad_cube()->get_device_pointer(scheduler_gpudrivers[0]));
+            return p_model_grad->get_p_data();
+        }
+        // This has not been calculated yet, must return NULL
+        return NULL;
+    }
+    DataType * get_bias_gradient_host()  {
+
+        if (pointer_to_host_copy_of_latest_bias_grad) {
+            return pointer_to_host_copy_of_latest_bias_grad;
+        }
+        // There are two reasons this is NULL:
+        //  1. This is on GPU
+        //  2. This has not been calculated yet
+        else if (skip_model_copy_gpu) {
+            scheduler_gpudrivers[0]->memcpy(p_bias_grad->get_device_pointer(scheduler_local_cpudriver), _gpu_bridges[0]->get_bias_grad_cube()->get_device_pointer(scheduler_gpudrivers[0]));
+            return p_bias_grad->get_p_data();
+        }
+        // This has not been calculated yet, must return NULL
+        return NULL;
+    }
+
+
+    // Update the model or bias given a gradient
+    void update_model_with_gradient_CPU(float * grad) {
+    
+        // If this is a GPU gradient, we need to call:
+        //    gpu_grad_updater->update(grad);
+        // but then we need to pass in a device pointer to this function
+        // For now just assume gradient update is on CPU
+        assert (!skip_model_copy_gpu);
+        p_grad_updater->update(grad);
+    }
+    void update_bias_with_gradient_CPU(float * grad) {
+        
+        //if (skip_model_copy_gpu)
+        //    gpu_grad_updater_bias->update(grad);
+        assert (!skip_model_copy_gpu);
+        p_grad_updater_bias->update(grad);
+    }
+    
+    
+
+    // Update the pointer of the input layer's data
     // This function is used to run a different dataset on the network
     // (e.g. for validation set)
-    void update_p_input_layer(float * new_data)  {
+    void update_p_input_layer_data_CPU_ONLY(float * new_data)  {
       // Step 1: Update the input layer for the pbridge
       p_input_layer->p_data_cube->set_p_data(new_data);
       // Step 2: Update the input layer for each sub-bridge
       // Note: we only need to do this for CPU bridges because GPU
       // bridges use pointers to device memory (not the corpus data,
       // which is on the host)
+      // SHADJIS TODO: This will only work on GPU for the first layer
+      // If we want to update the input data for other layers we need
+      // to do a copy to device memory
       for (size_t i = 0, b = 0; i < _cpu_bridges.size(); ++i, b += n_batch_per_partition_cpu) {
-        _cpu_bridges[i]->update_p_input_layer(p_input_layer->p_data_cube->physical_get_RCDslice(b));
+        _cpu_bridges[i]->update_p_input_layer_data_CPU_ONLY(p_input_layer->p_data_cube->physical_get_RCDslice(b));
+      }
+    }
+    
+    // Update the pointer of the output layer's gradient
+    // This function is used to run a different dataset on the network
+    // (e.g. for validation set)
+    void update_p_output_layer_gradient_CPU_ONLY(float * new_data)  {
+      // Step 1: Update the output layer for the pbridge
+      p_output_layer->p_gradient_cube->set_p_data(new_data);
+      // Step 2: Update the output layer for each sub-bridge
+      // See TODO in AbstractBridge.h for this function to see what to change
+      // if we want to update the gradients for output gradients on the GPU
+      for (size_t i = 0, b = 0; i < _cpu_bridges.size(); ++i, b += n_batch_per_partition_cpu) {
+        _cpu_bridges[i]->update_p_output_layer_gradient_CPU_ONLY(p_output_layer->p_gradient_cube->physical_get_RCDslice(b));
       }
     }
     

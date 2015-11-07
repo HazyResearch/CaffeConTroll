@@ -88,8 +88,7 @@ class DeepNet {
       return NULL;
     }
 
-    // TODO: Need to be refactored a bit on the basis of how these features would actually be used.
-    // Should we have a separate test function?
+    // Write in the models of all bridges to a file
     static void write_model_to_file(const BridgeVector bridges, const string model_file) {
       FILE * pFile = fopen (model_file.c_str(), "wb");
       if (!pFile)
@@ -114,6 +113,7 @@ class DeepNet {
       fclose(pFile);
     }
 
+    // Read in the models of all bridges from a file
     static void read_model_from_file(BridgeVector & bridges, const string model_file) {
       FILE * pFile;
       pFile = fopen (model_file.c_str(), "rb");
@@ -134,6 +134,131 @@ class DeepNet {
         }
       }
       fclose(pFile);
+    }
+
+    // Get the total number of parameters (bias + model) in all bridges of the network
+    static size_t get_parameter_size(const BridgeVector bridges) {
+
+      size_t total_size = 0;
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
+      for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
+        model = (*bridge)->get_model_cube();
+        if (model) {
+          total_size += model->n_elements;
+        }
+        bias = (*bridge)->get_bias_cube();
+        if (bias) {
+          total_size += bias->n_elements;
+        }
+      }
+      return total_size;
+    }
+
+    // Given a buffer (already allocated on the host), fill it with all the gradients
+    // To know how big to make this buffer see get_parameter_size()
+    static void get_all_gradients(const BridgeVector bridges, DataType_SFFloat * buffer) {  
+
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
+      size_t total_size = 0;
+      for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
+        model = (*bridge)->get_model_cube();
+        if (model) {
+          memcpy(buffer + total_size, (*bridge)->get_model_gradient_host(), sizeof(DataType_SFFloat) * model->n_elements);
+          total_size += model->n_elements;
+        }
+        bias = (*bridge)->get_bias_cube();
+        if (bias) {
+          memcpy(buffer + total_size, (*bridge)->get_bias_gradient_host(),  sizeof(DataType_SFFloat) * bias->n_elements);
+          total_size += bias->n_elements;
+        }
+      }
+    }
+
+    // Given a buffer of all the gradients in the network, update all the models of all the bridges
+    static void update_all_models_with_gradients(const BridgeVector bridges, DataType_SFFloat * gradients_concatenated) {
+
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
+      size_t total_size = 0;
+      for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
+     
+        // SHADJIS TODO: I am calling these functions "_CPU", e.g.
+        // update_model_with_gradient_CPU. This is because if the bridge
+        // has the gradient updates normally on the GPU, then we need to
+        // pass in a device pointer. Eventually I should abstract this using
+        // a device memory pointer but for now I will assert that the
+        // gradient updates for this bridge are on the CPU, and therefore that
+        // gradients_concatenated is just a host pointer.
+     
+        model = (*bridge)->get_model_cube();
+        if (model) {
+          (*bridge)->update_model_with_gradient_CPU(gradients_concatenated + total_size);
+          total_size += model->n_elements;
+        }
+
+        bias = (*bridge)->get_bias_cube();
+        if (bias) {
+          (*bridge)->update_bias_with_gradient_CPU(gradients_concatenated + total_size);
+          total_size += bias->n_elements;
+        }
+      }
+            
+    }
+
+    // Given a buffer (already allocated on the host), fill it with all the model weights
+    // To know how big to make this buffer see get_parameter_size()
+    static void get_all_models(const BridgeVector bridges, DataType_SFFloat * buffer) {  
+
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
+      size_t total_size = 0;
+      for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
+        model = (*bridge)->get_model_cube();
+        if (model) {
+          // If the model is not currently on the host (e.g. it could be on some remote device),
+          // force a copy back to the host
+          // SHADJIS TODO: If it is on the device we can do a cuda memcpy 
+          // This would save doing a copy. However, that is only relevant when the
+          // model updates are on the device, which is single-GPU only (1 partition and
+          // it is a GPU partition). We can check if that is the case here and then just
+          // do a direct memcpy, rather than do two.
+          (*bridge)->force_device_to_host_model_copy();
+          memcpy(buffer + total_size, model->get_p_data(), sizeof(DataType_SFFloat) * model->n_elements);
+          total_size += model->n_elements;
+        }
+        bias = (*bridge)->get_bias_cube();
+        if (bias) {
+          (*bridge)->force_device_to_host_bias_copy();
+          memcpy(buffer + total_size, bias->get_p_data(), sizeof(DataType_SFFloat) * bias->n_elements);
+          total_size += bias->n_elements;
+        }
+      }
+    }
+
+    // Like read_model_from_file() but read model from a memory buffer
+    static void set_all_models(const BridgeVector bridges, DataType_SFFloat * models_concatenated) {  
+
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
+      size_t total_size = 0;
+      for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
+        model = (*bridge)->get_model_cube();
+        if (model) {
+          // SHADJIS TODO: Could do this with a single cuda memcpy if we need to copy to device later,
+          // but now we will do a memcpy here followed by a memcpy if needed to the device (could save 1st one)
+          memcpy(model->get_p_data(), models_concatenated + total_size, sizeof(DataType_SFFloat) * model->n_elements);
+          total_size += model->n_elements;
+          (*bridge)->force_host_to_device_model_copy();
+        }
+        bias = (*bridge)->get_bias_cube();
+        if (bias) {
+          memcpy(bias->get_p_data(), models_concatenated + total_size, sizeof(DataType_SFFloat) * bias->n_elements);
+          total_size += bias->n_elements;
+          (*bridge)->force_host_to_device_bias_copy();
+        }
+      }
     }
 
     static int find_accuracy(const LogicalCubeFloat * const labels, const LogicalCubeFloat * output, bool verbose = false) {
@@ -885,10 +1010,10 @@ class DeepNet {
             std::cout << "Validation/Test Status Report (Epoch " << current_epoch << " / Mini-batch iter " << batch << ")" << std::endl;
             // Switch dataset to val
             std::cout << "  \033[1;36m";
-            bridges[0]->update_p_input_layer(val_corpus.images->physical_get_RCDslice(0));
+            bridges[0]->update_p_input_layer_data_CPU_ONLY(val_corpus.images->physical_get_RCDslice(0));
             test_network(bridges, val_corpus, net_param, solver_param, time_iterations);
             // Switch dataset back to train
-            bridges[0]->update_p_input_layer(corpus.images->physical_get_RCDslice(0));
+            bridges[0]->update_p_input_layer_data_CPU_ONLY(corpus.images->physical_get_RCDslice(0));
             std::cout << "    [Run on entire validation set]\033[0m" << std::endl;
         }
         // Check if we should write a snapshot
