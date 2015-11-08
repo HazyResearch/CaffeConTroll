@@ -1011,9 +1011,11 @@ class DeepNet {
             // Switch dataset to val
             std::cout << "  \033[1;36m";
             bridges[0]->update_p_input_layer_data_CPU_ONLY(val_corpus.images->physical_get_RCDslice(0));
+            DeepNetConfig::train_ = false;
             test_network(bridges, val_corpus, net_param, solver_param, time_iterations);
             // Switch dataset back to train
             bridges[0]->update_p_input_layer_data_CPU_ONLY(corpus.images->physical_get_RCDslice(0));
+            DeepNetConfig::train_ = true;
             std::cout << "    [Run on entire validation set]\033[0m" << std::endl;
         }
         // Check if we should write a snapshot

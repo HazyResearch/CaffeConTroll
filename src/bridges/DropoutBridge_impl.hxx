@@ -1,8 +1,6 @@
 //
 //  DropoutBridge_impl.hxx
-//  moka
 //
-//  Created by Firas Abuzaid on 1/31/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
@@ -30,8 +28,6 @@ DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::Dropou
 
   scale = 1. / (1. - dropout_ratio);
   mask_cube = new LogicalCube<unsigned int, Layout_CRDB>(iR, iC, iD, iB);
-  Util::bernoulli_initialize(mask_cube->get_p_data(), iR*iC*iD*iB, 1. - dropout_ratio);
-
   report_forward_constructor.end(0, 0, 0);
 }
 
@@ -64,6 +60,8 @@ void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::f
 
   // in the training phase, we apply the mask
   if (DeepNetConfig::train()) {
+    // Create a new mask for this iteration
+    Util::bernoulli_initialize(mask_cube->get_p_data(), iR*iC*iD*iB, 1. - dropout_ratio);
     _dropout_forward_train_arg_helper _arg;
     _arg.mask = (char *) mask_cube->get_p_data();
     _arg.scale = scale;
