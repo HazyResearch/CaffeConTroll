@@ -139,7 +139,7 @@ LINKCC = $(CC)
 LINKFLAG = $(CFLAGS) $(LDFLAGS)
 
 ifdef NVCC
-LINKFLAG += -lcublas -lcudart
+LINKFLAG += -lcublas -lcudart -lcurand
 NVCC_LINK = dlink.o
 endif
  
@@ -153,9 +153,10 @@ ifdef NVCC
 endif
 	$(LINKCC) $^ $(NVCC_LINK) -o $(TARGET) $(LINKFLAG) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
-all_assert: CFLAGS += $(PRODUCT_FLAGS) -D_DO_ASSERT
-all_assert: LINKFLAG += $(PRODUCT_FLAGS) 
-all_assert: $(OBJ_FILES) cnn.pb.o $(MAIN_CUDA_OBJ_FILES)
+assert: CFLAGS += $(PRODUCT_FLAGS) -D_DO_ASSERT
+assert: LINKFLAG += $(PRODUCT_FLAGS) -D_DO_ASSERT
+assert: $(OBJ_FILES) cnn.pb.o $(MAIN_CUDA_OBJ_FILES)
+
 ifdef NVCC
 	$(NVCC) -dlink $^ -o $(NVCC_LINK)
 endif
@@ -169,8 +170,8 @@ ifdef NVCC
 endif
 	$(LINKCC) $^ $(NVCC_LINK) -o $(TARGET) $(LINKFLAG) $(BUILDFLAG) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB)
 
-profile: CFLAGS += -D_DETAILED_PROFILING -D_FASTPOW  $(PRODUCT_FLAGS)
-profile: LINKFLAG += -D_DETAILED_PROFILING -D_FASTPOW  $(PRODUCT_FLAGS)
+profile: CFLAGS += -D_LAYER_PROFILING -D_FASTPOW  $(PRODUCT_FLAGS)
+profile: LINKFLAG += -D_LAYER_PROFILING -D_FASTPOW  $(PRODUCT_FLAGS)
 profile: $(OBJ_FILES) cnn.pb.o $(MAIN_CUDA_OBJ_FILES)
 ifdef NVCC
 	$(NVCC) -dlink $^ -o $(NVCC_LINK)

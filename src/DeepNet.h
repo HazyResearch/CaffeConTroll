@@ -48,7 +48,7 @@ class DeepNet {
 
     static inline size_t compute_conv_next_layer_dimension(const size_t R_i, const size_t K,
         const size_t padding, const size_t stride ) {
-      return (R_i + 2 * padding - K) / stride + 1;
+      return (R_i + 2 * padding - K) / stride + 1;      // SHADJIS TODO: This is wrong for pool, since it uses ceil
     }
 
     static void clean_up(BridgeVector & bridges, Corpus * const corpus) {
@@ -367,7 +367,7 @@ class DeepNet {
       
       // SHADJIS TODO: Currently we only use the vectors above to adjust 
       // PBridges. This does not affect those bridges which are not part of a
-      // PBridge (softmax, funnel, and dropout). Need to also make those
+      // PBridge (softmax, funnel). Need to also make those
       // pbridges, so that they too can avoid copies / extra allocations. Then,
       // everything is a PBridge, so either merge PBridge and AbstractBridge or
       // move certain scheduler elements to the AbstractBridge.
@@ -389,7 +389,7 @@ class DeepNet {
         // SHADJIS TODO: Some layers, e.g. ReLU and dropout, have the same top
         // and bottom layers and therefore don't need to allocate any output cubes.
         // For now, we will avoid this allocation only in PBridge (since it matters
-        // more for the GPU), i.e. just for ReLU. When we support dropout and others
+        // more for the GPU), i.e. just for ReLU/dropout. When we support others
         // (e.g. funnel may also have same top/bottom) as PBridges, then those will
         // also benefit from not needing extra cube allocations (and also not needing
         // copies to/from host if entire network is on GPU)
@@ -760,25 +760,48 @@ class DeepNet {
           {
               std::cout << "Constructing DROPOUT layer " << "(# Input Grouping=" << n_previous_groups << ")" << std::endl;
 
-              // input_[R,C,D] is the same as output_[R,C,D]
-              for (size_t i = 0; i < n_previous_groups; i++) {
+              prev_data_cubes_higher_per_group.resize(n_previous_groups);
+              prev_grad_cubes_higher_per_group.resize(n_previous_groups);
+              for (size_t i=0;i<n_previous_groups;i++) {
 
                 next_data = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
                 next_grad = new LogicalCube<DataType_SFFloat, Layout_CRDB>(input_R, input_C, input_D, B);
                 next_layer = new Layer<DataType_SFFloat, Layout_CRDB>(next_data, next_grad);
-                bridge = new DropoutBridge<DataType_SFFloat, Layout_CRDB, DataType_SFFloat, Layout_CRDB, CPUDriver>(prev_layers[i],
-                    next_layer, &layer_param, &solver_param, driver);
+
+                // SHADJIS TODO: I made the max threads 4 below because it was faster than 1 or 16.
+                // For these smaller bridges it is usually slower to use all the threads, but need to measure.
+                // Then can do something similar for ReLU, etc.
+                bridge = new ParallelizedBridge<DataType_SFFloat, DropoutBridge>(prev_layers[i], next_layer, &layer_param,
+                           &solver_param, driver, min<size_t>(4, corpus.mini_batch_size), 1,
+                           prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[i], prev_grad_cubes_higher_per_group[i],
+                           share_input_output_layer);
                 bridge->name = layer_param.name();
 
                 bridges.push_back(bridge);
                 next_layers.push_back(next_layer);
+                pbridges_from_this_iteration.push_back(bridge);
               }
-                
-              // Since we are inserting a cpu bridge, also clear all information about past pbridge
-              pbridges_from_last_iteration.clear();
+              // -------------- Scheduler Update ----------------
+              assert(pbridges_from_this_iteration.size());
+              bool bridge_shares_data_with_prev_bridge = 
+                  pbridges_from_this_iteration[0]->get_share_pointer_with_prev_bridge();
+              if (bridge_shares_data_with_prev_bridge) {
+                for (size_t it = 0; it < pbridges_from_last_iteration.size(); ++it) {
+                  pbridges_from_last_iteration[it]->set_share_pointer_with_next_bridge(true);
+                }
+              }
+              pbridges_from_last_iteration = pbridges_from_this_iteration;
+              prev_GPU_batch_sizes = pbridges_from_this_iteration[0]->get_GPU_batch_sizes();
+              prev_num_partitions_CPU = pbridges_from_this_iteration[0]->get_num_partitions_CPU();
+              prev_gpu_to_device_id_map = pbridges_from_this_iteration[0]->get_used_gpu_to_device_id_map();
+              prev_data_cubes_higher_per_group.clear();
+              prev_grad_cubes_higher_per_group.clear();
+              for (size_t i=0; i<pbridges_from_this_iteration.size(); ++i) {
+                prev_data_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_data_cubes_higher());
+                prev_grad_cubes_higher_per_group.push_back(pbridges_from_this_iteration[i]->get_grad_cubes_higher());
+              }
               pbridges_from_this_iteration.clear();
-              prev_GPU_batch_sizes.clear();
-              prev_gpu_to_device_id_map.clear();
+              // ----------End of Scheduler Update --------------
           }
           else if (layer_type == "SOFTMAXWITHLOSS")
           {

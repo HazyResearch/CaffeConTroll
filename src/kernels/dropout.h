@@ -7,6 +7,7 @@
 struct _dropout_forward_train_arg_helper {
   char * mask;
   float scale;
+  unsigned int threshold;
 };
 
 #ifdef _GPU_TARGET

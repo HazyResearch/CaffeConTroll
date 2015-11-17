@@ -3,6 +3,7 @@
 #include <cublas_v2.h>
 
 #include "DeviceDriver.h"
+#include <curand.h>
 
 #ifndef _DEVICE_DRIVER_GPU_H
 #define _DEVICE_DRIVER_GPU_H
@@ -101,6 +102,8 @@ public:
   void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch);
 
   void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p);
+  
+  void rand_uint_initialize(unsigned int * buf, const int n);
 
   void sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev);
 
@@ -122,6 +125,9 @@ public:
 private:
 
   random_device rd;
+  curandGenerator_t curand_gen;
+  curandStatus_t curand_err;
+  
 };
 
 #endif

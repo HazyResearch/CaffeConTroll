@@ -154,7 +154,7 @@ public:
     const struct _pool_backward_arg_helper args) {
     assert(false);
   }
-
+  
 
   //virtual void pmap2d_write_coalesce();
 
@@ -216,6 +216,10 @@ public:
   }
 
   virtual void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p){
+    assert(false);
+  }
+
+  virtual void rand_uint_initialize(unsigned int * buf, const int n){
     assert(false);
   }
 

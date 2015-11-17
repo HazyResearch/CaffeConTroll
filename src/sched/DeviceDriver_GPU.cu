@@ -1,8 +1,10 @@
 
+#include <ctime>
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 #include <curand.h>
 #include <curand_kernel.h>
+#include <boost/random.hpp>
 
 #include "DeviceDriver.h"
 #include "DeviceDriver_GPU.h"
@@ -677,10 +679,28 @@ void GPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPoin
 
 GPUDriver::GPUDriver(){
     set_device();
+    
+    // Initialize curand
+    curand_err = curandCreateGenerator(&curand_gen, CURAND_RNG_PSEUDO_DEFAULT);
+    if (curand_err != CURAND_STATUS_SUCCESS) {
+      std::cout << "Failed curandCreateGenerator, error = " << curand_err << std::endl;
+      assert(false);
+    }
+    curand_err = curandSetPseudoRandomGeneratorSeed(curand_gen, time(NULL)); // rd is std::random_device defined in util()
+    if (curand_err != CURAND_STATUS_SUCCESS) {
+      std::cout << "Failed curandSetPseudoRandomGeneratorSeed, error = " << curand_err << std::endl;
+      assert(false);
+    }
 }
 
 GPUDriver::~GPUDriver(){
-
+    set_device();
+    
+    curandDestroyGenerator(curand_gen);
+    if (curand_err != CURAND_STATUS_SUCCESS) {
+      std::cout << "Failed curandDestroyGenerator, error = " << curand_err << std::endl;
+      assert(false);
+    }
 }
 
 DeviceMemoryPointer * GPUDriver::get_device_pointer(void * ptr, size_t size_in_byte){
@@ -1070,18 +1090,36 @@ void GPUDriver::sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batc
 * TODO: Wrap this up with CURAND.
 **/
 void GPUDriver::sbernoulli_initialize(DeviceMemoryPointer *arr, const float p) {
+
     set_device();
     const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
-
-	mt19937 gen(rd());
-	bernoulli_distribution bern(p);
+    
+    std::random_device rd;
+	std::mt19937 gen(rd());
+    
 	float * temp = new float[n_arr_elements];
-	for(int i=0;i<n_arr_elements;i++){
-	  temp[i] = bern(gen);
-	}
+    boost::bernoulli_distribution<float> random_distribution(p);
+    boost::variate_generator<mt19937, boost::bernoulli_distribution<float> >
+      variate_generator(gen, random_distribution);
+    for (size_t i = 0; i < n_arr_elements; ++i) {
+      temp[i] = variate_generator();
+    }
+    
 	cudaMemcpy(arr->ptr, temp, arr->size_in_byte, cudaMemcpyHostToDevice);
 	delete[] temp;
+}
 
+
+void GPUDriver::rand_uint_initialize(unsigned int * buf, const int n) {
+
+    set_device();
+    
+    // Generate random unsigned ints
+    curand_err = curandGenerate(curand_gen, buf, n);
+    if (curand_err != CURAND_STATUS_SUCCESS) {
+      std::cout << "Failed curandGenerate, error = " << curand_err << std::endl;
+      assert(false);
+    }
 }
 
 /**
@@ -1119,6 +1157,7 @@ void GPUDriver::device_sync() {
 
 void GPUDriver::init_thread() {
   set_device();
+  // SHADJIS TODO: Might not need to create this for every thread
   cublasCreate(&handle);
 }
 
