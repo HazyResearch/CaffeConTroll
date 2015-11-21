@@ -49,6 +49,9 @@ class PhysicalStratum : public PhysicalOperator {
       // TODO: benchmark to see whether we want more sophisticated
       //       thread pool.
 
+      // SHADJIS TODO: If there is just 1 thread we don't need
+      // to launch a new thread here?
+      
       vector<thread> threads;
       for (size_t i = 0; i < executor_bound; i++) {
         //threads.push_back(thread(_forward, executors[i]));

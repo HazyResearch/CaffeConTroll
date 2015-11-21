@@ -1,8 +1,6 @@
 //
 //  AbstractBridge.h
-//  moka
 //
-//  Created by Firas Abuzaid on 1/22/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
@@ -408,6 +406,9 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
     virtual void update_bias_with_gradient_CPU(InputLayerDataType * grad)   { assert(false); }
     virtual void set_update_model_gradients(bool _update_model_gradients) {}
 
+    // Model parallelism PBridge members
+    virtual int get_model_parallelism_group_size() { return 1; }
+    virtual void set_model_parallelism_group_size(int _model_parallelism_group_size) { assert(false); }
 
     // Update the pointer of the input layer's data
     // This function is used to run a different dataset on the network

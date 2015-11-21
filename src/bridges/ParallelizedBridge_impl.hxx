@@ -1,8 +1,6 @@
 //
 //  ParallelizedBridge_impl.hxx
-//  moka
 //
-//  Created by Firas Abuzaid on 2/8/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
@@ -74,6 +72,7 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
     share_pointer_with_next_bridge(false),
     share_input_output_layer(_share_input_output_layer),
     skip_model_copy_gpu(false),
+    model_parallelism_group_size(1),
     model_base_learning_rate(1.0),
     bias_base_learning_rate(1.0),
     model_base_regularization(1.0),
@@ -156,6 +155,9 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
     // size) then instead of setting the cube pointers here to point to the input/output
     // layers, instead set the pointers NULL here and set the pointers during the call
     // to forward (for all 4 cubes).
+    
+    // Also note lower and higher are bad names, they should be input and output
+    // because lower is confusing with conv lowering.
     
     _data_cubes_lower.push_back(
         new LogicalCubeType(p_input_layer->p_data_cube->physical_get_RCDslice(b),
@@ -910,18 +912,35 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
       // SHADJIS TODO: Here I do num_partitions saxpy calls, on CPU. Instead of
       // doing them linearly O(num_partitions) can use a better reduction or do
       // this on GPU
-      for (size_t i = 1; i < num_partitions; ++i) {
-        // Store the gradient from each partition in p_model_subgrad
-        // If that partition's bridge was on the CPU already, no need for this copy
-        if (i < num_partitions_CPU) {
-         // scheduler_local_cpudriver->set_num_threads(n_partition*n_cpu_thread_per_partition);
-         // scheduler_local_cpudriver->math_saxpy(n_element, 1.0, gradients_host_pointers[i], p_grad_data);
-         for (size_t j=0;j<n_element;++j) {
-           p_grad_data[j] += gradients_host_pointers[i][j];
-         }
-        } else {
-          // scheduler_local_cpudriver->set_num_threads(n_partition*n_cpu_thread_per_partition);
-          // scheduler_local_cpudriver->math_saxpy(n_element, 1.0, gradients_host_pointers[i], p_grad_data);
+      // Edit: SHADJIS TODO: Minimize #writes by reordering loops. Can handle
+      // more special-cases later.
+      if (num_partitions == 4) {
+        // const DataType * const input0 = gradients_host_pointers[0];
+        const DataType * const input1 = gradients_host_pointers[1];
+        const DataType * const input2 = gradients_host_pointers[2];
+        const DataType * const input3 = gradients_host_pointers[3];
+        for (size_t j=0;j<n_element;++j) {
+          p_grad_data[j] += ( input1[j] + input2[j] + input3[j] );
+          // p_grad_data[j] = ( input0[j] + input1[j] + input2[j] + input3[j] );
+        }
+      }
+      else {
+        for (size_t i = 1; i < num_partitions; ++i) {
+          // Store the gradient from each partition in p_model_subgrad
+          // If that partition's bridge was on the CPU already, no need for this copy
+          //if (i < num_partitions_CPU) {
+          // // scheduler_local_cpudriver->set_num_threads(n_partition*n_cpu_thread_per_partition);
+          // // scheduler_local_cpudriver->math_saxpy(n_element, 1.0, gradients_host_pointers[i], p_grad_data);
+          // for (size_t j=0;j<n_element;++j) {
+          //   p_grad_data[j] += gradients_host_pointers[i][j];
+          // }
+          //} else {
+          //  // scheduler_local_cpudriver->set_num_threads(n_partition*n_cpu_thread_per_partition);
+          //  // scheduler_local_cpudriver->math_saxpy(n_element, 1.0, gradients_host_pointers[i], p_grad_data);
+          //  for (size_t j=0;j<n_element;++j) {
+          //    p_grad_data[j] += gradients_host_pointers[i][j];
+          //  }
+          //}
           for (size_t j=0;j<n_element;++j) {
             p_grad_data[j] += gradients_host_pointers[i][j];
           }

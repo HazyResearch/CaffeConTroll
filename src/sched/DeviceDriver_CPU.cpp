@@ -458,10 +458,7 @@ void CPUDriver::math_saxpy(const int nItems, const float alpha, float * X, float
 
 void CPUDriver::math_saxpby(const int N, const float alpha, float * X, const float beta, float * Y) const {
 #ifdef _USE_OPENBLAS
-//  cblas_saxpby(N, alpha, X, 1, beta, Y, 1);
-  for (int i = N; i > 0; X++, Y++, --i) {
-    *Y = alpha**X + beta* *Y;
-  }
+  cblas_saxpby(N, alpha, X, 1, beta, Y, 1);
 #elif _USE_ATLAS
   catlas_saxpby(N, alpha, X, 1, beta, Y, 1);
 #elif _VANILLA_BLAS
@@ -476,7 +473,7 @@ void CPUDriver::math_saxpby(const int N, const float alpha, float * X, const flo
 
 void CPUDriver::set_num_threads(const int nThreads) {
 #ifdef _USE_OPENBLAS
-//  openblas_set_num_threads(nThreads);
+  openblas_set_num_threads(nThreads);
 #elif _USE_ATLAS
 
 #elif _VANILLA_BLAS

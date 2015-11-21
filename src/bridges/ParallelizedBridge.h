@@ -1,8 +1,6 @@
 //
 //  ParallelizedBridge.h
-//  moka
 //
-//  Created by Firas Abuzaid on 2/8/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
@@ -199,6 +197,8 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     // For the GPU, we might not need to copy the model back to the host
     bool skip_model_copy_gpu;
     
+    int model_parallelism_group_size;
+    
     // -------------------------------------------------------------------------
     // End of Scheduler class members
     // -------------------------------------------------------------------------
@@ -354,6 +354,11 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
 
     void set_update_model_gradients(bool _update_model_gradients) {
         update_model_gradients = _update_model_gradients;
+    }
+    
+    int get_model_parallelism_group_size() { return model_parallelism_group_size; }
+    void set_model_parallelism_group_size(int _model_parallelism_group_size) {
+        model_parallelism_group_size = _model_parallelism_group_size;
     }
     
     // SHADJIS TODO: May be possible to have a single vector for all bridges

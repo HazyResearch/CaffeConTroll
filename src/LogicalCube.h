@@ -18,7 +18,7 @@
 
 enum LayoutType {
   Layout_CRDB = 0,
-  Layout_BDRC = 1
+  Layout_BDRC = 1       // SHADJIS TODO: Why don't we use Layout_BDRC ever? Need to benchmark
 };
 
 /*
