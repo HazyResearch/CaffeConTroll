@@ -176,6 +176,25 @@ class DeepNet {
       }
     }
 
+    // Given a buffer (already allocated on the host), fill it with all the gradients
+    // To know how big to make this buffer see get_parameter_size()
+    static void get_ith_gradient(const BridgeVector bridges, DataType_SFFloat * buffer, int i) {  
+
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
+      size_t total_size = 0;
+      model = (bridges[i])->get_model_cube();
+      if (model) {
+        memcpy(buffer + total_size, (bridges[i])->get_model_gradient_host(), sizeof(DataType_SFFloat) * model->n_elements);
+        total_size += model->n_elements;
+      }
+      bias = (bridges[i])->get_bias_cube();
+      if (bias) {
+        memcpy(buffer + total_size, (bridges[i])->get_bias_gradient_host(),  sizeof(DataType_SFFloat) * bias->n_elements);
+        total_size += bias->n_elements;
+      }
+    }
+
     // Given a buffer of all the gradients in the network, update all the models of all the bridges
     static void update_all_models_with_gradients(const BridgeVector bridges, DataType_SFFloat * gradients_concatenated) {
 
@@ -207,6 +226,38 @@ class DeepNet {
             
     }
 
+
+    // Given a buffer of all the gradients in the network, update all the models of all the bridges
+    static void update_ith_models_with_gradients(const BridgeVector bridges, DataType_SFFloat * gradients_concatenated, int i) {
+
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
+      size_t total_size = 0;
+     
+        // SHADJIS TODO: I am calling these functions "_CPU", e.g.
+        // update_model_with_gradient_CPU. This is because if the bridge
+        // has the gradient updates normally on the GPU, then we need to
+        // pass in a device pointer. Eventually I should abstract this using
+        // a device memory pointer but for now I will assert that the
+        // gradient updates for this bridge are on the CPU, and therefore that
+        // gradients_concatenated is just a host pointer.
+     
+        model = (bridges[i])->get_model_cube();
+        if (model) {
+          (bridges[i])->update_model_with_gradient_CPU(gradients_concatenated + total_size);
+          total_size += model->n_elements;
+        }
+
+        bias = (bridges[i])->get_bias_cube();
+        if (bias) {
+          (bridges[i])->update_bias_with_gradient_CPU(gradients_concatenated + total_size);
+          total_size += bias->n_elements;
+        }
+            
+    }
+
+
+
     // Given a buffer (already allocated on the host), fill it with all the model weights
     // To know how big to make this buffer see get_parameter_size()
     static void get_all_models(const BridgeVector bridges, DataType_SFFloat * buffer) {  
@@ -236,6 +287,49 @@ class DeepNet {
         }
       }
     }
+
+    static void get_ith_models(const BridgeVector bridges, DataType_SFFloat * buffer, int i) {  
+
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
+
+      size_t total_size = 0;
+      model = bridges[i]->get_model_cube();
+      if(model){
+        bridges[i]->force_device_to_host_model_copy();
+        memcpy(buffer + total_size, model->get_p_data(), sizeof(DataType_SFFloat) * model->n_elements);
+        total_size += model->n_elements;
+      }
+      bias = bridges[i]->get_bias_cube();
+      if (bias) {
+        bridges[i]->force_device_to_host_bias_copy();
+        memcpy(buffer + total_size, bias->get_p_data(), sizeof(DataType_SFFloat) * bias->n_elements);
+        total_size += bias->n_elements;
+      }
+
+    }
+
+    // Like read_model_from_file() but read model from a memory buffer
+    static void set_ith_models(const BridgeVector bridges, DataType_SFFloat * models_concatenated, int i) {  
+
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
+
+      size_t total_size = 0;
+      model = bridges[i]->get_model_cube();
+      if(model){
+        memcpy(model->get_p_data(), models_concatenated + total_size, sizeof(DataType_SFFloat) * model->n_elements);
+        total_size += model->n_elements;
+        bridges[i]->force_host_to_device_model_copy();
+      }
+      bias = bridges[i]->get_bias_cube();
+      if (bias) {
+        memcpy(bias->get_p_data(), models_concatenated + total_size, sizeof(DataType_SFFloat) * bias->n_elements);
+        total_size += bias->n_elements;
+        bridges[i]->force_host_to_device_bias_copy();
+      }
+    }
+
 
     // Like read_model_from_file() but read model from a memory buffer
     static void set_all_models(const BridgeVector bridges, DataType_SFFloat * models_concatenated) {  
