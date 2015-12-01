@@ -90,6 +90,15 @@ class SplitBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass> : p
     void forward();
 
     void backward();
+    
+    void update_p_input_layer_data_CPU_ONLY(float * new_data)  {
+      p_input_layer->p_data_cube->set_p_data(new_data);
+      // For split bridge, also pass this pointer to all the output bridges
+      for (int i = 0; i < p_output_layers.size(); ++i) {
+        p_output_layers[i]->p_data_cube->set_p_data(new_data);
+      }
+    }
+    
 };
 
 #include "SplitBridge_impl.hxx"
