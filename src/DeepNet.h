@@ -289,6 +289,20 @@ class DeepNet {
       }
       return total_size;
     }
+    static void get_ith_gradient_model_only(const BridgeVector bridges, DataType_SFFloat * buffer, int i) {  
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
+      model = (bridges[i])->get_model_cube();
+      if (model) {
+        memcpy(buffer, (bridges[i])->get_model_gradient_host(), sizeof(DataType_SFFloat) * model->n_elements);
+      }
+    }
+    static void get_ith_gradient_bias_only(const BridgeVector bridges, DataType_SFFloat * buffer, int i) {  
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
+      bias = (bridges[i])->get_bias_cube();
+      if (bias) {
+        memcpy(buffer, (bridges[i])->get_bias_gradient_host(),  sizeof(DataType_SFFloat) * bias->n_elements);
+      }
+    }
 
     // Given a buffer of all the gradients in the network, update all the models of all the bridges
     static void update_all_models_with_gradients(const BridgeVector bridges, DataType_SFFloat * gradients_concatenated) {
@@ -426,7 +440,22 @@ class DeepNet {
         bridges[i]->force_host_to_device_bias_copy();
       }
     }
-
+    static void set_ith_model_only(const BridgeVector bridges, DataType_SFFloat * models_concatenated, int i) {  
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
+      model = bridges[i]->get_model_cube();
+      if(model){
+        memcpy(model->get_p_data(), models_concatenated, sizeof(DataType_SFFloat) * model->n_elements);
+        bridges[i]->force_host_to_device_model_copy();
+      }
+    }
+    static void set_ith_bias_only(const BridgeVector bridges, DataType_SFFloat * models_concatenated, int i) {  
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
+      bias = bridges[i]->get_bias_cube();
+      if (bias) {
+        memcpy(bias->get_p_data(), models_concatenated, sizeof(DataType_SFFloat) * bias->n_elements);
+        bridges[i]->force_host_to_device_bias_copy();
+      }
+    }
 
     // Like read_model_from_file() but read model from a memory buffer
     static void set_all_models(const BridgeVector bridges, DataType_SFFloat * models_concatenated) {  
