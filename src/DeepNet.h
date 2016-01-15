@@ -1671,7 +1671,7 @@ class DeepNet {
         // to make the switching between this and the master branch (that load everything in memory)
         // dynamically and improve code reuse.
         float * const mini_batch = corpus.images->physical_get_RCDslice(0);
-        input_data->set_p_data(mini_batch);
+        assert(input_data->get_p_data() == mini_batch);
 
         softmax->reset_loss();
 
@@ -1851,7 +1851,7 @@ class DeepNet {
           //t_load = t.elapsed();
           //t.restart();
           float * const mini_batch = corpus.images->physical_get_RCDslice(0);
-          input_data->set_p_data(mini_batch);
+          assert(input_data->get_p_data() == mini_batch);
 
           softmax->reset_loss();
 

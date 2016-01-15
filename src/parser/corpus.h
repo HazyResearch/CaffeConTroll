@@ -1,8 +1,6 @@
 //
 //  corpus.h
-//  moka
 //
-//  Created by Firas Abuzaid on 1/29/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
@@ -36,8 +34,8 @@ class Corpus {
     size_t n_cols;
     size_t dim;
     size_t mini_batch_size;
-    size_t num_mini_batches;
-    size_t last_batch_size;
+    // size_t num_mini_batches;
+    // size_t last_batch_size;
 
     // n_rows x n_cols x dim x n_images
     LogicalCube<DataType_SFFloat, Layout_CRDB> * images;
@@ -111,8 +109,8 @@ class Corpus {
 
       mdb_env_stat(mdb_env_, &stat);
       n_images = stat.ms_entries;
-      num_mini_batches = ceil(float(n_images) / mini_batch_size);
-      last_batch_size = mini_batch_size - (num_mini_batches * mini_batch_size - n_images);
+      // num_mini_batches = ceil(float(n_images) / mini_batch_size);
+      // last_batch_size = mini_batch_size - (num_mini_batches * mini_batch_size - n_images);
 
       // Define and initialize cube storing the mean image from the database
       mean = new LogicalCube<DataType_SFFloat, Layout_CRDB>(datum.height(), datum.width(), dim, 1);
@@ -163,6 +161,7 @@ class Corpus {
       // we don't want to be using an old binary, so could overwrite anyway if using default names.
       // There may be better ways to prevent that, e.g. a new option?
       //if(pFile && filename != "val_preprocessed.bin" && filename != "test_preprocessed.bin" && filename != "train_preprocessed.bin") {
+      // SHADJIS TODO: Assert labels are continuous starting from 0
       if(pFile) {
           fclose(pFile);
           
@@ -238,7 +237,6 @@ class Corpus {
 
     void process_image(const cnn::LayerParameter & layer_param, float * const &single_input_batch, cnn::Datum datum) {
 
-      const string& data = datum.data();
       const int crop_size = layer_param.transform_param().crop_size();
       const int height = datum.height();
       const int width = datum.width();
@@ -252,7 +250,8 @@ class Corpus {
         n_rows = datum.height();
         n_cols = datum.width();
       }
-
+ 
+      // SHADJIS TODO: Randomize each iteration
       if (crop_size > 0) {
         int h_off, w_off;
         if (layer_param.include(0).phase() == 0) {         // Training Phase
@@ -271,7 +270,12 @@ class Corpus {
                 int data_index = (c * height + h + h_off) * width + w + w_off;
                 int top_index = (c * crop_size + h) * crop_size + (crop_size - 1 - w);
 
-                float datum_element = static_cast<float>(static_cast<uint8_t>(data[data_index]));
+                float datum_element;
+                if (datum.data().size() != 0) {
+                  datum_element = static_cast<float>(static_cast<uint8_t>(datum.data()[data_index]));
+                } else {
+                  datum_element = datum.float_data(data_index);
+                }
                 single_input_batch[top_index] = (datum_element - mean_data[data_index])*scale;
               }
             }
@@ -285,7 +289,12 @@ class Corpus {
                 int top_index = (c * crop_size + h) * crop_size + w;
                 int data_index = (c * height + h + h_off) * width + w + w_off;
 
-                float datum_element = static_cast<float>(static_cast<uint8_t>(data[data_index]));
+                float datum_element;
+                if (datum.data().size() != 0) {
+                  datum_element = static_cast<float>(static_cast<uint8_t>(datum.data()[data_index]));
+                } else {
+                  datum_element = datum.float_data(data_index);
+                }
                 single_input_batch[top_index] = (datum_element - mean_data[data_index])*scale;
               }
             }
@@ -297,7 +306,12 @@ class Corpus {
           for (size_t r = 0; r < n_rows; ++r) {
             for (size_t c = 0; c < n_cols; ++c) {
               const size_t data_index = d * n_rows * n_cols + r * n_cols + c;
-              float datum_element = static_cast<float>(static_cast<uint8_t>(data[data_index]));
+              float datum_element;
+              if (datum.data().size() != 0) {
+                datum_element = static_cast<float>(static_cast<uint8_t>(datum.data()[data_index]));
+              } else {
+                datum_element = datum.float_data(data_index);
+              }
               single_input_batch[data_index] = (datum_element - mean_data[data_index])*scale;
             }
           }
