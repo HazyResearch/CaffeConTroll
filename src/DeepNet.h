@@ -702,7 +702,7 @@ class DeepNet {
     // Here, we train our CNN: we iterate over the vector of bridges, forwards and backward for each batch size.
     // Right now, we do this in a single-thread fashion. TODO: Create a Scheduler class, that schedules workers
     // for each batch size, so that we can perform these forward and backward passes in parallel.
-    static void train_network(const BridgeVector & bridges, const Corpus & corpus, const cnn::NetParameter & net_param,
+    static void train_network(const BridgeVector & bridges, Corpus & corpus, const cnn::NetParameter & net_param,
         const cnn::SolverParameter & solver_param, const string input_model_file, const string snapshot_file_name,
         const Corpus & val_corpus, bool time_iterations = false) {
 
@@ -740,9 +740,12 @@ class DeepNet {
       const size_t num_batch_iterations = solver_param.max_iter();
       
       // Open the file for the first time during training
-      FILE * pFile = fopen (corpus.filename.c_str(), "rb");
-      if (!pFile)
-        throw std::runtime_error("Error opening the corpus file: " + corpus.filename);
+      // FILE * pFile = fopen (corpus.filename.c_str(), "rb");
+      // if (!pFile)
+      //   throw std::runtime_error("Error opening the corpus file: " + corpus.filename);
+      // daniter TODO : delete above
+      // instead of opening a file, open a lmdb reader
+      corpus.OpenLmdbReader();
 
       // Keep track of the image number in the dataset we are on
       size_t current_image_location_in_dataset = 0;
@@ -762,17 +765,25 @@ class DeepNet {
         // SHADJIS TODO: curr_B is unused now in every bridge, can remove it or plan to support variable batch size
 
         // Read in the next mini-batch from file
-        size_t rs = fread(corpus.images->get_p_data(), sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
+        //size_t rs = fread(corpus.images->get_p_data(), sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
+        // dantier TODO : delete above
+        size_t rs = corpus.LoadLmdbData();
+
         // initialize labels for this mini batch
-        labels->set_p_data(corpus.labels->physical_get_RCDslice(current_image_location_in_dataset));
+        //labels->set_p_data(corpus.labels->physical_get_RCDslice(current_image_location_in_dataset));
+        labels->set_p_data(corpus.labels->physical_get_RCDslice(0)); // daniter TODO : check this
+
         // If we read less than we expected, read the rest from the beginning
         size_t num_floats_left_to_read = corpus.images->n_elements - rs;
         if (num_floats_left_to_read > 0) {
+            // TODO : Remove this and fix code below
+            assert(false &&  "Lets hope we don't need to do this yet.");
             // Increment epoch
             ++current_epoch;
             // Close the file and re-open it
-            fclose(pFile);
-            pFile = fopen (corpus.filename.c_str(), "rb");
+            //fclose(pFile);
+            // daniter TODO : fix above
+            FILE * pFile = fopen (corpus.filename.c_str(), "rb");
             if (!pFile)
               throw std::runtime_error("Error opening the corpus file: " + corpus.filename);
             // Read the remaining data from the file, adjusting the pointer to where we
@@ -813,7 +824,8 @@ class DeepNet {
         
         current_image_location_in_dataset += corpus.mini_batch_size;
         if (current_image_location_in_dataset >= corpus.n_images) {
-            current_image_location_in_dataset -= corpus.n_images;
+          assert(false &&  "Lets hope we don't need to do this yet. -- second section");
+          current_image_location_in_dataset -= corpus.n_images;
         }
         
         t_load = t.elapsed();
@@ -914,7 +926,9 @@ class DeepNet {
         }
       }
       
-      fclose(pFile);
+      // fclose(pFile);
+      // daniter TODO : delete above
+      corpus.CloseLmdbReader();
       delete labels_buffer;
       std::cout << "Total Time (seconds): " << t_total.elapsed() << std::endl;
     }

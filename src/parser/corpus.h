@@ -48,8 +48,13 @@ class Corpus {
 
     std::string filename;
 
-    Corpus(const cnn::LayerParameter & layer_param, const string data_binary) {
+    Corpus(const cnn::LayerParameter & layer_param, const string data_binary):
+      scale(layer_param.transform_param().scale()), mirror(layer_param.transform_param().mirror()),
+      crop_size(layer_param.transform_param().crop_size()), phase(layer_param.include(0).phase() == 0) {
+      mdb_env_source = layer_param.data_param().source(); 
+      mini_batch_size = layer_param.data_param().batch_size();
       initialize_input_data_and_labels(layer_param, data_binary);
+      images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, mini_batch_size);  
     }
 
     ~Corpus() {
@@ -59,7 +64,80 @@ class Corpus {
       delete mean;
     }
 
+    /**
+     * Reset all env and cursor state of the LMBD reader
+     * returns 0 on success
+     */
+    int OpenLmdbReader(){
+      cnn::Datum datum;
+
+      CHECK_EQ(mdb_env_create(&mdb_env_),MDB_SUCCESS) << "Error in mdb_env_create";
+      CHECK_EQ(mdb_env_set_mapsize(mdb_env_, 1099511627776), MDB_SUCCESS) << "Error in mdb_env_set_mapsize";
+      CHECK_EQ(mdb_env_open(mdb_env_, mdb_env_source.c_str(), MDB_RDONLY|MDB_NOTLS, 0664), MDB_SUCCESS) << "Error in mdb_env_open for " << mdb_env_source;
+      CHECK_EQ(mdb_txn_begin(mdb_env_, NULL, MDB_RDONLY, &mdb_txn_), MDB_SUCCESS) << "Transaction could not be started";
+      CHECK_EQ(mdb_open(mdb_txn_, NULL, 0, &mdb_dbi_), MDB_SUCCESS) << "Error in mdb_open";
+      CHECK_EQ(mdb_cursor_open(mdb_txn_, mdb_dbi_, &mdb_cursor_), MDB_SUCCESS) << "Error in mdb_cursor_open";
+      mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, MDB_FIRST);
+
+      datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
+      dim = datum.channels();
+      if (crop_size != 0) {
+        n_rows = crop_size;
+        n_cols = crop_size;
+      } else {
+        n_rows = datum.height();
+        n_cols = datum.width();
+      }
+
+      tmpimg = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, 1);
+
+      // daniter TODO : return real success  here
+      return 0;
+    }
+
+    void CloseLmdbReader(){
+      delete tmpimg;
+      mdb_txn_abort(mdb_txn_);
+      mdb_cursor_close(mdb_cursor_);
+    }
+
+    /**
+     * Reads the next mini batch of data from lmdb. Updates cursors accordingly.
+     * Returns number of items loaded into images
+     */
+    int LoadLmdbData(){
+      cnn::Datum datum;
+      // Note that the corpus owns the storage of its images
+      // daniter TODO : Is this necessary?  I think it's defaulted to this anyway (MDB_FIRST)
+      MDB_cursor_op op = MDB_NEXT;;
+      float * const labels_data = labels->get_p_data();
+      for (size_t b = 0; b < mini_batch_size; b++) { 
+          mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
+          datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
+          labels_data[b] = datum.label(); 
+          // Process image reads the image from datum, does some preprocessing
+          // and copies it into the images buffer
+          process_image(images->physical_get_RCDslice(b), datum);
+      }
+
+      // daniter TODO : fix so it can return less than all images
+      return images->n_elements; 
+    }
+
   private:
+    const float scale;
+    const bool mirror;
+    const int crop_size;
+    const bool phase;
+    MDB_env* mdb_env_ = NULL;
+    MDB_dbi mdb_dbi_;
+    MDB_txn* mdb_txn_;
+    MDB_cursor* mdb_cursor_;
+    MDB_val mdb_key_, mdb_value_;
+    std::string mdb_env_source;
+    LogicalCube<DataType_SFFloat, Layout_CRDB> * tmpimg;
+
+
     void initialize_input_data_and_labels(const cnn::LayerParameter & layer_param, const string data_binary) {
       cnn::Datum datum;
       cnn::Cube cube;
@@ -209,7 +287,7 @@ class Corpus {
               int img_label = datum.label();
               labels_data[b] = img_label;
               float * const single_input_batch = tmpimg->physical_get_RCDslice(0); // Ce: only one batch
-              process_image(layer_param, single_input_batch, datum);
+              process_image(single_input_batch, datum);
               size_t written_bytes = fwrite(tmpimg->get_p_data(), sizeof(DataType_SFFloat), tmpimg->n_elements, pFile);
               if (written_bytes != tmpimg->n_elements) {
                 perror("\nError writing data binary file");
@@ -236,26 +314,17 @@ class Corpus {
       // }
     }
 
-    void process_image(const cnn::LayerParameter & layer_param, float * const &single_input_batch, cnn::Datum datum) {
+    // daniter TODO: Consider replacing nested loops below with a single loop (or some kind of vectorization?)
+    // measure it to see if its faster
+    void process_image(float * const &single_input_batch, cnn::Datum datum) {
 
       const string& data = datum.data();
-      const int crop_size = layer_param.transform_param().crop_size();
       const int height = datum.height();
       const int width = datum.width();
-      const float scale = layer_param.transform_param().scale();
-      const bool mirror = layer_param.transform_param().mirror();
-
-      if (layer_param.transform_param().has_crop_size()) {
-        n_rows = crop_size;
-        n_cols = crop_size;
-      } else {
-        n_rows = datum.height();
-        n_cols = datum.width();
-      }
 
       if (crop_size > 0) {
         int h_off, w_off;
-        if (layer_param.include(0).phase() == 0) {         // Training Phase
+        if (phase) {         // Training Phase
           h_off = rand() % (height - crop_size);// Take random patch
           w_off = rand() % (width - crop_size);
         } else {
