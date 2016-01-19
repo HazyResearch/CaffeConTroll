@@ -142,7 +142,11 @@ ifdef NVCC
 LINKFLAG += -lcublas -lcudart -lcurand
 NVCC_LINK = dlink.o
 endif
- 
+
+ifdef DI_DEBUG
+CFLAGS += $(DEBUG_FLAGS)
+endif
+	
 .PHONY: all assembly clean product test warning
 
 all: CFLAGS += $(PRODUCT_FLAGS) 
