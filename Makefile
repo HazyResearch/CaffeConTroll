@@ -212,8 +212,11 @@ snapshot_debug: LINKFLAG += $(DEBUG_FLAGS) -I $(GTEST_INCLUDE)
 snapshot_debug: $(SNAPSHOT_OBJ_FILES) cnn.pb.o
 	$(CC) $^ -o $(SNAPSHOT_EXECUTABLE) $(LINKFLAG) $(DIR_PARAMS) $(TEST_LDFLAGS) $(PROTOBUF_LIB) 
 
+-include $(addsuffix .d, $(basename $(OBJ_FILES)))
+
 %.o: %.cpp $(PROTO_COMPILED_SRC)
 	$(CC) $(CFLAGS) $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -c $< -o $@
+	$(CC) $(CFLAGS) $(INCLUDE_STR) $(TEST_BLASFLAGS) $(PROTOBUF) -MT $@ -MM $< > $(basename $@).d
 
 %.o: %.cu $(PROTO_COMPILED_SRC)
 	$(NVCC) -O3 $(BLAS_DEFS) $(NVCCFLAGS) $(INCLUDE_STR) $(TEST_BLASFLAGS) -dc $< -o $@
@@ -240,5 +243,6 @@ clean:
 	rm -f $(TEST_CUDA_OBJ_FILES)
 	rm -f $(MAIN_CUDA_OBJ_FILES)
 	rm -f $(SNAPSHOT_EXECUTABLE)
+	rm -f src/*.d
 	rm -f tests/toprocess.bin tests/model.bin tests/model.bin.* tests/lenet_toprocess.bin tests/imgnet_toprocess.bin
 
