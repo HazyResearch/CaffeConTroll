@@ -1558,10 +1558,6 @@ class DeepNet {
 
       LogicalCubeFloat * const labels = softmax->p_data_labels;
       LogicalCubeFloat * const input_data = first->p_input_layer->p_data_cube;
-      
-      // Also make a temporary labels array for when we wrap around the training set
-      // SHADJIS TODO: Can do this in other ways, can time to see if slow.
-      float *labels_buffer = new float [corpus.mini_batch_size];
 
       float t_load;
       float t_forward;
@@ -1620,23 +1616,17 @@ class DeepNet {
         //labels->set_p_data(corpus.labels->physical_get_RCDslice(current_image_location_in_dataset));
         labels->set_p_data(corpus.labels->physical_get_RCDslice(0)); // daniter TODO : check this
 
-        // If we read less than we expected, read the rest from the beginning
-        size_t num_floats_left_to_read = corpus.images->n_elements - rs;
-        if (num_floats_left_to_read > 0) {
-            // TODO : Remove this and fix code below
-            assert(false &&  "Lets hope we don't need to do this yet.");
+        // If we read less than we expected, read the rest from the beginning 
+        size_t num_images_left_to_read = corpus.mini_batch_size - rs;
+        if (num_images_left_to_read > 0) {
             // Increment epoch
             ++current_epoch;
-            // Close the file and re-open it
-            //fclose(pFile);
-            // daniter TODO : fix above
-            FILE * pFile = fopen (corpus.filename.c_str(), "rb");
-            if (!pFile)
-              throw std::runtime_error("Error opening the corpus file: " + corpus.filename);
+            // Simply reset the cursor so the next load will start from the start of the lmdb
+            corpus.ResetCursor();
             // Read the remaining data from the file, adjusting the pointer to where we
             // read until previously as well as the amount to read
-            size_t rs2 = fread((float *) (corpus.images->get_p_data()) + rs, sizeof(DataType_SFFloat), num_floats_left_to_read, pFile);
-            assert(rs2 == num_floats_left_to_read);
+            size_t rs2 = corpus.LoadLmdbData(rs);
+            assert(rs2 == num_images_left_to_read);
             // Also, we need to copy over the labels to a contiguous memory location
             // The labels are all allocated in corpus.labels. Normally we just set
             // the data pointer of our local "labels" cube to the right place in the
@@ -1646,32 +1636,12 @@ class DeepNet {
             // This involves 2 steps: the end portion of the training set and the 
             // beginning portion.
             
-            // Check if we actually read nothing (i.e. we were right at the end before)
-            // In this case, we don't have to copy anything else
-            if (rs == 0) {
-                assert(current_image_location_in_dataset == 0);
-                memcpy(labels_buffer, corpus.labels->physical_get_RCDslice(0), sizeof(float) * corpus.mini_batch_size);
-            }
-            // Otherwise, we have to copy twice
-            else {
-                size_t num_images_from_end = corpus.n_images - current_image_location_in_dataset;
-                assert(num_images_from_end > 0);
-                assert(num_images_from_end < corpus.mini_batch_size);
-                size_t num_images_from_beginning = corpus.mini_batch_size - num_images_from_end;
-                memcpy(labels_buffer,
-                    corpus.labels->physical_get_RCDslice(current_image_location_in_dataset),
-                    sizeof(float) * num_images_from_end);
-                memcpy(labels_buffer + num_images_from_end,
-                    corpus.labels->physical_get_RCDslice(0),
-                    sizeof(float) * num_images_from_beginning);
-            }
             // Now point labels to this array
-            labels->set_p_data(labels_buffer);
+            labels->set_p_data(corpus.labels->physical_get_RCDslice(0));
         }
         
         current_image_location_in_dataset += corpus.mini_batch_size;
         if (current_image_location_in_dataset >= corpus.n_images) {
-          assert(false &&  "Lets hope we don't need to do this yet. -- second section");
           current_image_location_in_dataset -= corpus.n_images;
         }
         
@@ -1764,7 +1734,6 @@ class DeepNet {
       // fclose(pFile);
       // daniter TODO : delete above
       corpus.CloseLmdbReader();
-      delete labels_buffer;
       std::cout << "Total Time (seconds): " << t_total.elapsed() << std::endl;
     }
 

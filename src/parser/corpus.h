@@ -102,24 +102,37 @@ class Corpus {
     /**
      * Reads the next mini batch of data from lmdb. Updates cursors accordingly.
      * Returns number of items loaded into images
+     * The offset is used to start filling in the images from an arbitrary spot.
+     * It still fills the rest of images until it has filled up the minibatch.
+     * This is used when wrapping over the data and starting at the beginning again
      */
-    int LoadLmdbData(){
+    int LoadLmdbData(int offset = 0){
       cnn::Datum datum;
+      int mdb_ret;
       // Note that the corpus owns the storage of its images
       // daniter TODO : Is this necessary?  I think it's defaulted to this anyway (MDB_FIRST)
-      MDB_cursor_op op = MDB_NEXT;;
       float * const labels_data = labels->get_p_data();
-      for (size_t b = 0; b < mini_batch_size; b++) { 
-          mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
+      int count = 0;
+      for (size_t b = offset; b < mini_batch_size; b++) { 
+          mdb_ret = mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
+          if(mdb_ret != 0){
+            break;
+          }
           datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
           labels_data[b] = datum.label(); 
           // Process image reads the image from datum, does some preprocessing
           // and copies it into the images buffer
           process_image(images->physical_get_RCDslice(b), datum);
+          op = MDB_NEXT;
+          ++count;
       }
 
       // daniter TODO : fix so it can return less than all images
-      return images->n_elements; 
+      return count; 
+    }
+
+    void ResetCursor(){
+      op = MDB_FIRST;
     }
 
   private:
@@ -133,6 +146,7 @@ class Corpus {
     MDB_cursor* mdb_cursor_;
     MDB_val mdb_key_, mdb_value_;
     std::string mdb_env_source;
+    MDB_cursor_op op = MDB_FIRST;
     LogicalCube<DataType_SFFloat, Layout_CRDB> * tmpimg;
 
 
