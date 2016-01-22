@@ -709,7 +709,7 @@ class DeepNet {
       SoftmaxBridge * const softmax = (SoftmaxBridge *) bridges.back();
       Bridge * const first = (Bridge *) bridges.front();
 
-      LogicalCubeFloat * const labels = softmax->p_data_labels;
+      softmax->p_data_labels->set_p_data(corpus.labels->physical_get_RCDslice(0));
       LogicalCubeFloat * const input_data = first->p_input_layer->p_data_cube;
 
       float t_load;
@@ -763,7 +763,7 @@ class DeepNet {
         // iteration, we get the label in the data so now the labels and images objects are parallel
         // TODO? : Perhaps this is a good reason to merge them into a single object 
         // Since labels are in sync they will also only be of size mini_batch_size
-        labels->set_p_data(corpus.labels->physical_get_RCDslice(0)); 
+        assert(softmax->p_data_labels->get_p_data() == corpus.labels->get_p_data());
 
         // If we read less than we expected, read the rest from the beginning 
         size_t num_images_left_to_read = corpus.mini_batch_size - rs;
@@ -780,9 +780,9 @@ class DeepNet {
             size_t rs2 = corpus.LoadLmdbData(rs);
             assert(rs2 == num_images_left_to_read);
             
-            // The corpus.labels object was also updated above so we need to update the 
-            // labels object taht we use below
-            labels->set_p_data(corpus.labels->physical_get_RCDslice(0));
+            // The corpus.labels object was also updated above so we need to check that
+            // the pointer is still consistent
+            assert(softmax->p_data_labels->get_p_data() == corpus.labels->get_p_data());
         }
         
         current_image_location_in_dataset += corpus.mini_batch_size;
@@ -814,7 +814,7 @@ class DeepNet {
         t_forward = t.elapsed();
 
         loss += (softmax->get_loss() / float(corpus.mini_batch_size));
-        accuracy += float(DeepNet::find_accuracy(labels, (*--bridges.end())->p_output_layer->p_data_cube)) / float(corpus.mini_batch_size);
+        accuracy += float(DeepNet::find_accuracy(softmax->p_data_labels, (*--bridges.end())->p_output_layer->p_data_cube)) / float(corpus.mini_batch_size);
 
         // backward pass
         t.restart();
@@ -935,7 +935,8 @@ class DeepNet {
         SoftmaxBridge * const softmax = (SoftmaxBridge *) bridges.back();
         Bridge * const first = (Bridge *) bridges.front();
 
-        LogicalCubeFloat * const labels = softmax->p_data_labels;
+        // set softmax data to point to our corpus labels buffer
+        softmax->p_data_labels->set_p_data(corpus.labels->physical_get_RCDslice(0));
         LogicalCubeFloat * const input_data = first->p_input_layer->p_data_cube;
 
         corpus.OpenLmdbReader();
@@ -993,8 +994,8 @@ class DeepNet {
 
           softmax->reset_loss();
 
-          // initialize labels for this mini batch
-          labels->set_p_data(corpus.labels->physical_get_RCDslice(0));
+          // check that label pointer is correct
+          assert(softmax->p_data_labels->get_p_data() == corpus.labels->get_p_data());
           // forward pass
           for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
             (*bridge)->forward();
@@ -1003,7 +1004,7 @@ class DeepNet {
 
           float loss = (softmax->get_loss() / corpus.mini_batch_size);
           total_loss += loss;
-          int batch_accuracy = DeepNet::find_accuracy(labels, softmax->p_output_layer->p_data_cube);
+          int batch_accuracy = DeepNet::find_accuracy(softmax->p_data_labels, softmax->p_output_layer->p_data_cube);
           total_accuracy += batch_accuracy;
 
           //t_pass = t2.elapsed();
