@@ -77,7 +77,11 @@ class Corpus {
       CHECK_EQ(mdb_txn_begin(mdb_env_, NULL, MDB_RDONLY, &mdb_txn_), MDB_SUCCESS) << "Transaction could not be started";
       CHECK_EQ(mdb_open(mdb_txn_, NULL, 0, &mdb_dbi_), MDB_SUCCESS) << "Error in mdb_open";
       CHECK_EQ(mdb_cursor_open(mdb_txn_, mdb_dbi_, &mdb_cursor_), MDB_SUCCESS) << "Error in mdb_cursor_open";
-      mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, MDB_FIRST);
+      int ret = mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, MDB_FIRST);
+      if (ret != 0){
+        std::cerr << "Critical error trying to open the LMDB reader." << std::endl;
+        return ret;
+      }
 
       datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
       dim = datum.channels();
@@ -91,7 +95,6 @@ class Corpus {
 
       tmpimg = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, 1);
 
-      // daniter TODO : return real success  here
       return 0;
     }
 
@@ -103,7 +106,7 @@ class Corpus {
 
     /**
      * Reads the next mini batch of data from lmdb. Updates cursors accordingly.
-     * Returns number of items loaded into images
+     * Returns number of images loaded
      * The offset is used to start filling in the images from an arbitrary spot.
      * It still fills the rest of images until it has filled up the minibatch.
      * This is used when wrapping over the data and starting at the beginning again
@@ -112,7 +115,6 @@ class Corpus {
       cnn::Datum datum;
       int mdb_ret;
       // Note that the corpus owns the storage of its images
-      // daniter TODO : Is this necessary?  I think it's defaulted to this anyway (MDB_FIRST)
       float * const labels_data = labels->get_p_data();
       int count = 0;
       for (size_t b = offset; b < mini_batch_size; b++) { 
@@ -129,10 +131,12 @@ class Corpus {
           ++count;
       }
 
-      // daniter TODO : fix so it can return less than all images
       return count; 
     }
 
+    /*
+     * The next load will start reading from the first element
+     */
     void ResetCursor(){
       op = MDB_FIRST;
     }
@@ -240,7 +244,7 @@ class Corpus {
       }
 
       // Initialize the cube storing the correct labels
-      labels = new LogicalCube<DataType_SFFloat, Layout_CRDB>(1, 1, 1, n_images);
+      labels = new LogicalCube<DataType_SFFloat, Layout_CRDB>(1, 1, 1, mini_batch_size);
 
       filename = data_binary;
 
@@ -279,39 +283,6 @@ class Corpus {
             labels_data[b] = img_label;
             op = MDB_NEXT;
           }
-      }
-      // SHADJIS TODO: Here we preprocess the entire dataset and save in binary format. Note for Imagenet, this can take
-      // hours (but only needs to be done once). The alternative is to preprocess the data in real-time rather than in advance.
-      else {
-          std::cout << "Data binary " << filename << " does not exist, creating\n";
-          pFile = fopen(filename.c_str(), "wb+");
-          if (pFile == NULL) {
-              // perror("Error");
-              throw std::runtime_error("File open error: " + filename + " " + strerror(errno)); // TODO: REAL MESSAGE
-          }
-          LogicalCube<DataType_SFFloat, Layout_CRDB> * tmpimg = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, 1);
-          // Note that the corpus owns the storage of its images
-          images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, mini_batch_size);  // Ce: only one mini-batch in memory
-          std::cout << "Start writing " << n_images << " to " << filename.c_str() << "..." << std::endl;
-          MDB_cursor_op op = MDB_FIRST;
-          float * const labels_data = labels->get_p_data();
-          for (size_t b = 0; b < n_images; b++) {
-              mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
-              datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
-              int img_label = datum.label();
-              labels_data[b] = img_label;
-              float * const single_input_batch = tmpimg->physical_get_RCDslice(0); // Ce: only one batch
-              process_image(single_input_batch, datum);
-              size_t written_bytes = fwrite(tmpimg->get_p_data(), sizeof(DataType_SFFloat), tmpimg->n_elements, pFile);
-              if (written_bytes != tmpimg->n_elements) {
-                perror("\nError writing data binary file");
-                assert(false);
-              }
-              op = MDB_NEXT;
-          }
-          std::cout << "Finished writing images to " << filename.c_str() << "..." << std::endl;
-          delete tmpimg;
-          fclose(pFile);
       }
       // else{
       //   images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, n_images);

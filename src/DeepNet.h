@@ -735,12 +735,8 @@ class DeepNet {
       // update weights, i.e. the number of mini-batches we will run.
       const size_t num_batch_iterations = solver_param.max_iter();
       
-      // Open the file for the first time during training
-      // FILE * pFile = fopen (corpus.filename.c_str(), "rb");
-      // if (!pFile)
-      //   throw std::runtime_error("Error opening the corpus file: " + corpus.filename);
-      // daniter TODO : delete above
-      // instead of opening a file, open a lmdb reader
+      // It is necessary to open the reader before loading data to initialize
+      // cursor, transaction and environment data
       corpus.OpenLmdbReader();
 
       // Keep track of the image number in the dataset we are on
@@ -760,14 +756,14 @@ class DeepNet {
         // SHADJIS TODO: This should be done in parallel with the network execution if slow (measure)
         // SHADJIS TODO: curr_B is unused now in every bridge, can remove it or plan to support variable batch size
 
-        // Read in the next mini-batch from file
-        //size_t rs = fread(corpus.images->get_p_data(), sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
-        // dantier TODO : delete above
+        // Read in the next mini-batch from db
         size_t rs = corpus.LoadLmdbData();
 
-        // initialize labels for this mini batch
-        //labels->set_p_data(corpus.labels->physical_get_RCDslice(current_image_location_in_dataset));
-        labels->set_p_data(corpus.labels->physical_get_RCDslice(0)); // daniter TODO : check this
+        // Note that the implementation of labels has changed.  Since we are reading the lmbd for every
+        // iteration, we get the label in the data so now the labels and images objects are parallel
+        // TODO? : Perhaps this is a good reason to merge them into a single object 
+        // Since labels are in sync they will also only be of size mini_batch_size
+        labels->set_p_data(corpus.labels->physical_get_RCDslice(0)); 
 
         // If we read less than we expected, read the rest from the beginning 
         size_t num_images_left_to_read = corpus.mini_batch_size - rs;
@@ -776,20 +772,16 @@ class DeepNet {
             ++current_epoch;
             // Simply reset the cursor so the next load will start from the start of the lmdb
             corpus.ResetCursor();
-            // Read the remaining data from the file, adjusting the pointer to where we
-            // read until previously as well as the amount to read
+            
+            // Passing in rs allows us to say that we already filled rs spots in images
+            // and now we want to start from that position and complete the set up to mini_batch_size
+            // Eg. Minibatch is 10.  We read 2 images and hit the end of the mldb.  After reseting the
+            // cursor above we can just tell the load function to start from index 2 and continue
             size_t rs2 = corpus.LoadLmdbData(rs);
             assert(rs2 == num_images_left_to_read);
-            // Also, we need to copy over the labels to a contiguous memory location
-            // The labels are all allocated in corpus.labels. Normally we just set
-            // the data pointer of our local "labels" cube to the right place in the
-            // corpus labels cube data. But since the labels we want aren't anywhere
-            // contiguously, we can allocate an array for them.
-            // First, copy the correct labels to the array
-            // This involves 2 steps: the end portion of the training set and the 
-            // beginning portion.
             
-            // Now point labels to this array
+            // The corpus.labels object was also updated above so we need to update the 
+            // labels object taht we use below
             labels->set_p_data(corpus.labels->physical_get_RCDslice(0));
         }
         
@@ -797,7 +789,7 @@ class DeepNet {
         if (current_image_location_in_dataset >= corpus.n_images) {
           current_image_location_in_dataset -= corpus.n_images;
         }
-        
+
         t_load = t.elapsed();
 
         t.restart();
@@ -896,8 +888,8 @@ class DeepNet {
         }
       }
       
-      // fclose(pFile);
-      // daniter TODO : delete above
+      // This frees any handles we have to the lmdb and free allocated internal objects.
+      // Note that corpus.images and corpus.labels are still usable
       corpus.CloseLmdbReader();
       std::cout << "Total Time (seconds): " << t_total.elapsed() << std::endl;
     }
