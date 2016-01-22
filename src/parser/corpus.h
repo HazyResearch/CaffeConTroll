@@ -52,7 +52,9 @@ class Corpus {
       mdb_env_source = layer_param.data_param().source(); 
       mini_batch_size = layer_param.data_param().batch_size();
       initialize_input_data_and_labels(layer_param, data_binary);
-      images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, mini_batch_size);  
+      images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, mini_batch_size); 
+      // Initialize the cube storing the correct labels
+      labels = new LogicalCube<DataType_SFFloat, Layout_CRDB>(1, 1, 1, mini_batch_size); 
     }
 
     ~Corpus() {
@@ -240,62 +242,6 @@ class Corpus {
       else {
         mean->reset_cube();
       }
-
-      // Initialize the cube storing the correct labels
-      labels = new LogicalCube<DataType_SFFloat, Layout_CRDB>(1, 1, 1, mini_batch_size);
-
-      filename = data_binary;
-
-      // SHADJIS TODO: Why do we use fopen/fread some places? Why not C++? Need to make consistent.
-
-      //if (filename != "NA"){
-      
-      // First check if the file already exists
-      FILE * pFile = fopen(filename.c_str(), "r");
-      // SHADJIS TODO: If using default names, maybe do not overwrite binary since otherwise could end up 
-      // using old binary by accident? E.g. if the user switches the dataset and does not specify a binary,
-      // we don't want to be using an old binary, so could overwrite anyway if using default names.
-      // There may be better ways to prevent that, e.g. a new option?
-      //if(pFile && filename != "val_preprocessed.bin" && filename != "test_preprocessed.bin" && filename != "train_preprocessed.bin") {
-      // SHADJIS TODO: Assert labels are continuous starting from 0
-      if(pFile) {
-          fclose(pFile);
-          
-          // Warn
-          if(filename == "val_preprocessed.bin" || filename == "test_preprocessed.bin" || filename == "train_preprocessed.bin") {
-            std::cout << "\n** WARNING **  Data binary " << filename << " (the default name) already exists,";
-            std::cout << "\n               and will not be overwritten. If the dataset for this net is different";
-            std::cout << "\n               from the last time you ran, specify a new binary name (\"-b\" or \"-v\" option)";
-            std::cout << "\n               or move the current " << filename << " to a new location.\n\n";
-          } else {
-            std::cout << "Data binary " << filename << " already exists, no need to write\n"; // Skip preprocessing
-          }
-          
-          images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, mini_batch_size);  // Ce: only one mini-batch in memory
-          // We avoid having to write everything back to disk but we still have to read in labels
-          MDB_cursor_op op = MDB_FIRST;
-          float * const labels_data = labels->get_p_data();
-          for (size_t b = 0; b < n_images; b++) {
-            mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
-            datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
-            int img_label = datum.label();
-            labels_data[b] = img_label;
-            op = MDB_NEXT;
-          }
-      }
-      // else{
-      //   images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, n_images);
-      //   MDB_cursor_op op = MDB_FIRST;
-      //   for (size_t b = 0; b < n_images; b++) {
-      //     mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
-      //     datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
-      //     int img_label = datum.label();
-      //     labels->p_data[b] = img_label;
-      //     float * const single_input_batch = images->physical_get_RCDslice(b);  // Ce: only one batch
-      //     process_image(layer_param, single_input_batch, datum);
-      //     op = MDB_NEXT;
-      //   }
-      // }
     }
 
     // daniter TODO: Consider replacing nested loops below with a single loop (or some kind of vectorization?)

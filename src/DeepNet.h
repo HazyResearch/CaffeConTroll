@@ -1551,7 +1551,7 @@ class DeepNet {
     // for each batch size, so that we can perform these forward and backward passes in parallel.
     static void train_network(const BridgeVector & bridges, Corpus & corpus, const cnn::NetParameter & net_param,
         const cnn::SolverParameter & solver_param, const string input_model_file, const string snapshot_file_name,
-        const Corpus & val_corpus, bool time_iterations = false) {
+        Corpus & val_corpus, bool time_iterations = false) {
 
       SoftmaxBridge * const softmax = (SoftmaxBridge *) bridges.back();
       Bridge * const first = (Bridge *) bridges.front();
@@ -1763,7 +1763,7 @@ class DeepNet {
       }
 
 
-      static float test_network(const BridgeVector & bridges, const Corpus & corpus, const cnn::NetParameter & net_param,
+      static float test_network(const BridgeVector & bridges, Corpus & corpus, const cnn::NetParameter & net_param,
           const cnn::SolverParameter & solver_param, bool time_iterations = false) {
 
         // TODO: we need a more general AbstractLossBridge
@@ -1773,9 +1773,7 @@ class DeepNet {
         LogicalCubeFloat * const labels = softmax->p_data_labels;
         LogicalCubeFloat * const input_data = first->p_input_layer->p_data_cube;
 
-        FILE * pFile = fopen(corpus.filename.c_str(), "rb");
-        if (!pFile)
-          throw std::runtime_error("Error opening the corpus file: " + corpus.filename);
+        corpus.OpenLmdbReader();
         
         // SHADJIS TODO: Here I could check the size of the corpus (test or validation set),
         // divide by solver_param.test_iter(), and use that as the mini-batch
@@ -1821,8 +1819,8 @@ class DeepNet {
           //Timer t;
           //Timer t2;
 
-          size_t num_elements_read = fread(corpus.images->get_p_data(), sizeof(DataType_SFFloat), corpus.images->n_elements, pFile);
-          assert(num_elements_read == corpus.images->n_elements);
+          size_t num_elements_read = corpus.LoadLmdbData();
+          assert(num_elements_read == corpus.mini_batch_size);
           //t_load = t.elapsed();
           //t.restart();
           float * const mini_batch = corpus.images->physical_get_RCDslice(0);
@@ -1831,7 +1829,7 @@ class DeepNet {
           softmax->reset_loss();
 
           // initialize labels for this mini batch
-          labels->set_p_data(corpus.labels->physical_get_RCDslice(corpus_batch_index));
+          labels->set_p_data(corpus.labels->physical_get_RCDslice(0));
           // forward pass
           run_forward_pass(bridges);
           
@@ -1856,7 +1854,7 @@ class DeepNet {
         }
         float acc = (1.0*total_accuracy/(num_batch_iterations*corpus.mini_batch_size));
         std::cout << "Loss = " << total_loss / float(num_batch_iterations) << ", Accuracy " << acc;
-        fclose(pFile);
+        corpus.CloseLmdbReader();
         return acc;
       }
 
