@@ -48,7 +48,7 @@ class Corpus {
 
     Corpus(const cnn::LayerParameter & layer_param, const string data_binary):
       scale(layer_param.transform_param().scale()), mirror(layer_param.transform_param().mirror()),
-      crop_size(layer_param.transform_param().crop_size()), phase(layer_param.include(0).phase() == 0) {
+      crop_size(layer_param.transform_param().crop_size()), phase(layer_param.include(0).phase()) {
       mdb_env_source = layer_param.data_param().source(); 
       mini_batch_size = layer_param.data_param().batch_size();
       initialize_input_data_and_labels(layer_param, data_binary);
@@ -92,14 +92,10 @@ class Corpus {
         n_rows = datum.height();
         n_cols = datum.width();
       }
-
-      tmpimg = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, 1);
-
       return 0;
     }
 
     void CloseLmdbReader(){
-      delete tmpimg;
       mdb_txn_abort(mdb_txn_);
       mdb_cursor_close(mdb_cursor_);
     }
@@ -145,7 +141,7 @@ class Corpus {
     const float scale;
     const bool mirror;
     const int crop_size;
-    const bool phase;
+    const int phase;
     MDB_env* mdb_env_ = NULL;
     MDB_dbi mdb_dbi_;
     MDB_txn* mdb_txn_;
@@ -153,8 +149,6 @@ class Corpus {
     MDB_val mdb_key_, mdb_value_;
     std::string mdb_env_source;
     MDB_cursor_op op = MDB_FIRST;
-    LogicalCube<DataType_SFFloat, Layout_CRDB> * tmpimg;
-
 
     void initialize_input_data_and_labels(const cnn::LayerParameter & layer_param, const string data_binary) {
       cnn::Datum datum;
@@ -253,7 +247,7 @@ class Corpus {
 
       if (crop_size > 0) {
         int h_off, w_off;
-        if (phase) {         // Training Phase
+        if (phase == 0) {         // Training Phase
           h_off = rand() % (height - crop_size);// Take random patch
           w_off = rand() % (width - crop_size);
         } else {

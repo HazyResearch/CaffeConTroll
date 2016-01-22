@@ -20,3 +20,4 @@ tests/test
 tags
 # Personal libraries
 lib/
+*.d
