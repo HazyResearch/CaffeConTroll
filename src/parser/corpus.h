@@ -92,6 +92,8 @@ class Corpus {
         n_rows = datum.height();
         n_cols = datum.width();
       }
+
+      ResetCursor();
       return 0;
     }
 
