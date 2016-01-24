@@ -763,6 +763,8 @@ class DeepNet {
         // iteration, we get the label in the data so now the labels and images objects are parallel
         // TODO? : Perhaps this is a good reason to merge them into a single object 
         // Since labels are in sync they will also only be of size mini_batch_size
+	// Set this pointer explicitly because it may have been changed during the validation phase
+        softmax->p_data_labels->set_p_data(corpus.labels->physical_get_RCDslice(0));
         assert(softmax->p_data_labels->get_p_data() == corpus.labels->get_p_data());
 
         // If we read less than we expected, read the rest from the beginning 
