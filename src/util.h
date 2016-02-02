@@ -2,7 +2,6 @@
 //  util.h
 //  moka
 //
-//  Created by Firas Abuzaid on 1/25/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
@@ -15,6 +14,7 @@
 #include <float.h>
 #include <limits>
 #include <assert.h>
+#include <boost/random.hpp>
 
 #include "cblas.h"
 
@@ -133,13 +133,12 @@ class Util {
     }
 
     template <typename T>
-    static inline void bernoulli_initialize(T * const arr, const size_t n_arr_elements, const float p) {
-      mt19937 gen(rd());
-      //mt19937 gen(0); // determinsitic for debugging
-
-      bernoulli_distribution bern(p);
+    static inline void bernoulli_initialize(T * const arr, const size_t n_arr_elements, const float p, mt19937 gen) {
+      boost::bernoulli_distribution<float> random_distribution(p);
+      boost::variate_generator<mt19937, boost::bernoulli_distribution<float> >
+          variate_generator(gen, random_distribution);
       for (size_t i = 0; i < n_arr_elements; ++i) {
-        arr[i] = bern(gen);
+        arr[i] = variate_generator();
       }
     }
 

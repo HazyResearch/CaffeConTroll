@@ -1,8 +1,6 @@
 //
 //  FunnelBridge.h
-//  moka
 //
-//  Created by Firas Abuzaid on 1/22/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 

@@ -1,8 +1,6 @@
 //
 //  AbstractBridge.h
-//  moka
 //
-//  Created by Firas Abuzaid on 1/22/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
@@ -181,11 +179,46 @@ class AbstractBridge : public PhysicalOperator {
       delete output_d_cube; output_d_cube = NULL;
       delete output_g_cube; output_g_cube = NULL;
     }
-    
+
+    // Update the pointer of the input layer's data
     // This function is used to run a different dataset on the network
     // (e.g. for validation set)
-    virtual void update_p_input_layer(InputLayerDataType * new_data)  {
+    // SHADJIS TODO: For now this is only needed for the first layer
+    // If we want to do this for other layers, need to copy to GPU for
+    // GPU bridges. For now these functions assume pointers are host pointers.
+    // More generally they should be device memory pointers.
+    // For now, just assume on CPU (host). In the future we might want to do direct
+    // copy of data to GPU memory, then this function will get a device memory pointer.
+    virtual void update_p_input_layer_data_CPU_ONLY(InputLayerDataType * new_data)  {
+      // SHADJIS TODO: Assert this bridge does not share input layer with prev bridge
+      // and both are on device, i.e. assert that data is on host
       p_input_layer->p_data_cube->set_p_data(new_data);
+    }
+    // Update the pointer of the output layer's gradient
+    // This function is used to update the gradients of this layer which
+    // come from another source, e.g. a separate network
+    // SHADJIS TODO: As above, this is only for layers on the CPU.
+    // If this bridge is a GPU bridge and it shares its output layer with the next 
+    // bridge's input layer then the grad data will not be copied back to the host so
+    // the pointer passed in here needs to be a device pointer. More generally therefore
+    // a device memory pointer should be passed into this function.
+    // For now, just assume on CPU (host). In the future we might want to do direct
+    // copy of gradients back to GPU memory, then this function will get a device memory pointer.
+    virtual void update_p_output_layer_gradient_CPU_ONLY(InputLayerDataType * new_data)  {
+      // SHADJIS TODO: Assert this bridge does not share output layer with next bridge,
+      // and both are on device, i.e. assert that grad is on host
+      p_output_layer->p_gradient_cube->set_p_data(new_data);
+    }
+
+
+    // SHADJIS TODO: These functions aren't needed, all these members are public.
+    // Should just call these directly rather than add new functions.
+    // Get sizes
+    virtual size_t get_input_data_size()  {
+      return input_d_cube->n_elements;
+    }
+    virtual size_t get_output_data_size()  {
+      return output_d_cube->n_elements;
     }
 };
 
@@ -367,11 +400,35 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
     virtual void force_host_to_device_bias_copy()  { assert(false); }
     virtual void force_device_to_host_model_copy() { assert(false); }
     virtual void force_device_to_host_bias_copy()  { assert(false); }
+    virtual InputLayerDataType * get_model_gradient_host() { assert(false); }
+    virtual InputLayerDataType * get_bias_gradient_host()  { assert(false); }
+    virtual void update_model_with_gradient_CPU(InputLayerDataType * grad)  { assert(false); }
+    virtual void update_bias_with_gradient_CPU(InputLayerDataType * grad)   { assert(false); }
+    virtual void set_update_model_gradients(bool _update_model_gradients) {}
 
+    // Model parallelism PBridge members
+    virtual int get_model_parallelism_group_size() { return 1; }
+    virtual void set_model_parallelism_group_size(int _model_parallelism_group_size) { assert(false); }
+
+    // Update the pointer of the input layer's data
     // This function is used to run a different dataset on the network
     // (e.g. for validation set)
-    virtual void update_p_input_layer(InputLayerDataType * new_data)  {
+    virtual void update_p_input_layer_data_CPU_ONLY(InputLayerDataType * new_data)  {
       p_input_layer->p_data_cube->set_p_data(new_data);
+    }
+    // Update the pointer of the output layer's gradient
+    // This function is used to update the gradients of this layer which
+    // come from another source, e.g. a separate network
+    virtual void update_p_output_layer_gradient_CPU_ONLY(InputLayerDataType * new_data)  {
+      p_output_layer->p_gradient_cube->set_p_data(new_data);
+    }
+    
+    // Get sizes
+    virtual size_t get_input_data_size()  {
+      return input_d_cube->n_elements;
+    }
+    virtual size_t get_output_data_size()  {
+      return output_d_cube->n_elements;
     }
 };
 
@@ -541,10 +598,25 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
       delete output_g_cube; output_g_cube = NULL;
     }
     
+    // Update the pointer of the input layer's data
     // This function is used to run a different dataset on the network
     // (e.g. for validation set)
-    virtual void update_p_input_layer(InputLayerDataType * new_data)  {
+    virtual void update_p_input_layer_data_CPU_ONLY(InputLayerDataType * new_data)  {
       p_input_layer->p_data_cube->set_p_data(new_data);
+    }
+    // Update the pointer of the output layer's gradient
+    // This function is used to update the gradients of this layer which
+    // come from another source, e.g. a separate network
+    virtual void update_p_output_layer_gradient_CPU_ONLY(InputLayerDataType * new_data)  {
+      p_output_layer->p_gradient_cube->set_p_data(new_data);
+    }
+    
+    // Get sizes
+    virtual size_t get_input_data_size()  {
+      return input_d_cube->n_elements;
+    }
+    virtual size_t get_output_data_size()  {
+      return output_d_cube->n_elements;
     }
 };
 #endif // _INCLUDE_GPUDRIVER

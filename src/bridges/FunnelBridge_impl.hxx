@@ -1,8 +1,6 @@
 //
-//  MaxPoolingBridge_impl.hxx
-//  moka
+//  FunnelBridge_impl.hxx
 //
-//  Created by Firas Abuzaid on 1/25/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
@@ -27,6 +25,9 @@ FunnelBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::FunnelB
   report_forward_constructor.end(0, 0, 0);
 }
 
+// SHADJIS TODO: This now assumes iD is same for all bridges, but we have p_input_layers
+// so each cube can have different depth (e.g. for CPU + GPU model parallelism by FLOPS) 
+
 /**
  * Forward direction for Funnel
  **/
@@ -34,26 +35,24 @@ template <typename DataType, typename DriverClass>
 void FunnelBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forward() {
   report_forward_last_transfer.reset();
 
-  // TODO: This is ugly in the following ways:
-  //    - p_input_layers should be pushed from the constructor
-  size_t real_depth;
+  // SHADJIS TODO: Not here we assume that each layer in p_input_layers has the
+  // same cube sizes, and moreover that they match iR/iC/iD/iB which came from
+  // p_input_layer.
+  DataType * const output_data = p_output_layer->p_data_cube->get_p_data();
   for (int i_cube = 0; i_cube < p_input_layers.size(); i_cube ++){
-    LogicalCube<DataType, Layout_CRDB> * real_input_cube = p_input_layers[i_cube]->p_data_cube;
-    for (size_t b_i = 0; b_i < iB; ++b_i) {
-      for (size_t d_i = 0; d_i < iD; ++d_i) {
-        real_depth = d_i + iD*i_cube;
-        for (size_t r_i = 0; r_i < iR; ++r_i) {
-          for (size_t c_i = 0; c_i < iC; ++c_i) {
-            *(p_output_layer->p_data_cube->logical_get(r_i, c_i, real_depth, b_i)) =
-               *(real_input_cube->logical_get(r_i, c_i, d_i, b_i));
+    const DataType * const input_data = p_input_layers[i_cube]->p_data_cube->get_p_data();
+    for (size_t b = 0; b < iB; ++b) {
+      for (size_t r = 0; r < iR; ++r) {
+        for (size_t c = 0; c < iC; ++c) {
+          for (size_t d = 0; d < iD; ++d) {
+            output_data[c + r*oC + (d+iD*i_cube)*oR*oC + b*oR*oC*oD] = input_data[c + r*iC + d*iR*iC + b*iR*iC*iD];
           }
         }
       }
     }
   }
 
-  report_forward_last_transfer.end(1.0*iB*iD*iR*iC*sizeof(DataType),
-          iB*iD*(sizeof(DataType)+sizeof(size_t)), 0);
+  report_forward_last_transfer.end();
           // TODO: iB*iD*pooled_height*pooled_width*(sizeof(DataType)+sizeof(size_t)), 0);
   report_forward_history.aggregate(report_forward_last_transfer);
 }
@@ -67,18 +66,17 @@ void FunnelBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::ba
 
   report_backward_updateweight_last_transfer.reset();
 
-  p_input_layer->p_gradient_cube->reset_cube();
-
-  size_t real_depth;
+  // SHADJIS TODO: Not here we assume that each layer in p_input_layers has the
+  // same cube sizes, and moreover that they match iR/iC/iD/iB which came from
+  // p_input_layer.
+  const DataType * const output_gradient = p_output_layer->p_gradient_cube->get_p_data();
   for (int i_cube = 0; i_cube < p_input_layers.size(); i_cube ++) {
-    LogicalCube<DataType, Layout_CRDB> * real_input_cube = p_input_layers[i_cube]->p_gradient_cube;
-    for (size_t b_i = 0; b_i < iB; ++b_i) {
-      for (size_t d_i = 0; d_i < iD; ++d_i) {
-        real_depth = d_i + iD*i_cube;
-        for (size_t r_i = 0; r_i < iR; ++r_i) {
-          for (size_t c_i = 0; c_i < iC; ++c_i) {
-            *(real_input_cube->logical_get(r_i, c_i, d_i, b_i)) =
-              *(p_output_layer->p_gradient_cube->logical_get(r_i, c_i, real_depth, b_i));
+    DataType * const input_gradient = p_input_layers[i_cube]->p_gradient_cube->get_p_data();
+    for (size_t b = 0; b < iB; ++b) {
+      for (size_t r = 0; r < iR; ++r) {
+        for (size_t c = 0; c < iC; ++c) {
+          for (size_t d = 0; d < iD; ++d) {
+            input_gradient[c + r*iC + d*iR*iC + b*iR*iC*iD] = output_gradient[c + r*oC + (d+iD*i_cube)*oR*oC + b*oR*oC*oD];
           }
         }
       }

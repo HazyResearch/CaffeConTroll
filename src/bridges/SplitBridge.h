@@ -1,11 +1,15 @@
 //
-//  LRNBridge.h
+//  SplitBridge.h
 //
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
+//  Description:  This bridge is the opposite of funnel. Whereas funnel is used when
+//                a grouping of N merges into a grouping of 1 (in the forward direction),
+//                split is used when a grouping of 1 splits into a grouping of N.
+//
 
-#ifndef moka_LRN_Bridge_h
-#define moka_LRN_Bridge_h
+#ifndef _Split_Bridge_h
+#define _Split_Bridge_h
 
 #include "AbstractBridge.h"
 #include "../util.h"
@@ -13,16 +17,14 @@
 template
 <typename InputLayerDataType, LayoutType InputLayerLayout, typename OutputLayerDataType,
   LayoutType OutputLayerLayout, typename DriverClass>
-class LRNBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
+class SplitBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
   OutputLayerLayout, DriverClass> {
   public:
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
 
-    LRNBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-        const cnn::LayerParameter * const _layer_param,
-        const cnn::SolverParameter * const _solver_param,
-        DriverClass * const _p_driver) {
+    SplitBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
+        const cnn::LayerParameter * const _layer_param, const cnn::SolverParameter * const _solver_param) {
       NOT_IMPLEMENTED;
     }
 
@@ -39,7 +41,7 @@ class LRNBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, Ou
  * Specializations
  */
 template <typename DataType, typename DriverClass>
-class LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass> : public AbstractBridge<DataType,
+class SplitBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass> : public AbstractBridge<DataType,
       Layout_CRDB, DataType, Layout_CRDB, DriverClass> {
   protected:
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::curr_B;
@@ -73,30 +75,32 @@ class LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass> : pub
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::p_input_layer;
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::p_output_layer;
 
+    std::vector<Layer<DataType, Layout_CRDB>* > p_output_layers;
+
     /* Re-declare these typedefs */
     typedef Layer<DataType, Layout_CRDB> InputLayerType;
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
 
-    LRNBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
-        const cnn::LayerParameter * const _layer_param,
-        const cnn::SolverParameter * const _solver_param,
+    SplitBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
+        const cnn::LayerParameter * const _layer_param, const cnn::SolverParameter * const _solver_param,
         DriverClass * const _p_driver);
 
-    ~LRNBridge();
+    ~SplitBridge();
 
     void forward();
 
     void backward();
-
-    const float alpha;
-    const float beta;
-    const size_t local_size;
-
-  protected:
-    LogicalCube<DataType, Layout_CRDB> * denoms;
-    LogicalCube<DataType, Layout_CRDB> * denoms_device;
+    
+    void update_p_input_layer_data_CPU_ONLY(float * new_data)  {
+      p_input_layer->p_data_cube->set_p_data(new_data);
+      // For split bridge, also pass this pointer to all the output bridges
+      for (int i = 0; i < p_output_layers.size(); ++i) {
+        p_output_layers[i]->p_data_cube->set_p_data(new_data);
+      }
+    }
+    
 };
 
-#include "LRNBridge_impl.hxx"
+#include "SplitBridge_impl.hxx"
 
 #endif

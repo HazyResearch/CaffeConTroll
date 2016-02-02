@@ -19,10 +19,11 @@ inline void _f_dropout_forward_train(void * input, void * output, void * const _
   const _dropout_forward_train_arg_helper * const arg = (_dropout_forward_train_arg_helper *) _arg;
   const unsigned int * mask = (unsigned int *) (&arg->mask[dst_index]);
   const float scale = arg->scale;
+  const unsigned int threshold = arg->threshold;
   float * const input_data = (float *) input;
   float * const output_data = (float *) output;
 
-  output_data[0] = input_data[0]*mask[0]*scale;
+  output_data[0] = input_data[0]*(mask[0] > threshold)*scale;
 }
 
 #ifdef _GPU_TARGET

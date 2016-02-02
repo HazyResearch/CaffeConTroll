@@ -1,8 +1,6 @@
 //
 //  LogicalCube.h
-//  moka
 //
-//  Created by Ce Zhang on 1/11/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
@@ -18,7 +16,7 @@
 
 enum LayoutType {
   Layout_CRDB = 0,
-  Layout_BDRC = 1
+  Layout_BDRC = 1       // SHADJIS TODO: Why don't we use Layout_BDRC ever? Need to benchmark
 };
 
 /*

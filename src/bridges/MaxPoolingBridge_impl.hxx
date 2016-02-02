@@ -27,9 +27,9 @@ MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const 
   assert(iD == oD); assert(iB == oB);
 #endif
 
-  pooled_height = static_cast<size_t>(ceil(static_cast<float>(
+  pooled_height = static_cast<size_t>((static_cast<float>(
       iR - kernel_size) / stride)) + 1;
-  pooled_width = static_cast<size_t>(ceil(static_cast<float>(
+  pooled_width = static_cast<size_t>((static_cast<float>(
       iC  - kernel_size) / stride)) + 1;
 
 #ifdef _DO_ASSERT
