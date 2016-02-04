@@ -29,13 +29,11 @@
 
 class Corpus {
   public:
-    size_t n_images;
-    size_t n_rows;
-    size_t n_cols;
-    size_t dim;
-    size_t mini_batch_size;
-    // size_t num_mini_batches;
-    // size_t last_batch_size;
+    size_t n_images = 0;
+    size_t n_rows = 0;
+    size_t n_cols = 0;
+    size_t dim = 0;
+    size_t mini_batch_size = 0;
 
     // n_rows x n_cols x dim x n_images
     LogicalCube<DataType_SFFloat, Layout_CRDB> * images;
