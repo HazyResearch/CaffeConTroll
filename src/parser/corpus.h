@@ -54,6 +54,11 @@ class Corpus {
       mdb_env_source = layer_param.data_param().source(); 
       mini_batch_size = layer_param.data_param().batch_size();
       initialize_input_data_and_labels(layer_param, data_binary);
+      assert(n_rows != 0);
+      assert(n_cols != 0);
+      assert(dim != 0);
+      assert(mini_batch_size != 0);
+      assert(n_images != 0);
       images = new LogicalCube<DataType_SFFloat, Layout_CRDB>(n_rows, n_cols, dim, mini_batch_size); 
       // Initialize the cube storing the correct labels
       labels = new LogicalCube<DataType_SFFloat, Layout_CRDB>(1, 1, 1, mini_batch_size); 
