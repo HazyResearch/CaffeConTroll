@@ -1610,8 +1610,6 @@ class DeepNet {
         // iteration, we get the label in the data so now the labels and images objects are parallel
         // TODO? : Perhaps this is a good reason to merge them into a single object 
         // Since labels are in sync they will also only be of size mini_batch_size
-	// Set this pointer explicitly because it may have been changed during the validation phase
-        softmax->p_data_labels->set_p_data(corpus.labels->physical_get_RCDslice(0));
         assert(softmax->p_data_labels->get_p_data() == corpus.labels->get_p_data());
 
         // If we read less than we expected, read the rest from the beginning 
@@ -1700,6 +1698,8 @@ class DeepNet {
             DeepNetConfig::train_ = false;
             test_network(bridges, val_corpus, net_param, solver_param, time_iterations);
             // Switch dataset back to train
+            // reset the softmax data labels to the corpus labels instead of the test labels
+            softmax->p_data_labels->set_p_data(corpus.labels->physical_get_RCDslice(0));
             bridges[0]->update_p_input_layer_data_CPU_ONLY(corpus.images->physical_get_RCDslice(0));
             DeepNetConfig::train_ = true;
             std::cout << "    [Run on entire validation set]\033[0m" << std::endl;
