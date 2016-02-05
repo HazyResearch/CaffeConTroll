@@ -10,7 +10,6 @@ TEST(GroupingTest, RunTest) {
   argv[0] = a;
   argv[1] = b;
   argv[2] = c;
-  std::string data_binary = "tests/toprocess.bin";
   std::string model_file = "NA";
 
   cnn::SolverParameter solver_param;
@@ -18,7 +17,7 @@ TEST(GroupingTest, RunTest) {
 
   cnn::NetParameter net_param;
   Parser::read_net_params_from_text_file(solver_param.net(), &net_param);
-  Corpus * corpus = DeepNet::read_corpus_from_lmdb(net_param, data_binary, true);
+  Corpus * corpus = DeepNet::read_corpus_from_lmdb(net_param, true);
 
   BridgeVector bridges;
   DeepNet::construct_network(bridges, *corpus, net_param, solver_param);
