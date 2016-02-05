@@ -44,12 +44,12 @@ class Corpus {
 
     std::string filename;
 
-    Corpus(const cnn::LayerParameter & layer_param, const string data_binary):
+    Corpus(const cnn::LayerParameter & layer_param):
       scale(layer_param.transform_param().scale()), mirror(layer_param.transform_param().mirror()),
       crop_size(layer_param.transform_param().crop_size()), phase(layer_param.include(0).phase()) {
       mdb_env_source = layer_param.data_param().source(); 
       mini_batch_size = layer_param.data_param().batch_size();
-      initialize_input_data_and_labels(layer_param, data_binary);
+      initialize_input_data_and_labels(layer_param);
       assert(n_rows != 0);
       assert(n_cols != 0);
       assert(dim != 0);
@@ -155,7 +155,7 @@ class Corpus {
     std::string mdb_env_source;
     MDB_cursor_op op = MDB_FIRST;
 
-    void initialize_input_data_and_labels(const cnn::LayerParameter & layer_param, const string data_binary) {
+    void initialize_input_data_and_labels(const cnn::LayerParameter & layer_param) {
       cnn::Datum datum;
       cnn::Cube cube;
       MDB_env* mdb_env_ = NULL;

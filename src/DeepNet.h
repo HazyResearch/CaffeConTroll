@@ -64,14 +64,14 @@ class DeepNet {
     // load training data into Corpus object, return Corpus object
     // Note: we assume that the very first layer in the .protoxt
     // file specifies the data layer
-    static Corpus * read_corpus_from_lmdb(const cnn::NetParameter & net_param, const string data_binary, bool train) {
+    static Corpus * read_corpus_from_lmdb(const cnn::NetParameter & net_param, bool train) {
       if (train) {
         const cnn::LayerParameter layer_param = net_param.layer(0); // SHADJIS TODO: Should we be hard-coding layer 0 = train?
         string layer_type = layer_param.type();
         std::transform(layer_type.begin(), layer_type.end(), layer_type.begin(), ::toupper);
         if (layer_type == "DATA") {
           if (layer_param.include(0).phase() == 0) { // training phase
-            return new Corpus(layer_param, data_binary);
+            return new Corpus(layer_param);
           }
         }
       } else {
@@ -80,7 +80,7 @@ class DeepNet {
         std::transform(layer_type.begin(), layer_type.end(), layer_type.begin(), ::toupper);
         if (layer_type == "DATA") {
           if (layer_param.include(0).phase() == 1) { // testing phase
-            return new Corpus(layer_param, data_binary);
+            return new Corpus(layer_param);
           }
         }
       }
@@ -1731,7 +1731,7 @@ class DeepNet {
       std::cout << "Total Time (seconds): " << t_total.elapsed() << std::endl;
     }
 
-      static Corpus * load_network(const char * file, const string & data_binary, cnn::SolverParameter & solver_param,
+      static Corpus * load_network(const char * file, cnn::SolverParameter & solver_param,
           cnn::NetParameter & net_param, BridgeVector & bridges, bool train) {
 
         // not necessary if being called from load_and_(train|test)_network,
@@ -1740,7 +1740,7 @@ class DeepNet {
 
         if (Parser::read_proto_from_text_file(file, &solver_param) &&
             Parser::read_net_params_from_text_file(solver_param.net(), &net_param)) {
-          Corpus * corpus = DeepNet::read_corpus_from_lmdb(net_param, data_binary, train);
+          Corpus * corpus = DeepNet::read_corpus_from_lmdb(net_param, train);
 
 #ifdef DEBUG
           std::string corpus_type = train ? "train" : "test";
@@ -1886,12 +1886,12 @@ class DeepNet {
       //        Compute backward pass (iterate through vector of Bridge
       //                               pointers backwards)
       //
-      static void load_and_train_network(const char * file, const string data_binary, const string input_model_file,
-            const string output_model_file, const string val_data_binary, bool time_iterations = false) {
+      static void load_and_train_network(const char * file, const string input_model_file,
+            const string output_model_file, bool time_iterations = false) {
         DeepNetConfig::train_ = true;
 
         BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
-        Corpus * const corpus = DeepNet::load_network(file, data_binary, solver_param, net_param, bridges, true);
+        Corpus * const corpus = DeepNet::load_network(file, solver_param, net_param, bridges, true);
 
         // Now, the bridges vector is filled. Check if we want to load weights.
         if (input_model_file != "NA") {
@@ -1906,7 +1906,7 @@ class DeepNet {
         if (solver_param.test_interval() > 0 && 
             solver_param.test_interval() <= solver_param.max_iter())
         {
-            val_corpus = DeepNet::read_corpus_from_lmdb(net_param, val_data_binary, false);
+            val_corpus = DeepNet::read_corpus_from_lmdb(net_param, false);
             assert(val_corpus->n_rows          == corpus->n_rows);
             assert(val_corpus->n_cols          == corpus->n_cols);
             assert(val_corpus->dim             == corpus->dim);
@@ -1947,11 +1947,11 @@ class DeepNet {
         clean_up(bridges, corpus);
       }
 
-      static float load_and_test_network(const char * file, const string data_binary, const string input_model_file, bool time_iterations = false) {
+      static float load_and_test_network(const char * file, const string input_model_file, bool time_iterations = false) {
         DeepNetConfig::train_ = false;
 
         BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
-        Corpus * const corpus = DeepNet::load_network(file, data_binary, solver_param, net_param, bridges, false);
+        Corpus * const corpus = DeepNet::load_network(file, solver_param, net_param, bridges, false);
 
         if (input_model_file != "NA") {
           read_model_from_file(bridges, input_model_file);
