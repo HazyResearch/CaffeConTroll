@@ -30,24 +30,12 @@ int main(int argc, const char * argv[]) {
     exit(1);
   }
 
-  string data_binary;
-  string val_binary;
   string input_model_file;
   string output_model_file;
   bool time_iterations = false;
 
   boost::program_options::options_description desc("CaffeConTroll Options");
   desc.add_options()
-    // Option 'data-binary' and 'b' are equivalent.
-    // SHADJIS TODO: Currently we preprocess the entire dataset inside
-    // corpus initialize_input_data_and_labels and save it all as a preprocessed.bin binary. Maybe this
-    // can be done incrementally (e.g. only preprocess the current mini-batch) to avoid long (but one-time
-    // only) preprocessing for a large dataset the first time it is used.
-    ("data-binary,b", boost::program_options::value<string>(& data_binary)->default_value(string(argv[1]) + "_preprocessed.bin"),
-     "Processed data binary")
-    // Option 'val-binary' and 'v' are equivalent.
-    ("val-binary,v", boost::program_options::value<string>(& val_binary)->default_value("val_preprocessed.bin"),
-     "Processed validation set binary")
     // Option 'input-model' and 'i' are equivalent.
     ("input-model,i", boost::program_options::value<string>(& input_model_file)->default_value("NA"),
      "Model binary (input)")
@@ -64,9 +52,9 @@ int main(int argc, const char * argv[]) {
   boost::program_options::notify(vm);
 
   if (string(argv[1]) == "train") {
-    DeepNet::load_and_train_network(argv[2], data_binary, input_model_file, output_model_file, val_binary, time_iterations);
+    DeepNet::load_and_train_network(argv[2], input_model_file, output_model_file, time_iterations);
   } else if (string(argv[1]) == "test") {
-    DeepNet::load_and_test_network(argv[2], data_binary, input_model_file, time_iterations);
+    DeepNet::load_and_test_network(argv[2], input_model_file, time_iterations);
   }
 
   return 0;
