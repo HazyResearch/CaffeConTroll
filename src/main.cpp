@@ -21,12 +21,6 @@ int main(int argc, const char * argv[]) {
     std::cout << "----------------------------------------------------------------------------------------------------------------------" << "\n";
     std::cout << "train/test  yes ........ Run the network in train mode (forward + backward) or test mode (forward only)" << "\n";
     std::cout << "solver      yes ........ Path to solver prototxt file" << "\n";
-    std::cout << "-b <file>   no  ........ File of data in single-precision floating point format. If the file does not exist" << "\n";
-    std::cout << "                         it will be generated from lmdb data. If the parameter is not specified the generated" << "\n";
-    std::cout << "                         file will be written to <train/test>_preprocessed.bin" << "\n";
-    std::cout << "                          -> This parameter can also be specified by --data-binary=path/to/file" << "\n";
-    std::cout << "-v <file>   no  ........ Like -b but for validation data. If not specified the file is written to val_preprocessed.bin" << "\n";
-    std::cout << "                          -> This parameter can also be specified by --val-binary=path/to/file" << "\n";
     std::cout << "-i <file>   no  ........ Like -b but specifies an input model. If not specified a new model is used." << "\n";
     std::cout << "                          -> This parameter can also be specified by --input-model=path/to/file" << "\n";
     std::cout << "-o <file>   no  ........ Like -o but specifies the output model. If not specified a trained_model.bin is created." << "\n";
