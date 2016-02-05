@@ -18,12 +18,10 @@ TEST(LenetTrainTest, RunTest) {
   argv[0] = a;
   argv[1] = b;
   argv[2] = c;
-  std::string data_binary = "tests/lenet_toprocess.bin";
   std::string model_file = "tests/model.bin";
 
-  DeepNet::load_and_train_network(argv[2], data_binary, "NA", model_file, "");
-  data_binary = "tests/toprocess_test.bin";
-  float acc = DeepNet::load_and_test_network(argv[2], data_binary, model_file);
+  DeepNet::load_and_train_network(argv[2], "NA", model_file, "");
+  float acc = DeepNet::load_and_test_network(argv[2], model_file);
 
   std::fstream expected_accuracy("tests/output/accuracy_train.txt", std::ios_base::in);
   double output;
