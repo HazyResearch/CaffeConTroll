@@ -34,7 +34,7 @@ void SplitBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::for
   report_forward_last_transfer.reset();
   
 #ifdef _DO_ASSERT
-  for (int i = 0; i < p_output_layers.size(); ++i) {
+  for (size_t i = 0; i < p_output_layers.size(); ++i) {
     assert(p_output_layers[i]->p_data_cube->get_p_data() == p_input_layer->p_data_cube->get_p_data());
   }
 #endif
@@ -77,9 +77,9 @@ void SplitBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::bac
   else {
     p_input_layer->p_gradient_cube->reset_cube();
     // Iterate over each output cube's gradient and sum it to the input cube's gradient
-    for (int output_grad_cube_idx = 0; output_grad_cube_idx < p_output_layers.size(); ++output_grad_cube_idx) {
+    for (size_t output_grad_cube_idx = 0; output_grad_cube_idx < p_output_layers.size(); ++output_grad_cube_idx) {
       const float * const input = p_output_layers[output_grad_cube_idx]->p_gradient_cube->get_p_data();
-      for (int i = 0; i < n_elements; ++i) {
+      for (size_t i = 0; i < n_elements; ++i) {
         output[i] += input[i];
       }
     }

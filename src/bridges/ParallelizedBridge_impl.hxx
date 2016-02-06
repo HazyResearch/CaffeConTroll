@@ -193,7 +193,7 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
   // Create drivers  
   scheduler_local_cpudriver = p_driver;//new CPUDriver();
   // GPU drivers
-  for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
+  for (size_t gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
   {
 #ifdef _INCLUDE_GPUDRIVER
     GPUDriver *new_driver = new GPUDriver();
@@ -203,7 +203,7 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
   }
   
   // Now that we've made drivers, create the cubes that will define the sub-bridges on the GPU
-  for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
+  for (size_t gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
   {
     assert(i < num_partitions); // Must be at least 1 partition left
     size_t n_batch_this_partition = GPU_batch_sizes[gpu_i];
@@ -406,7 +406,7 @@ ParallelizedBridge<DataType, BridgeType>::ParallelizedBridge(Layer<DataType,Layo
         // Similarly, the parallelized bridge (scheduler) has its own local gradient cube
         // SHADJIS TODO: Should make it clear what is local and not by the variable name
         p_model_grad = new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B); // This isn't needed anymore
-        for (int pi=0; pi<num_partitions_GPU; ++pi) {
+        for (size_t pi=0; pi<num_partitions_GPU; ++pi) {
           p_model_subgrads.push_back(new LogicalCubeType(example_cube->R, example_cube->C, example_cube->D, example_cube->B));
         }
 
@@ -541,7 +541,7 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
         scheduler_gpudrivers[0]->memcpy(_gpu_bridges[0]->get_bias_cube() ->get_device_pointer(scheduler_gpudrivers[0]), p_bias_cube ->get_device_pointer(scheduler_local_cpudriver));
     } else if (num_partitions_GPU > 1) {
       vector<thread> threads;
-      for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i) {
+      for (size_t gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i) {
         threads.push_back(thread([this, gpu_i]() {
             // General-case: copy from host to device
             scheduler_gpudrivers[gpu_i]->memcpy(_gpu_bridges[gpu_i]->get_model_cube()->get_device_pointer(scheduler_gpudrivers[gpu_i]), p_model_cube->get_device_pointer(scheduler_local_cpudriver));
@@ -620,7 +620,7 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
             // ++i;
       } else if (num_partitions_GPU > 1) {
           vector<thread> threads;
-          for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
+          for (size_t gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
           {
             threads.push_back(thread([this, gpu_i]() {
                 // assert(i < num_partitions); // Must be at least 1 partition left
@@ -636,7 +636,7 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
                 assert(n_batch_this_partition > 0);
         #endif
                 size_t b = num_partitions_CPU * n_batch_per_partition_cpu;
-                for (int bi=0; bi<gpu_i; ++bi) {
+                for (size_t bi=0; bi<gpu_i; ++bi) {
                     b += GPU_batch_sizes[bi];
                 }
                 
@@ -699,7 +699,7 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
                 // b += n_batch_this_partition;
       } else if (num_partitions_GPU > 1) {
           vector<thread> threads;
-          for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
+          for (size_t gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
           {
             threads.push_back(thread([this, gpu_i]() {
                 // Get the amount to copy from GPU
@@ -708,7 +708,7 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
                 assert(n_batch_this_partition > 0);
         #endif
                 size_t b = num_partitions_CPU * n_batch_per_partition_cpu;
-                for (int bi=0; bi<gpu_i; ++bi) {
+                for (size_t bi=0; bi<gpu_i; ++bi) {
                     b += GPU_batch_sizes[bi];
                 }
           
@@ -734,7 +734,7 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
   // back to the host but since sometimes we skip this, I'll add a sync here for
   // each device. Might not be necessary though.
   else {
-      for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i) {
+      for (size_t gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i) {
         scheduler_gpudrivers[gpu_i]->device_sync();
       }
   }
@@ -791,7 +791,7 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
         // b += n_batch_this_partition;
       } else if (num_partitions_GPU > 1) {
           vector<thread> threads;
-          for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
+          for (size_t gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
           {
             threads.push_back(thread([this, gpu_i]() {
                 // Get the amount to copy to GPU
@@ -800,7 +800,7 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
                 assert(n_batch_this_partition > 0);
         #endif
                 size_t b = num_partitions_CPU * n_batch_per_partition_cpu;
-                for (int bi=0; bi<gpu_i; ++bi) {
+                for (size_t bi=0; bi<gpu_i; ++bi) {
                     b += GPU_batch_sizes[bi];
                 }
                 
@@ -1083,7 +1083,7 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
         // b += n_batch_this_partition;
       } else if (num_partitions_GPU > 1) {
           vector<thread> threads;
-          for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
+          for (size_t gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i)
           {
             threads.push_back(thread([this, gpu_i]() {
                 // Get the amount to copy from GPU
@@ -1092,7 +1092,7 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
                 assert(n_batch_this_partition > 0);
         #endif
                 size_t b = num_partitions_CPU * n_batch_per_partition_cpu;
-                for (int bi=0; bi<gpu_i; ++bi) {
+                for (size_t bi=0; bi<gpu_i; ++bi) {
                     b += GPU_batch_sizes[bi];
                 }
                 
@@ -1118,7 +1118,7 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
   // back to the host but since sometimes we skip this, I'll add a sync here for
   // each device. Might not be necessary though.
   else {
-      for (int gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i) {
+      for (size_t gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i) {
         scheduler_gpudrivers[gpu_i]->device_sync();
       }
   }
@@ -1156,7 +1156,7 @@ ParallelizedBridge<DataType, BridgeType>::~ParallelizedBridge() {
 
   if (p_model_cube)    delete p_model_cube;
   if (p_model_grad)    delete p_model_grad;
-  for (int pi=0; pi<p_model_subgrads.size(); ++pi) {
+  for (size_t pi=0; pi<p_model_subgrads.size(); ++pi) {
     delete p_model_subgrads[pi];
   }
   if (p_grad_updater)  delete p_grad_updater;

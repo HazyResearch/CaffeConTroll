@@ -39,7 +39,7 @@ void FunnelBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::fo
   // same cube sizes, and moreover that they match iR/iC/iD/iB which came from
   // p_input_layer.
   DataType * const output_data = p_output_layer->p_data_cube->get_p_data();
-  for (int i_cube = 0; i_cube < p_input_layers.size(); i_cube ++){
+  for (size_t i_cube = 0; i_cube < p_input_layers.size(); ++i_cube){
     const DataType * const input_data = p_input_layers[i_cube]->p_data_cube->get_p_data();
     for (size_t b = 0; b < iB; ++b) {
       for (size_t r = 0; r < iR; ++r) {
@@ -70,7 +70,7 @@ void FunnelBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::ba
   // same cube sizes, and moreover that they match iR/iC/iD/iB which came from
   // p_input_layer.
   const DataType * const output_gradient = p_output_layer->p_gradient_cube->get_p_data();
-  for (int i_cube = 0; i_cube < p_input_layers.size(); i_cube ++) {
+  for (size_t i_cube = 0; i_cube < p_input_layers.size(); ++i_cube) {
     DataType * const input_gradient = p_input_layers[i_cube]->p_gradient_cube->get_p_data();
     for (size_t b = 0; b < iB; ++b) {
       for (size_t r = 0; r < iR; ++r) {

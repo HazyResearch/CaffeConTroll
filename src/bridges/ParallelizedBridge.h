@@ -518,7 +518,7 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
       std::vector <size_t> GPU_batch_sizes_tmp;
       std::vector <int> used_gpu_to_device_id_map_tmp;
       size_t total_GPU_batch_size = 0;
-      for (int i=0; i<GPU_batch_proportions.size(); ++i) {
+      for (size_t i=0; i<GPU_batch_proportions.size(); ++i) {
         size_t num_on_this_gpu = GPU_batch_proportions[i] * curr_B;
         if (num_on_this_gpu > 0) {
           GPU_batch_sizes_tmp.push_back(num_on_this_gpu);
@@ -573,7 +573,7 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
           assert(GPU_batch_sizes[0] >= 0);
           GPU_batch_sizes[0] += extra_partition_size_gpu_0;
           total_GPU_batch_size += extra_partition_size_gpu_0;
-          for (int gpu_i=1; gpu_i < GPU_batch_sizes.size(); ++gpu_i) {
+          for (size_t gpu_i=1; gpu_i < GPU_batch_sizes.size(); ++gpu_i) {
             assert(GPU_batch_sizes[gpu_i] >= 0);
             GPU_batch_sizes[gpu_i] += extra_partition_size_per_gpu;
             total_GPU_batch_size += extra_partition_size_per_gpu;
