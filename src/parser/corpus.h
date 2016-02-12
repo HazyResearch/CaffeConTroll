@@ -282,7 +282,6 @@ class Corpus {
           for (size_t c = 0; c < dim; ++c) {
             for (int h = 0; h < crop_size; ++h) {
               for (int w = 0; w < crop_size; ++w) {
-<<<<<<< 363cb8a6eb63b8b02ea35a0406b1667b848d3954
                 int data_index = (c * height + h + h_off) * width + w + w_off;
                 int top_index = (c * crop_size + h) * crop_size + (crop_size - 1 - w);
 
@@ -293,11 +292,6 @@ class Corpus {
                   datum_element = datum.float_data(data_index);
                 }
                 single_input_batch[top_index] = (datum_element - mean_data[data_index])*scale;
-=======
-                single_input_batch[(c * crop_size + h) * crop_size + (crop_size - 1 - w)] = 
-                  (static_cast<float>(static_cast<uint8_t>(data[(c * height + h + h_off) * width + w + w_off]))
-                  - mean_data[(c * height + h + h_off) * width + w + w_off])*scale;
->>>>>>> Removed commented out code
               }
             }
           }
@@ -307,7 +301,6 @@ class Corpus {
           for (size_t c = 0; c < dim; ++c) {
             for (int h = 0; h < crop_size; ++h) {
               for (int w = 0; w < crop_size; ++w) {
-<<<<<<< 363cb8a6eb63b8b02ea35a0406b1667b848d3954
                 int top_index = (c * crop_size + h) * crop_size + w;
                 int data_index = (c * height + h + h_off) * width + w + w_off;
                 float datum_element;
@@ -317,11 +310,6 @@ class Corpus {
                   datum_element = datum.float_data(data_index);
                 }
                 single_input_batch[top_index] = (datum_element - mean_data[data_index])*scale;
-=======
-                single_input_batch[(c * crop_size + h) * crop_size + w] = 
-                  (static_cast<float>(static_cast<uint8_t>(data[(c * height + h + h_off) * width + w + w_off])) 
-                    - mean_data[(c * height + h + h_off) * width + w + w_off])*scale;
->>>>>>> Removed commented out code
               }
             }
           }
@@ -331,7 +319,6 @@ class Corpus {
         for (size_t d = 0; d < dim; ++d) {
           for (size_t r = 0; r < n_rows; ++r) {
             for (size_t c = 0; c < n_cols; ++c) {
-<<<<<<< 363cb8a6eb63b8b02ea35a0406b1667b848d3954
               const size_t data_index = d * n_rows * n_cols + r * n_cols + c;
               float datum_element;
               if (datum.data().size() != 0) {
@@ -340,11 +327,6 @@ class Corpus {
                 datum_element = datum.float_data(data_index);
               }
               single_input_batch[data_index] = (datum_element - mean_data[data_index])*scale;
-=======
-              single_input_batch[d * n_rows * n_cols + r * n_cols + c] = 
-		(static_cast<float>(static_cast<uint8_t>(data[d * n_rows * n_cols + r * n_cols + c])) 
-                - mean_data[d * n_rows * n_cols + r * n_cols + c])*scale;
->>>>>>> Removed commented out code
             }
           }
         }
