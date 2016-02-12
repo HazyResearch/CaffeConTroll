@@ -74,6 +74,7 @@ class Corpus {
      * returns 0 on success
      */
     int OpenLmdbReader(){
+      MDB_val mdb_key_, mdb_value_;   
       cnn::Datum datum;
 
       CHECK_EQ(mdb_env_create(&mdb_env_),MDB_SUCCESS) << "Error in mdb_env_create";
@@ -115,6 +116,8 @@ class Corpus {
      * This is used when wrapping over the data and starting at the beginning again
      */
     int LoadLmdbData(int offset = 0){
+      MDB_val mdb_key_, mdb_value_;
+
       // timing tests
       float t_get = 0;
       float t_parse = 0;
@@ -134,26 +137,32 @@ class Corpus {
           if(mdb_ret != 0){
             break;
           }
-          Timer t2;
-          datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
-          t_parse += t2.elapsed();
 
-          labels_data[b] = datum.label(); 
-          // Process image reads the image from datum, does some preprocessing
-          // and copies it into the images buffer
-          Timer t3;
-          float * const &param = images->physical_get_RCDslice(b);
-          threads[b] = std::thread(&Corpus::process_image, this, param, datum);
-          //process_image(images->physical_get_RCDslice(b), datum);
-          t_process += t3.elapsed();
+          Timer t2;
+          threads[b] = std::thread([this, mdb_value_, b, labels_data](){
+            cnn::Datum datum;
+            datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
+
+            labels_data[b] = datum.label(); 
+
+            // Process image reads the image from datum, does some preprocessing
+            // and copies it into the images buffer
+            process_image(images->physical_get_RCDslice(b), datum);
+          });
+          t_parse += t2.elapsed();
+          t_process += t2.elapsed();
+
           op = MDB_NEXT;
           ++count;
       }
 
       // timing tests
+      Timer t;
       for (size_t b = offset; b < mini_batch_size; ++b){
         threads[b].join();
       }
+      t_parse += t.elapsed();
+      t_process += t.elapsed();
       std::cout << "mdb_cursor_get: " << t_get << std::endl;
       std::cout << "ParseFromArray: " << t_parse << std::endl;
       std::cout << "process_image: " << t_process << std::endl;
@@ -179,7 +188,6 @@ class Corpus {
     MDB_dbi mdb_dbi_;
     MDB_txn* mdb_txn_;
     MDB_cursor* mdb_cursor_;
-    MDB_val mdb_key_, mdb_value_;
     std::string mdb_env_source;
     MDB_cursor_op op = MDB_FIRST;
 
