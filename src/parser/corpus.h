@@ -24,7 +24,6 @@
 #include <google/protobuf/message_lite.h>
 #include <glog/logging.h>
 #include <thread>
-#include <functional>
 
 #include "parser.h"
 #include "lmdb.h"
@@ -126,14 +125,14 @@ class Corpus {
       float t_get = 0;
       float t_parse = 0;
       float t_process = 0;
-      std::thread threads[mini_batch_size - offset];
+      std::thread *threads[mini_batch_size];
       // timing test end
 
       cnn::Datum datum;
       int mdb_ret;
       // Note that the corpus owns the storage of its images
       float * const labels_data = labels->get_p_data();
-      int count = 0;
+      size_t count = 0;
       for (size_t b = offset; b < mini_batch_size; b++) { 
           Timer t;
           mdb_ret = mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
@@ -143,7 +142,7 @@ class Corpus {
           }
 
           Timer t2;
-          threads[b] = std::thread([this, mdb_value_, b, labels_data](){
+          threads[b] = new std::thread([this, mdb_value_, b, labels_data](){
             cnn::Datum datum;
             datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
 
@@ -162,16 +161,16 @@ class Corpus {
 
       // timing tests
       Timer t;
-      for (size_t b = offset; b < mini_batch_size; ++b){
-        threads[b].join();
+      for (size_t b = offset; b < offset + count; ++b){
+        threads[b]->join();
+	delete threads[b];
       }
       t_parse += t.elapsed();
       t_process += t.elapsed();
-      std::cout << "mdb_cursor_get: " << t_get << std::endl;
-      std::cout << "ParseFromArray: " << t_parse << std::endl;
-      std::cout << "process_image: " << t_process << std::endl;
+      //std::cout << "mdb_cursor_get: " << t_get << std::endl;
+      //std::cout << "ParseFromArray: " << t_parse << std::endl;
+      //std::cout << "process_image: " << t_process << std::endl;
       // timing test end
-
 
       return count;
     }
