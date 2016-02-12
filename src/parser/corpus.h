@@ -125,7 +125,8 @@ class Corpus {
       float t_get = 0;
       float t_parse = 0;
       float t_process = 0;
-      std::thread *threads[mini_batch_size];
+      //std::thread *threads[mini_batch_size];
+      std::vector<std::thread>threads;
       // timing test end
 
       cnn::Datum datum;
@@ -142,7 +143,7 @@ class Corpus {
           }
 
           Timer t2;
-          threads[b] = new std::thread([this, mdb_value_, b, labels_data](){
+          threads.emplace_back([this, mdb_value_, b, labels_data](){
             cnn::Datum datum;
             datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
 
@@ -161,10 +162,13 @@ class Corpus {
 
       // timing tests
       Timer t;
-      for (size_t b = offset; b < offset + count; ++b){
-        threads[b]->join();
-	delete threads[b];
-      }
+      //for (size_t b = offset; b < offset + count; ++b){
+      //  threads[b]->join();
+      //	delete threads[b];
+      //}
+      for(auto &i: threads){
+	i.join();	
+      } 
       t_parse += t.elapsed();
       t_process += t.elapsed();
       //std::cout << "mdb_cursor_get: " << t_get << std::endl;
