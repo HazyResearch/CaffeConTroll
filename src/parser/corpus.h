@@ -116,29 +116,19 @@ class Corpus {
      */
     int LoadLmdbData(int offset = 0){
       MDB_val mdb_key_, mdb_value_;
-
-      // timing tests
-      float t_get = 0;
-      float t_parse = 0;
-      float t_process = 0;
-      //std::thread *threads[mini_batch_size];
       std::vector<std::thread>threads;
-      // timing test end
-
       cnn::Datum datum;
       int mdb_ret;
+
       // Note that the corpus owns the storage of its images
       float * const labels_data = labels->get_p_data();
       size_t count = 0;
       for (size_t b = offset; b < mini_batch_size; b++) { 
-          Timer t;
           mdb_ret = mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
-          t_get += t.elapsed();
           if(mdb_ret != 0){
             break;
           }
 
-          Timer t2;
           threads.emplace_back([this, mdb_value_, b, labels_data](){
             cnn::Datum datum;
             datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
@@ -149,27 +139,15 @@ class Corpus {
             // and copies it into the images buffer
             process_image(images->physical_get_RCDslice(b), datum);
           });
-          t_parse += t2.elapsed();
-          t_process += t2.elapsed();
 
           op = MDB_NEXT;
           ++count;
       }
 
       // timing tests
-      Timer t;
-      //for (size_t b = offset; b < offset + count; ++b){
-      //  threads[b]->join();
-      //	delete threads[b];
-      //}
       for(auto &i: threads){
 	i.join();	
       } 
-      t_parse += t.elapsed();
-      t_process += t.elapsed();
-      //std::cout << "mdb_cursor_get: " << t_get << std::endl;
-      //std::cout << "ParseFromArray: " << t_parse << std::endl;
-      //std::cout << "process_image: " << t_process << std::endl;
       // timing test end
 
       return count;
@@ -304,6 +282,7 @@ class Corpus {
           for (size_t c = 0; c < dim; ++c) {
             for (int h = 0; h < crop_size; ++h) {
               for (int w = 0; w < crop_size; ++w) {
+<<<<<<< 363cb8a6eb63b8b02ea35a0406b1667b848d3954
                 int data_index = (c * height + h + h_off) * width + w + w_off;
                 int top_index = (c * crop_size + h) * crop_size + (crop_size - 1 - w);
 
@@ -314,6 +293,11 @@ class Corpus {
                   datum_element = datum.float_data(data_index);
                 }
                 single_input_batch[top_index] = (datum_element - mean_data[data_index])*scale;
+=======
+                single_input_batch[(c * crop_size + h) * crop_size + (crop_size - 1 - w)] = 
+                  (static_cast<float>(static_cast<uint8_t>(data[(c * height + h + h_off) * width + w + w_off]))
+                  - mean_data[(c * height + h + h_off) * width + w + w_off])*scale;
+>>>>>>> Removed commented out code
               }
             }
           }
@@ -323,6 +307,7 @@ class Corpus {
           for (size_t c = 0; c < dim; ++c) {
             for (int h = 0; h < crop_size; ++h) {
               for (int w = 0; w < crop_size; ++w) {
+<<<<<<< 363cb8a6eb63b8b02ea35a0406b1667b848d3954
                 int top_index = (c * crop_size + h) * crop_size + w;
                 int data_index = (c * height + h + h_off) * width + w + w_off;
                 float datum_element;
@@ -332,6 +317,11 @@ class Corpus {
                   datum_element = datum.float_data(data_index);
                 }
                 single_input_batch[top_index] = (datum_element - mean_data[data_index])*scale;
+=======
+                single_input_batch[(c * crop_size + h) * crop_size + w] = 
+                  (static_cast<float>(static_cast<uint8_t>(data[(c * height + h + h_off) * width + w + w_off])) 
+                    - mean_data[(c * height + h + h_off) * width + w + w_off])*scale;
+>>>>>>> Removed commented out code
               }
             }
           }
@@ -341,6 +331,7 @@ class Corpus {
         for (size_t d = 0; d < dim; ++d) {
           for (size_t r = 0; r < n_rows; ++r) {
             for (size_t c = 0; c < n_cols; ++c) {
+<<<<<<< 363cb8a6eb63b8b02ea35a0406b1667b848d3954
               const size_t data_index = d * n_rows * n_cols + r * n_cols + c;
               float datum_element;
               if (datum.data().size() != 0) {
@@ -349,6 +340,11 @@ class Corpus {
                 datum_element = datum.float_data(data_index);
               }
               single_input_batch[data_index] = (datum_element - mean_data[data_index])*scale;
+=======
+              single_input_batch[d * n_rows * n_cols + r * n_cols + c] = 
+		(static_cast<float>(static_cast<uint8_t>(data[d * n_rows * n_cols + r * n_cols + c])) 
+                - mean_data[d * n_rows * n_cols + r * n_cols + c])*scale;
+>>>>>>> Removed commented out code
             }
           }
         }
