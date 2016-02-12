@@ -23,6 +23,8 @@
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/message_lite.h>
 #include <glog/logging.h>
+#include <thread>
+#include <functional>
 
 #include "parser.h"
 #include "lmdb.h"
@@ -117,26 +119,52 @@ class Corpus {
      * This is used when wrapping over the data and starting at the beginning again
      */
     int LoadLmdbData(int offset = 0){
+      // timing tests
+      float t_get = 0;
+      float t_parse = 0;
+      float t_process = 0;
+      std::thread threads[mini_batch_size - offset];
+      // timing test end
+
       cnn::Datum datum;
       int mdb_ret;
       // Note that the corpus owns the storage of its images
       float * const labels_data = labels->get_p_data();
       int count = 0;
       for (size_t b = offset; b < mini_batch_size; b++) { 
+          Timer t;
           mdb_ret = mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
+          t_get += t.elapsed();
           if(mdb_ret != 0){
             break;
           }
+          Timer t2;
           datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
+          t_parse += t2.elapsed();
+
           labels_data[b] = datum.label(); 
           // Process image reads the image from datum, does some preprocessing
           // and copies it into the images buffer
-          process_image(images->physical_get_RCDslice(b), datum);
+          Timer t3;
+          float * const &param = images->physical_get_RCDslice(b);
+          threads[b] = std::thread(&Corpus::process_image, this, param, datum);
+          //process_image(images->physical_get_RCDslice(b), datum);
+          t_process += t3.elapsed();
           op = MDB_NEXT;
           ++count;
       }
 
-      return count; 
+      // timing tests
+      for (size_t b = offset; b < mini_batch_size; ++b){
+        threads[b].join();
+      }
+      std::cout << "mdb_cursor_get: " << t_get << std::endl;
+      std::cout << "ParseFromArray: " << t_parse << std::endl;
+      std::cout << "process_image: " << t_process << std::endl;
+      // timing test end
+
+
+      return count;
     }
 
     /*
@@ -250,7 +278,6 @@ class Corpus {
     // daniter TODO: Consider replacing nested loops below with a single loop (or some kind of vectorization?)
     // measure it to see if its faster
     void process_image(float * const &single_input_batch, cnn::Datum datum) {
-
       const string& data = datum.data();
       const int height = datum.height();
       const int width = datum.width();
@@ -298,9 +325,11 @@ class Corpus {
         for (size_t d = 0; d < dim; ++d) {
           for (size_t r = 0; r < n_rows; ++r) {
             for (size_t c = 0; c < n_cols; ++c) {
-              const size_t data_index = d * n_rows * n_cols + r * n_cols + c;
-              float datum_element = static_cast<float>(static_cast<uint8_t>(data[data_index]));
-              single_input_batch[data_index] = (datum_element - mean_data[data_index])*scale;
+              //const size_t data_index = d * n_rows * n_cols + r * n_cols + c;
+              //float datum_element = static_cast<float>(static_cast<uint8_t>(data[data_index]));
+              //single_input_batch[data_index] = (datum_element - mean_data[data_index])*scale;
+              single_input_batch[d * n_rows * n_cols + r * n_cols + c] = (static_cast<float>(static_cast<uint8_t>(data[d * n_rows * n_cols + r * n_cols + c])) 
+                - mean_data[d * n_rows * n_cols + r * n_cols + c])*scale;
             }
           }
         }
