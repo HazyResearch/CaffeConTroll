@@ -305,11 +305,15 @@ class Corpus {
           for (size_t c = 0; c < dim; ++c) {
             for (int h = 0; h < crop_size; ++h) {
               for (int w = 0; w < crop_size; ++w) {
-                int data_index = (c * height + h + h_off) * width + w + w_off;
-                int top_index = (c * crop_size + h) * crop_size + (crop_size - 1 - w);
+                // int data_index = (c * height + h + h_off) * width + w + w_off;
+                // int top_index = (c * crop_size + h) * crop_size + (crop_size - 1 - w);
 
-                float datum_element = static_cast<float>(static_cast<uint8_t>(data[data_index]));
-                single_input_batch[top_index] = (datum_element - mean_data[data_index])*scale;
+                // float datum_element = static_cast<float>(static_cast<uint8_t>(data[data_index]));
+                // single_input_batch[top_index] = (datum_element - mean_data[data_index])*scale;
+
+                single_input_batch[(c * crop_size + h) * crop_size + (crop_size - 1 - w)] = 
+                  (static_cast<float>(static_cast<uint8_t>(data[(c * height + h + h_off) * width + w + w_off]))
+                  - mean_data[(c * height + h + h_off) * width + w + w_off])*scale;
               }
             }
           }
@@ -319,11 +323,15 @@ class Corpus {
           for (size_t c = 0; c < dim; ++c) {
             for (int h = 0; h < crop_size; ++h) {
               for (int w = 0; w < crop_size; ++w) {
-                int top_index = (c * crop_size + h) * crop_size + w;
-                int data_index = (c * height + h + h_off) * width + w + w_off;
+                // int top_index = (c * crop_size + h) * crop_size + w;
+                // int data_index = (c * height + h + h_off) * width + w + w_off;
 
-                float datum_element = static_cast<float>(static_cast<uint8_t>(data[data_index]));
-                single_input_batch[top_index] = (datum_element - mean_data[data_index])*scale;
+                // float datum_element = static_cast<float>(static_cast<uint8_t>(data[data_index]));
+                // single_input_batch[top_index] = (datum_element - mean_data[data_index])*scale;
+
+                single_input_batch[(c * crop_size + h) * crop_size + w] = 
+                  (static_cast<float>(static_cast<uint8_t>(data[(c * height + h + h_off) * width + w + w_off])) 
+                    - mean_data[(c * height + h + h_off) * width + w + w_off])*scale;
               }
             }
           }
