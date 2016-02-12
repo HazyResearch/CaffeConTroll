@@ -263,7 +263,6 @@ class Corpus {
     // daniter TODO: Consider replacing nested loops below with a single loop (or some kind of vectorization?)
     // measure it to see if its faster
     void process_image(float * const &single_input_batch, cnn::Datum datum) {
-      const string& data = datum.data();
       const int height = datum.height();
       const int width = datum.width();
 
