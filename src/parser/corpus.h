@@ -322,7 +322,6 @@ class Corpus {
               for (int w = 0; w < crop_size; ++w) {
                 int top_index = (c * crop_size + h) * crop_size + w;
                 int data_index = (c * height + h + h_off) * width + w + w_off;
-
                 float datum_element;
                 if (datum.data().size() != 0) {
                   datum_element = static_cast<float>(static_cast<uint8_t>(datum.data()[data_index]));
