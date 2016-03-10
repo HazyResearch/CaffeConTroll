@@ -13,6 +13,8 @@ tests/test
 *.pb.cc
 *.pb.h
 *.o
+*.so
+*.dylib
 # Swap files
 *.swp
 *~

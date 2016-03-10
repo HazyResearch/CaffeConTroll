@@ -143,6 +143,14 @@ LINKFLAG += -lcublas -lcudart -lcurand
 NVCC_LINK = dlink.o
 endif
 
+#Julia Shared Library
+ifeq ($(UNAME), Darwin)
+CPP_JULIA_LIBRARY = -dynamiclib src/julia/julia_helper.cpp -o libcct_julia.dylib
+endif
+ifeq ($(UNAME), Linux)
+CPP_JULIA_LIBRARY = -fPIC -lnuma -shared src/julia/julia_helper.cpp -o libcct_julia.so 
+endif
+
 .PHONY: all assembly clean product test warning
 
 all: CFLAGS += $(PRODUCT_FLAGS) 
@@ -262,4 +270,28 @@ clean:
 	rm -f $(SNAPSHOT_EXECUTABLE)
 	rm -f src/*.d
 	rm -f tests/toprocess.bin tests/model.bin tests/model.bin.* tests/lenet_toprocess.bin tests/imgnet_toprocess.bin
+
+julia:
+	$(info ****BUILDING JULIA**** )
+	$(CC) $(C_FLAG) $(INCLUDE_STR) $(LINKFLAG) $(DIR_PARAMS) $(LDFLAGS) $(PROTOBUF_LIB) $(CPP_JULIA_LIBRARY)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
