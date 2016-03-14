@@ -6,6 +6,9 @@
 extern "C" {
 
 	void Hello();
+
+	void ConstructCctNetworkAndRun(uint8_t *solver_pb, int solver_len, uint8_t *net_pb, int net_len);
+
 }
 
 #endif
