@@ -10,6 +10,7 @@ class DeepNetConfig {
 
   public:
     static bool train() { return train_; }
+    static void setTrain(bool t) { train_ = t; }
 };
 
 #endif
