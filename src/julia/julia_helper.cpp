@@ -210,3 +210,196 @@ void ConstructCctNetworkAndRun(uint8_t *solver_pb, int solver_len, uint8_t *net_
 	// 	bridge->p_output_layer->p_gradient_cube->logical_print();
 	// }
 }
+
+// TODO : 
+// 1) Init network and create data structure to store all necessary pointers
+// 2) implement softmax to check correctness
+// 2) factor implementation
+// 3) Add workaround for reading in prototxt files
+// 4) Wrap protobuf cnn parameter objects
+
+typedef struct NetworkMetadata{
+	BridgeVector bridges;
+	cnn::SolverParameter solver_param;
+	cnn::NetParameter net_param;
+	Corpus * corpus;
+	Corpus * val_corpus;
+	size_t batch = 0;
+	SoftmaxBridge * softmax;
+	Bridge * first;
+	float loss = 0.0;
+	float accuracy = 0.0;
+
+} network_t;
+
+void AugmentIteration(network_t *net, string snapshot_file_name){
+	size_t batch = net->batch;
+	const int display_iter = net->solver_param.display();
+	const int snapshot = net->solver_param.snapshot();
+	const int test_interval = net->solver_param.test_interval();
+
+	    // Check if we should print batch status
+        // Edit: Instead we will make display_iter print the average since
+        // the previous display, since this seems more useful
+	if ( (batch+1) % display_iter == 0 ) {
+		float learning_rate = Util::get_learning_rate(net->solver_param.lr_policy(), net->solver_param.base_lr(), net->solver_param.gamma(),
+			batch+1, net->solver_param.stepsize(), net->solver_param.power(), net->solver_param.max_iter());
+
+		std::cout << "Training Status Report ( Mini-batch iter " << batch << "), LR = " << learning_rate << std::endl;
+		std::cout << "  \033[1;32m";
+		std::cout << "Loss & Accuracy [Average of Past " << display_iter << " Iterations]\t" << net->loss/float(display_iter) << "\t" << float(net->accuracy)/(float(display_iter));
+		std::cout << "\033[0m" << std::endl;
+        net->loss = 0.;
+     	net->accuracy = 0.;
+
+	}
+    // Check if we should run validation
+	if (test_interval > 0 && (batch+1) % test_interval == 0) {
+		std::cout << "Validation/Test Status Report (Epoch Mini-batch iter " << batch << ")" << std::endl;
+            // Switch dataset to val
+		std::cout << "  \033[1;36m";
+		net->bridges[0]->update_p_input_layer_data_CPU_ONLY(net->val_corpus->images->physical_get_RCDslice(0));
+		DeepNetConfig::setTrain(false);
+		DeepNet::test_network(net->bridges, *(net->val_corpus), net->net_param, net->solver_param, false);
+        // Switch dataset back to train
+        // reset the softmax data labels to the corpus labels instead of the test labels
+		net->bridges[0]->update_p_input_layer_data_CPU_ONLY(net->corpus->images->physical_get_RCDslice(0));
+		DeepNetConfig::setTrain(true);
+		std::cout << "    [Run on entire validation set]\033[0m" << std::endl;
+	}
+    // Check if we should write a snapshot
+	if (snapshot > 0 && (batch+1) % snapshot == 0) {
+		time_t rawtime;
+		struct tm * timeinfo;
+		char buffer[80];
+		time (&rawtime);
+		timeinfo = localtime(&rawtime);
+		strftime(buffer,80,"%d-%m-%Y-%I-%M-%S",timeinfo);
+		std::string str(buffer);
+		std::string snapshot_name;
+
+		if (snapshot_file_name == "NA") {
+			snapshot_name = "trained_model.bin." + str;
+		} else {
+			snapshot_name = snapshot_file_name + "." + str;
+		}
+		DeepNet::write_model_to_file(net->bridges, snapshot_name);
+		std::cout << "======= Writing snapshot " << snapshot_name << " =======\n";
+	}
+}
+
+void* InitNetwork(uint8_t *solver_pb, int solver_len, uint8_t *net_pb, int net_len){
+	network_t* net = new network_t;
+	net->solver_param.ParseFromArray(solver_pb, solver_len);
+	net->net_param.ParseFromArray(net_pb, net_len);
+	net->corpus = DeepNet::read_corpus_from_lmdb(net->net_param, true);
+	DeepNet::construct_network(net->bridges, *(net->corpus), net->net_param, net->solver_param);
+	net->val_corpus = DeepNet::read_corpus_from_lmdb(net->net_param, false);
+
+	net->softmax = (SoftmaxBridge *) net->bridges.back();
+	net->first = (Bridge *) net->bridges.front();
+
+	net->softmax->p_data_labels->set_p_data(net->corpus->labels->physical_get_RCDslice(0));
+
+	net->corpus->OpenLmdbReader();
+
+	return net;
+}
+
+void SingleForwardPass(void *_net){
+	// Calling from Julia.  Convert net to network_t
+	network_t *net = (network_t *)_net;
+	BridgeVector& bridges = net->bridges;
+	cnn::SolverParameter solver_param = net->solver_param;
+	cnn::NetParameter net_param = net->net_param;
+	Corpus& corpus = *net->corpus;
+	Corpus& val_corpus = *net->val_corpus;
+	const string input_model_file = "NA";
+	const string snapshot_file_name = "NA";
+
+	//train_network(bridges, *corpus, net_param, solver_param, input_model_file, 
+	//	snapshot_file_name, *val_corpus, time_iterations);
+
+	LogicalCubeFloat * const input_data = net->first->p_input_layer->p_data_cube;
+
+	size_t rs = corpus.LoadLmdbData();
+
+        // Note that the implementation of labels has changed.  Since we are reading the lmbd for every
+        // iteration, we get the label in the data so now the labels and images objects are parallel
+        // TODO? : Perhaps this is a good reason to merge them into a single object 
+        // Since labels are in sync they will also only be of size mini_batch_size
+	assert(net->softmax->p_data_labels->get_p_data() == corpus.labels->get_p_data());
+
+        // If we read less than we expected, read the rest from the beginning 
+	size_t num_images_left_to_read = net->corpus->mini_batch_size - rs;
+	if (num_images_left_to_read > 0) {
+            // Simply reset the cursor so the next load will start from the start of the lmdb
+		corpus.ResetCursor();
+
+            // Passing in rs allows us to say that we already filled rs spots in images
+            // and now we want to start from that position and complete the set up to mini_batch_size
+            // Eg. Minibatch is 10.  We read 2 images and hit the end of the mldb.  After reseting the
+            // cursor above we can just tell the load function to start from index 2 and continue
+		size_t rs2 = corpus.LoadLmdbData(rs);
+		assert(rs2 == num_images_left_to_read);
+
+            // The corpus.labels object was also updated above so we need to check that
+            // the pointer is still consistent
+		assert(net->softmax->p_data_labels->get_p_data() == corpus.labels->get_p_data());
+	}
+    // initialize input_data for this mini batch
+    // Ce: Notice the change here compared with the master branch -- this needs to be refactored
+    // to make the switching between this and the master branch (that load everything in memory)
+    // dynamically and improve code reuse.
+	float * const mini_batch = net->corpus->images->physical_get_RCDslice(0);
+	assert(input_data->get_p_data() == mini_batch);
+
+	net->softmax->reset_loss();
+
+    // forward pass
+	DeepNet::run_forward_pass(net->bridges);
+
+	net->loss += (net->softmax->get_loss() / float(net->corpus->mini_batch_size));
+	net->accuracy += float(DeepNet::find_accuracy(net->softmax->p_data_labels, (*--(net->bridges.end()))->p_output_layer->p_data_cube)) / float(net->corpus->mini_batch_size);
+
+	AugmentIteration(net, snapshot_file_name);
+	net->batch++;
+}
+
+void SingleBackwardPass(void *_net){
+	// Calling from Julia.  Convert net to network_t
+	network_t *net = (network_t *)_net;
+
+	// backward pass
+	DeepNet::run_backward_pass(net->bridges);
+}
+
+void DeleteNetwork(void *_net){
+	network_t *net = (network_t *)_net;
+	net->corpus->CloseLmdbReader();
+	free(net->corpus);
+	free(net->val_corpus);
+	free(net);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

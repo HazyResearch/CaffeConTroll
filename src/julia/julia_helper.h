@@ -9,6 +9,13 @@ extern "C" {
 
 	void ConstructCctNetworkAndRun(uint8_t *solver_pb, int solver_len, uint8_t *net_pb, int net_len);
 
+	void* InitNetwork(uint8_t *solver_pb, int solver_len, uint8_t *net_pb, int net_len);
+
+	void SingleForwardPass(void *_net);
+
+	void SingleBackwardPass(void *_net);
+
+	void DeleteNetwork(void *_net);
 }
 
 #endif
