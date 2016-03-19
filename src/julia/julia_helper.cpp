@@ -211,13 +211,6 @@ void ConstructCctNetworkAndRun(uint8_t *solver_pb, int solver_len, uint8_t *net_
 	// }
 }
 
-// TODO : 
-// 1) Init network and create data structure to store all necessary pointers
-// 2) implement softmax to check correctness
-// 2) factor implementation
-// 3) Add workaround for reading in prototxt files
-// 4) Wrap protobuf cnn parameter objects
-
 typedef struct NetworkMetadata{
 	BridgeVector bridges;
 	cnn::SolverParameter solver_param;
@@ -225,7 +218,7 @@ typedef struct NetworkMetadata{
 	Corpus * corpus;
 	Corpus * val_corpus;
 	size_t batch = 0;
-	SoftmaxBridge * softmax;
+	//SoftmaxBridge * softmax;
 	Bridge * first;
 	float loss = 0.0;
 	float accuracy = 0.0;
@@ -296,10 +289,10 @@ void* InitNetwork(uint8_t *solver_pb, int solver_len, uint8_t *net_pb, int net_l
 	DeepNet::construct_network(net->bridges, *(net->corpus), net->net_param, net->solver_param);
 	net->val_corpus = DeepNet::read_corpus_from_lmdb(net->net_param, false);
 
-	net->softmax = (SoftmaxBridge *) net->bridges.back();
+	//net->softmax = (SoftmaxBridge *) net->bridges.back();
 	net->first = (Bridge *) net->bridges.front();
 
-	net->softmax->p_data_labels->set_p_data(net->corpus->labels->physical_get_RCDslice(0));
+	//net->softmax->p_data_labels->set_p_data(net->corpus->labels->physical_get_RCDslice(0));
 
 	net->corpus->OpenLmdbReader();
 
@@ -328,7 +321,7 @@ void SingleForwardPass(void *_net){
         // iteration, we get the label in the data so now the labels and images objects are parallel
         // TODO? : Perhaps this is a good reason to merge them into a single object 
         // Since labels are in sync they will also only be of size mini_batch_size
-	assert(net->softmax->p_data_labels->get_p_data() == corpus.labels->get_p_data());
+	//assert(net->softmax->p_data_labels->get_p_data() == corpus.labels->get_p_data());
 
         // If we read less than we expected, read the rest from the beginning 
 	size_t num_images_left_to_read = net->corpus->mini_batch_size - rs;
@@ -345,7 +338,7 @@ void SingleForwardPass(void *_net){
 
             // The corpus.labels object was also updated above so we need to check that
             // the pointer is still consistent
-		assert(net->softmax->p_data_labels->get_p_data() == corpus.labels->get_p_data());
+		//assert(net->softmax->p_data_labels->get_p_data() == corpus.labels->get_p_data());
 	}
     // initialize input_data for this mini batch
     // Ce: Notice the change here compared with the master branch -- this needs to be refactored
@@ -354,13 +347,13 @@ void SingleForwardPass(void *_net){
 	float * const mini_batch = net->corpus->images->physical_get_RCDslice(0);
 	assert(input_data->get_p_data() == mini_batch);
 
-	net->softmax->reset_loss();
+	//net->softmax->reset_loss();
 
     // forward pass
 	DeepNet::run_forward_pass(net->bridges);
 
-	net->loss += (net->softmax->get_loss() / float(net->corpus->mini_batch_size));
-	net->accuracy += float(DeepNet::find_accuracy(net->softmax->p_data_labels, (*--(net->bridges.end()))->p_output_layer->p_data_cube)) / float(net->corpus->mini_batch_size);
+	//net->loss += (net->softmax->get_loss() / float(net->corpus->mini_batch_size));
+	//net->accuracy += float(DeepNet::find_accuracy(net->softmax->p_data_labels, (*--(net->bridges.end()))->p_output_layer->p_data_cube)) / float(net->corpus->mini_batch_size);
 
 	AugmentIteration(net, snapshot_file_name);
 	net->batch++;
@@ -372,6 +365,7 @@ void SingleBackwardPass(void *_net){
 
 	// backward pass
 	DeepNet::run_backward_pass(net->bridges);
+	//net->bridges.back()->p_input_layer->p_gradient_cube->logical_print();
 }
 
 void DeleteNetwork(void *_net){
@@ -380,6 +374,30 @@ void DeleteNetwork(void *_net){
 	free(net->corpus);
 	free(net->val_corpus);
 	free(net);
+}
+
+void GetScores(void *_net, float *scores){
+	network_t *net = (network_t *)_net;
+	Bridge * last = net->bridges[0];
+	//last->p_output_layer->p_data_cube->logical_print();
+	memcpy(scores, last->p_output_layer->p_data_cube->get_p_data(), 
+		last->p_output_layer->p_data_cube->n_elements * sizeof(float));
+}
+
+void SetGradient(void *_net, float *dscores){
+	network_t *net = (network_t *)_net;
+	Bridge * last = net->bridges[0];
+	//last->p_output_layer->p_data_cube->logical_print();
+	memcpy(last->p_output_layer->p_gradient_cube->get_p_data(), dscores,
+		last->p_output_layer->p_gradient_cube->n_elements * sizeof(float));
+	//last->p_output_layer->p_gradient_cube->logical_print();
+}
+
+void GetLabels(void *_net, float *labels){
+	network_t *net = (network_t *)_net;
+	//net->softmax->p_data_labels->logical_print();
+	memcpy(labels, net->corpus->labels->get_p_data(),
+		net->corpus->labels->n_elements * sizeof(float));
 }
 
 

@@ -16,6 +16,14 @@ extern "C" {
 	void SingleBackwardPass(void *_net);
 
 	void DeleteNetwork(void *_net);
+
+	void GetScores(void *_net, float *scores);
+
+	// TODO : Delete this!  This is just a hack to test softmax with internal labels
+	// Figure out how to move labels outside
+	void GetLabels(void *_net, float *labels);
+
+	void SetGradient(void *_net, float *dscores);
 }
 
 #endif
