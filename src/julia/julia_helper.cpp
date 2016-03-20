@@ -288,14 +288,11 @@ void* InitNetwork(uint8_t *solver_pb, int solver_len, uint8_t *net_pb, int net_l
 	net->corpus = DeepNet::read_corpus_from_lmdb(net->net_param, true);
 	DeepNet::construct_network(net->bridges, *(net->corpus), net->net_param, net->solver_param);
 	net->val_corpus = DeepNet::read_corpus_from_lmdb(net->net_param, false);
-
 	//net->softmax = (SoftmaxBridge *) net->bridges.back();
 	net->first = (Bridge *) net->bridges.front();
-
 	//net->softmax->p_data_labels->set_p_data(net->corpus->labels->physical_get_RCDslice(0));
 
 	net->corpus->OpenLmdbReader();
-
 	return net;
 }
 
@@ -378,7 +375,7 @@ void DeleteNetwork(void *_net){
 
 void GetScores(void *_net, float *scores){
 	network_t *net = (network_t *)_net;
-	Bridge * last = net->bridges[0];
+	Bridge * last = net->bridges.back();
 	//last->p_output_layer->p_data_cube->logical_print();
 	memcpy(scores, last->p_output_layer->p_data_cube->get_p_data(), 
 		last->p_output_layer->p_data_cube->n_elements * sizeof(float));
@@ -386,7 +383,7 @@ void GetScores(void *_net, float *scores){
 
 void SetGradient(void *_net, float *dscores){
 	network_t *net = (network_t *)_net;
-	Bridge * last = net->bridges[0];
+	Bridge * last = net->bridges.back();
 	//last->p_output_layer->p_data_cube->logical_print();
 	memcpy(last->p_output_layer->p_gradient_cube->get_p_data(), dscores,
 		last->p_output_layer->p_gradient_cube->n_elements * sizeof(float));
