@@ -285,6 +285,9 @@ void* InitNetwork(uint8_t *solver_pb, int solver_len, uint8_t *net_pb, int net_l
 	network_t* net = new network_t;
 	net->solver_param.ParseFromArray(solver_pb, solver_len);
 	net->net_param.ParseFromArray(net_pb, net_len);
+	//std::cout << net->net_param.DebugString() << std::endl;
+	//Parser::read_proto_from_text_file("julia-pb/lenet_solver.prototxt", &(net->solver_param));
+    //Parser::read_net_params_from_text_file("julia-pb/lenet_train_test.prototxt", &(net->net_param));
 	net->corpus = DeepNet::read_corpus_from_lmdb(net->net_param, true);
 	DeepNet::construct_network(net->bridges, *(net->corpus), net->net_param, net->solver_param);
 	net->val_corpus = DeepNet::read_corpus_from_lmdb(net->net_param, false);
@@ -299,7 +302,6 @@ void* InitNetwork(uint8_t *solver_pb, int solver_len, uint8_t *net_pb, int net_l
 void SingleForwardPass(void *_net){
 	// Calling from Julia.  Convert net to network_t
 	network_t *net = (network_t *)_net;
-	BridgeVector& bridges = net->bridges;
 	cnn::SolverParameter solver_param = net->solver_param;
 	cnn::NetParameter net_param = net->net_param;
 	Corpus& corpus = *net->corpus;
@@ -348,6 +350,8 @@ void SingleForwardPass(void *_net){
 
     // forward pass
 	DeepNet::run_forward_pass(net->bridges);
+	//net->bridges[7]->p_output_layer->p_data_cube->logical_print();
+
 
 	//net->loss += (net->softmax->get_loss() / float(net->corpus->mini_batch_size));
 	//net->accuracy += float(DeepNet::find_accuracy(net->softmax->p_data_labels, (*--(net->bridges.end()))->p_output_layer->p_data_cube)) / float(net->corpus->mini_batch_size);
@@ -362,7 +366,7 @@ void SingleBackwardPass(void *_net){
 
 	// backward pass
 	DeepNet::run_backward_pass(net->bridges);
-	//net->bridges.back()->p_input_layer->p_gradient_cube->logical_print();
+	//net->bridges.back()->p_output_layer->p_gradient_cube->logical_print();
 }
 
 void DeleteNetwork(void *_net){

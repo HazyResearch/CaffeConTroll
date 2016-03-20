@@ -213,7 +213,7 @@ class Corpus {
       mini_batch_size = layer_param.data_param().batch_size();
       const int crop_size = layer_param.transform_param().crop_size();
 
-      if (layer_param.transform_param().has_crop_size()) {
+      if (crop_size != 0) {
         n_rows = crop_size;
         n_cols = crop_size;
       } else {
@@ -231,7 +231,7 @@ class Corpus {
       float * const mean_data = mean->get_p_data();
 
       // Check for mean_file
-      if (layer_param.transform_param().has_mean_file()) {
+      if (layer_param.transform_param().has_mean_file() && layer_param.transform_param().mean_file().length() > 0) {
         const string & mean_file = layer_param.transform_param().mean_file();
         Parser::read_proto_from_binary_file(mean_file.c_str(), &cube);
         const int count_ = datum.height()* datum.width()* dim;
