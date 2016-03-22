@@ -13,6 +13,8 @@ extern "C" {
 
 	void SingleForwardPass(void *_net);
 
+	void SingleForwardPassData(void *_net, char **keys, int key_size);
+
 	void SingleBackwardPass(void *_net);
 
 	void DeleteNetwork(void *_net);

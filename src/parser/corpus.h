@@ -146,7 +146,49 @@ class Corpus {
 
       // timing tests
       for(auto &i: threads){
-	i.join();	
+	       i.join();	
+      } 
+      // timing test end
+
+      return count;
+    }
+
+    int LoadLmdbData(const char** keys, int key_size, int offset = 0){
+      MDB_val mdb_key_, mdb_value_;
+      std::vector<std::thread>threads;
+      cnn::Datum datum;
+      int mdb_ret;
+
+      // Note that the corpus owns the storage of its images
+      float * const labels_data = labels->get_p_data();
+      size_t count = 0;
+      for (size_t b = offset; b < mini_batch_size; b++) { 
+          mdb_key_.mv_size = key_size;
+          mdb_key_.mv_data = (void*)keys[b];
+          mdb_ret = mdb_get(mdb_txn_, mdb_dbi_, &mdb_key_, &mdb_value_);
+          if(mdb_ret != 0){
+            std::cout << mdb_ret << std::endl;
+            break;
+          }
+
+          threads.emplace_back([this, mdb_value_, b, labels_data](){
+            cnn::Datum datum;
+            datum.ParseFromArray(mdb_value_.mv_data, mdb_value_.mv_size);
+
+            labels_data[b] = datum.label(); 
+
+            // Process image reads the image from datum, does some preprocessing
+            // and copies it into the images buffer
+            process_image(images->physical_get_RCDslice(b), datum);
+          });
+
+          op = MDB_NEXT;
+          ++count;
+      }
+
+      // timing tests
+      for(auto &i: threads){
+         i.join();  
       } 
       // timing test end
 

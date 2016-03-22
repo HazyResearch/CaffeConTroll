@@ -299,7 +299,7 @@ void* InitNetwork(uint8_t *solver_pb, int solver_len, uint8_t *net_pb, int net_l
 	return net;
 }
 
-void SingleForwardPass(void *_net){
+void _SingleForwardPass(void *_net, const char **keys=NULL, int key_size=0){
 	// Calling from Julia.  Convert net to network_t
 	network_t *net = (network_t *)_net;
 	cnn::SolverParameter solver_param = net->solver_param;
@@ -314,7 +314,12 @@ void SingleForwardPass(void *_net){
 
 	LogicalCubeFloat * const input_data = net->first->p_input_layer->p_data_cube;
 
-	size_t rs = corpus.LoadLmdbData();
+	size_t rs = 0;
+	if (keys){
+		rs = corpus.LoadLmdbData(keys, key_size, 0);
+	} else {
+		rs = corpus.LoadLmdbData();
+	}
 
         // Note that the implementation of labels has changed.  Since we are reading the lmbd for every
         // iteration, we get the label in the data so now the labels and images objects are parallel
@@ -332,6 +337,7 @@ void SingleForwardPass(void *_net){
             // and now we want to start from that position and complete the set up to mini_batch_size
             // Eg. Minibatch is 10.  We read 2 images and hit the end of the mldb.  After reseting the
             // cursor above we can just tell the load function to start from index 2 and continue
+		assert(!keys); // if we are using keys we should never be given less than a mini batch
 		size_t rs2 = corpus.LoadLmdbData(rs);
 		assert(rs2 == num_images_left_to_read);
 
@@ -358,6 +364,14 @@ void SingleForwardPass(void *_net){
 
 	AugmentIteration(net, snapshot_file_name);
 	net->batch++;
+}
+
+void SingleForwardPassData(void *_net, char **keys, int key_size){
+	_SingleForwardPass(_net, (const char **)keys, key_size);
+}
+
+void SingleForwardPass(void *_net){
+	_SingleForwardPass(_net);
 }
 
 void SingleBackwardPass(void *_net){
