@@ -399,6 +399,14 @@ void GetScores(void *_net, float *scores){
 		last->p_output_layer->p_data_cube->n_elements * sizeof(float));
 }
 
+void GetWeights(void *_net, float *weights, int layer_index){
+	network_t *net = (network_t *)_net;
+	Bridge * layer = net->bridges.at(layer_index);
+	//last->p_output_layer->p_data_cube->logical_print();
+	memcpy(weights, layer->p_output_layer->p_data_cube->get_p_data(), 
+		layer->p_output_layer->p_data_cube->n_elements * sizeof(float));
+}
+
 void SetGradient(void *_net, float *dscores){
 	network_t *net = (network_t *)_net;
 	Bridge * last = net->bridges.back();

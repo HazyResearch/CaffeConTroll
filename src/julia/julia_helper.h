@@ -26,6 +26,8 @@ extern "C" {
 	void GetLabels(void *_net, float *labels);
 
 	void SetGradient(void *_net, float *dscores);
+
+	void GetWeights(void *_net, float *weights, int layer_index);
 }
 
 #endif
