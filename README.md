@@ -117,13 +117,13 @@ Follow these instructions to load the correct libraries and change to the
 
 Once that is done, run AlexNet on 1 GPU:
 
-> `./caffe-ct train tests/imagenet_train/solver/alexnet_solver_1GPU.prototxt -b tests/imgnet_toprocess.bin -o tests/model.bin`
+> `./caffe-ct train tests/imagenet_train/solver/alexnet_solver_1GPU.prototxt -o tests/model.bin`
 
 Argument description: 
 
 - Run the net in "train" mode and specify the path to the solver
-- Pass -b (optional) which tells CCT where to write the preprocessed data binary
 - Pass -o (optional) which tells CCT where to write the output model binary
+- Older versions of CcT can also be passed an optional -b argument (shown in the screenshot) which tells CCT where to write the preprocessed data binary. In the current version -b has been removed.
 
 Notice that a forwards + backwards iteration, including gradient updates, takes 2.75s.
 
@@ -132,14 +132,14 @@ Notice that a forwards + backwards iteration, including gradient updates, takes 
 Next, run with 1 GPU as well as the CPU. The command is the same, except for a different prototxt file which
 specifies that the CPU should also be used:
 
-> `./caffe-ct train tests/imagenet_train/solver/alexnet_solver_1GPU_CPU.prototxt -b tests/imgnet_toprocess.bin -o tests/model.bin`
+> `./caffe-ct train tests/imagenet_train/solver/alexnet_solver_1GPU_CPU.prototxt -o tests/model.bin`
 
 <img src="docs/figures/4gpu_screenshot3.png" height="400" >
 
 Finally, run with 4 GPUs. Once again the command is the same, except for a different prototxt file which
 specifies that 4 GPUs should be used:
 
-> `./caffe-ct train tests/imagenet_train/solver/alexnet_solver_4GPU.prototxt -b tests/imgnet_toprocess.bin -o tests/model.bin`
+> `./caffe-ct train tests/imagenet_train/solver/alexnet_solver_4GPU.prototxt -o tests/model.bin`
 
 <img src="docs/figures/4gpu_screenshot4.png" height="400" >
 
@@ -167,7 +167,7 @@ to set the correct library paths.
 
 Once this is done, run CcT on CaffeNet:
 
-> `./caffe-ct train tests/imagenet_train/solver/caffenet_solver_1000.prototxt -b tests/imgnet_toprocess.bin -o tests/model.bin`
+> `./caffe-ct train tests/imagenet_train/solver/caffenet_solver_1000.prototxt -o tests/model.bin`
 
 <img src="docs/figures/cpu_screenshot2.png" height="400" >
 
@@ -209,7 +209,7 @@ When opening a new session, follow the instructions [here](docs/VM_Instructions/
 
 Once this is done, run CcT on CaffeNet:
 
-> `./caffe-ct train tests/imagenet_train/solver/caffenet_solver_1000_azure.prototxt -b tests/imgnet_toprocess.bin -o tests/model.bin`
+> `./caffe-ct train tests/imagenet_train/solver/caffenet_solver_1000_azure.prototxt -o tests/model.bin`
 
 Result on D4 instance:
 
@@ -229,14 +229,23 @@ Note: When switching instances for the same VM (e.g. from D4 to D14), you may ne
 Installation from Source
 ------------------------
 
-We cloned Caffe, so we follow nearly identical [install
-instructions](http://caffe.berkeleyvision.org/installation.html).
-Start with their instructions! *NB: the .travis.yml should always
-contain a working build script for Ubuntu, if you are confused about
-dependencies.*
-
-
-* **Step 1.** Install the packages listed at the Caffe link. The dependencies are also listed in .travis.yml.
+* **Step 1.** Install the same dependencies as Caffe,
+which has very nice [documentation](http://caffe.berkeleyvision.org/installation.html#prerequisites)
+([ubuntu](http://caffe.berkeleyvision.org/install_apt.html), [OS X](http://caffe.berkeleyvision.org/install_osx.html)). The following are *NOT* needed by CcT and can be omitted:
+    * Linux:
+        * libleveldb-dev
+        * libsnappy-dev
+        * libopencv-dev
+        * libhdf5-serial-dev
+        * gflags (e.g. libgflags-dev on Ubuntu 14.04)
+    * OS X: 
+        * snappy
+        * leveldb
+        * gflags
+        * szip
+        * homebrew/science
+        * hdf5
+        * opencv
 
 * **Step 2.** Clone our repository 
 
@@ -297,7 +306,9 @@ blood](http://en.wikipedia.org/wiki/Trollhunter) of christian men.
 Partitioning Data for (Multiple) GPUs
 -------------------------------------
 
-Currently CcT allows users to specify the proportion of a layer to run on the GPU using the prototxt attributes:
+CcT supports data and model parallelism across multiple GPUs. Data parallelism is recommended for all layers except fully-connected. For large fully-connected layers, model parallelism works better.
+
+**Data Parallelism** For a given layer, specify the proportion of a batch to run on the GPU using the prototxt attributes:
 
       gpu_0_batch_proportion
       gpu_1_batch_proportion
@@ -320,7 +331,7 @@ For example, to run the first convolutional layer of AlexNet on 1 GPU, we add on
       gpu_0_batch_proportion: 1.0                # New line added
     }
 
-To run on 4 GPUs, partitioning a mini-batch across all 4 GPUs equally,
+To run with data parallelism on 4 GPUs, partitioning a mini-batch across all 4 GPUs equally,
 
     layers {
       name: "conv1"
@@ -354,6 +365,19 @@ The partitions do not need to be equal. To run 40% on the CPU and 60% on GPU 2,
 The default is to run on the CPU, i.e. no modification to the .prototxt file is needed to run the network on the CPU.
 
 For more examples, see the prototxt files in [`tests/imagenet_train/train_val/`](tests/imagenet_train/train_val/)
+
+**Model Parallelism** This is similar to above, but with the following syntax:
+
+      gpu_0_depth_proportion
+      gpu_1_depth_proportion
+      gpu_2_depth_proportion
+      gpu_3_depth_proportion
+
+Note that on a single GPU, model parallelism and data parallelism are the same, so by default if using one GPU, use 
+
+      gpu_0_batch_proportion: 1.0
+
+as in the example above.
 
 
 Known Issues

@@ -4,7 +4,6 @@
 #   * OpenBLAS or Atlas
 #   * GoogleTest
 #   * google-glog
-#   * google-gflags
 #   * Boost
 #
 # If any of these libraries are not currently part of your
@@ -42,10 +41,6 @@ GTEST_LIB_DIR=
 # directory where google-glog is installed (if not in path)
 GLOG_LIB_DIR=
 GLOG_INCLUDE=
-
-# directory where google-gflags is installed (if not in path)
-GFLAGS_LIB_DIR=
-GFLAGS_INCLUDE=
 
 # directory where Boost C++ Library is installed (if not in path)
 BOOST_LIB_DIR=
