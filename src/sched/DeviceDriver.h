@@ -211,11 +211,15 @@ public:
     assert(false);
   }
 
-  virtual void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch){
+  void init_rng(const int random_seed){
+    assert(false);
+  }
+  
+  virtual void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch, const int random_seed = -1){
     assert(false);
   }
 
-  virtual void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p){
+  virtual void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p, const int random_seed = -1){
     assert(false);
   }
 
@@ -223,7 +227,7 @@ public:
     assert(false);
   }
 
-  virtual void sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev){
+  virtual void sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev, const int random_seed = -1){
     assert(false);
   }
 

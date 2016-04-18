@@ -49,7 +49,7 @@ void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forw
   DeviceMemoryPointer * arg1 = p_driver->get_device_pointer(NULL, 0);
   DeviceMemoryPointer * arg2 = p_driver->get_device_pointer(NULL, 0);
 
-  p_driver->template parallel_map<_f_src_to_dst_relu_forward,
+  p_driver->template parallel_map<_f_src_to_dst_relu_forward,   // SHADJIS TODO: make faster CPU
     _f_relu_forward>(input, output, sizeof(DataType), arg1, arg2);
     
   PROFILE_ONLY(p_driver->device_sync(); float seconds = t.elapsed(); std::cout << "  Fw ReLU        " << seconds << "\n";)
@@ -91,7 +91,7 @@ void ReLUBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::back
   DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg,
       sizeof(_relu_backward_arg_helper));
 
-  p_driver->template parallel_map<_f_src_to_dst_relu_backward,
+  p_driver->template parallel_map<_f_src_to_dst_relu_backward,   // SHADJIS TODO: make faster CPU
     _f_relu_backward>(input, output, sizeof(DataType), arg1, arg2);
     
   PROFILE_ONLY(p_driver->device_sync(); float seconds = t.elapsed(); std::cout << "  Bw ReLU        " << seconds << "\n";)

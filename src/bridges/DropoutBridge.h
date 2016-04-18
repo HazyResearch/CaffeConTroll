@@ -97,9 +97,8 @@ class DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass> :
     
     // SHADJIS TODO: This rng should not be part of this class but instead be part of the device driver 
     // (e.g. if this is a GPU bridge, no need for a CPU rng).
-    // That requires calling p_driver->sbernoulli_initialize but for now I noticed that is 2ms slower 
+    // That requires calling p_driver->sbernoulli_initialize on the CPU but for now I noticed that is 2ms slower 
     // for dropout6 and 7 fw (7ms -> 9ms), probably because of device memory pointers? Tested on g2.8xlarge
-    std::random_device rd;
     mt19937 rng;
     boost::bernoulli_distribution<float> random_distribution;
     boost::variate_generator<mt19937, boost::bernoulli_distribution<float> > variate_generator;

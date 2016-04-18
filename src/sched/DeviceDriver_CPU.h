@@ -84,11 +84,13 @@ public:
 
   FUNC_STRANSFORM * srand_gaussian(float mean, float std_dev, DeviceMemoryPointer * arg);
 
-  void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch);
+  void init_rng(const int random_seed);
+  
+  void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch, const int random_seed = -1);
 
-  void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p);
+  void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p, const int random_seed = -1);
 
-  void sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev);
+  void sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev, const int random_seed = -1);
 
   void sconstant_initialize(DeviceMemoryPointer *arr, const float value);
 

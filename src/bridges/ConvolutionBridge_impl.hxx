@@ -1,8 +1,6 @@
 //
 //  ConvolutionBridge_impl.hxx
-//  moka
 //
-//  Created by Ce Zhang on 1/13/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
@@ -229,6 +227,26 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
 
 // Intiailize a Logical Cube using a FillerParameter. This is only called if layer_param is
 // non-NULL.
+// SHADJIS TOOD: We only call this for bridge 0, and then pbridge copies the model from bridge
+// to the host (copies whether bridge 0 is on cpu or gpu). So there is no need to initialize
+// any bridge except 0. Also if all are on CPU there is no need for this bridge to own its
+// model cube (model is small for conv and for fc we only have 1 bridge, but conv still 
+// wastes some MB).
+// SHADJIS TODO: also need to be careful because we are passing same seed to every bridge.
+// If the default -1 is used, the seed is random, but otherwise every bridge gets the same
+// seed. Since as mentioned above each bridge makes a model but only one model gets read by
+// pbridge, this does not matter for most bridges, but for GPU bridges with model parallelism
+// it does since now each parallel (fc) bridge has same data and model. This can be fixed in
+// DeepNet.h by giving each model parallel bridge a different seed (e.g. if seed = 3, give the
+// bridges 3 4 5 6. This is still deterministic).
+// We should also check if statistical efficiency is impacted by all conv bridges (e.g.
+// conv1, conv2, ...) having same initialization seed (even though data is different). Also,
+// we should check that if seed = -1, a different weight initialization is made for each bridge,
+// e.g. maybe rd() returns the same #.
+// SHADJIS TODO: note that the above is also true for dropout, i.e. if we make a data parallel 
+// dropout on 2 GPUs or 4 CPU threads etc., each sub-bridge will have the same dropout pattern.
+// This can be avoided by setting a different random seed inside dropout bridge, or only allowing
+// a random dropout seed for debugging.
 template <typename DataType, typename DriverClass>
 void ConvolutionBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::
 initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter filler_param) {
@@ -237,11 +255,11 @@ initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter
   if (type == "constant") {
     p_driver->sconstant_initialize(data, (DataType) filler_param.value());
   } else if (type == "xavier") {
-    p_driver->sinitialize_xavier(data, (DataType) cube->B);
+    p_driver->sinitialize_xavier(data, (DataType) cube->B, solver_param->random_seed());
   } else if (type == "bernoulli") {
-    p_driver->sbernoulli_initialize(data, (DataType) filler_param.value());
+    p_driver->sbernoulli_initialize(data, (DataType) filler_param.value(), solver_param->random_seed());
   } else if (type == "gaussian") {
-    p_driver->sgaussian_initialize(data, (DataType) filler_param.mean(), (DataType) filler_param.std());
+    p_driver->sgaussian_initialize(data, (DataType) filler_param.mean(), (DataType) filler_param.std(), solver_param->random_seed());
   } else {
     std::cout << "ERROR! INITIALIZATION TYPE NOT SUPPORTED!" << std::endl;
     assert(false);

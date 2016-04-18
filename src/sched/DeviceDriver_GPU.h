@@ -99,13 +99,15 @@ public:
   void selementwise_reduce2(DeviceMemoryPointer * dst, DeviceMemoryPointer * src1,
     DeviceMemoryPointer * src2, DeviceMemoryPointer * const func_curry);
 
-  void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch);
+  void init_rng(const int random_seed);
 
-  void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p);
+  void sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch, const int random_seed = -1);
+
+  void sbernoulli_initialize(DeviceMemoryPointer *arr, const float p, const int random_seed = -1);
   
   void rand_uint_initialize(unsigned int * buf, const int n);
 
-  void sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev);
+  void sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev, const int random_seed = -1);
 
   void sconstant_initialize(DeviceMemoryPointer *arr, const float value);
 
@@ -127,6 +129,7 @@ private:
   random_device rd;
   curandGenerator_t curand_gen;
   curandStatus_t curand_err;
+  bool curand_initialized;
   
 };
 

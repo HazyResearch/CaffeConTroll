@@ -145,11 +145,11 @@ initialize_logical_cube(const LogicalCubeType * cube, const cnn::FillerParameter
   if (type == "constant") {
     p_driver->sconstant_initialize(data, (DataType) filler_param.value());
   } else if (type == "xavier") {
-    p_driver->sinitialize_xavier(data, (DataType) cube->B);
+    p_driver->sinitialize_xavier(data, (DataType) cube->B, solver_param->random_seed());
   } else if (type == "bernoulli") {
-    p_driver->sbernoulli_initialize(data, (DataType) filler_param.value());
+    p_driver->sbernoulli_initialize(data, (DataType) filler_param.value(), solver_param->random_seed());
   } else if (type == "gaussian") {
-    p_driver->sgaussian_initialize(data, (DataType) filler_param.mean(), (DataType) filler_param.std());
+    p_driver->sgaussian_initialize(data, (DataType) filler_param.mean(), (DataType) filler_param.std(), solver_param->random_seed());
   } else {
     std::cout << "ERROR! INITIALIZATION TYPE NOT SUPPORTED" << std::endl;
     assert(false);

@@ -93,14 +93,14 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forwa
           sizeof(_lrn_forward_arg_helper));
      
       // calculate denoms
-      p_driver->template parallel_map<_f_src_to_dst_lrn_forward,
+      p_driver->template parallel_map<_f_src_to_dst_lrn_forward,   // SHADJIS TODO: make faster CPU
         _f_lrn_forward>(input, output, sizeof(DataType)*iR*iC*iD, arg1, arg2);
      
       DeviceMemoryPointer * arg3 = p_driver->get_device_pointer((void*)&_arg3,
           sizeof(_lrn_forward_normalize_arg_helper));
      
       // then do normalization
-      p_driver->template parallel_map<_f_src_to_dst_lrn_forward,
+      p_driver->template parallel_map<_f_src_to_dst_lrn_forward,   // SHADJIS TODO: make faster CPU
         _f_lrn_forward_normalize>(input, output, sizeof(DataType), arg1, arg3);
   } else {
       p_driver->lrn_forward(input, output, _arg2, _arg3);
@@ -168,7 +168,7 @@ void LRNBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::backw
     DeviceMemoryPointer * arg1 = p_driver->get_device_pointer(NULL, 0);
     DeviceMemoryPointer * arg2 = p_driver->get_device_pointer((void*)&_arg,
         sizeof(_lrn_backward_arg_helper));
-    p_driver->template parallel_map<_f_src_to_dst_lrn_backward,
+    p_driver->template parallel_map<_f_src_to_dst_lrn_backward,   // SHADJIS TODO: make faster CPU
       _f_lrn_backward>(input, output, sizeof(DataType)*oR*oC*oD, arg1, arg2);
   } else {
     p_driver->lrn_backward(input, output, _arg);

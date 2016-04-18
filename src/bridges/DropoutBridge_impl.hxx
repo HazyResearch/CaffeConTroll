@@ -16,7 +16,7 @@ DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::Dropou
     // SHADJIS TODO: These remaining members are for the bernoulli generation on the CPU
     // This should be part of the device driver instead, but I noticed that was slightly slower
     // Need to profile again though. Then call and call p_driver->sbernoulli_initialize in fw pass.
-    rng(mt19937(rd())), random_distribution(boost::bernoulli_distribution<float>(1. - dropout_ratio)), 
+    rng(mt19937(solver_param->random_seed())), random_distribution(boost::bernoulli_distribution<float>(1. - dropout_ratio)), 
     variate_generator(boost::variate_generator<mt19937, boost::bernoulli_distribution<float> >(rng, random_distribution)) {
 
   report_forward_constructor.reset();
@@ -37,6 +37,8 @@ DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::Dropou
   // Mask cube -- note this memory is allocated on the device
   mask_cube = new LogicalCube<unsigned int, Layout_CRDB>(iR, iC, iD, iB, p_driver);
 
+  p_driver->init_rng(solver_param->random_seed());
+  
   report_forward_constructor.end(0, 0, 0);
 }
 

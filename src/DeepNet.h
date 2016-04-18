@@ -182,7 +182,7 @@ class DeepNet {
         assert(bridge_idx == -1);
     }
 
-    // Write in the models of all bridges to a file
+    // Write the models of all bridges to a file
     static void write_model_to_file(const BridgeVector bridges, const string model_file) {
       FILE * pFile = fopen (model_file.c_str(), "wb");
       if (!pFile)
@@ -1100,7 +1100,6 @@ class DeepNet {
                          share_input_output_layer);
               
                 bridge->name = layer_param.name();
-                bridge->run_with_n_threads = hw_concurrency;  // TODO: Add a better abstraction here. // SHADJIS TODO: Is this still needed?
                 if (before_first_weight_layer) {
                     // bridge->needs_to_calc_backward_grad = false;
                 }
@@ -1235,6 +1234,12 @@ class DeepNet {
                     assert(gpu_idx == 3);
                     layer_param_tmp->set_gpu_3_batch_proportion(1.0);
                   }
+                  // Also make a solver_param_tmp if random_seed is set which assigns a different seed to each bridge
+                  // SHADJIS TODO: I noticed no improvement in statistical efficiency with this, but can test more later
+                  //cnn::SolverParameter * solver_param_tmp = new cnn::SolverParameter(solver_param); // Copy constructor
+                  //if (solver_param_tmp->random_seed() != -1) {
+                  //  solver_param_tmp->set_random_seed(solver_param_tmp->random_seed() + gpu_idx);
+                  //}
                   
                   // ---------------------------------------------------------------------------------------------------------
                   // Now create the bridge for this group
@@ -1250,12 +1255,12 @@ class DeepNet {
                   // This didn't cause any problems but since we will run these pbridges in parallel, using the same driver
                   // means that the drivers' internal class variables will be shared. Currently drivers have no variables but they may later.
                   bridge = new ParallelizedBridge<DataType_SFFloat, FullyConnectedBridge>
+                           // (prev_layers[i], next_layer, layer_param_tmp, solver_param_tmp, driver, min<size_t>(1, corpus.mini_batch_size), hw_concurrency,
                            (prev_layers[i], next_layer, layer_param_tmp, &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), hw_concurrency,
                            prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[0], prev_grad_cubes_higher_per_group[0],
                            share_input_output_layer);
 
                   bridge->name = layer_param_tmp->name();
-                  bridge->run_with_n_threads = hw_concurrency;  // TODO: Add a better abstraction here.
                   if (before_first_weight_layer) {
                       // bridge->needs_to_calc_backward_grad = false;
                   }
@@ -1471,6 +1476,7 @@ class DeepNet {
                 // For these smaller bridges it is usually slower to use all the threads, but need to measure.
                 // Then can do something similar for ReLU, etc.
                 bridge = new ParallelizedBridge<DataType_SFFloat, DropoutBridge>(prev_layers[i], next_layer, &layer_param,
+                           // &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), 1,
                            &solver_param, driver, min<size_t>(4, corpus.mini_batch_size), 1,
                            prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[i], prev_grad_cubes_higher_per_group[i],
                            share_input_output_layer);
@@ -1754,6 +1760,17 @@ class DeepNet {
           // std::cout << "CORPUS NUM MINI BATCHES: " << corpus->num_mini_batches << std::endl;
           // std::cout << "CORPUS LAST BATCH SIZE: " << corpus->last_batch_size << std::endl;
 #endif
+          // Print out solver as well so we know what this network is using to train
+          std::cout << std::endl << "Solver:" << std::endl;
+          std::string line;
+          std::ifstream solver_file(file);
+          while (getline(solver_file,line)) {
+            if (line[0] != '#') {
+              std::cout << line << std::endl;
+            }
+          }
+          solver_file.close();
+          std::cout << std::endl;
 
           DeepNet::construct_network(bridges, *corpus, net_param, solver_param);
 

@@ -534,12 +534,19 @@ void CPUDriver::selementwise_reduce2(DeviceMemoryPointer * dst, DeviceMemoryPoin
   }
 }
 
-void CPUDriver::sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch) {
+void CPUDriver::init_rng(const int random_seed){
+  // SHADJIS TODO: Below we pass a random seed into each initialize function
+  // Instead should use the seed here
+}
+
+void CPUDriver::sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch, const int random_seed) {
   const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
   const size_t fan_in = n_arr_elements / n_batch;
   const float scale = sqrt(3.0 / fan_in);
 
-  mt19937 gen(rd());
+  int random_seed_used = (random_seed == -1 ? rd() : random_seed);
+  // std::cout << "Bridge using random seed " << random_seed_used << std::endl;
+  mt19937 gen(random_seed_used);
   uniform_real_distribution<float> uni(-scale, scale);
   float * temp = (float*) arr->ptr;
   for (unsigned int i = 0; i < n_arr_elements; i++) {
@@ -547,10 +554,12 @@ void CPUDriver::sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batc
   }
 }
 
-void CPUDriver::sbernoulli_initialize(DeviceMemoryPointer *arr, const float p) {
+void CPUDriver::sbernoulli_initialize(DeviceMemoryPointer *arr, const float p, const int random_seed) {
   const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
 
-  mt19937 gen(rd());
+  int random_seed_used = (random_seed == -1 ? rd() : random_seed);
+  // std::cout << "Bridge using random seed " << random_seed_used << std::endl;
+  mt19937 gen(random_seed_used);
   bernoulli_distribution bern(p);
   float * temp = (float*) arr->ptr;
   for (unsigned int i = 0; i < n_arr_elements; i++) {
@@ -558,9 +567,11 @@ void CPUDriver::sbernoulli_initialize(DeviceMemoryPointer *arr, const float p) {
   }
 }
 
-void CPUDriver::sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev) {
+void CPUDriver::sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev, const int random_seed) {
   const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
-  mt19937 gen(rd());
+  int random_seed_used = (random_seed == -1 ? rd() : random_seed);
+  // std::cout << "Bridge using random seed " << random_seed_used << std::endl;
+  mt19937 gen(random_seed_used);
   normal_distribution<float> gaussian(mean, std_dev);
   float * temp = (float*) arr->ptr;
   for (unsigned int i = 0; i < n_arr_elements; i++) {

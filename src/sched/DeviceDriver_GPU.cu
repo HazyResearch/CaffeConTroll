@@ -679,27 +679,37 @@ void GPUDriver::pmap2d_read_coalesce(DeviceMemoryPointer * dst, DeviceMemoryPoin
 
 GPUDriver::GPUDriver(){
     set_device();
-    
+    curand_initialized = false;
+}
+
+void GPUDriver::init_rng(const int random_seed){
+    set_device();
     // Initialize curand
+    // No need to do this for every bridge, only dropout bridge
+    // So this is called only by bridges that need curand, e.g. in the bridge constructor
     curand_err = curandCreateGenerator(&curand_gen, CURAND_RNG_PSEUDO_DEFAULT);
     if (curand_err != CURAND_STATUS_SUCCESS) {
       std::cout << "Failed curandCreateGenerator, error = " << curand_err << std::endl;
       assert(false);
     }
-    curand_err = curandSetPseudoRandomGeneratorSeed(curand_gen, time(NULL)); // rd is std::random_device defined in util()
+    int random_seed_used = (random_seed == -1 ? rd() : random_seed); // rd is std::random_device defined in GPU_Driver.h
+    curand_err = curandSetPseudoRandomGeneratorSeed(curand_gen, random_seed_used);
     if (curand_err != CURAND_STATUS_SUCCESS) {
       std::cout << "Failed curandSetPseudoRandomGeneratorSeed, error = " << curand_err << std::endl;
       assert(false);
     }
+    curand_initialized = true;
 }
 
 GPUDriver::~GPUDriver(){
     set_device();
     
-    curandDestroyGenerator(curand_gen);
-    if (curand_err != CURAND_STATUS_SUCCESS) {
-      std::cout << "Failed curandDestroyGenerator, error = " << curand_err << std::endl;
-      assert(false);
+    if (curand_initialized) {
+      curandDestroyGenerator(curand_gen);
+      if (curand_err != CURAND_STATUS_SUCCESS) {
+        std::cout << "Failed curandDestroyGenerator, error = " << curand_err << std::endl;
+        assert(false);
+      }
     }
 }
 
@@ -1069,13 +1079,14 @@ DeviceMemoryPointer * src2, DeviceMemoryPointer * const func_curry){
 * This function is called only once. So its speed does not matter.
 * TODO: Wrap this up with CURAND.
 **/
-void GPUDriver::sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch) {
+void GPUDriver::sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batch, const int random_seed) {
     set_device();
 	const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
 	const size_t fan_in = n_arr_elements / n_batch;
 	const float scale = sqrt(3.0 / fan_in);
 
-	mt19937 gen(rd());
+	int random_seed_used = (random_seed == -1 ? rd() : random_seed);
+	mt19937 gen(random_seed_used);
 	uniform_real_distribution<float> uni(-scale, scale);
 	float * temp = new float[n_arr_elements];
 	for(int i=0;i<n_arr_elements;i++){
@@ -1083,19 +1094,19 @@ void GPUDriver::sinitialize_xavier(DeviceMemoryPointer *arr, const size_t n_batc
 	}
 	cudaMemcpy(arr->ptr, temp, arr->size_in_byte, cudaMemcpyHostToDevice);
 	delete[] temp;
-	}
+}
 
 /**
 * This function is called only once. So its speed does not matter.
 * TODO: Wrap this up with CURAND.
 **/
-void GPUDriver::sbernoulli_initialize(DeviceMemoryPointer *arr, const float p) {
+void GPUDriver::sbernoulli_initialize(DeviceMemoryPointer *arr, const float p, const int random_seed) {
 
     set_device();
     const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
     
-    std::random_device rd;
-	std::mt19937 gen(rd());
+    int random_seed_used = (random_seed == -1 ? rd() : random_seed);
+	mt19937 gen(random_seed_used);
     
 	float * temp = new float[n_arr_elements];
     boost::bernoulli_distribution<float> random_distribution(p);
@@ -1110,6 +1121,7 @@ void GPUDriver::sbernoulli_initialize(DeviceMemoryPointer *arr, const float p) {
 }
 
 
+/** This function is called every fw pass so its speed matters **/
 void GPUDriver::rand_uint_initialize(unsigned int * buf, const int n) {
 
     set_device();
@@ -1126,10 +1138,13 @@ void GPUDriver::rand_uint_initialize(unsigned int * buf, const int n) {
 * This function is called only once. So its speed does not matter.
 * TODO: Wrap this up with CURAND.
 **/
-void GPUDriver::sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev) {
+// SHADJIS TODO: Use seeds here as in cpu driver. curand would be faster but we only call this
+// once and if use same initialization technique as cpu then it can be deterministic across devices.
+void GPUDriver::sgaussian_initialize(DeviceMemoryPointer *arr, const float mean, const float std_dev, const int random_seed) {
     set_device();
     const size_t n_arr_elements = arr->size_in_byte / sizeof(float);
-	mt19937 gen(rd());
+    int random_seed_used = (random_seed == -1 ? rd() : random_seed);
+	mt19937 gen(random_seed_used);
 	normal_distribution<float> gaussian(mean, std_dev);
 	float * temp = new float[n_arr_elements];
 	for(int i=0;i<n_arr_elements;i++){
