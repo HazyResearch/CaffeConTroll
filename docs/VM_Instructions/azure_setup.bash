@@ -1,7 +1,7 @@
 # Run with ./azure_setup.bash
 # Tested on Azure Ubuntu D-Series
 
-sudo apt-get install make g++ unzip gfortran libprotobuf-dev libboost-all-dev libgflags-dev libgoogle-glog-dev liblmdb-dev protobuf-compiler
+sudo apt-get install make g++ unzip gfortran libprotobuf-dev libboost-all-dev libgoogle-glog-dev liblmdb-dev protobuf-compiler
 mkdir data
 cd data
 mkdir ilsvrc12_train_1000_lmdb
