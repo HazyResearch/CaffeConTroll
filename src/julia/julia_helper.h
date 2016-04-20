@@ -9,7 +9,7 @@ extern "C" {
 
 	void ConstructCctNetworkAndRun(uint8_t *solver_pb, int solver_len, uint8_t *net_pb, int net_len);
 
-	void* InitNetwork(uint8_t *solver_pb, int solver_len, uint8_t *net_pb, int net_len);
+	void* InitNetwork(uint8_t *solver_pb, int solver_len, uint8_t *net_pb, int net_len, char* model_file);
 
 	void SingleForwardPass(void *_net);
 

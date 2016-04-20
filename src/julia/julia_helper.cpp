@@ -281,7 +281,7 @@ void AugmentIteration(network_t *net, string snapshot_file_name){
 	}
 }
 
-void* InitNetwork(uint8_t *solver_pb, int solver_len, uint8_t *net_pb, int net_len){
+void* InitNetwork(uint8_t *solver_pb, int solver_len, uint8_t *net_pb, int net_len, char* model_file){
 	network_t* net = new network_t;
 	net->solver_param.ParseFromArray(solver_pb, solver_len);
 	net->net_param.ParseFromArray(net_pb, net_len);
@@ -291,6 +291,10 @@ void* InitNetwork(uint8_t *solver_pb, int solver_len, uint8_t *net_pb, int net_l
 	net->corpus = DeepNet::read_corpus_from_lmdb(net->net_param, true);
 	DeepNet::construct_network(net->bridges, *(net->corpus), net->net_param, net->solver_param);
 	net->val_corpus = DeepNet::read_corpus_from_lmdb(net->net_param, false);
+	std::string model = std::string(model_file);
+	if (model != "NA"){
+		DeepNet::read_model_from_file(net->bridges, model);
+	}
 	//net->softmax = (SoftmaxBridge *) net->bridges.back();
 	net->first = (Bridge *) net->bridges.front();
 	//net->softmax->p_data_labels->set_p_data(net->corpus->labels->physical_get_RCDslice(0));
@@ -306,11 +310,7 @@ void _SingleForwardPass(void *_net, const char **keys=NULL, int key_size=0){
 	cnn::NetParameter net_param = net->net_param;
 	Corpus& corpus = *net->corpus;
 	Corpus& val_corpus = *net->val_corpus;
-	const string input_model_file = "NA";
 	const string snapshot_file_name = "NA";
-
-	//train_network(bridges, *corpus, net_param, solver_param, input_model_file, 
-	//	snapshot_file_name, *val_corpus, time_iterations);
 
 	LogicalCubeFloat * const input_data = net->first->p_input_layer->p_data_cube;
 
