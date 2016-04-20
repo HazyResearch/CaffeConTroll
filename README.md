@@ -238,6 +238,7 @@ which has very nice [documentation](http://caffe.berkeleyvision.org/installation
         * libopencv-dev
         * libhdf5-serial-dev
         * gflags (e.g. libgflags-dev on Ubuntu 14.04)
+        * Don't install BLAS yet (that is step 3 below)
     * OS X: 
         * snappy
         * leveldb
@@ -273,9 +274,10 @@ For example, this configuration may work inside .config:
 
      1. Download and unpack the source
      2. `make`
-     3. Add the OpenBLAS library to your path, e.g. using the command
+     3. (optional) copy the libraries somewhere, using 'make PREFIX=/enter/path/here install', e.g. 'sudo make PREFIX=/usr install'
+     4. If you did not install the libraries in step 3 to a directory already in your path (e.g. /usr/lib), add the OpenBLAS 'lib' path (or whatever install path you chose in step 3) to your path, e.g. using this command in the terminal (or in your .bashrc)
 
-  > export LD\_LIBRARY\_PATH=/path/to/OpenBLAS/:$LD\_LIBRARY\_PATH
+  > export LD\_LIBRARY\_PATH=/path/to/OpenBLAS/lib:$LD\_LIBRARY\_PATH
 
   Then, fill out the paths inside .config:
 
