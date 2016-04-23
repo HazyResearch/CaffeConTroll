@@ -1,8 +1,6 @@
 //
 //  ReLUBridge_impl.hxx
-//  moka
 //
-//  Created by Firas Abuzaid on 1/25/15.
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 

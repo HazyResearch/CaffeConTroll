@@ -274,7 +274,7 @@ For example, this configuration may work inside .config:
 
      1. Download and unpack the source
      2. `make`
-     3. (optional) copy the libraries somewhere, using 'make PREFIX=/enter/path/here install', e.g. 'sudo make PREFIX=/usr install'
+     3. (optional) copy the libraries somewhere, using `make PREFIX=/enter/path/here install`, e.g. `sudo make PREFIX=/usr install`
      4. If you did not install the libraries in step 3 to a directory already in your path (e.g. /usr/lib), add the OpenBLAS 'lib' path (or whatever install path you chose in step 3) to your path, e.g. using this command in the terminal (or in your .bashrc)
 
   > export LD\_LIBRARY\_PATH=/path/to/OpenBLAS/lib:$LD\_LIBRARY\_PATH
