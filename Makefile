@@ -21,7 +21,7 @@ ifeq ($(UNAME), Darwin)
   NVCCFLAGS = -D_GPU_TARGET -D_INCLUDE_GPUDRIVER -std=c++11 $(LD_BASE) -lcublas -lcuda -lboost_program_options-mt -lboost_serialization -gencode arch=compute_20,code=sm_20 -gencode arch=compute_20,code=sm_21 -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35 -gencode arch=compute_50,code=sm_50 -gencode arch=compute_50,code=compute_50 -I $(CUDA_INCLUDE) -L $(CUDA_LIB)
 # For Ubuntu 12.04 x86_64
 else ifeq ($(UNAME), Linux)
-  CFLAGS = -Wall -Wl,--no-as-needed -std=c++11
+  CFLAGS = -Wall -Wl,--no-as-needed -std=c++11 -fPIC
   DEBUG_FLAGS = -gdwarf-3 -O0 -DDEBUG # -gdwarf-3 necessary for debugging with gdb v7.4
   NVCC_DEBUG_FLAGS = -DDEBUG
   NVCCFLAGS = -D_GPU_TARGET -D_INCLUDE_GPUDRIVER -std=c++11 $(LD_BASE) -lcublas -lcuda -lboost_program_options -lboost_serialization -gencode arch=compute_20,code=sm_20 -gencode arch=compute_20,code=sm_21 -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35 -gencode arch=compute_50,code=sm_50 -gencode arch=compute_50,code=compute_50 -I $(CUDA_INCLUDE) -L $(CUDA_LIB)
@@ -148,7 +148,7 @@ ifeq ($(UNAME), Darwin)
 CPP_JULIA_LIBRARY = -dynamiclib src/julia/julia_helper.cpp -o libcct_julia.dylib
 endif
 ifeq ($(UNAME), Linux)
-CPP_JULIA_LIBRARY = -fPIC -lnuma -shared src/julia/julia_helper.cpp -o libcct_julia.so 
+CPP_JULIA_LIBRARY = -fPIC src/julia/julia_helper.cpp -shared -o libcct_julia.so 
 endif
 
 .PHONY: all assembly clean product test warning

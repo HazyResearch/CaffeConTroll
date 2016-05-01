@@ -91,7 +91,7 @@ class DeepNet {
     
     // Run forward pass on network (propagates data from input layer (i.e. input cubes) of bridge 0
     // to output layer (cubes) of final bridge
-    static void run_forward_pass(const BridgeVector bridges) {
+    static void run_forward_pass(const BridgeVector bridges, void* _sum_data=NULL, size_t sum_index=-1) {
     
         // Iterate over all bridges, but this might not be 1 at a time
         // if we run some in parallel, so use a while loop
@@ -105,6 +105,13 @@ class DeepNet {
             // If just 1, then run it as normal
             if (num_bridges_in_this_group == 1) {
                 bridges[bridge_idx]->forward();
+                if(bridge_idx == sum_index){
+                  const float * sum_data = (float *)_sum_data;
+                  float * local_data = bridges[bridge_idx]->p_output_layer->p_data_cube->get_p_data();
+                  for(size_t i=0; i < bridges[bridge_idx]->p_output_layer->p_data_cube->n_elements; ++i){
+                    local_data[i] += sum_data[i];
+                  }
+                }
 #ifdef _LAYER_PROFILING
                 bridges[bridge_idx]->report_forward();
 #endif
@@ -521,7 +528,7 @@ class DeepNet {
     static void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetParameter & net_param,
         const cnn::SolverParameter & solver_param) {
       CPUDriver * const driver = new CPUDriver(); // SHADJIS TODO: delete this later or put on stack
-      const int hw_concurrency = std::thread::hardware_concurrency();
+      const int hw_concurrency = 64; //std::thread::hardware_concurrency();
       assert(hw_concurrency > 0);
       
       size_t input_R = corpus.n_rows, input_C = corpus.n_cols, input_D = corpus.dim, B = corpus.mini_batch_size;
@@ -1598,7 +1605,6 @@ class DeepNet {
 
         Timer t;
         Timer t2;
-        
         // SHADJIS TODO: corpus.last_batch_size is unused, can remove now
         // SHADJIS TODO: This should be done in parallel with the network execution if slow (measure)
         // SHADJIS TODO: curr_B is unused now in every bridge, can remove it or plan to support variable batch size

@@ -218,10 +218,11 @@ typedef struct NetworkMetadata{
 	Corpus * corpus;
 	Corpus * val_corpus;
 	size_t batch = 0;
-	//SoftmaxBridge * softmax;
+	SoftmaxBridge * softmax;
 	Bridge * first;
 	float loss = 0.0;
 	float accuracy = 0.0;
+	bool hasSoftmax = false;
 
 } network_t;
 
@@ -295,15 +296,19 @@ void* InitNetwork(uint8_t *solver_pb, int solver_len, uint8_t *net_pb, int net_l
 	if (model != "NA"){
 		DeepNet::read_model_from_file(net->bridges, model);
 	}
-	//net->softmax = (SoftmaxBridge *) net->bridges.back();
+	if("SoftmaxWithLoss" == net->net_param.layer(net->net_param.layer_size()-1).type()){
+		net->softmax = (SoftmaxBridge *) net->bridges.back();
+		net->softmax->p_data_labels->set_p_data(net->corpus->labels->physical_get_RCDslice(0));
+		net->hasSoftmax = true;
+	}
 	net->first = (Bridge *) net->bridges.front();
-	//net->softmax->p_data_labels->set_p_data(net->corpus->labels->physical_get_RCDslice(0));
 
 	net->corpus->OpenLmdbReader();
 	return net;
 }
 
-void _SingleForwardPass(void *_net, const char **keys=NULL, int key_size=0){
+void _SingleForwardPass(void *_net, const char **keys=NULL, int key_size=0,
+						 void* sum_data=NULL, int sum_index=-1){
 	// Calling from Julia.  Convert net to network_t
 	network_t *net = (network_t *)_net;
 	cnn::SolverParameter solver_param = net->solver_param;
@@ -321,28 +326,30 @@ void _SingleForwardPass(void *_net, const char **keys=NULL, int key_size=0){
 		rs = corpus.LoadLmdbData();
 	}
 
-        // Note that the implementation of labels has changed.  Since we are reading the lmbd for every
-        // iteration, we get the label in the data so now the labels and images objects are parallel
-        // TODO? : Perhaps this is a good reason to merge them into a single object 
-        // Since labels are in sync they will also only be of size mini_batch_size
-	//assert(net->softmax->p_data_labels->get_p_data() == corpus.labels->get_p_data());
+    // Note that the implementation of labels has changed.  Since we are reading the lmbd for every
+    // iteration, we get the label in the data so now the labels and images objects are parallel
+    // TODO? : Perhaps this is a good reason to merge them into a single object 
+    // Since labels are in sync they will also only be of size mini_batch_size
+    if(net->hasSoftmax){
+    	assert(net->softmax->p_data_labels->get_p_data() == corpus.labels->get_p_data());	
+    }
 
         // If we read less than we expected, read the rest from the beginning 
 	size_t num_images_left_to_read = net->corpus->mini_batch_size - rs;
 	if (num_images_left_to_read > 0) {
-            // Simply reset the cursor so the next load will start from the start of the lmdb
+        // Simply reset the cursor so the next load will start from the start of the lmdb
 		corpus.ResetCursor();
 
-            // Passing in rs allows us to say that we already filled rs spots in images
-            // and now we want to start from that position and complete the set up to mini_batch_size
-            // Eg. Minibatch is 10.  We read 2 images and hit the end of the mldb.  After reseting the
-            // cursor above we can just tell the load function to start from index 2 and continue
+        // Passing in rs allows us to say that we already filled rs spots in images
+        // and now we want to start from that position and complete the set up to mini_batch_size
+        // Eg. Minibatch is 10.  We read 2 images and hit the end of the mldb.  After reseting the
+        // cursor above we can just tell the load function to start from index 2 and continue
 		assert(!keys); // if we are using keys we should never be given less than a mini batch
 		size_t rs2 = corpus.LoadLmdbData(rs);
 		assert(rs2 == num_images_left_to_read);
 
-            // The corpus.labels object was also updated above so we need to check that
-            // the pointer is still consistent
+        // The corpus.labels object was also updated above so we need to check that
+        // the pointer is still consistent
 		//assert(net->softmax->p_data_labels->get_p_data() == corpus.labels->get_p_data());
 	}
     // initialize input_data for this mini batch
@@ -352,18 +359,26 @@ void _SingleForwardPass(void *_net, const char **keys=NULL, int key_size=0){
 	float * const mini_batch = net->corpus->images->physical_get_RCDslice(0);
 	assert(input_data->get_p_data() == mini_batch);
 
-	//net->softmax->reset_loss();
+	if(net->hasSoftmax){
+		net->softmax->reset_loss();
+	}
 
     // forward pass
-	DeepNet::run_forward_pass(net->bridges);
+	DeepNet::run_forward_pass(net->bridges, sum_data, sum_index);
 	//net->bridges[7]->p_output_layer->p_data_cube->logical_print();
 
 
-	//net->loss += (net->softmax->get_loss() / float(net->corpus->mini_batch_size));
-	//net->accuracy += float(DeepNet::find_accuracy(net->softmax->p_data_labels, (*--(net->bridges.end()))->p_output_layer->p_data_cube)) / float(net->corpus->mini_batch_size);
-
+	if(net->hasSoftmax) {
+		net->loss += (net->softmax->get_loss() / float(net->corpus->mini_batch_size));
+		net->accuracy += float(DeepNet::find_accuracy(net->softmax->p_data_labels, (*--(net->bridges.end()))->p_output_layer->p_data_cube)) / float(net->corpus->mini_batch_size);
+	}
+	
 	AugmentIteration(net, snapshot_file_name);
 	net->batch++;
+}
+
+void SingleForwardPassAddition(void *_net, int index, void* input_data){
+	_SingleForwardPass(_net, NULL, 0, input_data, index);
 }
 
 void SingleForwardPassData(void *_net, char **keys, int key_size){
@@ -423,6 +438,17 @@ void GetLabels(void *_net, float *labels){
 		net->corpus->labels->n_elements * sizeof(float));
 }
 
+void PrintLayerOutputSize(void *_net, int index){
+	network_t *net = (network_t *)_net;
+	Bridge *bridge = net->bridges.at(index);
+	std::cout << bridge->p_output_layer->p_data_cube->n_elements << std::endl;
+}
+
+void* GetOutputDataPointer(void *_net, int index){
+	network_t *net = (network_t *)_net;
+	Bridge *bridge = net->bridges.at(index);
+	return bridge->p_output_layer->p_data_cube->get_p_data();
+}
 
 
 

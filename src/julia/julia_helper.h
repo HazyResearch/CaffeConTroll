@@ -15,6 +15,8 @@ extern "C" {
 
 	void SingleForwardPassData(void *_net, char **keys, int key_size);
 
+	void SingleForwardPassAddition(void *_net, int index, void* input_data);
+
 	void SingleBackwardPass(void *_net);
 
 	void DeleteNetwork(void *_net);
@@ -28,6 +30,10 @@ extern "C" {
 	void SetGradient(void *_net, float *dscores);
 
 	void GetWeights(void *_net, float *weights, int layer_index);
+
+	void PrintLayerOutputSize(void *_net, int index);
+
+	void* GetOutputDataPointer(void *_net, int index);
 }
 
 #endif
