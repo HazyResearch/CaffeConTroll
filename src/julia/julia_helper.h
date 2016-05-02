@@ -34,6 +34,14 @@ extern "C" {
 	void PrintLayerOutputSize(void *_net, int index);
 
 	void* GetOutputDataPointer(void *_net, int index);
+
+	void* GetGradientPointer(void *_net, int index);
+
+	void PrintLayerOutput(void *_net, int index);
+
+	void PrintLayerInput(void *_net, int index);
+
+	void PrintLayerGradient(void *_net, int index);
 }
 
 #endif

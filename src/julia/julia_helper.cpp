@@ -365,14 +365,13 @@ void _SingleForwardPass(void *_net, const char **keys=NULL, int key_size=0,
 
     // forward pass
 	DeepNet::run_forward_pass(net->bridges, sum_data, sum_index);
-	//net->bridges[7]->p_output_layer->p_data_cube->logical_print();
 
 
 	if(net->hasSoftmax) {
 		net->loss += (net->softmax->get_loss() / float(net->corpus->mini_batch_size));
 		net->accuracy += float(DeepNet::find_accuracy(net->softmax->p_data_labels, (*--(net->bridges.end()))->p_output_layer->p_data_cube)) / float(net->corpus->mini_batch_size);
 	}
-	
+
 	AugmentIteration(net, snapshot_file_name);
 	net->batch++;
 }
@@ -395,7 +394,6 @@ void SingleBackwardPass(void *_net){
 
 	// backward pass
 	DeepNet::run_backward_pass(net->bridges);
-	//net->bridges.back()->p_output_layer->p_gradient_cube->logical_print();
 }
 
 void DeleteNetwork(void *_net){
@@ -444,12 +442,37 @@ void PrintLayerOutputSize(void *_net, int index){
 	std::cout << bridge->p_output_layer->p_data_cube->n_elements << std::endl;
 }
 
+void PrintLayerOutput(void *_net, int index){
+	network_t *net = (network_t *)_net;
+	Bridge *bridge = net->bridges.at(index);
+	bridge->p_output_layer->p_data_cube->logical_print();
+}
+
+void PrintLayerInput(void *_net, int index){
+	network_t *net = (network_t *)_net;
+	Bridge *bridge = net->bridges.at(index);
+	bridge->p_input_layer->p_data_cube->logical_print();
+}
+
 void* GetOutputDataPointer(void *_net, int index){
 	network_t *net = (network_t *)_net;
 	Bridge *bridge = net->bridges.at(index);
 	return bridge->p_output_layer->p_data_cube->get_p_data();
 }
 
+void* GetGradientPointer(void *_net, int index){
+	network_t *net = (network_t *)_net;
+	Bridge *bridge = net->bridges.at(index);
+	return bridge->p_output_layer->p_gradient_cube->get_p_data();
+}
+
+void PrintLayerGradient(void *_net, int index){
+	network_t *net = (network_t *)_net;
+	Bridge *bridge = net->bridges.at(index);
+	if(bridge->get_model_cube() != NULL){
+		bridge->get_model_cube()->logical_print();
+	}
+}
 
 
 
