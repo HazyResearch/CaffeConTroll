@@ -1592,8 +1592,6 @@ class DeepNet {
       // cursor, transaction and environment data
       corpus.OpenLmdbReader();
 
-      // Keep track of the image number in the dataset we are on
-      size_t current_image_location_in_dataset = 0;
       size_t current_epoch = 0;    
       // std::cout << "EPOCH: " << current_epoch << std::endl;
       float loss = 0.;
@@ -1636,11 +1634,6 @@ class DeepNet {
             // The corpus.labels object was also updated above so we need to check that
             // the pointer is still consistent
             assert(softmax->p_data_labels->get_p_data() == corpus.labels->get_p_data());
-        }
-        
-        current_image_location_in_dataset += corpus.mini_batch_size;
-        if (current_image_location_in_dataset >= corpus.n_images) {
-          current_image_location_in_dataset -= corpus.n_images;
         }
 
         t_load = t.elapsed();
