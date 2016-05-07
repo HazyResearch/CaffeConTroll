@@ -181,7 +181,65 @@ class DeepNet {
         }
         assert(bridge_idx == -1);
     }
+    
+    static void write_full_snapshot(const BridgeVector bridges, const string base_filename, const int iter) {
+    
+        // This code also appends a time string
+        //time_t rawtime;
+        //struct tm * timeinfo;
+        //char buffer[80];
+        //time (&rawtime);
+        //timeinfo = localtime(&rawtime);
+        //strftime(buffer,80,"%d-%m-%Y-%I-%M-%S",timeinfo);
+        //std::string str(buffer);
+        std::string snapshot_name_model   = base_filename + ".snapshot_iter" + std::to_string(iter) + /*"." + str +*/ ".MODEL.bin";
+        std::string snapshot_name_history = base_filename + ".snapshot_iter" + std::to_string(iter) + /*"." + str +*/ ".HISTORY.bin";
+        std::string snapshot_name_iter    = base_filename + ".snapshot_iter" + std::to_string(iter) + /*"." + str +*/ ".ITER.bin";
+        
+        // Write model
+        DeepNet::write_model_to_file(bridges, snapshot_name_model);
+        
+        // Write gradient history
+        DeepNet::write_momentum_to_file(bridges, snapshot_name_history);
+        
+        // Write iteration #
+        FILE * pFile = fopen (snapshot_name_iter.c_str(), "wb");
+        if (!pFile)
+          throw std::runtime_error("Error opening " + snapshot_name_iter);
+        fwrite(&iter, sizeof(int), 1, pFile);
+        fclose(pFile);
+        std::cout << "======= Writing snapshot " << snapshot_name_model << " =======" << std::endl;
+    }
 
+    static void read_full_snapshot(BridgeVector & bridges, const string base_filename) {
+        // Open these files: E.g.
+        //   alexnet_solver.prototxt.snapshot_iter500.MODEL.bin
+        //   alexnet_solver.prototxt.snapshot_iter500.HISTORY.bin
+        //   alexnet_solver.prototxt.snapshot_iter500.ITER.bin
+        read_model_from_file(bridges, base_filename + ".MODEL.bin");
+        read_momentum_from_file(bridges, base_filename + ".HISTORY.bin");
+        
+        // Also read iteration number
+        FILE * pFile;
+        pFile = fopen ((base_filename + ".ITER.bin").c_str(), "rb");
+        int iter;
+        size_t num_elements_read = fread(&iter, sizeof(int), 1, pFile);
+        assert(num_elements_read == 1);
+        LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
+        LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
+        for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
+          model = (*bridge)->get_model_cube();
+          if (model) {
+            (*bridge)->get_model_updater()->set_current_iter(iter);
+          }
+          bias = (*bridge)->get_bias_cube();
+          if (bias) {
+            (*bridge)->get_bias_updater()->set_current_iter(iter);
+          }
+        }
+        fclose(pFile);
+    }
+    
     // Write the models of all bridges to a file
     static void write_model_to_file(const BridgeVector bridges, const string model_file) {
       FILE * pFile = fopen (model_file.c_str(), "wb");
@@ -230,6 +288,52 @@ class DeepNet {
       fclose(pFile);
     }
 
+    // Write the gradient history of all bridges to a file
+    static void write_momentum_to_file(const BridgeVector bridges, const string momentum_file) {
+      FILE * pFile = fopen (momentum_file.c_str(), "wb");
+      if (!pFile)
+        throw std::runtime_error("Error opening " + momentum_file);
+
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
+      for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
+        model = (*bridge)->get_model_cube();
+        if (model) {
+          (*bridge)->get_model_updater()->force_device_to_host_history_copy();
+          fwrite((*bridge)->get_model_updater()->get_p_history_updates_cube()->get_p_data(), sizeof(DataType_SFFloat), model->n_elements, pFile);
+        }
+        bias = (*bridge)->get_bias_cube();
+        if (bias) {
+          (*bridge)->get_bias_updater()->force_device_to_host_history_copy();
+          fwrite((*bridge)->get_bias_updater()->get_p_history_updates_cube()->get_p_data(), sizeof(DataType_SFFloat), bias->n_elements, pFile);
+        }
+      }
+      fclose(pFile);
+    }
+
+    // Read in the gradient history of all bridges from a file
+    static void read_momentum_from_file(BridgeVector & bridges, const string model_file) {
+      FILE * pFile;
+      pFile = fopen (model_file.c_str(), "rb");
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * model;
+      LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
+      for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
+        model = (*bridge)->get_model_cube();
+        if (model) {
+          size_t num_elements_read = fread((*bridge)->get_model_updater()->get_p_history_updates_cube()->get_p_data(), sizeof(DataType_SFFloat), model->n_elements, pFile);
+          assert(num_elements_read == model->n_elements);
+          (*bridge)->get_model_updater()->force_host_to_device_history_copy();
+        }
+        bias = (*bridge)->get_bias_cube();
+        if (bias) {
+          size_t num_elements_read = fread((*bridge)->get_bias_updater()->get_p_history_updates_cube()->get_p_data(), sizeof(DataType_SFFloat), bias->n_elements, pFile);
+          assert(num_elements_read == bias->n_elements);
+          (*bridge)->get_bias_updater()->force_host_to_device_history_copy();
+        }
+      }
+      fclose(pFile);
+    }
+
     // Get the total number of parameters (bias + model) in all bridges of the network
     static size_t get_parameter_size(const BridgeVector bridges) {
 
@@ -247,6 +351,17 @@ class DeepNet {
         }
       }
       return total_size;
+    }
+
+    // Get the total number of bridges containing parameters
+    static size_t get_num_model_bridges(const BridgeVector bridges) {
+      size_t num_model_bridges = 0;
+      for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
+        if ( (*bridge)->get_model_cube() || (*bridge)->get_bias_cube() ) {
+          num_model_bridges += 1;
+        }
+      }
+      return num_model_bridges;
     }
 
     // Given a buffer (already allocated on the host), fill it with all the gradients

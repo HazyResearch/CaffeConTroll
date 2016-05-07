@@ -4,7 +4,6 @@
 
 #include <algorithm>
 #include "../LogicalCube.h"
-#include "../parser/corpus.h"
 #include "../util.h"
 /**
  * The job of a GradientUpdater is simple, it takes
@@ -45,10 +44,19 @@ class GradientUpdater {
           current_iter, p_solver->stepsize(), p_solver->power(), p_solver->max_iter());
     }
 
-    float get_weight_decay() { return p_solver->weight_decay() * base_regularization; }
+    void set_current_iter(int _current_iter) {
+      current_iter = _current_iter;
+    }
 
- GradientUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver, float _blr, float _br, DriverClass * const _p_driver) :
-    current_iter(0), n_elements(_n_elements), p_model(_p_model), p_solver(_p_solver), base_learning_rate(_blr), base_regularization(_br), p_driver(_p_driver) {}
+    float get_weight_decay() { return p_solver->weight_decay() * base_regularization; }
+    
+    typedef LogicalCube<DataType, Layout_CRDB> LogicalCubeType;
+    virtual LogicalCubeType * get_p_history_updates_cube() { assert(false); }
+    virtual void force_device_to_host_history_copy() { assert(false); }
+    virtual void force_host_to_device_history_copy() { assert(false); }
+
+    GradientUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver, float _blr, float _br, DriverClass * const _p_driver) :
+      current_iter(0), n_elements(_n_elements), p_model(_p_model), p_solver(_p_solver), base_learning_rate(_blr), base_regularization(_br), p_driver(_p_driver) {}
 
     virtual ~GradientUpdater() {}
 };
@@ -73,20 +81,72 @@ class SGDGradientUpdater : public GradientUpdater<DataType, DriverClass> {
     // device functions are easier to call. Should do this for other
     // updater algorithms too.
     LogicalCubeType *p_history_updates_cube;
+    LogicalCubeType *p_history_updates_cube_HOST_COPY;
+    
+    LogicalCubeType * get_p_history_updates_cube() {
+      // If the history is only on the device, return the host copy
+      if (p_history_updates_cube_HOST_COPY) {
+        assert(!(std::is_same<DriverClass, CPUDriver>::value));
+        return p_history_updates_cube_HOST_COPY;
+      }
+      // The history is on the host
+      else {
+        assert((std::is_same<DriverClass, CPUDriver>::value));
+        return p_history_updates_cube;
+      }
+    }
+    
+    void force_device_to_host_history_copy() {
+      // If the history is only on the device, we need a copy to the host
+      if (p_history_updates_cube_HOST_COPY) {
+        assert(!(std::is_same<DriverClass, CPUDriver>::value));
+        CPUDriver *tmp_local_cpu_driver = new CPUDriver();
+        p_driver->memcpy(p_history_updates_cube_HOST_COPY->get_device_pointer(tmp_local_cpu_driver), p_history_updates_cube->get_device_pointer(p_driver));
+        delete tmp_local_cpu_driver;
+      }
+      // The history is on the host
+      else {
+        assert((std::is_same<DriverClass, CPUDriver>::value));
+      }
+    }
+    
+    void force_host_to_device_history_copy() {
+      // If the history is only on the device, we need a copy to the device
+      if (p_history_updates_cube_HOST_COPY) {
+        assert(!(std::is_same<DriverClass, CPUDriver>::value));
+        CPUDriver *tmp_local_cpu_driver = new CPUDriver();
+        p_driver->memcpy(p_history_updates_cube->get_device_pointer(p_driver), p_history_updates_cube_HOST_COPY->get_device_pointer(tmp_local_cpu_driver));
+        delete tmp_local_cpu_driver;
+      }
+      // The history is on the host
+      else {
+        assert((std::is_same<DriverClass, CPUDriver>::value));
+      }
+    }
+    
     LogicalCubeType *p_model_cube;
 
     SGDGradientUpdater(int _n_elements, DataType * _p_model, const cnn::SolverParameter * const _p_solver, 
         float _blr, float _br, DriverClass * const _p_driver) :
         GradientUpdater<DataType, DriverClass>(_n_elements, _p_model, _p_solver, _blr, _br, _p_driver), momentum(p_solver->momentum()),
-        p_history_updates_cube(NULL), p_model_cube(NULL) {
+        p_history_updates_cube(NULL), p_history_updates_cube_HOST_COPY(NULL), p_model_cube(NULL) {
         
       // Allocate on device
       p_history_updates_cube = new LogicalCubeType(n_elements, 1, 1, 1, p_driver);
       p_driver->sconstant_initialize(p_history_updates_cube->get_device_pointer(p_driver), DataType(0.));
+      
+      // Also, for saving checkpoints, we need a host copy of this
+      if (!std::is_same<DriverClass, CPUDriver>::value) {
+        p_history_updates_cube_HOST_COPY = new LogicalCubeType(n_elements, 1, 1, 1);
+      }
+      
       p_model_cube = new LogicalCubeType(p_model, n_elements, 1, 1, 1, p_driver); 
     }
 
     ~SGDGradientUpdater() {
+      if (p_history_updates_cube_HOST_COPY) {
+        delete p_history_updates_cube_HOST_COPY;
+      }
       delete p_history_updates_cube;
       delete p_model_cube;
     }
