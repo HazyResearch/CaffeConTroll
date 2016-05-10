@@ -1,5 +1,5 @@
-#ifndef _moka_DeepNet_h // SHADJIS TODO: what is moka? Why is it everywhere in the code? Remove all these eventually
-#define _moka_DeepNet_h
+#ifndef _DeepNet_h
+#define _DeepNet_h
 
 #include <iostream>
 #include <algorithm>
@@ -32,26 +32,15 @@ typedef std::vector<Bridge *> BridgeVector;
 
 class DeepNet {
   public:
-    // static int find_accuracy(const LogicalCubeFloat * const labels, const LogicalCubeFloat * output);
 
-    // static Corpus * load_network(const char * file, const string & data_binary, cnn::SolverParameter & solver_param,
-    //     cnn::NetParameter & net_param, BridgeVector & bridges, bool train);
-
-    // static Corpus * read_corpus_from_lmdb(const cnn::NetParameter & net_param, const std::string data_binary, bool train);
-
-    // static void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetParameter & net_param,
-    //     const cnn::SolverParameter & solver_param);
-
-    // static float load_and_test_network(const char * file, const std::string data_binary, const std::string model_file);
-
-    // static void load_and_train_network(const char * file, const std::string data_binary, const std::string model_file);
-    // computes the output dimension for any convolution layer
-
+    // Given an input dimension and the padding and stride (of a conv or pool), calculate the
+    // output dimension
     static inline size_t compute_conv_next_layer_dimension(const size_t R_i, const size_t K,
         const size_t padding, const size_t stride ) {
-      return (R_i + 2 * padding - K) / stride + 1;      // SHADJIS TODO: This is wrong for pool, since it uses ceil
+      return (R_i + 2 * padding - K) / stride + 1;  // True for conv and pool
     }
 
+    // Call this when done using the corpus and bridges
     static void clean_up(BridgeVector & bridges, Corpus * const corpus) {
       delete bridges.front()->p_input_layer;
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
@@ -65,8 +54,22 @@ class DeepNet {
     // Note: we assume that the very first layer in the .protoxt
     // file specifies the data layer
     static Corpus * read_corpus_from_lmdb(const cnn::NetParameter & net_param, bool train) {
+    
+      // SHADJIS TODO: We currently hard-code that layer 0 is train and 
+      // that if there is test mode that layer 1 is test
+      // Note: This is different that the enum for train = phase 0 and test = phase 1
+      // Recall cnn.proto:
+      //
+      //    enum Phase {
+      //       TRAIN = 0;
+      //       TEST = 1;
+      //    }
+      //
+      // However in addition we also assume the prototxt layer 0 is train and if there
+      // is test mode then layer 1 is test
+      
       if (train) {
-        const cnn::LayerParameter layer_param = net_param.layer(0); // SHADJIS TODO: Should we be hard-coding layer 0 = train?
+        const cnn::LayerParameter layer_param = net_param.layer(0); // SHADJIS TODO: Don't hard code train = layer 0
         string layer_type = layer_param.type();
         std::transform(layer_type.begin(), layer_type.end(), layer_type.begin(), ::toupper);
         if (layer_type == "DATA") {
@@ -75,7 +78,7 @@ class DeepNet {
           }
         }
       } else {
-        const cnn::LayerParameter layer_param = net_param.layer(1);
+        const cnn::LayerParameter layer_param = net_param.layer(1); // SHADJIS TODO: Don't hard code test = layer 1
         string layer_type = layer_param.type();
         std::transform(layer_type.begin(), layer_type.end(), layer_type.begin(), ::toupper);
         if (layer_type == "DATA") {
@@ -95,6 +98,11 @@ class DeepNet {
     
         // Iterate over all bridges, but this might not be 1 at a time
         // if we run some in parallel, so use a while loop
+        // SHADJIS TODO: We can generalize this later. Currently, pbridges have a parameter
+        // 'num_bridges_in_this_group', which is the same for all bridges in that group.
+        // Bridges in a group are executed in parallel, not sequentially. Currently this is
+        // used for model parallelism, e.g. we make 4 bridges each with 1/4 depth and then
+        // execute them in parallel on a different GPU. This can be generalized for any DAG.
         size_t bridge_idx = 0;
         while (bridge_idx < bridges.size()) {
         
@@ -140,7 +148,8 @@ class DeepNet {
     static void run_backward_pass(const BridgeVector bridges) {
     
         // Iterate over all bridges, but this might not be 1 at a time
-        // if we run some in parallel, so use a while loop
+        // if we run some in parallel, so use a while loop (see comment
+        // above in run_forward_pass)
         int bridge_idx = bridges.size() - 1;
         while (bridge_idx >= 0) {
         
@@ -181,9 +190,9 @@ class DeepNet {
         }
         assert(bridge_idx == -1);
     }
-    
+
     static void write_full_snapshot(const BridgeVector bridges, const string base_filename, const int iter) {
-    
+
         // This code also appends a time string
         //time_t rawtime;
         //struct tm * timeinfo;
@@ -195,13 +204,13 @@ class DeepNet {
         std::string snapshot_name_model   = base_filename + ".snapshot_iter" + std::to_string(iter) + /*"." + str +*/ ".MODEL.bin";
         std::string snapshot_name_history = base_filename + ".snapshot_iter" + std::to_string(iter) + /*"." + str +*/ ".HISTORY.bin";
         std::string snapshot_name_iter    = base_filename + ".snapshot_iter" + std::to_string(iter) + /*"." + str +*/ ".ITER.bin";
-        
+
         // Write model
         DeepNet::write_model_to_file(bridges, snapshot_name_model);
-        
+
         // Write gradient history
         DeepNet::write_momentum_to_file(bridges, snapshot_name_history);
-        
+
         // Write iteration #
         FILE * pFile = fopen (snapshot_name_iter.c_str(), "wb");
         if (!pFile)
@@ -218,7 +227,7 @@ class DeepNet {
         //   alexnet_solver.prototxt.snapshot_iter500.ITER.bin
         read_model_from_file(bridges, base_filename + ".MODEL.bin");
         read_momentum_from_file(bridges, base_filename + ".HISTORY.bin");
-        
+
         // Also read iteration number
         // SHADJIS TODO: To start exactly need to also move fw in dataset
         // to this iteration
@@ -241,7 +250,7 @@ class DeepNet {
         }
         fclose(pFile);
     }
-    
+
     // Write the models of all bridges to a file
     static void write_model_to_file(const BridgeVector bridges, const string model_file) {
       FILE * pFile = fopen (model_file.c_str(), "wb");
@@ -387,7 +396,7 @@ class DeepNet {
       }
     }
 
-    // Given a buffer (already allocated on the host), fill it with all the gradients
+    // Given a buffer (already allocated on the host), fill it with the ith gradients
     // To know how big to make this buffer see get_parameter_size()
     static int get_ith_gradient(const BridgeVector bridges, DataType_SFFloat * buffer, int i) {  
 
@@ -449,9 +458,7 @@ class DeepNet {
           total_size += bias->n_elements;
         }
       }
-            
     }
-
 
     // Given a buffer of all the gradients in the network, update all the models of all the bridges
     static void update_ith_models_with_gradients(const BridgeVector bridges, DataType_SFFloat * gradients_concatenated, int i) {
@@ -460,29 +467,26 @@ class DeepNet {
       LogicalCube<DataType_SFFloat, Layout_CRDB> * bias;
       size_t total_size = 0;
      
-        // SHADJIS TODO: I am calling these functions "_CPU", e.g.
-        // update_model_with_gradient_CPU. This is because if the bridge
-        // has the gradient updates normally on the GPU, then we need to
-        // pass in a device pointer. Eventually I should abstract this using
-        // a device memory pointer but for now I will assert that the
-        // gradient updates for this bridge are on the CPU, and therefore that
-        // gradients_concatenated is just a host pointer.
+      // SHADJIS TODO: I am calling these functions "_CPU", e.g.
+      // update_model_with_gradient_CPU. This is because if the bridge
+      // has the gradient updates normally on the GPU, then we need to
+      // pass in a device pointer. Eventually I should abstract this using
+      // a device memory pointer but for now I will assert that the
+      // gradient updates for this bridge are on the CPU, and therefore that
+      // gradients_concatenated is just a host pointer.
      
-        model = (bridges[i])->get_model_cube();
-        if (model) {
-          (bridges[i])->update_model_with_gradient_CPU(gradients_concatenated + total_size);
-          total_size += model->n_elements;
-        }
+      model = (bridges[i])->get_model_cube();
+      if (model) {
+        (bridges[i])->update_model_with_gradient_CPU(gradients_concatenated + total_size);
+        total_size += model->n_elements;
+      }
 
-        bias = (bridges[i])->get_bias_cube();
-        if (bias) {
-          (bridges[i])->update_bias_with_gradient_CPU(gradients_concatenated + total_size);
-          total_size += bias->n_elements;
-        }
-            
+      bias = (bridges[i])->get_bias_cube();
+      if (bias) {
+        (bridges[i])->update_bias_with_gradient_CPU(gradients_concatenated + total_size);
+        total_size += bias->n_elements;
+      }
     }
-
-
 
     // Given a buffer (already allocated on the host), fill it with all the model weights
     // To know how big to make this buffer see get_parameter_size()
@@ -532,9 +536,7 @@ class DeepNet {
         memcpy(buffer + total_size, bias->get_p_data(), sizeof(DataType_SFFloat) * bias->n_elements);
         total_size += bias->n_elements;
       }
-
       return total_size;
-
     }
 
     // Like read_model_from_file() but read model from a memory buffer
@@ -1752,7 +1754,7 @@ class DeepNet {
             // the pointer is still consistent
             assert(softmax->p_data_labels->get_p_data() == corpus.labels->get_p_data());
         }
-
+        
         t_load = t.elapsed();
 
         t.restart();
@@ -1847,8 +1849,8 @@ class DeepNet {
       std::cout << "Total Time (seconds): " << t_total.elapsed() << std::endl;
     }
 
-      static Corpus * load_network(const char * file, cnn::SolverParameter & solver_param,
-          cnn::NetParameter & net_param, BridgeVector & bridges, bool train) {
+    static Corpus * load_network(const char * file, cnn::SolverParameter & solver_param,
+      cnn::NetParameter & net_param, BridgeVector & bridges, bool train) {
 
         // not necessary if being called from load_and_(train|test)_network,
         // but necessary for certain tests
@@ -1889,11 +1891,11 @@ class DeepNet {
           throw std::runtime_error("Error parsing the solver.protoxt file or train_val.txt file");
           return NULL;
         }
-      }
+    }
 
 
-      static float test_network(const BridgeVector & bridges, Corpus & corpus, const cnn::NetParameter & net_param,
-          const cnn::SolverParameter & solver_param, bool time_iterations = false) {
+    static float test_network(const BridgeVector & bridges, Corpus & corpus, const cnn::NetParameter & net_param,
+      const cnn::SolverParameter & solver_param, bool time_iterations = false) {
 
         // TODO: we need a more general AbstractLossBridge
         SoftmaxBridge * const softmax = (SoftmaxBridge *) bridges.back();
@@ -1986,35 +1988,35 @@ class DeepNet {
         std::cout << "Loss = " << total_loss / float(num_batch_iterations) << ", Accuracy " << acc;
         corpus.CloseLmdbReader();
         return acc;
-      }
+    }
 
-      // We expect this to be called from main,
-      // it takes in a const char * argument (most likely
-      // from arvg[1]) that represents the .prototxt file
-      // which specifies the *solver* for the network, not
-      // the network configuration file itself.
-      //
-      // There are three steps involved in training the network:
-      //
-      // 1) Load the necessary training data into a Corpus object,
-      //    which will contain both the data itself, and the correct
-      //    labels.
-      //
-      // 2) Construct the necessary Bridge, Layer, and LogicalCube
-      //    objects to represent the network. A network should be
-      //    represented as an STL vector of Bridge pointers, so that we
-      //    can easily compute the forward pass and the backward pass.
-      //
-      // 3) For iter = 0 -> max_iter-1 (<- extracted from prototxt file)
-      //      Run the next batch
-      //          (Notes: 1. Wrap around training set when done
-      //                  2. Batch size is extracted from protoxt file)
-      //        Compute forward pass (iterate through vector of Bridge pointers)
-      //        Compute backward pass (iterate through vector of Bridge
-      //                               pointers backwards)
-      //
-      static void load_and_train_network(const char * file, const string input_model_file,
-            const string output_model_file, bool time_iterations = false) {
+    // We expect this to be called from main,
+    // it takes in a const char * argument (most likely
+    // from arvg[1]) that represents the .prototxt file
+    // which specifies the *solver* for the network, not
+    // the network configuration file itself.
+    //
+    // There are three steps involved in training the network:
+    //
+    // 1) Load the necessary training data into a Corpus object,
+    //    which will contain both the data itself, and the correct
+    //    labels.
+    //
+    // 2) Construct the necessary Bridge, Layer, and LogicalCube
+    //    objects to represent the network. A network should be
+    //    represented as an STL vector of Bridge pointers, so that we
+    //    can easily compute the forward pass and the backward pass.
+    //
+    // 3) For iter = 0 -> max_iter-1 (<- extracted from prototxt file)
+    //      Run the next batch
+    //          (Notes: 1. Wrap around training set when done
+    //                  2. Batch size is extracted from protoxt file)
+    //        Compute forward pass (iterate through vector of Bridge pointers)
+    //        Compute backward pass (iterate through vector of Bridge
+    //                               pointers backwards)
+    //
+    static void load_and_train_network(const char * file, const string input_model_file,
+      const string output_model_file, bool time_iterations = false) {
         DeepNetConfig::train_ = true;
 
         BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
@@ -2072,9 +2074,9 @@ class DeepNet {
         
         // Step 4: Clean up
         clean_up(bridges, corpus);
-      }
+    }
 
-      static float load_and_test_network(const char * file, const string input_model_file, bool time_iterations = false) {
+    static float load_and_test_network(const char * file, const string input_model_file, bool time_iterations = false) {
         DeepNetConfig::train_ = false;
 
         BridgeVector bridges; cnn::SolverParameter solver_param; cnn::NetParameter net_param;
@@ -2090,9 +2092,8 @@ class DeepNet {
           assert(false);
           return -1;
         }
-      }
-    };
-
-// #include "DeepNet.hxx"
+    }
+    
+};
 
 #endif
