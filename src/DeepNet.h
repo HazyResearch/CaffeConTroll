@@ -640,11 +640,17 @@ class DeepNet {
     static void construct_network(BridgeVector & bridges, Corpus & corpus, const cnn::NetParameter & net_param,
         const cnn::SolverParameter & solver_param) {
       CPUDriver * const driver = new CPUDriver(); // SHADJIS TODO: delete this later or put on stack
-      const int hw_concurrency = std::thread::hardware_concurrency();
+      unsigned int hw_concurrency = 1;
+      while (true) {
+        if (hw_concurrency*2 > std::thread::hardware_concurrency()) {
+            break;
+        }
+        hw_concurrency *= 2;
+      }
       assert(hw_concurrency > 0);
       
       size_t input_R = corpus.n_rows, input_C = corpus.n_cols, input_D = corpus.dim, B = corpus.mini_batch_size;
-
+      
       // Create the Logical Cubes for the initial data layer
       LogicalCubeFloat * prev_data = new LogicalCubeFloat(corpus.images->physical_get_RCDslice(0), input_R, input_C, input_D, B);
       LogicalCubeFloat * prev_grad = new LogicalCubeFloat(input_R, input_C, input_D, B);
@@ -1212,9 +1218,10 @@ class DeepNet {
               
                 assert(prev_data_cubes_higher_per_group.size() == 1);
                 assert(prev_grad_cubes_higher_per_group.size() == 1);
-                
+     
                 bridge = new ParallelizedBridge<DataType_SFFloat, FullyConnectedBridge>
-                         (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), hw_concurrency,
+                         // using hw_concurrency / 2 since GEMM faster with #physical
+                         (prev_layers[0], next_layer, &layer_param, &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), hw_concurrency/2,
                          prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[0], prev_grad_cubes_higher_per_group[0],
                          share_input_output_layer);
               
@@ -1374,8 +1381,9 @@ class DeepNet {
                   // This didn't cause any problems but since we will run these pbridges in parallel, using the same driver
                   // means that the drivers' internal class variables will be shared. Currently drivers have no variables but they may later.
                   bridge = new ParallelizedBridge<DataType_SFFloat, FullyConnectedBridge>
-                           // (prev_layers[i], next_layer, layer_param_tmp, solver_param_tmp, driver, min<size_t>(1, corpus.mini_batch_size), hw_concurrency,
-                           (prev_layers[i], next_layer, layer_param_tmp, &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), hw_concurrency,
+                           // using hw_concurrency / 2 since GEMM faster with #physical
+                           // (prev_layers[i], next_layer, layer_param_tmp, solver_param_tmp, driver, min<size_t>(1, corpus.mini_batch_size), hw_concurrency/2,
+                           (prev_layers[i], next_layer, layer_param_tmp, &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), hw_concurrency/2,
                            prev_num_partitions_CPU, prev_GPU_batch_sizes, prev_gpu_to_device_id_map, prev_data_cubes_higher_per_group[0], prev_grad_cubes_higher_per_group[0],
                            share_input_output_layer);
 
@@ -1690,6 +1698,7 @@ class DeepNet {
       float t_pass;
 
       Timer t_total;
+      Timer t_total_minus_first_10;
 
 #ifdef _LAYER_PROFILING
       const int display_iter = 1;
@@ -1719,6 +1728,10 @@ class DeepNet {
       // Run for max_iter iterations
       for (size_t batch = 0; batch < num_batch_iterations; ++batch) {
 
+        if (batch == 10) {
+          t_total_minus_first_10.restart();
+        }
+      
         Timer t;
         Timer t2;
         
@@ -1847,6 +1860,7 @@ class DeepNet {
       // Note that corpus.images and corpus.labels are still usable
       corpus.CloseLmdbReader();
       std::cout << "Total Time (seconds): " << t_total.elapsed() << std::endl;
+      std::cout << "Total Time (minus first 10 iterations): " << t_total_minus_first_10.elapsed() << std::endl;
     }
 
     static Corpus * load_network(const char * file, cnn::SolverParameter & solver_param,

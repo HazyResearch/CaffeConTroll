@@ -6,9 +6,11 @@ lr_policy: "step"
 gamma: 0.82
 stepsize: 1500
 display: 1
-max_iter: 60000
+max_iter: 40
 momentum: 0.9
 weight_decay: 0.0005
 # snapshot: 10000
 # snapshot_prefix: "models/bvlc_alexnet/caffe_alexnet_train"
 solver_mode: CPU
+snapshot_after_train: false
+
