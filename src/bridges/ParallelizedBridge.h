@@ -326,16 +326,118 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
     LogicalCube<DataType, Layout_CRDB> * const get_bias_cube() {
         return p_bias_cube;
     }
-
-    // This shouldn't be used because the updater will be NULL if there is
-    // only 1 bridge and it is a GPU bridge
+    
+    // These functions are needed for writing momentum to a file
+    void set_current_iter(int _iter)  {
+        if (skip_model_copy_gpu) {
+          assert(!p_grad_updater);
+          assert(!p_grad_updater_bias);
+#ifdef _INCLUDE_GPUDRIVER
+          if (gpu_grad_updater) {
+            gpu_grad_updater->set_current_iter(_iter);
+          }
+          if (gpu_grad_updater_bias) {
+            gpu_grad_updater_bias->set_current_iter(_iter);
+          }
+#endif
+        } else {
+#ifdef _INCLUDE_GPUDRIVER
+          assert(!gpu_grad_updater);
+          assert(!gpu_grad_updater_bias);
+#endif
+          if (p_grad_updater) {
+            p_grad_updater->set_current_iter(_iter);
+          }
+          if (p_grad_updater_bias) {
+            p_grad_updater_bias->set_current_iter(_iter);
+          }
+        }
+    }
+    void force_device_to_host_model_history_copy()  {
+        if (skip_model_copy_gpu) {
+          assert(!p_grad_updater);
+#ifdef _INCLUDE_GPUDRIVER
+          if (gpu_grad_updater) {
+            gpu_grad_updater->force_device_to_host_history_copy();
+          }
+#endif
+        }
+    }
+    void force_host_to_device_model_history_copy()  {
+        if (skip_model_copy_gpu) {
+          assert(!p_grad_updater);
+#ifdef _INCLUDE_GPUDRIVER
+          if (gpu_grad_updater) {
+            gpu_grad_updater->force_host_to_device_history_copy();
+          }
+#endif
+        }
+    }
+    void force_device_to_host_bias_history_copy()  {
+        if (skip_model_copy_gpu) {
+          assert(!p_grad_updater_bias);
+#ifdef _INCLUDE_GPUDRIVER
+          if (gpu_grad_updater_bias) {
+            gpu_grad_updater_bias->force_device_to_host_history_copy();
+          }
+#endif
+        }
+    }
+    void force_host_to_device_bias_history_copy()  {
+        if (skip_model_copy_gpu) {
+          assert(!p_grad_updater_bias);
+#ifdef _INCLUDE_GPUDRIVER
+          if (gpu_grad_updater_bias) {
+            gpu_grad_updater_bias->force_host_to_device_history_copy();
+          }
+#endif
+        }
+    }
+    DataType * get_model_history_host_ptr()  {
+        if (skip_model_copy_gpu) {
+          assert(!p_grad_updater);
+#ifdef _INCLUDE_GPUDRIVER
+          if (gpu_grad_updater) {
+            return gpu_grad_updater->get_p_history_updates_cube()->get_p_data();
+          }
+#endif
+        } else {
+#ifdef _INCLUDE_GPUDRIVER
+          assert(!gpu_grad_updater);
+#endif
+          if (p_grad_updater) {
+            return p_grad_updater->get_p_history_updates_cube()->get_p_data();
+          }
+        }
+        return NULL;
+    }
+    DataType * get_bias_history_host_ptr()  {
+        if (skip_model_copy_gpu) {
+          assert(!p_grad_updater_bias);
+#ifdef _INCLUDE_GPUDRIVER
+          if (gpu_grad_updater_bias) {
+            return gpu_grad_updater_bias->get_p_history_updates_cube()->get_p_data();
+          }
+#endif
+        } else {
+#ifdef _INCLUDE_GPUDRIVER
+          assert(!gpu_grad_updater_bias);
+#endif
+          if (p_grad_updater_bias) {
+            return p_grad_updater_bias->get_p_history_updates_cube()->get_p_data();
+          }
+        }
+        return NULL;
+    }
+    
+    // These are only needed for snapshot test
+    // We can assert this is on CPU, GPU needs to be handled separately
     GradientUpdater<DataType, CPUDriver> * const get_model_updater() {
+        assert(!skip_model_copy_gpu);
         return p_grad_updater;
     }
-
-    // This shouldn't be used because the updater will be NULL if there is
-    // only 1 bridge and it is a GPU bridge
     GradientUpdater<DataType, CPUDriver> * const get_bias_updater() {
+        assert(!skip_model_copy_gpu);
         return p_grad_updater_bias;
     }
     

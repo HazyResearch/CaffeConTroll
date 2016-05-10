@@ -220,6 +220,8 @@ class DeepNet {
         read_momentum_from_file(bridges, base_filename + ".HISTORY.bin");
         
         // Also read iteration number
+        // SHADJIS TODO: To start exactly need to also move fw in dataset
+        // to this iteration
         FILE * pFile;
         pFile = fopen ((base_filename + ".ITER.bin").c_str(), "rb");
         int iter;
@@ -230,11 +232,11 @@ class DeepNet {
         for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
           model = (*bridge)->get_model_cube();
           if (model) {
-            (*bridge)->get_model_updater()->set_current_iter(iter);
+            (*bridge)->set_current_iter(iter);
           }
           bias = (*bridge)->get_bias_cube();
           if (bias) {
-            (*bridge)->get_bias_updater()->set_current_iter(iter);
+            (*bridge)->set_current_iter(iter);
           }
         }
         fclose(pFile);
@@ -299,13 +301,13 @@ class DeepNet {
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
         model = (*bridge)->get_model_cube();
         if (model) {
-          (*bridge)->get_model_updater()->force_device_to_host_history_copy();
-          fwrite((*bridge)->get_model_updater()->get_p_history_updates_cube()->get_p_data(), sizeof(DataType_SFFloat), model->n_elements, pFile);
+          (*bridge)->force_device_to_host_model_history_copy();
+          fwrite((*bridge)->get_model_history_host_ptr(), sizeof(DataType_SFFloat), model->n_elements, pFile);
         }
         bias = (*bridge)->get_bias_cube();
         if (bias) {
-          (*bridge)->get_bias_updater()->force_device_to_host_history_copy();
-          fwrite((*bridge)->get_bias_updater()->get_p_history_updates_cube()->get_p_data(), sizeof(DataType_SFFloat), bias->n_elements, pFile);
+          (*bridge)->force_device_to_host_bias_history_copy();
+          fwrite((*bridge)->get_bias_history_host_ptr(), sizeof(DataType_SFFloat), bias->n_elements, pFile);
         }
       }
       fclose(pFile);
@@ -320,15 +322,15 @@ class DeepNet {
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
         model = (*bridge)->get_model_cube();
         if (model) {
-          size_t num_elements_read = fread((*bridge)->get_model_updater()->get_p_history_updates_cube()->get_p_data(), sizeof(DataType_SFFloat), model->n_elements, pFile);
+          size_t num_elements_read = fread((*bridge)->get_model_history_host_ptr(), sizeof(DataType_SFFloat), model->n_elements, pFile);
           assert(num_elements_read == model->n_elements);
-          (*bridge)->get_model_updater()->force_host_to_device_history_copy();
+          (*bridge)->force_host_to_device_model_history_copy();
         }
         bias = (*bridge)->get_bias_cube();
         if (bias) {
-          size_t num_elements_read = fread((*bridge)->get_bias_updater()->get_p_history_updates_cube()->get_p_data(), sizeof(DataType_SFFloat), bias->n_elements, pFile);
+          size_t num_elements_read = fread((*bridge)->get_bias_history_host_ptr(), sizeof(DataType_SFFloat), bias->n_elements, pFile);
           assert(num_elements_read == bias->n_elements);
-          (*bridge)->get_bias_updater()->force_host_to_device_history_copy();
+          (*bridge)->force_host_to_device_bias_history_copy();
         }
       }
       fclose(pFile);

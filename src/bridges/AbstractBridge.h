@@ -430,6 +430,15 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
     virtual size_t get_output_data_size()  {
       return output_d_cube->n_elements;
     }
+    
+    // For writing momentum history to file
+    virtual void set_current_iter(int _iter)  { assert(false); }
+    virtual void force_device_to_host_model_history_copy()  { assert(false); }
+    virtual void force_host_to_device_model_history_copy()  { assert(false); }
+    virtual void force_device_to_host_bias_history_copy()  { assert(false); }
+    virtual void force_host_to_device_bias_history_copy()  { assert(false); }
+    virtual InputLayerDataType * get_model_history_host_ptr()  { assert(false); }
+    virtual InputLayerDataType * get_bias_history_host_ptr()  { assert(false); }
 };
 
 
