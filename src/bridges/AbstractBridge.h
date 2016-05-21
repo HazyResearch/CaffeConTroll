@@ -4,8 +4,8 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#ifndef moka_Abstract_Bridge_h
-#define moka_Abstract_Bridge_h
+#ifndef _Abstract_Bridge_h
+#define _Abstract_Bridge_h
 
 #include "../LogicalCube.h"
 #include "../Connector.h"
@@ -381,7 +381,7 @@ class AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
     // relevant for abstract bridge with cpu driver since pbridge always uses gpu driver).
     // The reason I am adding these here now is because I want to call these for pbridges,
     // but all I have in DeepNet is a vector of abstractbridges (i.e. some are pbridgrs, some
-    // are softmax/dropout/funnel/etc.). Morever, even if all bridges were created by pbridges,
+    // are softmax/dropout/concat/etc.). Morever, even if all bridges were created by pbridges,
     // I would still have a vector of all different types of pbridges (since pbridge currently
     // has the sub-bridge type as a template). So to avoid dealing with templates I am putting
     // these scheduler functions here, and overloading them in the pbridge (which handles 

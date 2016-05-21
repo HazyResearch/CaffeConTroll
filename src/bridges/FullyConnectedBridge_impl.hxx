@@ -4,8 +4,8 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#ifndef moka_FullyConnectedBridge_impl_hxx
-#define moka_FullyConnectedBridge_impl_hxx
+#ifndef _FullyConnectedBridge_impl_hxx
+#define _FullyConnectedBridge_impl_hxx
 
 // Constructor for fully connected layer
 template <typename DataType, typename DriverClass>
@@ -19,7 +19,8 @@ FullyConnectedBridge(InputLayerType * const _p_input_layer, OutputLayerType * co
   K(iR), num_output_features(layer_param->inner_product_param().num_output()),
   stride(1), padding(0), bias_term(layer_param->inner_product_param().bias_term()),
   weight_filler(layer_param->inner_product_param().weight_filler()),
-  bias_filler(layer_param->inner_product_param().bias_filler()) {
+  bias_filler(layer_param->inner_product_param().bias_filler()),
+  p_model_cube(NULL), p_bias_cube(NULL), ones_bias_vector(NULL) {
 
   // Start Reporting
   report_forward_constructor.reset();
@@ -211,6 +212,9 @@ forward() {
       p_driver->sgemm_new(CblasNoTrans, CblasNoTrans, data_C, model_R, 1, (float)1.,
           ones_bias_vector->get_p_data(), p_bias_cube->get_p_data(), (float)1., output_d_cube->get_p_data());
     } else {
+      // SHADJIS TODO: Can use GEMM here (then no need for 2 cases, same code as above)
+      // I think FC needs 1 GEMM only, but conv / scale need many GEMM, so it makes more sense
+      // to use forward_bias for those maybe
       DeviceMemoryPointer * output = output_d_cube->get_device_pointer(p_driver);
       DeviceMemoryPointer * bias = p_bias_cube->get_device_pointer(p_driver);
       p_driver->forward_bias(bias, output, /* oR*oC = */ 1, oD, iB);

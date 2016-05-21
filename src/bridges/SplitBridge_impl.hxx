@@ -53,7 +53,7 @@ void SplitBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::bac
   report_backward_updateweight_last_transfer.reset();
 
   // Minimize # writes for special-cases
-  // Can support more cases as well. Unlike funnel, split does not change depth.
+  // Can support more cases as well. Unlike concat, split does not change depth.
   float * const output = p_input_layer->p_gradient_cube->get_p_data();
   const size_t n_elements = p_input_layer->p_gradient_cube->n_elements;
   if (p_output_layers.size() == 4) {
@@ -75,7 +75,7 @@ void SplitBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::bac
   // General case
   // SHADJIS TODO: If bottleneck, reorder loops to minimize writes
   else {
-    p_input_layer->p_gradient_cube->reset_cube();
+    p_input_layer->p_gradient_cube->reset_cube();   // SHADJIS TODO: won't work on device
     // Iterate over each output cube's gradient and sum it to the input cube's gradient
     for (size_t output_grad_cube_idx = 0; output_grad_cube_idx < p_output_layers.size(); ++output_grad_cube_idx) {
       const float * const input = p_output_layers[output_grad_cube_idx]->p_gradient_cube->get_p_data();

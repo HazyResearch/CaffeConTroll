@@ -18,12 +18,18 @@ T * const LogicalCube<T, LAYOUT>::get_p_data() const {
 
 template<typename T, LayoutType LAYOUT>
 void LogicalCube<T, LAYOUT>::set_p_data(T * const data) {
-#ifdef _DO_ASSERT
   // p_data cannot be updated if this cube
   // owns it data. Otherwise, we will have
-  // a memory leak.
-  assert(!own_data);
-#endif
+  // a memory leak. So, free the cube and
+  // change its ownership status
+  if(own_data) {
+    own_data = false;
+    if (p_data_device_ptr) { // Is non-NULL if we called the p_driver constructor
+      p_data_driver->free(p_data_device_ptr);
+    } else {
+      free(p_data);
+    }
+  }
   p_data = data;
 }
 
@@ -146,6 +152,9 @@ LogicalCube<T, LAYOUT>::LogicalCube(void * _p_data, size_t _R, size_t _C, size_t
   own_data(false),
   p_data(reinterpret_cast<T*>(_p_data)),
   p_data_device_ptr(NULL) {}
+
+// SHADJIS TODO: These should call p_driver->sconstant_initialize
+// Cube should always have a driver, either host (default) or device (if given one)
 
 template<typename T, LayoutType LAYOUT>
 void LogicalCube<T, LAYOUT>::reset_cube() {

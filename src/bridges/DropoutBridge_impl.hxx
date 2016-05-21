@@ -88,6 +88,12 @@ void DropoutBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::f
       // isn't any faster?) and also skipping the test phase (since dropout
       // in test mode is just a copy, but this doesn't make the code any faster
       // since testing is fast and copies are too)
+      // SHADJIS TODO: The ReLU bridge also has this optimization, but there it
+      // is not assumed to be true -- ReLU works whether or not it is true. For
+      // dropout, similarly we should not assume this is true but check -- if the
+      // equality below holds, then re-use the pointer and skip the test phase,
+      // otherwise don't. Like ReLU it shouldn't be assumed that this optimization
+      // is true because maybe the top and bottom of dropout will not match.
 #ifdef _DO_ASSERT
       assert(input_d_cube->get_p_data() == output_d_cube->get_p_data());
 #endif

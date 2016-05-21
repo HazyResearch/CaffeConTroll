@@ -3,9 +3,9 @@
 //
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
-//  Description:  This bridge is the opposite of funnel. Whereas funnel is used when
-//                a grouping of N merges into a grouping of 1 (in the forward direction),
-//                split is used when a grouping of 1 splits into a grouping of N.
+//  Description:  This bridge is the opposite of concat. Whereas concat is used to merge
+//                bridges by depth into single bridge (in the forward direction), split is
+//                used to partition a bridge by depth into multiple bridges
 //
 
 #ifndef _Split_Bridge_h

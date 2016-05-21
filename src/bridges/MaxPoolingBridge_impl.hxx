@@ -36,7 +36,9 @@ MaxPoolingBridge(InputLayerType * const _p_input_layer, OutputLayerType * const 
 
   // create Logical Cube to keep track of indices for max values
   max_index = new LogicalCube<size_t, Layout_CRDB>(pooled_height, pooled_width, iD, iB);
-  max_index->reset_cube();
+  max_index->reset_cube();  // This is host-only. Generally can use p_driver->sconstant_initialize, which
+                            // reset_cube() should do internally anyway, but here it does not matter since
+                            // the GPU implementation does not need initialization
   if (!std::is_same<DriverClass, CPUDriver>::value) {
     max_index_device = new LogicalCube<size_t, Layout_CRDB>(pooled_height, pooled_width, iD, iB, p_driver);
   } else {
@@ -114,7 +116,7 @@ void MaxPoolingBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>
   
   DeviceMemoryPointer * input = input_g_cube->get_device_pointer(p_driver);
   DeviceMemoryPointer * output = output_g_cube->get_device_pointer(p_driver);
-  p_driver->sconstant_initialize(input, DataType(0.)); // SHADJIS TODO: Unnecessary?
+  p_driver->sconstant_initialize(input, DataType(0.)); // Necessary for CPU (maybe also GPU)
 
   _pool_backward_arg_helper _arg;
   _arg.stride = stride;

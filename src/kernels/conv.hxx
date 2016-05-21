@@ -25,6 +25,9 @@ inline void _f_bias_forward(void * bias, void * output, void * const _arg,
   }
 }
 
+// SHADJIS TODO: these div/mod aren't necessary, should just implement as nested
+// loops like the comment reads in conv bridge impl.hxx and delete all these
+// kernel functions
 inline size_t _f_src_to_dst_bias_backward(size_t src_pos, void * const _arg) {
   const _bias_arg_helper * const arg = (_bias_arg_helper *) _arg;
   return ((src_pos / arg->src_skip) % arg->oD) * arg->DataTypeSize;
