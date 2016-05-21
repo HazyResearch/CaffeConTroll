@@ -1,11 +1,14 @@
 //
-//  FunnelBridge.h
+//  ConcatBridge.h
 //
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
+//  Description:  This bridge is the opposite of split. Whereas split is used to partition a
+//                bridge by depth into multiple bridges (in the forward direction), concat is 
+//                used to merge bridges by depth into a single bridge
 
-#ifndef moka_Funnel_Bridge_h
-#define moka_Funnel_Bridge_h
+#ifndef _Concat_Bridge_h
+#define _Concat_Bridge_h
 
 #include "AbstractBridge.h"
 #include "../util.h"
@@ -13,13 +16,13 @@
 template
 <typename InputLayerDataType, LayoutType InputLayerLayout, typename OutputLayerDataType,
   LayoutType OutputLayerLayout, typename DriverClass>
-class FunnelBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
+class ConcatBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout, OutputLayerDataType,
   OutputLayerLayout, DriverClass> {
   public:
     typedef Layer<InputLayerDataType, InputLayerLayout> InputLayerType;
     typedef Layer<OutputLayerDataType, OutputLayerLayout> OutputLayerType;
 
-    FunnelBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
+    ConcatBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param, const cnn::SolverParameter * const _solver_param) {
       NOT_IMPLEMENTED;
     }
@@ -37,7 +40,7 @@ class FunnelBridge : public AbstractBridge<InputLayerDataType, InputLayerLayout,
  * Specializations
  */
 template <typename DataType, typename DriverClass>
-class FunnelBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass> : public AbstractBridge<DataType,
+class ConcatBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass> : public AbstractBridge<DataType,
       Layout_CRDB, DataType, Layout_CRDB, DriverClass> {
   protected:
     using AbstractBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::curr_B;
@@ -77,17 +80,17 @@ class FunnelBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass> : 
     typedef Layer<DataType, Layout_CRDB> InputLayerType;
     typedef Layer<DataType, Layout_CRDB> OutputLayerType;
 
-    FunnelBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
+    ConcatBridge(InputLayerType * const _p_input_layer, OutputLayerType * const _p_output_layer,
         const cnn::LayerParameter * const _layer_param, const cnn::SolverParameter * const _solver_param,
         DriverClass * const _p_driver);
 
-    ~FunnelBridge();
+    ~ConcatBridge();
 
     void forward();
 
     void backward();
 };
 
-#include "FunnelBridge_impl.hxx"
+#include "ConcatBridge_impl.hxx"
 
 #endif

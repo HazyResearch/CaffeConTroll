@@ -1,14 +1,14 @@
 //
-//  FunnelBridge_impl.hxx
+//  ConcatBridge_impl.hxx
 //
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#ifndef moka_FunnelBridge_impl_hxx
-#define moka_FunnelBridge_impl_hxx
+#ifndef _ConcatBridge_impl_hxx
+#define _ConcatBridge_impl_hxx
 
 template <typename DataType, typename DriverClass>
-FunnelBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::FunnelBridge(InputLayerType * const _p_input_layer,
+ConcatBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::ConcatBridge(InputLayerType * const _p_input_layer,
     OutputLayerType * const _p_output_layer, const cnn::LayerParameter * const _layer_param,
     const cnn::SolverParameter * const _solver_param, DriverClass * const _p_driver) : AbstractBridge<DataType,
   Layout_CRDB, DataType, Layout_CRDB, DriverClass>(_p_input_layer, _p_output_layer, _layer_param, _solver_param,
@@ -29,13 +29,13 @@ FunnelBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::FunnelB
 // so each cube can have different depth (e.g. for CPU + GPU model parallelism by FLOPS) 
 
 /**
- * Forward direction for Funnel
+ * Forward direction for Concat
  **/
 template <typename DataType, typename DriverClass>
-void FunnelBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forward() {
+void ConcatBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::forward() {
   report_forward_last_transfer.reset();
 
-  // SHADJIS TODO: Not here we assume that each layer in p_input_layers has the
+  // SHADJIS TODO: Note here we assume that each layer in p_input_layers has the
   // same cube sizes, and moreover that they match iR/iC/iD/iB which came from
   // p_input_layer.
   DataType * const output_data = p_output_layer->p_data_cube->get_p_data();
@@ -59,14 +59,14 @@ void FunnelBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::fo
 
 
 /**
- * Backward direction for Funnel
+ * Backward direction for Concat
  **/
 template <typename DataType, typename DriverClass>
-void FunnelBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::backward() {
+void ConcatBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::backward() {
 
   report_backward_updateweight_last_transfer.reset();
 
-  // SHADJIS TODO: Not here we assume that each layer in p_input_layers has the
+  // SHADJIS TODO: Note here we assume that each layer in p_input_layers has the
   // same cube sizes, and moreover that they match iR/iC/iD/iB which came from
   // p_input_layer.
   const DataType * const output_gradient = p_output_layer->p_gradient_cube->get_p_data();
@@ -88,7 +88,7 @@ void FunnelBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::ba
 }
 
 template <typename DataType, typename DriverClass>
-FunnelBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::~FunnelBridge() {
+ConcatBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::~ConcatBridge() {
 }
 
 #endif
