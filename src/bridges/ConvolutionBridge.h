@@ -3,9 +3,10 @@
 //
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
+//  Description:  This bridge implements a discrete convolution
 
-#ifndef moka_Convolution_Bridge_h
-#define moka_Convolution_Bridge_h
+#ifndef _Convolution_Bridge_h
+#define _Convolution_Bridge_h
 
 #include "PhysicalOperator.h"
 #include "AbstractBridge.h"
@@ -145,6 +146,7 @@ class ConvolutionBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClas
 
     void set_bias_cube(LogicalCube<DataType, Layout_CRDB> * bias) {
 #ifdef _DO_ASSERT
+      assert(p_bias_cube);
       // This is currently only ever be used as a special-case to prevent
       // a memcpy when copying from the host, so assert that this is true
       bool is_cpu_driver = std::is_same<DriverClass, CPUDriver>::value;

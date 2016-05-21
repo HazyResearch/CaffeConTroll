@@ -4,8 +4,8 @@
 //  Copyright (c) 2015 Hazy Research. All rights reserved.
 //
 
-#ifndef moka_ParallelizedBridge_impl_hxx
-#define moka_ParallelizedBridge_impl_hxx
+#ifndef _ParallelizedBridge_impl_hxx
+#define _ParallelizedBridge_impl_hxx
 
 #include <csignal>
 
@@ -524,6 +524,9 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
         // SHADJIS TODO: Do we still allocate these cubes? No need if we
         // just share the pointer
         _cpu_bridges[i]->set_model_cube(p_model_cube);
+    }
+    if (p_bias_cube)
+    {
         _cpu_bridges[i]->set_bias_cube(p_bias_cube);
     }
   }
@@ -538,14 +541,18 @@ void ParallelizedBridge<DataType, BridgeType>::forward() {
     // SHADJIS TODO: Can use cuda memcpy async but need to pin memory?
     if (num_partitions_GPU == 1) { // Special case: Don't launch threads
         scheduler_gpudrivers[0]->memcpy(_gpu_bridges[0]->get_model_cube()->get_device_pointer(scheduler_gpudrivers[0]), p_model_cube->get_device_pointer(scheduler_local_cpudriver));
-        scheduler_gpudrivers[0]->memcpy(_gpu_bridges[0]->get_bias_cube() ->get_device_pointer(scheduler_gpudrivers[0]), p_bias_cube ->get_device_pointer(scheduler_local_cpudriver));
+        if (p_bias_cube) {
+            scheduler_gpudrivers[0]->memcpy(_gpu_bridges[0]->get_bias_cube() ->get_device_pointer(scheduler_gpudrivers[0]), p_bias_cube ->get_device_pointer(scheduler_local_cpudriver));
+        }
     } else if (num_partitions_GPU > 1) {
       vector<thread> threads;
       for (size_t gpu_i = 0; gpu_i < num_partitions_GPU; ++gpu_i) {
         threads.push_back(thread([this, gpu_i]() {
             // General-case: copy from host to device
             scheduler_gpudrivers[gpu_i]->memcpy(_gpu_bridges[gpu_i]->get_model_cube()->get_device_pointer(scheduler_gpudrivers[gpu_i]), p_model_cube->get_device_pointer(scheduler_local_cpudriver));
-            scheduler_gpudrivers[gpu_i]->memcpy(_gpu_bridges[gpu_i]->get_bias_cube() ->get_device_pointer(scheduler_gpudrivers[gpu_i]), p_bias_cube ->get_device_pointer(scheduler_local_cpudriver));
+            if (p_bias_cube) {
+                scheduler_gpudrivers[gpu_i]->memcpy(_gpu_bridges[gpu_i]->get_bias_cube() ->get_device_pointer(scheduler_gpudrivers[gpu_i]), p_bias_cube ->get_device_pointer(scheduler_local_cpudriver));
+            }
         }));
       }
       for (size_t ti = 0; ti < threads.size(); ti++) {
@@ -1002,7 +1009,7 @@ void ParallelizedBridge<DataType, BridgeType>::backward() {
     // do similar things for bias term... Might be better to
     // refactor this to be in the same function as the previous one
     if (num_partitions > 1) {
-      p_bias_grad->reset_cube(DataType(0.0));
+      p_bias_grad->reset_cube(DataType(0.0)); // on host, so ok to use reset_cube
       DataType * const p_grad_data = p_bias_grad->get_p_data();
       const size_t bias_n_element = p_bias_grad->n_elements;
       for (size_t i = 0; i < num_partitions; ++i) {

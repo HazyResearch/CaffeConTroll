@@ -485,6 +485,9 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
         }
     }
     void force_host_to_device_bias_copy()  {
+#ifdef _DO_ASSERT
+        assert(p_bias_cube);
+#endif
         if (skip_model_copy_gpu) {
             scheduler_gpudrivers[0]->memcpy(_gpu_bridges[0]->get_bias_cube() ->get_device_pointer(scheduler_gpudrivers[0]), p_bias_cube ->get_device_pointer(scheduler_local_cpudriver));
         }
@@ -495,6 +498,9 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
         }
     }
     void force_device_to_host_bias_copy()  {
+#ifdef _DO_ASSERT
+        assert(p_bias_cube);
+#endif
         if (skip_model_copy_gpu) {
             scheduler_gpudrivers[0]->memcpy(p_bias_cube->get_device_pointer(scheduler_local_cpudriver), _gpu_bridges[0]->get_bias_cube()->get_device_pointer(scheduler_gpudrivers[0]));
         }
@@ -526,6 +532,9 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
         //  1. This is on GPU
         //  2. This has not been calculated yet
         else if (skip_model_copy_gpu) {
+#ifdef _DO_ASSERT
+            assert(p_bias_grad);
+#endif
             scheduler_gpudrivers[0]->memcpy(p_bias_grad->get_device_pointer(scheduler_local_cpudriver), _gpu_bridges[0]->get_bias_grad_cube()->get_device_pointer(scheduler_gpudrivers[0]));
             return p_bias_grad->get_p_data();
         }
@@ -549,6 +558,9 @@ class ParallelizedBridge : public AbstractBridge<DataType, Layout_CRDB, DataType
         //if (skip_model_copy_gpu)
         //    gpu_grad_updater_bias->update(grad);
         assert (!skip_model_copy_gpu);
+#ifdef _DO_ASSERT
+        assert(p_grad_updater_bias);
+#endif
         p_grad_updater_bias->update(grad);
     }
     

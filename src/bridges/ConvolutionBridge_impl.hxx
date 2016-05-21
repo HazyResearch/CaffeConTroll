@@ -25,7 +25,7 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   bias_term(layer_param->convolution_param().bias_term()),
   weight_filler(layer_param->convolution_param().weight_filler()),
   bias_filler(layer_param->convolution_param().bias_filler()),
-  ones_bias_vector(NULL) {
+  p_model_cube(NULL), p_bias_cube(NULL), ones_bias_vector(NULL) {
 
   // Start reporting
   report_forward_constructor.reset();
@@ -155,7 +155,7 @@ ConvolutionBridge(InputLayerType * const _p_input_layer, OutputLayerType * const
   // On the GPU, we also need to make a vector of ones, of size oR*oC
   // We don't need to use a cube for this but it's easier
   // Allocated on the device
-  if (!std::is_same<DriverClass, CPUDriver>::value) {
+  if (bias_term && !std::is_same<DriverClass, CPUDriver>::value) {
     ones_bias_vector = new LogicalCube<DataType, Layout_CRDB>(oR*oC, 1, 1, 1, p_driver);
     p_driver->sconstant_initialize(ones_bias_vector->get_device_pointer(p_driver), (DataType) 1.);
   }
@@ -384,7 +384,10 @@ forward() {
       }
       LogicalCube<DataType, Layout_CRDB> lowered_model(p_model_cube->get_p_data(), num_output_features,
           K*K*iD, 1, 1);
-      DeviceMemoryPointer * bias = p_bias_cube->get_device_pointer(p_driver);
+      DeviceMemoryPointer * bias = NULL;
+      if (bias_term) {
+        bias = p_bias_cube->get_device_pointer(p_driver);
+      }
 
       // Next, since we are going to lower/gemm 1 image at a time, make cubes for a single image.
       
@@ -635,8 +638,11 @@ backward() {
       LogicalCube<DataType, Layout_CRDB> lowered_model_grad(p_model_gradient_cube->get_p_data(), num_output_features, K*K*iD, 1, 1);
       DeviceMemoryPointer * model_gradient = lowered_model_grad.get_device_pointer(p_driver);
       p_driver->sconstant_initialize(model_gradient, DataType(0.));
-      DeviceMemoryPointer * bias = p_bias_gradient_cube->get_device_pointer(p_driver);
-      p_driver->sconstant_initialize(bias, DataType(0.));
+      DeviceMemoryPointer * bias = NULL;
+      if (bias_term) {
+        bias = p_bias_gradient_cube->get_device_pointer(p_driver);
+        p_driver->sconstant_initialize(bias, DataType(0.));
+      }
 
       // Next, since we are going to lower/gemm 1 image at a time, make cubes for a single image.
 
