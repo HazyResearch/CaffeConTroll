@@ -420,6 +420,67 @@ void CPUDriver::maxpool_backward(DeviceMemoryPointer * dst, DeviceMemoryPointer 
   }
 }
 
+void CPUDriver::avepool_forward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _pool_forward_arg_helper args) {
+
+  const int iR = args.iR;
+  const int iC = args.iC;
+  const int oR = args.oR;
+  const int oC = args.oC;
+  const int D  = args.D;
+  const int B  = args.B;
+  const int k  = args.kernel_size;
+  const int s  = args.stride;
+
+  // SHADJIS TODO: Measure if this can be done faster somehow, and if it matters
+  for (int i=0; i<D*B; ++i) {
+    float * const output_data = ((float*) dst->ptr) + i*oR*oC;
+    const float * const input_data  = ((float*) src->ptr) + i*iR*iC;
+    for (int ph = 0; ph < oR; ++ph) {
+      const int h_end = min(ph*s + k, iR);
+      for (int pw = 0; pw < oC; ++pw) {
+        const int w_end = min(pw*s + k, iC);
+        for (int h = ph*s; h < h_end; ++h) {
+          for (int w = pw*s; w < w_end; ++w) {
+            output_data[ph*oC + pw] += input_data[h*iC + w];
+          }
+        }
+        output_data[ph*oC + pw] /= float( (h_end - ph*s) * (w_end - pw*s) );
+      }
+    }
+  }
+}
+
+void CPUDriver::avepool_backward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _pool_backward_arg_helper args) {
+
+  const int iR = args.iR;
+  const int iC = args.iC;
+  const int oR = args.oR;
+  const int oC = args.oC;
+  const int D  = args.D;
+  const int B  = args.B;
+  const int k  = args.kernel_size;
+  const int s  = args.stride;
+  
+  for (int i=0; i<D*B; ++i) {
+    const float * const output_grad = (float*) dst->ptr + i*oR*oC;
+    float * const input_grad  = (float*) src->ptr + i*iR*iC;
+    for (int ph = 0; ph < oR; ++ph) {
+      const int hend = min(ph*s + k, iR);
+      for (int pw = 0; pw < oC; ++pw) {
+        const int wend = min(pw*s + k, iC);
+        for (int h = ph*s; h < hend; ++h) {
+          for (int w = pw*s; w < wend; ++w) {
+            input_grad[h*iC + w] +=
+              output_grad[ph*oC + pw] / float( (hend - ph*s) * (wend - pw*s) );
+          }
+        }
+      }
+    }
+  }
+}
+
 void CPUDriver::lrn_forward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
     const struct _lrn_forward_arg_helper args, const struct _lrn_forward_normalize_arg_helper args2) {
 
@@ -456,7 +517,7 @@ void CPUDriver::math_saxpy(const int nItems, const float alpha, float * X, float
   math_saxpby(nItems, alpha, X, 1.0, Y);
 }
 
-void CPUDriver::math_saxpby(const int N, const float alpha, float * X, const float beta, float * Y) const {
+void CPUDriver::math_saxpby(const int N, const float alpha, const float * X, const float beta, float * Y) const {
 #ifdef _USE_OPENBLAS
   cblas_saxpby(N, alpha, X, 1, beta, Y, 1);
 #elif _USE_ATLAS
@@ -510,6 +571,64 @@ void CPUDriver::sgemv(const CBLAS_TRANSPOSE TA, const int M, const int N,
       
   cblas_sgemv(CblasRowMajor, TA, M, N, alpha, pA, N, px, 1, beta, py, 1);
 
+}
+
+// y = ax
+void CPUDriver::sscale(const int n, const float alpha, const float *x,
+                            float* y) {
+  cblas_scopy(n, x, 1, y, 1);
+  cblas_sscal(n, alpha, y, 1);
+}
+
+void CPUDriver::sscale_inplace(const int n, const float alpha, float *x) {
+  cblas_sscal(n, alpha, x, 1);
+}
+
+void CPUDriver::eltwise_mul(const int n, const float* const a, const float* const b,
+    float* y) {
+  for (int i=0; i<n; ++i) {
+    y[i] = a[i]*b[i];
+  }
+  // vsMul(n, a, b, y);
+}
+
+void CPUDriver::eltwise_powx(const int n, const float* a, const float b,
+    float* y) {
+  for (int i=0; i<n; ++i) {
+    y[i] = pow(a[i],b);
+  }
+  // vsPowx(n, a, b, y);
+}
+
+void CPUDriver::eltwise_pow2(const int n, const float* a, float* y) {
+  for (int i=0; i<n; ++i) {
+    y[i] = a[i]*a[i];
+  }
+}
+
+void CPUDriver::eltwise_sqrt(const int n, const float* a, float* y) {
+  for (int i=0; i<n; ++i) {
+    y[i] = sqrt(a[i]);
+  }
+}
+
+void CPUDriver::add_scalar(const int N, const float alpha, float* Y) {
+  for (int i = 0; i < N; ++i) {
+    Y[i] += alpha;
+  }
+}
+
+void CPUDriver::eltwise_div(const int n, const float* a, const float* b,
+    float* y) {
+  for (int i=0; i<n; ++i) {
+    y[i] = a[i]/b[i];
+  }
+  // vsDiv(n, a, b, y);
+}
+
+
+float CPUDriver::dot_prod(const int n, const float* x, const float* y) {
+  return cblas_sdot(n, x, 1, y, 1);
 }
 
 template<FUNC_STRANSFORM func>

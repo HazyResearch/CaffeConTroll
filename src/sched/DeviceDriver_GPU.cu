@@ -11,6 +11,12 @@
 
 #include "../kernels/include.hxx"
 
+// From the wonderful Caffe
+#define CUDA_KERNEL_LOOP(i, n) \
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x; \
+       i < (n); \
+       i += blockDim.x * gridDim.x)
+
 
 __host__ __device__ float __sconstant_initialize_helper(float a, void * arg){
   return *((float*)arg);
@@ -348,6 +354,129 @@ void GPUDriver::maxpool_backward(DeviceMemoryPointer * dst, DeviceMemoryPointer 
     }
 }
 
+__global__ void _avepool_forward_helper(float* output, const float* input,
+    const struct _pool_forward_arg_helper args){
+    
+    const int iR = args.iR;
+    const int iC = args.iC;
+    const int oR = args.oR;
+    const int oC = args.oC;
+    const int D  = args.D;
+    const int B  = args.B;
+    const int k  = args.kernel_size;
+    const int s  = args.stride;
+
+    const int index = blockIdx.x * blockDim.x + threadIdx.x;
+  
+    if (index < D*B*oR*oC) {
+      int pw = index % oC;
+      const int tmp1 = index / oC;
+      const int tmp2 = tmp1  / oR;
+      int ph = tmp1 % oR;
+      int c =  tmp2 % D;
+      int n =  tmp2 / D;
+      int hstart = ph * s;// - p;
+      int wstart = pw * s;// - p;
+      int hend = min(hstart + k, iR);
+      int wend = min(wstart + k, iC);
+      // hstart = max(hstart, 0);   // only needed if pad
+      // wstart = max(wstart, 0);
+      output[index] = 0.;
+      input += (n * D + c) * iR * iC;
+      for (int h = hstart; h < hend; ++h) {
+        for (int w = wstart; w < wend; ++w) {
+          output[index] += input[h * iC + w];
+        }
+      }
+      output[index] /= float( (hend - hstart) * (wend - wstart) );
+    }
+}
+
+void GPUDriver::avepool_forward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _pool_forward_arg_helper args){
+    
+    set_device();
+    const int oR = args.oR;
+    const int oC = args.oC;
+    const int D  = args.D;
+    const int B  = args.B;
+    const int num_parallel_threads = D*B*oR*oC;
+    const int numBlocks = (num_parallel_threads + threadsPerBlock - 1) / threadsPerBlock;
+    cudaGetLastError(); // Reset the error status to success
+    // SHADJIS TODO: Add loop to call multiple times if necessary
+    _avepool_forward_helper<<<numBlocks, threadsPerBlock>>>((float*) dst->ptr, (float *) src->ptr, args);
+    err = cudaGetLastError();
+    if(err != cudaSuccess){
+      std::cout << "Fail to launch _avepool_forward_helper"  << "  ERROR " << err << std::endl;
+      assert(false);
+    }
+}
+
+__global__ void _avepool_backward_helper(float* output, const float* input,
+    const struct _pool_backward_arg_helper args){
+    
+    const int iR = args.iR;
+    const int iC = args.iC;
+    const int oR = args.oR;
+    const int oC = args.oC;
+    const int D  = args.D;
+    const int B  = args.B;
+    const int k  = args.kernel_size;
+    const int s  = args.stride;
+
+    const int index = blockIdx.x * blockDim.x + threadIdx.x;
+  
+    if (index < D*B*iR*iC) {
+      // find out the local index
+      // find out the local offset
+      const int tmp1 = index / iC;
+      const int tmp2 = tmp1  / iR;
+      int w = index % iC;
+      int h = tmp1 % iR;
+      int c = tmp2 % D;
+      int n = tmp2 / D;
+      int phstart = (h < k) ? 0 : (h - k) / s + 1;
+      int phend = min(h / s + 1, oR);
+      int pwstart = (w < k) ? 0 : (w - k) / s + 1;
+      int pwend = min(w / s + 1, oC);
+      float gradient = 0;
+      int offset = (n * D + c) * oR * oC;
+      input += offset;
+      for (int ph = phstart; ph < phend; ++ph) {
+        for (int pw = pwstart; pw < pwend; ++pw) {
+          // figure out the pooling size
+          int hstart = ph * s;
+          int wstart = pw * s;
+          int hend = min(hstart + k, iR);
+          int wend = min(wstart + k, iC);
+          int pool_size = (hend - hstart) * (wend - wstart);
+          gradient += input[ph * oC + pw] / pool_size;
+        }
+      }
+      output[index] = gradient;
+    }
+}
+
+void GPUDriver::avepool_backward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _pool_backward_arg_helper args){
+    
+    set_device();
+    const int iR = args.iR;
+    const int iC = args.iC;
+    const int D  = args.D;
+    const int B  = args.B;
+    const int num_parallel_threads = D*B*iR*iC;
+    const int numBlocks = (num_parallel_threads + threadsPerBlock - 1) / threadsPerBlock;
+    cudaGetLastError(); // Reset the error status to success
+    // SHADJIS TODO: Add loop to call multiple times if necessary
+    _avepool_backward_helper<<<numBlocks, threadsPerBlock>>>((float *) src->ptr, (float*) dst->ptr, args);
+    err = cudaGetLastError();
+    if(err != cudaSuccess){
+      std::cout << "Fail to launch _avepool_backward_helper"  << "  ERROR " << err << std::endl;
+      assert(false);
+    }
+}
+
 __global__ void _lrn_forward_helper_fill_scale(const float* in,
     const struct _lrn_forward_arg_helper args, const struct _lrn_forward_normalize_arg_helper args2){
 
@@ -626,6 +755,9 @@ void GPUDriver::forward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * sr
     // But that handles each batch serially
     // Another way is to just add the bias term to the correct index
     // SHADJIS TODO: I'll try that first and switch to BLAS if slow
+    // Edit: this is minor but I think for FC only 1 GEMM is needed whereas for 
+    // conv/scale many GEMM are needed. However, only 1 call to this function is needed
+    // (though it is still called B times in conv)
     
 	cudaGetLastError(); // Reset the error status to success
 	int n_elements =  fmap_size * depth * batch_size;
@@ -639,6 +771,7 @@ void GPUDriver::forward_bias(DeviceMemoryPointer * dst, DeviceMemoryPointer * sr
 	}
 	for (int call_counter=0; call_counter < num_calls; ++call_counter)
 	{
+        // SHADJIS TODO: Shouldn't call_counter be used below???
 		_fw_bias_helper<<<blocksPerGrid, threadsPerBlock>>>((float*) dst->ptr /*bias*/, (float*) src->ptr /*output*/,
             fmap_size, depth, batch_size);
 		err = cudaGetLastError();
@@ -875,7 +1008,7 @@ void GPUDriver::math_saxpby(const float alpha, DeviceMemoryPointer * X, const fl
 
 }
 
-void GPUDriver::math_saxpby(const int nElements, const float alpha, float * X, const float beta, float * Y) const { 
+void GPUDriver::math_saxpby(const int nElements, const float alpha, const float * X, const float beta, float * Y) const { 
   set_device();
   cublasStatus_t status = cublasSscal(handle, nElements, &beta, Y, 1);
   assert(status == CUBLAS_STATUS_SUCCESS);
@@ -1026,6 +1159,17 @@ void GPUDriver::sgemm_new(const CBLAS_TRANSPOSE TA, const CBLAS_TRANSPOSE TB,
     assert(status == CUBLAS_STATUS_SUCCESS);
 }
 
+float GPUDriver::dot_prod(const int n, const float* x, const float* y) {
+  
+    set_device();
+    float result;
+    status = cublasSdot(handle, n, x, 1, y, 1, &result);
+    err = cudaGetLastError();
+    assert(err == cudaSuccess);
+    assert(status == CUBLAS_STATUS_SUCCESS);
+    return result;
+}
+
 void GPUDriver::sgemv(const CBLAS_TRANSPOSE TA, const int M, const int N,
     const float alpha, const float * pA, const float * px, const float beta,
     float * py) {
@@ -1040,6 +1184,290 @@ void GPUDriver::sgemv(const CBLAS_TRANSPOSE TA, const int M, const int N,
     err = cudaGetLastError();
     assert(err == cudaSuccess);
     assert(status == CUBLAS_STATUS_SUCCESS);
+}
+
+__global__ void sscale_kernel(const int total_num, const float alpha, const float * x, float * y){
+  const int i = blockDim.x * blockIdx.x + threadIdx.x;
+  if ( i < total_num ) {
+    y[i] = x[i] * alpha;
+  }
+}
+void GPUDriver::sscale(const int n, const float alpha, const float *x, float* y){
+
+    set_device();
+	cudaGetLastError(); // Reset the error status to success
+	int blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
+	const int num_calls = (blocksPerGrid + max_cuda_blocks - 1) / max_cuda_blocks;
+	if (num_calls > 1) {
+		blocksPerGrid = max_cuda_blocks;
+	}
+	for (int call_counter=0; call_counter < num_calls; ++call_counter)
+	{
+        const int offset = call_counter*blocksPerGrid*threadsPerBlock;
+		sscale_kernel<<<blocksPerGrid, threadsPerBlock>>>(n, alpha, x + offset, y + offset);
+		err = cudaGetLastError();
+		if(err != cudaSuccess){
+			std::cout << "Fail to launch sscale_kernel" << "  ERROR " << err << std::endl;
+			assert(false);
+		}
+	}
+	err = cudaGetLastError();
+	assert(err == cudaSuccess);
+
+}
+
+__global__ void sscale_inplace_kernel(const int total_num, const float alpha, float * y){
+  const int i = blockDim.x * blockIdx.x + threadIdx.x;
+  if ( i < total_num ) {
+    y[i] *= alpha;
+  }
+}
+void GPUDriver::sscale_inplace(const int n, const float alpha, float* y){
+
+    set_device();
+	cudaGetLastError(); // Reset the error status to success
+	int blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
+	const int num_calls = (blocksPerGrid + max_cuda_blocks - 1) / max_cuda_blocks;
+	if (num_calls > 1) {
+		blocksPerGrid = max_cuda_blocks;
+	}
+	for (int call_counter=0; call_counter < num_calls; ++call_counter)
+	{
+        const int offset = call_counter*blocksPerGrid*threadsPerBlock;
+		sscale_inplace_kernel<<<blocksPerGrid, threadsPerBlock>>>(n, alpha, y + offset);
+		err = cudaGetLastError();
+		if(err != cudaSuccess){
+			std::cout << "Fail to launch sscale_inplace_kernel" << "  ERROR " << err << std::endl;
+			assert(false);
+		}
+	}
+	err = cudaGetLastError();
+	assert(err == cudaSuccess);
+
+}
+
+__global__ void eltwise_mul_kernel(const int n, const float* const a, const float* const b, float* y){
+  const int i = blockDim.x * blockIdx.x + threadIdx.x;
+  if (i < n) {
+    y[i] = a[i] * b[i];
+  }
+}
+void GPUDriver::eltwise_mul(const int n, const float* const a, const float* const b, float* y){
+
+    set_device();
+	cudaGetLastError(); // Reset the error status to success
+	int blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
+	const int num_calls = (blocksPerGrid + max_cuda_blocks - 1) / max_cuda_blocks;
+	if (num_calls > 1) {
+		blocksPerGrid = max_cuda_blocks;
+	}
+	for (int call_counter=0; call_counter < num_calls; ++call_counter)
+	{
+        const int offset = call_counter*blocksPerGrid*threadsPerBlock;
+		eltwise_mul_kernel<<<blocksPerGrid, threadsPerBlock>>>(n, a + offset, b + offset, y + offset);
+		err = cudaGetLastError();
+		if(err != cudaSuccess){
+			std::cout << "Fail to launch eltwise_mul_kernel" << "  ERROR " << err << std::endl;
+			assert(false);
+		}
+	}
+	err = cudaGetLastError();
+	assert(err == cudaSuccess);
+
+}
+
+__global__ void eltwise_div_kernel(const int n, const float* const a, const float* const b, float* y){
+  const int i = blockDim.x * blockIdx.x + threadIdx.x;
+  if (i < n) {
+    y[i] = a[i] / b[i];
+  }
+}
+void GPUDriver::eltwise_div(const int n, const float* const a, const float* const b, float* y){
+
+    set_device();
+	cudaGetLastError(); // Reset the error status to success
+	int blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
+	const int num_calls = (blocksPerGrid + max_cuda_blocks - 1) / max_cuda_blocks;
+	if (num_calls > 1) {
+		blocksPerGrid = max_cuda_blocks;
+	}
+	for (int call_counter=0; call_counter < num_calls; ++call_counter)
+	{
+        const int offset = call_counter*blocksPerGrid*threadsPerBlock;
+		eltwise_div_kernel<<<blocksPerGrid, threadsPerBlock>>>(n, a + offset, b + offset, y + offset);
+		err = cudaGetLastError();
+		if(err != cudaSuccess){
+			std::cout << "Fail to launch eltwise_div_kernel" << "  ERROR " << err << std::endl;
+			assert(false);
+		}
+	}
+	err = cudaGetLastError();
+	assert(err == cudaSuccess);
+
+}
+
+__global__ void eltwise_powx_kernel(const int n, const float* a, const float b, float* y){
+  const int i = blockDim.x * blockIdx.x + threadIdx.x;
+  if (i < n) {
+    y[i] = pow(a[i], b);
+  }
+}
+void GPUDriver::eltwise_powx(const int n, const float* a, const float b, float* y){
+
+    set_device();
+	cudaGetLastError(); // Reset the error status to success
+	int blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
+	const int num_calls = (blocksPerGrid + max_cuda_blocks - 1) / max_cuda_blocks;
+	if (num_calls > 1) {
+		blocksPerGrid = max_cuda_blocks;
+	}
+	for (int call_counter=0; call_counter < num_calls; ++call_counter)
+	{
+        const int offset = call_counter*blocksPerGrid*threadsPerBlock;
+		eltwise_powx_kernel<<<blocksPerGrid, threadsPerBlock>>>(n, a + offset, b, y + offset);
+		err = cudaGetLastError();
+		if(err != cudaSuccess){
+			std::cout << "Fail to launch eltwise_powx_kernel" << "  ERROR " << err << std::endl;
+			assert(false);
+		}
+	}
+	err = cudaGetLastError();
+	assert(err == cudaSuccess);
+
+}
+
+__global__ void eltwise_pow2_kernel(const int n, const float* a, float* y){
+  const int i = blockDim.x * blockIdx.x + threadIdx.x;
+  if (i < n) {
+    y[i] = a[i] * a[i];
+  }
+}
+void GPUDriver::eltwise_pow2(const int n, const float* a, float* y){
+
+    set_device();
+	cudaGetLastError(); // Reset the error status to success
+	int blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
+	const int num_calls = (blocksPerGrid + max_cuda_blocks - 1) / max_cuda_blocks;
+	if (num_calls > 1) {
+		blocksPerGrid = max_cuda_blocks;
+	}
+	for (int call_counter=0; call_counter < num_calls; ++call_counter)
+	{
+        const int offset = call_counter*blocksPerGrid*threadsPerBlock;
+		eltwise_pow2_kernel<<<blocksPerGrid, threadsPerBlock>>>(n, a + offset, y + offset);
+		err = cudaGetLastError();
+		if(err != cudaSuccess){
+			std::cout << "Fail to launch eltwise_pow2_kernel" << "  ERROR " << err << std::endl;
+			assert(false);
+		}
+	}
+	err = cudaGetLastError();
+	assert(err == cudaSuccess);
+
+}
+
+__global__ void eltwise_sqrt_kernel(const int n, const float* a, float* y){
+  const int i = blockDim.x * blockIdx.x + threadIdx.x;
+  if (i < n) {
+    y[i] = sqrt(a[i]);
+  }
+}
+void GPUDriver::eltwise_sqrt(const int n, const float* a, float* y){
+
+    set_device();
+	cudaGetLastError(); // Reset the error status to success
+	int blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
+	const int num_calls = (blocksPerGrid + max_cuda_blocks - 1) / max_cuda_blocks;
+	if (num_calls > 1) {
+		blocksPerGrid = max_cuda_blocks;
+	}
+	for (int call_counter=0; call_counter < num_calls; ++call_counter)
+	{
+        const int offset = call_counter*blocksPerGrid*threadsPerBlock;
+		eltwise_sqrt_kernel<<<blocksPerGrid, threadsPerBlock>>>(n, a + offset, y + offset);
+		err = cudaGetLastError();
+		if(err != cudaSuccess){
+			std::cout << "Fail to launch eltwise_sqrt_kernel" << "  ERROR " << err << std::endl;
+			assert(false);
+		}
+	}
+	err = cudaGetLastError();
+	assert(err == cudaSuccess);
+
+}
+
+__global__ void add_scalar_kernel(const int n, const float alpha, float* y){
+  const int i = blockDim.x * blockIdx.x + threadIdx.x;
+  if (i < n) {
+    y[i] += alpha;
+  }
+}
+void GPUDriver::add_scalar(const int n, const float alpha, float* y){
+
+    set_device();
+	cudaGetLastError(); // Reset the error status to success
+	int blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
+	const int num_calls = (blocksPerGrid + max_cuda_blocks - 1) / max_cuda_blocks;
+	if (num_calls > 1) {
+		blocksPerGrid = max_cuda_blocks;
+	}
+	for (int call_counter=0; call_counter < num_calls; ++call_counter)
+	{
+        const int offset = call_counter*blocksPerGrid*threadsPerBlock;
+		add_scalar_kernel<<<blocksPerGrid, threadsPerBlock>>>(n, alpha, y + offset);
+		err = cudaGetLastError();
+		if(err != cudaSuccess){
+			std::cout << "Fail to launch add_scalar_kernel" << "  ERROR " << err << std::endl;
+			assert(false);
+		}
+	}
+	err = cudaGetLastError();
+	assert(err == cudaSuccess);
+
+}
+
+__global__ void ScaleBiasForward(const int n, const float* in,
+    const float* scale, const float* bias,
+    const int scale_dim, const int inner_dim, float* out) {
+  CUDA_KERNEL_LOOP(index, n) {
+    const int scale_index = (index / inner_dim) % scale_dim;
+    out[index] = in[index] * scale[scale_index] + bias[scale_index];
+  }
+}
+void GPUDriver::forward_scale_and_bias(const int count, const float * bottom_data, const float * scale_data,
+        const float * bias_data, const int scale_dim_, const int inner_dim_, float * top_data) {
+
+    set_device();
+	cudaGetLastError(); // Reset the error status to success
+	int blocksPerGrid = (count + threadsPerBlock - 1) / threadsPerBlock;
+    
+    // SHADJIS TODO: In the above functions, I'd now calculate num_calls and then call the kernel multiple times 
+    // if the number of threads/blocks exceeds the max # per call. However, it might be faster if instead the 
+    // loop is inside the kernel, i.e. rather than call the kernel multiple times, have a loop inside the kernel.
+    ScaleBiasForward<<<blocksPerGrid, threadsPerBlock>>>(count, bottom_data, scale_data, bias_data, scale_dim_, inner_dim_, top_data);
+    err = cudaGetLastError();
+	assert(err == cudaSuccess);
+
+}
+
+__global__ void ScaleForward(const int n, const float* in,
+    const float* scale,
+    const int scale_dim, const int inner_dim, float* out) {
+  CUDA_KERNEL_LOOP(index, n) {
+    const int scale_index = (index / inner_dim) % scale_dim;
+    out[index] = in[index] * scale[scale_index];
+  }
+}
+void GPUDriver::forward_scale(const int count, const float * bottom_data, const float * scale_data,
+        const int scale_dim_, const int inner_dim_, float * top_data) {
+
+    set_device();
+	cudaGetLastError(); // Reset the error status to success
+	int blocksPerGrid = (count + threadsPerBlock - 1) / threadsPerBlock;
+    ScaleForward<<<blocksPerGrid, threadsPerBlock>>>(count, bottom_data, scale_data, scale_dim_, inner_dim_, top_data);
+    err = cudaGetLastError();
+	assert(err == cudaSuccess);
+
 }
 
 template<FUNC_SREDUCE func>

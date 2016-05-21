@@ -57,6 +57,10 @@ public:
     const struct _pool_forward_arg_helper args);
   void maxpool_backward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
     const struct _pool_backward_arg_helper args);
+  void avepool_forward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _pool_forward_arg_helper args);
+  void avepool_backward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _pool_backward_arg_helper args);
   void lrn_forward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
     const struct _lrn_forward_arg_helper args, const struct _lrn_forward_normalize_arg_helper args2);
   void lrn_backward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
@@ -78,7 +82,7 @@ public:
   void math_saxpby(const float alpha, DeviceMemoryPointer * X, const float beta, DeviceMemoryPointer * Y) const;
 
   void math_saxpy(const int nElements, const float alpha, float * X, float * Y) const;
-  void math_saxpby(const int nElements, const float alpha, float * X, const float beta, float * Y) const;
+  void math_saxpby(const int nElements, const float alpha, const float * X, const float beta, float * Y) const;
 
   void sgemm(const enum CBLAS_ORDER order, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB,
         int M, int N, int K, float alpha, float * pA, int LDA, float * pB, int LDB,
@@ -89,6 +93,21 @@ public:
         const float * pA, const float * pB, const float beta, float * pC);
   void sgemv(const CBLAS_TRANSPOSE TA, const int M, const int N, const float alpha,
         const float * pA, const float * px, const float beta, float * py);
+
+  void sscale(const int n, const float alpha, const float *x, float* y);
+  void sscale_inplace(const int n, const float alpha, float *x);
+  void eltwise_mul(const int n, const float* const a, const float* const b, float* y);
+  void eltwise_powx(const int n, const float* a, const float b, float* y);
+  void eltwise_pow2(const int n, const float* a, float* y);
+  void eltwise_sqrt(const int n, const float* a, float* y);
+  void add_scalar(const int N, const float alpha, float* Y);
+  void eltwise_div(const int n, const float* a, const float* b, float* y);
+  float dot_prod(const int n, const float* x, const float* y);
+  
+  void forward_scale_and_bias(const int count, const float * bottom_data, const float * scale_data,
+        const float * bias_data, const int scale_dim_, const int inner_dim_, float * top_data);
+  void forward_scale(const int count, const float * bottom_data, const float * scale_data,
+        const int scale_dim_, const int inner_dim_, float * top_data);
 
   template<FUNC_STRANSFORM func>
   void sapply(DeviceMemoryPointer * dst, DeviceMemoryPointer * const func_curry);

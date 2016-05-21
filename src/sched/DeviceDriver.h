@@ -155,6 +155,15 @@ public:
     assert(false);
   }
   
+  void avepool_forward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _pool_forward_arg_helper args) {
+    assert(false);
+  }
+  void avepool_backward(DeviceMemoryPointer * dst, DeviceMemoryPointer * src, 
+    const struct _pool_backward_arg_helper args) {
+    assert(false);
+  }
+  
 
   //virtual void pmap2d_write_coalesce();
 
@@ -204,6 +213,21 @@ public:
         const float * pA, const float * pB, const float beta, float * pC);
   void sgemv(const CBLAS_TRANSPOSE TA, const int M, const int N, const float alpha,
         const float * pA, const float * px, const float beta, float * py);
+
+  virtual void sscale(const int n, const float alpha, const float *x, float* y) { assert(false); }
+  virtual void sscale_inplace(const int n, const float alpha, float *x) { assert(false); }
+  virtual void eltwise_mul(const int n, const float* const a, const float* const b, float* y) { assert(false); }
+  virtual void eltwise_powx(const int n, const float* a, const float b, float* y) { assert(false); }
+  virtual void eltwise_pow2(const int n, const float* a, float* y) { assert(false); }
+  virtual void eltwise_sqrt(const int n, const float* a, float* y) { assert(false); }
+  virtual void add_scalar(const int N, const float alpha, float* Y) { assert(false); } // Should call this eltwise_add_inplace?
+  virtual void eltwise_div(const int n, const float* a, const float* b, float* y) { assert(false); }
+  virtual float dot_prod(const int n, const float* x, const float* y) { assert(false); return 0.; }
+
+  void forward_scale_and_bias(const int count, const float * bottom_data, const float * scale_data,
+        const float * bias_data, const int scale_dim_, const int inner_dim_, float * top_data);
+  void forward_scale(const int count, const float * bottom_data, const float * scale_data,
+        const int scale_dim_, const int inner_dim_, float * top_data);
 
   template<FUNC_SREDUCE func>
   void selementwise_reduce2(DeviceMemoryPointer *dst, DeviceMemoryPointer *src1,
