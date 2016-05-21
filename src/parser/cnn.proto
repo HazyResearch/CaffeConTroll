@@ -104,7 +104,7 @@ message SolverParameter {
   optional int32 display = 6 [default = 10];
   optional int32 test_display = 35 [default = 10000];
   // Display the cost averaged over the last average_cost iterations
-  // optional int32 average_loss = 33 [default = 1];
+  optional int32 average_loss = 33 [default = 1];
   optional int32 max_iter = 7; // the maximum number of iterations
   optional string lr_policy = 8; // The learning rate decay policy.
   optional float gamma = 9; // The parameter to compute the learning rate.
@@ -238,6 +238,7 @@ message LayerParameter {
 
   // optional AccuracyParameter accuracy_param = 27;
   // optional ArgMaxParameter argmax_param = 23;
+  optional BatchNormParameter batch_norm_param = 139;
   // optional ConcatParameter concat_param = 9;
   // optional ContrastiveLossParameter contrastive_loss_param = 40;
   optional ConvolutionParameter convolution_param = 10;
@@ -266,6 +267,7 @@ message LayerParameter {
   // optional PowerParameter power_param = 21;
   optional ReLUParameter relu_param = 30;
   // optional SigmoidParameter sigmoid_param = 38;
+  optional ScaleParameter scale_param = 142;
   optional SoftmaxParameter softmax_param = 39;
   // optional SliceParameter slice_param = 31;
   // optional TanHParameter tanh_param = 37;
@@ -308,6 +310,18 @@ message ArgMaxParameter {
   // If true produce pairs (argmax, maxval)
   optional bool out_max_val = 1 [default = false];
   optional uint32 top_k = 2 [default = 1];
+}
+
+message BatchNormParameter {
+  // If false, accumulate global mean/variance values via a moving average. If
+  // true, use those accumulated values instead of computing mean/variance
+  // across the batch.
+  optional bool use_global_stats = 1;
+  // How much does the moving average decay each iteration?
+  optional float moving_average_fraction = 2 [default = .999];
+  // Small value to add to the variance estimate so that we don't divide by
+  // zero.
+  optional float eps = 3 [default = 1e-5];
 }
 
 // Message that stores parameters used by ConcatLayer
@@ -521,7 +535,7 @@ message MVNParameter {
 message PoolingParameter {
   enum PoolMethod {
     MAX = 0;
-    // AVE = 1;
+    AVE = 1;
     // STOCHASTIC = 2;
   }
   optional PoolMethod pool = 1 [default = MAX]; // The pooling method
@@ -566,6 +580,29 @@ message ReLUParameter {
     CUDNN = 2;
   }
   optional Engine engine = 2 [default = DEFAULT];
+}
+
+// This is a simpler than caffe's and is just meant for batch normalization scaling
+// In particular it only supports learning gamma/beta, not multiple input batches,
+// and also learns those parameters per-channel, i.e. with axis = 1 and num_axes = 1.
+message ScaleParameter {
+
+  // num_axes: the number of axes of the input (bottom[0]) covered by the scale
+  // parameter, or -1 to cover all axes of bottom[0] starting from `axis`.
+  // Set num_axes := 0, to multiply with a zero-axis Blob: a scalar.
+  optional int32 axis = 1 [default = 1];
+  optional int32 num_axes = 2 [default = 1];
+
+  // The initialization for the learned scale parameter.
+  // Default is the unit (1) initialization, resulting in the ScaleLayer
+  // initially performing the identity operation.
+  optional FillerParameter filler = 3;
+
+  // Whether to also learn a bias (equivalent to a ScaleLayer+BiasLayer, but
+  // may be more efficient).  Initialized with bias_filler (defaults to 0).
+  // Note: bias_term defaults to true unlike caffe (for batch norm)
+  optional bool bias_term = 4 [default = true];
+  optional FillerParameter bias_filler = 5;
 }
 
 // Message that stores parameters used by SigmoidLayer
