@@ -353,7 +353,7 @@ class DeepNet {
     // Read in the models of all bridges from a file
     static void read_model_from_file(BridgeVector & bridges, const string model_file) {
       FILE * pFile;
-      pFile = fopen (model_file.c_str(), "rb");
+      pFile = fopen (model_file.c_str(), "rb"); // SHADJIS TODO: if (!pFile') error
       LogicalCubeFloat * model;
       LogicalCubeFloat * bias;
       for (auto bridge = bridges.begin(); bridge != bridges.end(); ++bridge) {
@@ -2007,12 +2007,12 @@ class DeepNet {
                   //  }
                   //}
                   bridge_name_to_info[new_split_layer_name].layer = new_layer;
-                  bridge_name_to_info[new_split_layer_name].pbridge = bottom_info.pbridge;
-                  bridge_name_to_info[new_split_layer_name].GPU_batch_sizes = bottom_info.GPU_batch_sizes;
-                  bridge_name_to_info[new_split_layer_name].num_partitions_CPU = bottom_info.num_partitions_CPU;
-                  bridge_name_to_info[new_split_layer_name].gpu_to_device_id_map = bottom_info.gpu_to_device_id_map;
-                  bridge_name_to_info[new_split_layer_name].data_cubes_higher = bottom_info.data_cubes_higher;
-                  bridge_name_to_info[new_split_layer_name].grad_cubes_higher = bottom_info.grad_cubes_higher;
+                  bridge_name_to_info[new_split_layer_name].pbridge = NULL;//bottom_info.pbridge;
+                  //bridge_name_to_info[new_split_layer_name].GPU_batch_sizes = bottom_info.GPU_batch_sizes;
+                  //bridge_name_to_info[new_split_layer_name].num_partitions_CPU = bottom_info.num_partitions_CPU;
+                  //bridge_name_to_info[new_split_layer_name].gpu_to_device_id_map = bottom_info.gpu_to_device_id_map;
+                  //bridge_name_to_info[new_split_layer_name].data_cubes_higher = bottom_info.data_cubes_higher;
+                  //bridge_name_to_info[new_split_layer_name].grad_cubes_higher = bottom_info.grad_cubes_higher;
                   // ----------End of Scheduler Update --------------
                 }
                 new_bridge->name = "SPLIT_" + input_name_to_split;    // This name is arbitrary and does not matter

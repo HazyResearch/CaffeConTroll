@@ -70,10 +70,13 @@ void BatchNormBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>:
 
   report_forward_last_transfer.reset();
 
+  // If this is a GPU bridge, init cuBLAS (does nothing on CPU)
+  p_driver->init_thread();
+  
   ////////////////////////////////////////////////////////////////////////////////
   
   PROFILE_ONLY(Timer t; Timer t_inner; float seconds;)
-  
+
   bool use_global_stats_ = !DeepNetConfig::train();  // global in test only
   if (has_use_global_stats) {
     use_global_stats_ = use_global_stats_force;
@@ -206,6 +209,9 @@ void BatchNormBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>:
         
   ////////////////////////////////////////////////////////////////////////////////
 
+  // If this is a GPU bridge, destroy cuBLAS (does nothing on CPU)
+  p_driver->destroy_thread();
+  
   report_forward_last_transfer.end();
   report_forward_history.aggregate(report_forward_last_transfer);
 }
@@ -220,6 +226,9 @@ void BatchNormBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>:
 
   report_backward_updateweight_last_transfer.reset();
 
+  // If this is a GPU bridge, init cuBLAS (does nothing on CPU)
+  p_driver->init_thread();
+  
   ////////////////////////////////////////////////////////////////////////////////
 
   PROFILE_ONLY(Timer t; Timer t_inner; float seconds;)
@@ -229,9 +238,6 @@ void BatchNormBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>:
     use_global_stats_ = use_global_stats_force;
   }
   
-  DeviceMemoryPointer * input = input_g_cube->get_device_pointer(p_driver);
-  p_driver->sconstant_initialize(input, DataType(0.));
-
   PROFILE_ONLY(seconds = t_inner.elapsed(); std::cout << "    1:  " << seconds << "\n"; t_inner.restart();)
 
   const float* output_grad;
@@ -342,6 +348,9 @@ void BatchNormBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>:
   PROFILE_ONLY(seconds = t.elapsed(); std::cout << "Bw Total:  " << seconds << "\n";)
         
   ////////////////////////////////////////////////////////////////////////////////
+
+  // If this is a GPU bridge, destroy cuBLAS (does nothing on CPU)
+  p_driver->destroy_thread();
 
   report_backward_updateweight_last_transfer.end();
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
