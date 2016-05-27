@@ -136,6 +136,9 @@ void ScaleBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::for
 
   report_forward_last_transfer.reset();
 
+  // If this is a GPU bridge, init cuBLAS (does nothing on CPU)
+  p_driver->init_thread();
+  
   ////////////////////////////////////////////////////////////////////////////////
   PROFILE_ONLY(p_driver->device_sync(); Timer t;)
   
@@ -208,6 +211,9 @@ void ScaleBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::for
   PROFILE_ONLY(p_driver->device_sync(); float seconds = t.elapsed(); std::cout << "  Fw Scale        " << seconds << "\n";)
   ////////////////////////////////////////////////////////////////////////////////
 
+  // If this is a GPU bridge, destroy cuBLAS (does nothing on CPU)
+  p_driver->destroy_thread();
+
   report_forward_last_transfer.end();
   report_forward_history.aggregate(report_forward_last_transfer);
 }
@@ -222,6 +228,9 @@ void ScaleBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::bac
   
   report_backward_updateweight_last_transfer.reset();
 
+  // If this is a GPU bridge, init cuBLAS (does nothing on CPU)
+  p_driver->init_thread();
+  
   ////////////////////////////////////////////////////////////////////////////////
   PROFILE_ONLY(p_driver->device_sync(); Timer t;)
     
@@ -330,6 +339,9 @@ void ScaleBridge<DataType, Layout_CRDB, DataType, Layout_CRDB, DriverClass>::bac
   PROFILE_ONLY(p_driver->device_sync(); float seconds = t.elapsed(); std::cout << "  Bw Scale        " << seconds << "\n";)
   ////////////////////////////////////////////////////////////////////////////////
 
+  // If this is a GPU bridge, destroy cuBLAS (does nothing on CPU)
+  p_driver->destroy_thread();
+  
   report_backward_updateweight_last_transfer.end();
   report_backward_updateweight_history.aggregate(report_backward_updateweight_last_transfer);
 }
