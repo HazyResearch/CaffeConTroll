@@ -1,0 +1,19 @@
+net: "benchmark/train_val/resnet_train.prototxt"
+#test_iter: 100
+#test_interval: 200000
+base_lr: 0.00005
+lr_policy: "fixed"
+#lr_policy: "step"
+#gamma: 0.82
+#stepsize: 1500
+display: 1
+average_loss: 1
+max_iter: 200000
+momentum: 0.9
+weight_decay: 0.0001
+# snapshot: 10000
+# snapshot_prefix: "models/bvlc_alexnet/caffe_alexnet_train"
+#solver_mode: CPU
+snapshot_after_train: false
+regularization_type: "L2"
+random_seed: 0
