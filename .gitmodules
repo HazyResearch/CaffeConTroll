@@ -1,3 +1,3 @@
 [submodule "snapshot-parser"]
 	path = snapshot-parser
-	url = git@github.com:HazyResearch/snapshot-parser.git
+	url = https://github.com/HazyResearch/snapshot-parser.git
