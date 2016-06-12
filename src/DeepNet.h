@@ -323,6 +323,8 @@ class DeepNet {
           }
         }
         fclose(pFile);
+
+        std::cout << "Read snapshot " << base_filename << std::endl;
     }
 
     // Write the models of all bridges to a file
@@ -968,6 +970,7 @@ class DeepNet {
       
       CPUDriver * const driver = new CPUDriver(); // SHADJIS TODO: delete this later or put on stack
       unsigned int hw_concurrency = get_hw_concurrency();
+      unsigned int nphysical_cores = std::max(int(1), int(hw_concurrency/2));
       assert(hw_concurrency > 0);
       
       // Create maps which map layer names to important info for those layers
@@ -1161,7 +1164,7 @@ class DeepNet {
               // Create the new bridge
               new_bridge = new ParallelizedBridge<DataType_SFFloat, FullyConnectedBridge>
                        // using hw_concurrency / 2 since GEMM faster with #physical
-                       (bottom_info.layer, new_layer, &layer_param, &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), hw_concurrency/2,
+                       (bottom_info.layer, new_layer, &layer_param, &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), nphysical_cores,
                        bottom_info.num_partitions_CPU, bottom_info.GPU_batch_sizes, bottom_info.gpu_to_device_id_map, bottom_info.data_cubes_higher, bottom_info.grad_cubes_higher,
                        share_input_output_layer);
             
@@ -1315,7 +1318,7 @@ class DeepNet {
                 // means that the drivers' internal class variables will be shared. Currently drivers have no variables but they may later.
                 new_bridge = new ParallelizedBridge<DataType_SFFloat, FullyConnectedBridge>
                          // using hw_concurrency / 2 since GEMM faster with #physical
-                         (split_output_layers[i], new_layer, layer_param_tmp, &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), hw_concurrency/2,
+                         (split_output_layers[i], new_layer, layer_param_tmp, &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), nphysical_cores,
                          empty_layer_info.num_partitions_CPU, empty_layer_info.GPU_batch_sizes, empty_layer_info.gpu_to_device_id_map, empty_layer_info.data_cubes_higher, empty_layer_info.grad_cubes_higher,
                          share_input_output_layer);
 
@@ -1562,7 +1565,7 @@ class DeepNet {
             // Then can do something similar for ReLU, etc.
             new_bridge = new ParallelizedBridge<DataType_SFFloat, DropoutBridge>(bottom_info.layer, new_layer, &layer_param,
                        // &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), 1,
-                       &solver_param, driver, min<size_t>(4, corpus.mini_batch_size), 1,
+                       &solver_param, driver, min<size_t>(std::min(int(hw_concurrency), 4), corpus.mini_batch_size), 1,
                        bottom_info.num_partitions_CPU, bottom_info.GPU_batch_sizes, bottom_info.gpu_to_device_id_map, bottom_info.data_cubes_higher, bottom_info.grad_cubes_higher,
                        share_input_output_layer);
             
@@ -1773,7 +1776,7 @@ class DeepNet {
 
             // Create the new bridge
             new_bridge = new ParallelizedBridge<DataType_SFFloat, BatchNormBridge>(bottom_info.layer, new_layer, &layer_param,
-                       &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), hw_concurrency/2,
+                       &solver_param, driver, min<size_t>(1, corpus.mini_batch_size), nphysical_cores,
                        bottom_info.num_partitions_CPU, bottom_info.GPU_batch_sizes, bottom_info.gpu_to_device_id_map, bottom_info.data_cubes_higher, bottom_info.grad_cubes_higher,
                        share_input_output_layer);
             
