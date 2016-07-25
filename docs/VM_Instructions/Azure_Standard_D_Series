@@ -4,7 +4,7 @@ To setup CcT on an Azure Ubuntu D-Series VM for the first time, run the script
 
 Only run this once. Once this is run, the VM will be set up and the following commands can be used:
 
-> export LD_LIBRARY_PATH=/home/azureuser/CaffeConTroll/externals/OpenBLAS-0.2.14/:$LD_LIBRARY_PATH
+> export LD_LIBRARY_PATH=/home/$USER/CaffeConTroll/externals/OpenBLAS-0.2.14/:$LD_LIBRARY_PATH
 > cd CaffeConTroll/
 
 Run CCT (already compiled)
