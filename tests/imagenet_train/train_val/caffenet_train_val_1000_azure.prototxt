@@ -8,13 +8,13 @@ layer {
   top: "data"
   top: "label"
   data_param {
-    source: "/home/azureuser/data/ilsvrc12_train_1000_lmdb"
+    source: "../data/ilsvrc12_train_1000_lmdb"
     backend: LMDB
     batch_size: 256
   }
   transform_param {
     crop_size: 227
-    mean_file: "/home/azureuser/CaffeConTroll-master/tests/imagenet_train/imagenet_mean.binaryproto"
+    mean_file: "./tests/imagenet_train/imagenet_mean.binaryproto"
     mirror: true
   }
   include: { phase: TRAIN }
@@ -25,13 +25,13 @@ layer {
   top: "data"
   top: "label"
   data_param {
-    source: "/home/azureuser/data/ilsvrc12_train_1000_lmdb"
+    source: "../data/ilsvrc12_train_1000_lmdb"
     backend: LMDB
     batch_size: 40
   }
   transform_param {
     crop_size: 227
-    mean_file: "/home/azureuser/CaffeConTroll-master/tests/imagenet_train/imagenet_mean.binaryproto"
+    mean_file: "./tests/imagenet_train/imagenet_mean.binaryproto"
     mirror: false
   }
   include: { phase: TEST }
